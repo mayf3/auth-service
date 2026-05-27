@@ -6,6 +6,7 @@ import { prisma } from '../lib/prisma.js';
 import { asyncHandler } from '../utils/async-handler.js';
 import { HttpError } from '../utils/http-error.js';
 import { signAccessToken, signRefreshToken, verifyRefreshToken, authRequired, generatePassword } from '../middleware/auth.js';
+import { revokeRefreshToken, isRefreshTokenRevoked } from '../middleware/token-rotation.js';
 import { loginSchema, tokenLoginSchema, registerSchema, changePasswordSchema, refreshTokenSchema } from '../schemas/auth.js';
 import { env } from '../config/env.js';
 
@@ -20,7 +21,7 @@ function toSafeUser(user: {
   internalRole?: string | null;
   okrRole?: string | null;
   agentId?: string | null;
-  }): Express.AuthUser {
+}): Express.AuthUser {
   return {
     id: user.id,
     name: user.name,
@@ -109,7 +110,11 @@ authRouter.post(
 
     const agentId = agentPayload.sub || agentPayload.agentId || '';
     const agentName = body.name || agentPayload.name || agentId;
-    const agentRole = body.role || agentPayload.role || 'agent';
+    // Only allow non-privileged roles for agent auto-creation
+    const allowedAgentRoles = ['agent', 'requester', 'developer'] as const;
+    const agentRole = allowedAgentRoles.includes((body.role || agentPayload.role) as any)
+      ? (body.role || agentPayload.role)
+      : 'agent';
 
     if (!agentId) {
       throw new HttpError(400, 'Token 缺少 agentId/sub 字段');
@@ -123,7 +128,7 @@ authRouter.post(
     });
 
     if (!user) {
-      // Auto-create agent user
+      // Auto-create agent user (non-privileged role only)
       const randomPwd = generatePassword();
       const hashedPassword = await bcrypt.hash(randomPwd, 10);
       user = await prisma.user.create({
@@ -136,7 +141,7 @@ authRouter.post(
         },
       });
     } else {
-      // Update last login
+      // Update name on login
       await prisma.user.update({
         where: { id: user.id },
         data: { name: agentName },
@@ -157,6 +162,7 @@ authRouter.post(
 
 // ---------------------------------------------------------------------------
 // POST /api/auth/register — User registration
+// SECURITY: role is ALWAYS forced to 'requester' — admin/cto_agent not allowed
 // ---------------------------------------------------------------------------
 authRouter.post(
   '/register',
@@ -171,12 +177,13 @@ authRouter.post(
     const plainPassword = body.password || generatePassword();
     const hashedPassword = await bcrypt.hash(plainPassword, 10);
 
+    // SECURITY: Force role to 'requester' — never trust client input for role
     const user = await prisma.user.create({
       data: {
         name: body.name,
         email: body.email,
         password: hashedPassword,
-        role: body.role,
+        role: 'requester',
       },
       select: {
         id: true, name: true, email: true, role: true,
@@ -198,18 +205,24 @@ authRouter.post(
 );
 
 // ---------------------------------------------------------------------------
-// POST /api/auth/refresh — Refresh tokens
+// POST /api/auth/refresh — Refresh tokens with rotation
+// SECURITY: Old refresh token is revoked after use (rotation)
 // ---------------------------------------------------------------------------
 authRouter.post(
   '/refresh',
   asyncHandler(async (req, res) => {
     const { body } = refreshTokenSchema.parse({ body: req.body });
 
-    let payload: { sub: string };
+    let payload: { sub: string; jti?: string };
     try {
-      payload = verifyRefreshToken(body.refreshToken);
+      payload = verifyRefreshToken(body.refreshToken) as typeof payload;
     } catch {
       throw new HttpError(401, 'Refresh token 已失效，请重新登录');
+    }
+
+    // SECURITY: Check if this refresh token has already been used (rotation)
+    if (payload.jti && isRefreshTokenRevoked(payload.jti)) {
+      throw new HttpError(401, 'Refresh token 已被使用，请重新登录');
     }
 
     const user = await prisma.user.findUnique({
@@ -222,6 +235,11 @@ authRouter.post(
 
     if (!user) {
       throw new HttpError(401, '用户不存在或已被禁用');
+    }
+
+    // SECURITY: Revoke the old refresh token
+    if (payload.jti) {
+      revokeRefreshToken(payload.jti);
     }
 
     const safeUser = toSafeUser(user);

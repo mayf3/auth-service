@@ -15,12 +15,12 @@ export const tokenLoginSchema = z.object({
   }),
 });
 
+// Registration — role is ALWAYS forced to 'requester', admin/cto_agent not allowed
 export const registerSchema = z.object({
   body: z.object({
     name: z.string().min(1).max(50),
     email: z.string().email(),
-    password: z.string().min(6).max(100).optional(),
-    role: z.enum(['admin', 'requester', 'developer', 'agent', 'cto_agent']).default('requester'),
+    password: z.string().min(8, '密码至少 8 位').max(100).optional(),
     inviteCode: z.string().optional(),
   }),
 });
@@ -28,7 +28,7 @@ export const registerSchema = z.object({
 export const changePasswordSchema = z.object({
   body: z.object({
     oldPassword: z.string().min(1),
-    newPassword: z.string().min(6).max(100),
+    newPassword: z.string().min(8, '新密码至少 8 位').max(100),
   }),
 });
 

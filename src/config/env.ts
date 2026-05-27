@@ -1,5 +1,15 @@
 import dotenv from 'dotenv';
+import crypto from 'node:crypto';
 dotenv.config();
+
+function getOrDeriveSecret(primary: string | undefined, fallback: string, label: string): string {
+  if (primary && primary !== fallback) return primary;
+  // Derive a deterministic but different secret from the fallback
+  return crypto.createHash('sha256').update(fallback + ':' + label).digest('hex');
+}
+
+const rawJwtSecret = process.env.JWT_SECRET ?? '';
+const rawRefreshSecret = process.env.JWT_REFRESH_SECRET ?? '';
 
 export const env = {
   NODE_ENV: process.env.NODE_ENV ?? 'development',
@@ -8,9 +18,13 @@ export const env = {
   // Database — connects to ADC's PostgreSQL
   DATABASE_URL: process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/agent_dev_center',
 
-  // JWT — unified secret from /opt/.sso-env
-  JWT_SECRET: process.env.JWT_SECRET ?? '',
-  JWT_REFRESH_SECRET: process.env.JWT_REFRESH_SECRET ?? process.env.JWT_SECRET ?? '',
+  // JWT — access token secret
+  JWT_SECRET: rawJwtSecret,
+
+  // JWT — refresh token secret (MUST differ from access secret)
+  // If not explicitly set, derive a different key from JWT_SECRET
+  JWT_REFRESH_SECRET: getOrDeriveSecret(rawRefreshSecret, rawJwtSecret, 'refresh'),
+
   JWT_EXPIRES_IN: process.env.JWT_EXPIRES_IN ?? '7d',
   JWT_REFRESH_EXPIRES_IN: process.env.JWT_REFRESH_EXPIRES_IN ?? '30d',
 
@@ -24,6 +38,14 @@ export const env = {
 
   // Agent Token Secret (for token-login)
   AGENT_TOKEN_SECRET: process.env.AGENT_TOKEN_SECRET ?? process.env.JWT_SECRET_SSO ?? '',
+
+  // CORS — comma-separated allowed origins
+  CORS_ORIGINS: (process.env.CORS_ORIGINS ?? 'http://localhost:4000,http://localhost:3458,http://localhost:4001').split(',').map(s => s.trim()),
+
+  // Rate limiting
+  RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS ?? '900000', 10),   // 15 min
+  RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS ?? '20', 10),  // 20 requests per window
+  RATE_LIMIT_LOGIN_MAX_FAILS: parseInt(process.env.RATE_LIMIT_LOGIN_MAX_FAILS ?? '5', 10), // 5 fails per 15 min
 } as const;
 
 // Validate required secrets
