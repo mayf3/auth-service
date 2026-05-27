@@ -3,7 +3,7 @@ dotenv.config();
 
 export const env = {
   NODE_ENV: process.env.NODE_ENV ?? 'development',
-  PORT: parseInt(process.env.PORT ?? '3001', 10),
+  PORT: parseInt(process.env.PORT ?? '4001', 10),
 
   // Database — connects to ADC's PostgreSQL
   DATABASE_URL: process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/agent_dev_center',

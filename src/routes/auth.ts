@@ -20,8 +20,7 @@ function toSafeUser(user: {
   internalRole?: string | null;
   okrRole?: string | null;
   agentId?: string | null;
-  mustChangePassword?: boolean;
-}): Express.AuthUser & { mustChangePassword?: boolean } {
+  }): Express.AuthUser {
   return {
     id: user.id,
     name: user.name,
@@ -30,7 +29,6 @@ function toSafeUser(user: {
     internalRole: user.internalRole,
     okrRole: user.okrRole,
     agentId: user.agentId,
-    ...(user.mustChangePassword !== undefined ? { mustChangePassword: user.mustChangePassword } : {}),
   };
 }
 
@@ -88,7 +86,7 @@ authRouter.post(
     res.json({
       accessToken,
       refreshToken,
-      user: { ...safeUser, mustChangePassword: user.mustChangePassword },
+      user: safeUser,
     });
   }),
 );
@@ -135,7 +133,6 @@ authRouter.post(
           password: hashedPassword,
           role: (agentRole as any) || 'agent',
           agentId,
-          mustChangePassword: false,
         },
       });
     } else {
@@ -180,11 +177,10 @@ authRouter.post(
         email: body.email,
         password: hashedPassword,
         role: body.role,
-        mustChangePassword: true,
       },
       select: {
         id: true, name: true, email: true, role: true,
-        internalRole: true, okrRole: true, agentId: true, mustChangePassword: true,
+        internalRole: true, okrRole: true, agentId: true,
       },
     });
 
@@ -195,7 +191,7 @@ authRouter.post(
     res.status(201).json({
       accessToken,
       refreshToken,
-      user: { ...safeUser, mustChangePassword: user.mustChangePassword },
+      user: safeUser,
       generatedPassword: body.password ? undefined : plainPassword,
     });
   }),
@@ -220,7 +216,7 @@ authRouter.post(
       where: { id: payload.sub },
       select: {
         id: true, name: true, email: true, role: true,
-        internalRole: true, okrRole: true, agentId: true, mustChangePassword: true,
+        internalRole: true, okrRole: true, agentId: true,
       },
     });
 
@@ -228,14 +224,14 @@ authRouter.post(
       throw new HttpError(401, '用户不存在或已被禁用');
     }
 
-    const { mustChangePassword, ...safeUser } = user;
-    const accessToken = signAccessToken(safeUser as Express.AuthUser);
-    const newRefreshToken = signRefreshToken(safeUser as Express.AuthUser);
+    const safeUser = toSafeUser(user);
+    const accessToken = signAccessToken(safeUser);
+    const newRefreshToken = signRefreshToken(safeUser);
 
     res.json({
       accessToken,
       refreshToken: newRefreshToken,
-      user: { ...toSafeUser(safeUser), mustChangePassword },
+      user: safeUser,
     });
   }),
 );
@@ -251,7 +247,7 @@ authRouter.get(
       where: { id: req.user!.id },
       select: {
         id: true, name: true, email: true, role: true,
-        internalRole: true, okrRole: true, agentId: true, mustChangePassword: true,
+        internalRole: true, okrRole: true, agentId: true,
       },
     });
 
@@ -286,7 +282,7 @@ authRouter.post(
     const hashedPassword = await bcrypt.hash(body.newPassword, 10);
     await prisma.user.update({
       where: { id: userId },
-      data: { password: hashedPassword, mustChangePassword: false },
+      data: { password: hashedPassword },
     });
 
     res.json({ message: '密码修改成功' });
