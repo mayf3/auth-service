@@ -1,0 +1,23 @@
+services:
+  auth-service:
+    build: .
+    image: auth-service:prod
+    container_name: auth-service
+    restart: unless-stopped
+    env_file:
+      - /opt/.sso-env
+    environment:
+      NODE_ENV: production
+      PORT: 3001
+      DATABASE_URL: postgresql://postgres:postgres@host.docker.internal:5432/agent_dev_center
+      JWT_ISSUER: auth-service
+      JWT_AUDIENCE: unified-platform
+      AGENT_TOKEN_SECRET: ${SSO_JWT_SECRET:-${JWT_SECRET}}
+    ports:
+      - "127.0.0.1:3001:3001"
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://127.0.0.1:3001/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3

@@ -1,0 +1,58 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  admin
+  requester
+  developer
+  agent
+  cto_agent
+}
+
+enum InternalRole {
+  cto
+  pm
+  developer
+  tester
+  security
+  ops
+  qa
+}
+
+enum OkrRole {
+  okr_admin
+  okr_member
+  okr_viewer
+}
+
+model User {
+  id        String   @id @default(uuid()) @db.Uuid
+  name      String
+  email     String   @unique
+  password  String
+  role          UserRole    @default(requester)
+  internalRole  InternalRole?  @map("internal_role")
+  okrRole       OkrRole       @default(okr_member) @map("okr_role")
+  agentId     String?  @unique
+  permissions Json     @default("[]")
+  bio        String?
+  phone       String?
+  avatar      String?
+  department  String?
+  title       String?
+  employeeNo      String?    @unique
+  onboardingDate  DateTime?
+  managerId       String?    @db.Uuid
+  mustChangePassword Boolean @default(true) @map("must_change_password")
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("users")
+}
