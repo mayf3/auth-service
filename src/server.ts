@@ -5,6 +5,7 @@ import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { env } from './config/env.js';
 import { authRouter } from './routes/auth.js';
+import { serviceRegistrationRouter } from './routes/service-registrations.js';
 import { HttpError } from './utils/http-error.js';
 import { prisma } from './lib/prisma.js';
 import { startCleanup } from './middleware/token-rotation.js';
@@ -84,6 +85,10 @@ app.use('/api/auth/token-login', authLimiter);
 app.use('/api/auth/refresh', authLimiter);
 
 app.use('/api/auth', authRouter);
+
+// ─── Service Registration (SSO Gateway) ──────────────────────────────────
+
+app.use('/api/services', serviceRegistrationRouter);
 
 // ─── Error Handler ──────────────────────────────────────────────────────
 

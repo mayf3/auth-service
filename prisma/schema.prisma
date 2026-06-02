@@ -32,25 +32,48 @@ enum OkrRole {
 }
 
 model User {
-  id        String   @id @default(uuid()) @db.Uuid
-  name      String
-  email     String   @unique
-  password  String
-  role          UserRole    @default(requester)
-  internalRole  InternalRole?  @map("internal_role")
-  okrRole       OkrRole       @default(okr_member) @map("okr_role")
-  agentId     String?  @unique
-  permissions Json     @default("[]")
-  bio        String?
-  phone       String?
-  avatar      String?
-  department  String?
-  title       String?
-  employeeNo      String?    @unique
-  onboardingDate  DateTime?
-  managerId       String?    @db.Uuid
+  id             String        @id @default(uuid()) @db.Uuid
+  name           String
+  email          String        @unique
+  password       String
+  role           UserRole      @default(requester)
+  internalRole   InternalRole? @map("internal_role")
+  okrRole        OkrRole       @default(okr_member) @map("okr_role")
+  agentId        String?       @unique
+  permissions    Json          @default("[]")
+  bio            String?
+  phone          String?
+  avatar         String?
+  department     String?
+  title          String?
+  employeeNo     String?       @unique
+  onboardingDate DateTime?
+  managerId      String?       @db.Uuid
 
   createdAt DateTime @default(now())
 
   @@map("users")
+}
+
+// ─── Service Registration (SSO Gateway) ──────────────────────────────────
+
+enum ServiceRegistrationStatus {
+  active
+  inactive
+}
+
+model ServiceRegistration {
+  id           String                    @id @default(uuid()) @db.Uuid
+  serviceName  String                    @unique @map("service_name") // e.g. "agent-dev-center", "llm-wiki"
+  displayName  String                    @map("display_name") // e.g. "ADC 需求平台"
+  jwtAudience  String                    @unique @map("jwt_audience") // e.g. "adc-api", "llm-wiki-api"
+  allowedRoles String                    @default("admin,developer,agent,requester") @map("allowed_roles") // comma-separated
+  serviceUrl   String?                   @map("service_url") // e.g. "http://localhost:4000"
+  apiPublicKey String?                   @map("api_public_key") // future: per-service key
+  status       ServiceRegistrationStatus @default(active)
+  description  String?
+  createdAt    DateTime                  @default(now()) @map("created_at")
+  updatedAt    DateTime                  @updatedAt @map("updated_at")
+
+  @@map("service_registrations")
 }

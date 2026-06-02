@@ -46,8 +46,9 @@ export function generatePassword(): string {
 
 /**
  * Sign access token — unified format for all platforms
+ * @param audience Optional target audience for service-specific tokens
  */
-export function signAccessToken(user: Express.AuthUser): string {
+export function signAccessToken(user: Express.AuthUser, audience?: string): string {
   const now = Math.floor(Date.now() / 1000);
   const jti = `${user.id}-${now}-${crypto.randomBytes(4).toString('hex')}`;
 
@@ -58,7 +59,7 @@ export function signAccessToken(user: Express.AuthUser): string {
       role: user.role,
       internalRole: user.internalRole ?? undefined,
       iss: JWT_ISSUER,
-      aud: JWT_AUDIENCE,
+      aud: audience || JWT_AUDIENCE,
       jti,
       type: 'access',
       version: JWT_VERSION,
