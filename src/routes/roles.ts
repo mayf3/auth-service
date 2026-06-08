@@ -48,7 +48,7 @@ rolesRouter.get('/', (_req, res) => {
 // ─── GET /api/roles/:scope — 按 scope 列出角色 ────────────────────────
 
 rolesRouter.get('/:scope', (req, res) => {
-  const { scope } = req.params;
+  const scope = String(req.params.scope);
   const roleMap: Record<string, typeof PLATFORM_ROLES> = {
     platform: PLATFORM_ROLES,
     internal: INTERNAL_ROLES,
@@ -65,7 +65,7 @@ rolesRouter.get('/:scope', (req, res) => {
 // ─── GET /api/roles/:scope/users — 列出指定角色的用户 ─────────────────
 
 rolesRouter.get('/:scope/users', asyncHandler(async (req, res) => {
-  const { scope } = req.params;
+  const scope = String(req.params.scope);
   const roleName = req.query.role as string;
 
   if (!roleName) {
@@ -104,7 +104,7 @@ rolesRouter.get('/:scope/users', asyncHandler(async (req, res) => {
 // ─── PATCH /api/users/:id/role — 更新用户角色 ─────────────────────────
 
 rolesRouter.patch('/users/:id/role', requireRoles('admin'), asyncHandler(async (req, res) => {
-  const { id } = req.params;
+  const id = String(req.params.id);
   const { role, internalRole, okrRole } = req.body as {
     role?: string;
     internalRole?: string;
