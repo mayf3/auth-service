@@ -5,16 +5,24 @@ import { HttpError } from '../utils/http-error.js';
 import { authRequired } from '../middleware/auth.js';
 
 export const usersRouter = Router();
+
+// All user queries must be authenticated
 usersRouter.use(authRequired);
 
+// Helper: safe user object
 function toSafeUser(user: any) {
   return {
-    id: user.id, name: user.name, email: user.email, role: user.role,
-    internalRole: user.internalRole ?? null, okrRole: user.okrRole ?? null, agentId: user.agentId ?? null,
+    id: user.id,
+    name: user.name,
+    email: user.email,
+    role: user.role,
+    internalRole: user.internalRole ?? null,
+    okrRole: user.okrRole ?? null,
+    agentId: user.agentId ?? null,
   };
 }
 
-// GET /api/users — List users
+// GET /api/users — List users (with optional filters)
 usersRouter.get('/', asyncHandler(async (req, res) => {
   const role = req.query.role as string | undefined;
   const search = req.query.search as string | undefined;
@@ -32,17 +40,29 @@ usersRouter.get('/', asyncHandler(async (req, res) => {
     ];
   }
 
-  const users = await prisma.user.findMany({ where, take: limit, orderBy: { name: 'asc' },
-    select: { id: true, name: true, email: true, role: true, internalRole: true, okrRole: true, agentId: true },
+  const users = await prisma.user.findMany({
+    where,
+    take: limit,
+    orderBy: { name: 'asc' },
+    select: {
+      id: true, name: true, email: true, role: true,
+      internalRole: true, okrRole: true, agentId: true,
+    },
   });
+
   res.json({ success: true, data: users.map(toSafeUser) });
 }));
 
 // GET /api/users/:id — Get user by ID
 usersRouter.get('/:id', asyncHandler(async (req, res) => {
-  const user = await prisma.user.findUnique({ where: { id: String(req.params.id) },
-    select: { id: true, name: true, email: true, role: true, internalRole: true, okrRole: true, agentId: true },
+  const user = await prisma.user.findUnique({
+    where: { id: String(req.params.id) },
+    select: {
+      id: true, name: true, email: true, role: true,
+      internalRole: true, okrRole: true, agentId: true,
+    },
   });
+
   if (!user) throw new HttpError(404, '用户不存在');
   res.json({ success: true, data: toSafeUser(user) });
 }));
