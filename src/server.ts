@@ -6,6 +6,8 @@ import rateLimit from 'express-rate-limit';
 import { env } from './config/env.js';
 import { authRouter } from './routes/auth.js';
 import { serviceRegistrationRouter } from './routes/service-registrations.js';
+import { usersRouter } from './routes/users.js';
+import { rolesRouter } from './routes/roles.js';
 import { HttpError } from './utils/http-error.js';
 import { prisma } from './lib/prisma.js';
 import { startCleanup } from './middleware/token-rotation.js';
@@ -89,6 +91,8 @@ app.use('/api/auth', authRouter);
 // ─── Service Registration (SSO Gateway) ──────────────────────────────────
 
 app.use('/api/services', serviceRegistrationRouter);
+app.use('/api/users', usersRouter);
+app.use('/api/roles', rolesRouter);
 
 // ─── Error Handler ──────────────────────────────────────────────────────
 
