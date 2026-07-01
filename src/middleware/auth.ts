@@ -58,6 +58,7 @@ export function signAccessToken(user: Express.AuthUser, audience?: string): stri
       name: user.name,
       role: user.role,
       internalRole: user.internalRole ?? undefined,
+      okrRole: user.okrRole ?? undefined,
       iss: JWT_ISSUER,
       aud: audience || JWT_AUDIENCE,
       jti,
