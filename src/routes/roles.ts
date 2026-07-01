@@ -30,7 +30,9 @@ const INTERNAL_ROLES = [
 ];
 
 const OKR_ROLES = [
+  { name: 'okr_owner', label: 'OKR 负责人', scope: 'okr', description: 'OKR 目标负责人' },
   { name: 'okr_admin', label: 'OKR 管理员', scope: 'okr', description: 'OKR 系统管理员' },
+  { name: 'okr_reviewer', label: 'OKR 评审', scope: 'okr', description: 'OKR 评审人' },
   { name: 'okr_member', label: 'OKR 成员', scope: 'okr', description: 'OKR 普通成员' },
   { name: 'okr_viewer', label: 'OKR 观察者', scope: 'okr', description: 'OKR 只读访问' },
 ];
