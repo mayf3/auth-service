@@ -17,14 +17,14 @@ void describe('OKR role constant values', async () => {
   // Read the source file directly to verify role definitions
   const fs = await import('fs');
   const source = fs.readFileSync('src/routes/roles.ts', 'utf-8');
-  
+
   // Verify all five roles are defined
   assert.ok(source.includes("'okr_owner'"), 'okr_owner must be defined');
   assert.ok(source.includes("'okr_admin'"), 'okr_admin must be defined');
   assert.ok(source.includes("'okr_reviewer'"), 'okr_reviewer must be defined');
   assert.ok(source.includes("'okr_member'"), 'okr_member must be defined');
   assert.ok(source.includes("'okr_viewer'"), 'okr_viewer must be defined (compat)');
-  
+
   // Verify okr_owner comes first
   const ownerIdx = source.indexOf("'okr_owner'");
   const adminIdx = source.indexOf("'okr_admin'");
