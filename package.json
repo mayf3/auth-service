@@ -6,7 +6,14 @@
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "start": "node dist/src/server.js",
-    "dev": "tsx watch src/server.ts"
+    "dev": "tsx watch src/server.ts",
+    "test": "tsx --test tests/identity/*.test.ts",
+    "test:identity": "tsx --test tests/identity/resolver.test.ts tests/identity/env-file.test.ts",
+    "test:smoke": "node tests/identity/forum-identity-smoke.mjs",
+    "agent-identity": "tsx src/cli/agent-identity.ts"
+  },
+  "bin": {
+    "agent-identity": "dist/src/cli/agent-identity.js"
   },
   "dependencies": {
     "@prisma/client": "^6.0.0",

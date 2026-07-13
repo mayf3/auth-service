@@ -1,0 +1,42 @@
+{
+  "agents": {
+    "list": [
+      {
+        "id": "blog-agent",
+        "name": "博客写作",
+        "workspace": "/tmp/agent-identity-test/blog-agent",
+        "enabled": true
+      },
+      {
+        "id": "3d-print-agent",
+        "name": "3D打印专家",
+        "workspace": "/tmp/agent-identity-test/3d-print-agent",
+        "enabled": true
+      },
+      {
+        "id": "-invalid-agent-id",
+        "name": "无效ID（连字符开头）",
+        "workspace": "/tmp/agent-identity-test/invalid-agent",
+        "enabled": true
+      },
+      {
+        "id": "research-agent",
+        "name": "深度研究员",
+        "workspace": "/tmp/agent-identity-test/research-agent",
+        "enabled": true
+      },
+      {
+        "id": "disabled-agent",
+        "name": "已禁用",
+        "workspace": "/tmp/agent-identity-test/disabled-agent",
+        "enabled": false
+      },
+      {
+        "id": "conflict-agent",
+        "name": "冲突测试",
+        "workspace": "/tmp/agent-identity-test/blog-agent",
+        "enabled": true
+      }
+    ]
+  }
+}
