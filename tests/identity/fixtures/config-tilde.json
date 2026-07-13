@@ -1,0 +1,12 @@
+{
+  "agents": {
+    "list": [
+      {
+        "id": "tilde-agent",
+        "name": "波浪号路径测试",
+        "workspace": "~/.openclaw/groups/workspace-tilde-test",
+        "enabled": true
+      }
+    ]
+  }
+}

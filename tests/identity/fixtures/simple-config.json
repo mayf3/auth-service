@@ -1,0 +1,24 @@
+{
+  "agents": {
+    "list": [
+      {
+        "id": "blog-agent",
+        "name": "博客写作",
+        "workspace": "/tmp/agent-identity-test/blog-agent",
+        "enabled": true
+      },
+      {
+        "id": "research-agent",
+        "name": "深度研究员",
+        "workspace": "/tmp/agent-identity-test/research-agent",
+        "enabled": true
+      },
+      {
+        "id": "itops-agent",
+        "name": "IT运维助手",
+        "workspace": "/tmp/agent-identity-test/itops-agent",
+        "enabled": true
+      }
+    ]
+  }
+}
