@@ -8,6 +8,7 @@ import { authRouter } from './routes/auth.js';
 import { serviceRegistrationRouter } from './routes/service-registrations.js';
 import { usersRouter } from './routes/users.js';
 import { rolesRouter } from './routes/roles.js';
+import { oauthRouter } from './routes/oauth.js';
 import { HttpError } from './utils/http-error.js';
 import { prisma } from './lib/prisma.js';
 import { startCleanup } from './middleware/token-rotation.js';
@@ -39,6 +40,7 @@ app.use(cors({
 }));
 
 app.use(express.json());
+app.use(express.urlencoded({ extended: false }));
 
 // ─── Rate Limiting ──────────────────────────────────────────────────────
 
@@ -87,6 +89,10 @@ app.use('/api/auth/token-login', authLimiter);
 app.use('/api/auth/refresh', authLimiter);
 
 app.use('/api/auth', authRouter);
+
+// ─── OAuth 2.0 Token Endpoint ──────────────────────────────────────────────
+
+app.use('/oauth', oauthRouter);
 
 // ─── Service Registration (SSO Gateway) ──────────────────────────────────
 
