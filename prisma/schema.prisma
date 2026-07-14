@@ -54,6 +54,8 @@ model User {
 
   createdAt DateTime @default(now())
 
+  machinePrincipals MachinePrincipal[]
+
   @@map("users")
 }
 
@@ -78,4 +80,55 @@ model ServiceRegistration {
   updatedAt    DateTime                  @updatedAt @map("updated_at")
 
   @@map("service_registrations")
+}
+
+// ─── Machine Principal (Agent Machine Identity) ─────────────────────────────
+
+enum PrincipalType {
+  agent
+}
+
+enum PrincipalStatus {
+  active
+  disabled
+}
+
+enum ClientStatus {
+  active
+  revoked
+}
+
+model MachinePrincipal {
+  id            String          @id @default(uuid()) @db.Uuid
+  principalType PrincipalType   @default(agent) @map("principal_type")
+  agentId       String          @unique @map("agent_id")
+  ownerUserId   String          @map("owner_user_id") @db.Uuid
+  displayName   String?         @map("display_name")
+  status        PrincipalStatus @default(active)
+  createdAt     DateTime        @default(now()) @map("created_at")
+  updatedAt     DateTime        @updatedAt @map("updated_at")
+  disabledAt    DateTime?       @map("disabled_at")
+
+  owner     User             @relation(fields: [ownerUserId], references: [id])
+  clients   MachineClient[]
+
+  @@map("machine_principals")
+}
+
+model MachineClient {
+  id                  String       @id @default(uuid()) @db.Uuid
+  clientId            String       @unique @map("client_id")
+  machinePrincipalId  String       @map("machine_principal_id") @db.Uuid
+  secretHash          String       @map("secret_hash")
+  status              ClientStatus @default(active)
+  allowedResources    String[]     @map("allowed_resources")
+  allowedScopes       String[]     @map("allowed_scopes")
+  createdAt           DateTime     @default(now()) @map("created_at")
+  updatedAt           DateTime     @updatedAt @map("updated_at")
+  rotatedAt           DateTime?    @map("rotated_at")
+  revokedAt           DateTime?    @map("revoked_at")
+
+  principal MachinePrincipal @relation(fields: [machinePrincipalId], references: [id])
+
+  @@map("machine_clients")
 }
