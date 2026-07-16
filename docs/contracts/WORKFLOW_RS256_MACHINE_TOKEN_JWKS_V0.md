@@ -172,7 +172,42 @@ Client-not-found and wrong-secret return the same generic `invalid_client`
 - **OBO / Token Exchange (RFC 8693):** `DEFERRED_TO_LATER_PR` (PR-B). Will add
   `act`, `azp`, `token_use=workflow_obo`, 3-way scope intersection.
 
-## 17. Caller Verification Checklist (svc-workflow)
+## 17. Token Type Compatibility Matrix
+
+| Token Type | Audience | Algorithm | Canonical `sub` | `client_id` | `azp` | `act` | Status |
+|---|---|---|---|---|---|---|---|
+| Existing User Token | non-workflow | HS256 (existing path) | `User.id` | Per existing contract | Per existing contract | Absent | Released |
+| Existing Agent Token | non-workflow | HS256 (existing path) | `MachinePrincipal.id` | Present | Absent (or per existing contract) | Absent | Released |
+| **Workflow Agent Direct** | **`svc-workflow`** | **RS256** | **`MachinePrincipal.id`** | **Present** | **Absent** | **Absent** | **PR-A ✅** |
+| Workflow User Direct | `svc-workflow` | RS256 | `User.id` | TBD contract | TBD contract | Absent | Not implemented |
+| Workflow OBO | `svc-workflow` | RS256 | Delegated subject ID | ADC Client | Future PR-B | Future PR-B | Not implemented |
+
+> Rows marked **Not implemented** are documented as future scope; they must not
+> be relied upon by any caller.
+
+## 18. Document Precedence
+
+When multiple documents describe overlapping contract terms, the following
+priority order applies:
+
+| Priority | Document | Scope |
+|---|---|---|
+| 1 (highest) | `docs/contracts/WORKFLOW_RS256_MACHINE_TOKEN_JWKS_V0.md` (this contract) | PR-A direct token formal contract |
+| 2 | `ADC_SVC_WORKFLOW_OBO_JWKS_IMPLEMENTATION_CONTRACT.md` | Cross-repo contract (ADC ↔ auth-service ↔ svc-workflow) |
+| 3 | Audit & Canary reports (e.g., `*_AUDIT_REPORT.md`, `*_CONTROLLED_CANARY_REPORT.md`) | Implementation verification |
+| 4 | `AUTH_SERVICE_WORKFLOW_IDENTITY_IMPLEMENTATION_PLAN.md` | Design plan |
+| 5 | `AUTH_SERVICE_WORKFLOW_OBO_JWKS_INVESTIGATION.md` | Historical investigation (non-contract) |
+
+**Rules:**
+- A lower-priority document **must not** contradict a higher-priority document.
+- If a lower-priority document contains examples or statements that conflict
+  with a higher-priority one, the higher-priority document governs.
+- Investigation documents (§5) are explicitly **non-contract** — they capture
+  early exploration and may contain sketches superseded by later contracts.
+- PR-A implementers and future PR-B designers **must** rely on the frozen
+  formal contract (Priority 1–2), not on historical investigation drafts.
+
+## 19. Caller Verification Checklist (svc-workflow)
 
 1. Fetch `GET /.well-known/jwks.json` (respect `Cache-Control` + `ETag`).
 2. Decode the token header; require `alg=RS256` and a `kid` present in JWKS.
