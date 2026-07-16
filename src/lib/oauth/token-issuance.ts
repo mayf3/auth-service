@@ -16,6 +16,8 @@ import { verifyClientSecret } from './secret.js';
 import { signAgentAccessToken } from './token.js';
 import { auditLog } from './audit.js';
 import { validateRequestedScope } from '../../schemas/oauth.js';
+import { WORKFLOW_AUDIENCE, isWorkflowKeyringConfigured } from './workflow-keyring.js';
+import { signWorkflowAccessToken, getActiveKid } from './workflow-signer.js';
 
 // ─── Token Issuance ────────────────────────────────────────────────────────
 
@@ -140,16 +142,51 @@ export async function issueToken(params: IssueTokenParams): Promise<TokenResult>
     throw Object.assign(new Error('invalid_scope'), { statusCode: 400 });
   }
 
-  // 7. Sign token
+  // 7. Sign token — dispatch by audience.
+  //    aud=svc-workflow  → RS256 workflow signer (PR-A)
+  //    any other audience → existing HS256 signer (UNCHANGED)
   const DEFAULT_TTL = 600;
-  const token = signAgentAccessToken({
-    principalId: client.principal.id,
-    agentId: client.principal.agentId,
-    clientId: client.clientId,
-    audience: params.resource,
-    scope: validatedScope,
-    ttl: DEFAULT_TTL,
-  });
+  const isWorkflow = params.resource === WORKFLOW_AUDIENCE;
+
+  let token: string;
+  let algorithm: string;
+  let kid: string | undefined;
+  if (isWorkflow) {
+    // Workflow RS256 path — fail closed if the key ring isn't provisioned.
+    if (!isWorkflowKeyringConfigured()) {
+      auditLog({
+        timestamp: new Date().toISOString(),
+        type: 'token.failed',
+        principalId: client.principal.id,
+        agentId: client.principal.agentId,
+        clientId: client.clientId,
+        resource: params.resource,
+        scopes: validatedScope,
+        success: false,
+        error: 'workflow_keyring_not_configured',
+      });
+      throw Object.assign(new Error('invalid_grant'), { statusCode: 400 });
+    }
+    token = signWorkflowAccessToken({
+      principalId: client.principal.id,
+      agentId: client.principal.agentId,
+      clientId: client.clientId,
+      scope: validatedScope,
+      ttl: DEFAULT_TTL,
+    });
+    algorithm = 'RS256';
+    kid = getActiveKid();
+  } else {
+    token = signAgentAccessToken({
+      principalId: client.principal.id,
+      agentId: client.principal.agentId,
+      clientId: client.clientId,
+      audience: params.resource,
+      scope: validatedScope,
+      ttl: DEFAULT_TTL,
+    });
+    algorithm = 'HS256';
+  }
 
   // Decode to extract jti for audit
   const decoded = jwtDecode(token);
@@ -165,6 +202,7 @@ export async function issueToken(params: IssueTokenParams): Promise<TokenResult>
     scopes: validatedScope,
     jti,
     success: true,
+    ...(isWorkflow ? { algorithm, kid } : {}),
   });
 
   return {

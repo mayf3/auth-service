@@ -9,6 +9,7 @@ import { serviceRegistrationRouter } from './routes/service-registrations.js';
 import { usersRouter } from './routes/users.js';
 import { rolesRouter } from './routes/roles.js';
 import { oauthRouter } from './routes/oauth.js';
+import { wellKnownRouter } from './routes/well-known.js';
 import { HttpError } from './utils/http-error.js';
 import { prisma } from './lib/prisma.js';
 import { startCleanup } from './middleware/token-rotation.js';
@@ -93,6 +94,15 @@ app.use('/api/auth', authRouter);
 // ─── OAuth 2.0 Token Endpoint ──────────────────────────────────────────────
 
 app.use('/oauth', oauthRouter);
+
+// ─── JWKS — public workflow verification keys (PR-A) ───────────────────────
+// Eagerly build the key ring at startup so misconfig fails fast and the JWKS
+// snapshot is precomputed (no per-request private-key parsing).
+import { getWorkflowKeyring, isWorkflowKeyringConfigured } from './lib/oauth/workflow-keyring.js';
+if (isWorkflowKeyringConfigured()) {
+  getWorkflowKeyring(); // throws on misconfig
+}
+app.use('/.well-known', wellKnownRouter);
 
 // ─── Service Registration (SSO Gateway) ──────────────────────────────────
 

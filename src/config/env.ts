@@ -33,6 +33,20 @@ export const env = {
   JWT_AUDIENCE: process.env.JWT_AUDIENCE ?? 'unified-platform',
   JWT_VERSION: 'v1',
 
+  // ─── Workflow RS256 signer key ring (PR-A) ───────────────────────────────
+  // Optional: only required when serving aud=svc-workflow tokens. When unset,
+  // workflow issuance is rejected (see workflow-keyring.ts). All keys are parsed
+  // and validated ONCE at startup — any misconfiguration throws (fail-fast).
+  // Active key: PEM-encoded RSA private key (PKCS#8), >=2048-bit.
+  // JWT_PRIVATE_KEY takes precedence over JWT_PRIVATE_KEY_FILE.
+  JWT_PRIVATE_KEY: process.env.JWT_PRIVATE_KEY ?? '',
+  JWT_PRIVATE_KEY_FILE: process.env.JWT_PRIVATE_KEY_FILE ?? '',
+  // kid of the active signing key (format: key-v1-<YYYYMMDD>).
+  JWT_KID: process.env.JWT_KID ?? '',
+  // Previous verification-only PUBLIC keys. Newline-separated entries of the
+  // form "<kid>|<PEM>". Public only — never used to sign.
+  JWT_PREVIOUS_PUBLIC_KEYS: process.env.JWT_PREVIOUS_PUBLIC_KEYS ?? '',
+
   // Registration
   REGISTER_INVITE_CODE: process.env.REGISTER_INVITE_CODE ?? '',
 
