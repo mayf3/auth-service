@@ -20,7 +20,10 @@ export type AuditEventType =
   | 'client.rotated'
   | 'client.revoked'
   | 'token.issued'
-  | 'token.failed';
+  | 'token.failed'
+  // ─── OBO Token Exchange (PR-B) ─────────────────────────────────────────
+  | 'obo.token.issued'
+  | 'obo.token.failed';
 
 export interface AuditEvent {
   timestamp: string;
@@ -46,6 +49,25 @@ export interface AuditEvent {
   algorithm?: string;
   /** Key id used for signing (workflow tokens only). */
   kid?: string;
+  // ─── OBO Token Exchange (PR-B) ──────────────────────────────────────────
+  /** Correlation/request ID for the token exchange. */
+  requestId?: string;
+  /** Subject token's sub (the real principal being acted for). */
+  subjectSub?: string;
+  /** Subject token's principal_type. */
+  subjectPrincipalType?: string;
+  /** Subject token's jti for audit linkage. */
+  subjectJti?: string;
+  /** ADC's azp (authorized party, same as client_id). */
+  azp?: string;
+  /** ADC's act.sub (the service principal performing the exchange). */
+  actSub?: string;
+  /** Final issued scope set after intersection. */
+  issuedScopes?: string;
+  /** Output token's issued_at timestamp. */
+  issuedAt?: string;
+  /** Output token's expires_at timestamp. */
+  expiresAt?: string;
 }
 
 /**
@@ -67,7 +89,19 @@ export function auditLog(event: AuditEvent): void {
     ...(event.algorithm ? { algorithm: event.algorithm } : {}),
     ...(event.kid ? { kid: event.kid } : {}),
   };
-  console.warn(`[AUDIT] ${JSON.stringify(entry)}`);
+  // OBO-specific fields
+  const oboEntry = {
+    ...(event.requestId ? { requestId: event.requestId } : {}),
+    ...(event.subjectSub ? { subjectSub: event.subjectSub } : {}),
+    ...(event.subjectPrincipalType ? { subjectPrincipalType: event.subjectPrincipalType } : {}),
+    ...(event.subjectJti ? { subjectJti: event.subjectJti } : {}),
+    ...(event.azp ? { azp: maskClientId(event.azp) } : {}),
+    ...(event.actSub ? { actSub: event.actSub } : {}),
+    ...(event.issuedScopes ? { issuedScopes: event.issuedScopes } : {}),
+    ...(event.issuedAt ? { issuedAt: event.issuedAt } : {}),
+    ...(event.expiresAt ? { expiresAt: event.expiresAt } : {}),
+  };
+  console.warn(`[AUDIT] ${JSON.stringify({ ...entry, ...oboEntry })}`);
 }
 
 /**
