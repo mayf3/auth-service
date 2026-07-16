@@ -41,6 +41,11 @@ export interface AuditEvent {
   success: boolean;
   /** Error category (failure events only) */
   error?: string;
+  // ─── Workflow RS256 (PR-A) ──────────────────────────────────────────────
+  /** Signing algorithm used (workflow tokens only). */
+  algorithm?: string;
+  /** Key id used for signing (workflow tokens only). */
+  kid?: string;
 }
 
 /**
@@ -59,6 +64,8 @@ export function auditLog(event: AuditEvent): void {
     ...(event.jti ? { jti: event.jti } : {}),
     success: event.success,
     ...(event.error ? { error: event.error } : {}),
+    ...(event.algorithm ? { algorithm: event.algorithm } : {}),
+    ...(event.kid ? { kid: event.kid } : {}),
   };
   console.warn(`[AUDIT] ${JSON.stringify(entry)}`);
 }

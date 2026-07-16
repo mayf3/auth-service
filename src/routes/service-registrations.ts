@@ -4,6 +4,11 @@ import { prisma } from '../lib/prisma.js';
 import { asyncHandler } from '../utils/async-handler.js';
 import { HttpError } from '../utils/http-error.js';
 import { authRequired } from '../middleware/auth.js';
+import {
+  isWorkflowKeyringConfigured,
+  WORKFLOW_AUDIENCE,
+} from '../lib/oauth/workflow-keyring.js';
+import { verifyWorkflowToken } from '../lib/oauth/workflow-signer.js';
 
 export const serviceRegistrationRouter = Router();
 
@@ -200,7 +205,12 @@ serviceRegistrationRouter.get(
 );
 
 // ─── POST /verify-token — Token verification for downstream services ────
-// Accepts a JWT and optional audience, returns the verified user info
+// Accepts a JWT and optional audience, returns the verified principal.
+//
+// PR-A fix (plan §14 / task spec §十): route on token kind.
+//   - Workflow / Machine (RS256, principal_type=agent, aud=svc-workflow)
+//       → verify via RS256 keyring, look up MachinePrincipal (exists + enabled)
+//   - Human User token (HS256, no principal_type) → existing behavior unchanged
 serviceRegistrationRouter.post(
   '/verify-token',
   asyncHandler(async (req, res) => {
@@ -208,6 +218,66 @@ serviceRegistrationRouter.post(
 
     if (!token) throw new HttpError(400, 'token 必填');
 
+    const jwt = await import('jsonwebtoken');
+    const { env } = await import('../config/env.js');
+
+    // ── Detect workflow machine token by header kid + configured keyring.
+    //    Workflow tokens carry a `kid` header and are RS256-signed; HS256 agent
+    //    tokens and user tokens carry no kid. This avoids trusting the payload
+    //    (unverified) for the branch decision.
+    const header = peekTokenHeader(token);
+    const looksLikeWorkflow =
+      header?.kid !== undefined &&
+      typeof header.kid === 'string' &&
+      isWorkflowKeyringConfigured();
+
+    let payload: any;
+
+    if (looksLikeWorkflow) {
+      // RS256 workflow path — hard algorithm-confusion defense in verifyWorkflowToken.
+      try {
+        payload = verifyWorkflowToken(token);
+      } catch {
+        throw new HttpError(401, 'Token 无效或已过期');
+      }
+
+      // Machine/Agent token → look up MachinePrincipal, not User.
+      const principal = await prisma.machinePrincipal.findUnique({
+        where: { id: payload.sub },
+        select: {
+          id: true,
+          principalType: true,
+          agentId: true,
+          displayName: true,
+          status: true,
+        },
+      });
+
+      if (!principal) throw new HttpError(401, '主体不存在');
+      if (principal.status === 'disabled') {
+        throw new HttpError(403, '主体已禁用');
+      }
+
+      // Return canonical subject + non-sensitive claims. Never leak secrets,
+      // private keys, full token, or DB-internal sensitive fields.
+      res.json({
+        valid: true,
+        principal_type: principal.principalType,
+        token: {
+          sub: principal.id,
+          aud: payload.aud,
+          scope: payload.scope,
+          token_use: payload.token_use,
+          client_id: payload.client_id,
+          agent_id: principal.agentId,
+          exp: payload.exp,
+        },
+      });
+      return;
+    }
+
+    // ── Existing HS256 path (User tokens; also legacy HS256 agent tokens that
+    //    predate workflow RS256). Behavior is UNCHANGED from before PR-A.
     // If audience specified, verify the service is registered
     if (audience) {
       const service = await prisma.serviceRegistration.findFirst({
@@ -216,13 +286,6 @@ serviceRegistrationRouter.post(
       if (!service) throw new HttpError(403, `未注册的服务 audience: ${audience}`);
     }
 
-    // Verify the JWT — reuse the auth middleware's verification logic
-    // by just calling the existing authRequired indirectly
-    // For simplicity, we verify manually here
-    const jwt = await import('jsonwebtoken');
-    const { env } = await import('../config/env.js');
-
-    let payload: any;
     try {
       payload = jwt.verify(token, env.JWT_SECRET) as any;
     } catch {
@@ -272,3 +335,14 @@ serviceRegistrationRouter.post(
     });
   }),
 );
+
+/** Peek at a JWT header (unverified) to detect token kind. Never used for authz. */
+function peekTokenHeader(token: string): Record<string, unknown> | null {
+  try {
+    const parts = token.split('.');
+    if (parts.length !== 3) return null;
+    return JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf-8'));
+  } catch {
+    return null;
+  }
+}
