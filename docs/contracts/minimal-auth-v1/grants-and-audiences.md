@@ -27,12 +27,14 @@ status
 ```text
 svc-workflow
 svc-okr
-agent-forum
+svc-forum
+llm-todo
 adc-v2
-workflow-todo
 ```
 
 具体清单只有写入正式 Contract Manifest 并通过审阅后才生效。
+
+Audience 使用实际资源服务已经消费或将消费的 Wire ID，不使用仓库或产品展示名替代。`agent-forum` 是仓库/产品名，当前资源服务 Wire ID 是 `svc-forum`；`workflow-todo` 当前是调用 `svc-workflow` 的 Client，不是独立资源 Audience。若未来它拥有自己的资源服务入口，必须通过独立 CCR 注册新 Audience。
 
 Audience ID 规则：
 
@@ -64,7 +66,7 @@ Client 的三类授权必须分别记录：
 {
   "human_audience_grants": [
     "svc-okr",
-    "workflow-todo"
+    "svc-forum"
   ],
   "machine_access_grants": {
     "svc-workflow": ["workflow.read"]
@@ -127,7 +129,7 @@ Machine Client 对不同 Audience 的 Scope 必须成对保存：
 {
   "machine_access_grants": {
     "svc-workflow": ["workflow.execute", "workflow.read"],
-    "agent-forum": ["forum.read"]
+    "svc-forum": ["forum.read"]
   }
 }
 ```
