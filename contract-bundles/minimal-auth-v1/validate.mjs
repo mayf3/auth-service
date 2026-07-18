@@ -217,6 +217,7 @@ const registry = readJson('audience-registry.json');
 const freezeGates = readJson('metadata/freeze-gates.json');
 const consumerMatrix = readJson('metadata/consumer-verification-matrix.json');
 const adcScopeMap = readJson('metadata/adc-v2-scope-map.json');
+const llmTodoCandidate = readJson('metadata/llm-todo-authorization-candidate.json');
 const jwks = readJson('fixtures/jwks.json');
 const positive = readJson('fixtures/positive-token-fixtures.json');
 const negative = readJson('fixtures/negative-token-fixtures.json');
@@ -327,6 +328,19 @@ for (const route of adcScopeMap.protected_routes) {
   check(route.requested_target_scopes.every((scope) => workflowAudience?.registered_scopes.includes(scope)), `ADC Scope map: unregistered target Scope for ${route.method} ${route.path}`);
 }
 
+check(llmTodoCandidate.decision_status === 'owner_review_required', 'llm-todo matrix: unresolved decisions must remain explicit');
+check(llmTodoCandidate.matching_rule === 'most_specific_path_pattern_wins_and_any_tie_denies', 'llm-todo matrix: route matching must fail closed');
+check(llmTodoCandidate.consumer_git_sha === '7cc746240ba15161a5350bbe4c6d8fb88f41f5c6', 'llm-todo matrix: unexpected consumer SHA');
+const llmTodoAudience = audienceById.get(llmTodoCandidate.audience);
+check(Boolean(llmTodoAudience), 'llm-todo matrix: Audience missing');
+check(llmTodoCandidate.candidate_scopes.every((scope) => llmTodoAudience?.registered_scopes.includes(scope)), 'llm-todo matrix: candidate Scope is not registered');
+for (const group of llmTodoCandidate.route_groups) {
+  check(group.path_patterns.length > 0, `llm-todo matrix: empty route group ${group.id}`);
+  check(group.authentication === 'public' || group.authentication === 'public_candidate' || group.authentication === 'v1_required', `llm-todo matrix: unknown auth mode for ${group.id}`);
+  check(group.machine_scope === null || llmTodoAudience?.registered_scopes.includes(group.machine_scope), `llm-todo matrix: unregistered Scope for ${group.id}`);
+  check(group.authentication === 'v1_required' || group.machine_scope === null, `llm-todo matrix: public route cannot require Machine Scope for ${group.id}`);
+}
+
 const privateJwkFields = ['d', 'p', 'q', 'dp', 'dq', 'qi', 'oth'];
 check(Array.isArray(jwks.keys) && jwks.keys.length > 0, 'JWKS fixture has no keys');
 for (const key of jwks.keys) {
@@ -374,6 +388,7 @@ for (const relativePath of [
   'README.md', 'contract-manifest.json', 'audience-registry.json',
   'metadata/change-log.md', 'metadata/consumer-verification-matrix.json',
   'metadata/freeze-gates.json', 'metadata/adc-v2-scope-map.json',
+  'metadata/llm-todo-authorization-candidate.json',
 ]) {
   check(fs.existsSync(path.join(bundleDir, relativePath)), `missing required artifact: ${relativePath}`);
 }

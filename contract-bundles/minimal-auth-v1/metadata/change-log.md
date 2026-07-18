@@ -25,6 +25,9 @@
 - Replaced the over-broad candidate `adc.invoke` with `adc.read` and
   `adc.execute`, added a fixed-SHA route/exchange map and closed the ADC ingress
   Scope review gate.
+- Added a full llm-todo route-group authorization candidate using
+  `todo.read/write/invoke/admin`; kept its freeze gate open for explicit product
+  decisions that cannot be recovered from permissive Legacy code.
 - Corrected resource topology to `svc-forum` and `llm-todo`; retained
   `workflow-todo` as a Client, not an Audience.
 - Recorded unresolved deployment, consumer SHA and scope decisions as freeze
