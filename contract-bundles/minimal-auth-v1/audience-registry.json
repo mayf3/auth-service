@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "registry_version": "1.0.0-draft.1",
+  "registry_version": "1.0.0-draft.2",
   "status": "candidate",
   "audiences": [
     {
@@ -28,32 +28,6 @@
       "status": "candidate",
       "freeze_ready": true,
       "notes": "Human-only in the first V1 bundle; product roles stay local to svc-okr."
-    },
-    {
-      "audience_id": "svc-forum",
-      "resource_service": "svc-forum",
-      "scope_namespace": "forum",
-      "accepted_principal_types": ["user", "agent"],
-      "human_access_enabled": true,
-      "machine_access_enabled": true,
-      "delegated_access_enabled": false,
-      "registered_scopes": ["forum.read", "forum.write"],
-      "status": "candidate",
-      "freeze_ready": true,
-      "notes": "Uses the existing wire audience, not the repository name agent-forum."
-    },
-    {
-      "audience_id": "llm-todo",
-      "resource_service": "llm-todo",
-      "scope_namespace": "todo",
-      "accepted_principal_types": ["user", "agent", "service"],
-      "human_access_enabled": true,
-      "machine_access_enabled": true,
-      "delegated_access_enabled": false,
-      "registered_scopes": ["todo.admin", "todo.invoke", "todo.read", "todo.write"],
-      "status": "candidate",
-      "freeze_ready": false,
-      "notes": "Candidate matrix exists; principal types, public reads, invoke budget and admin boundaries require consumer-owner review."
     },
     {
       "audience_id": "adc-v2",

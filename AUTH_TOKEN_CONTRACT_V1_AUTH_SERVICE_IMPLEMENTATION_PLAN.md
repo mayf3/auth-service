@@ -2,7 +2,7 @@
 
 > 日期：2026-07-18
 > 对象：`auth-service` 现有主线 `18b7e0bf92a1983334b49c8b5bf0081b8ddbbc0d`
-> 合同：`contract-bundles/minimal-auth-v1/contract-manifest.json` `1.0.0-draft.1`
+> 合同：`contract-bundles/minimal-auth-v1/contract-manifest.json` `1.0.0-draft.2`
 
 ## 0. 状态和边界
 
@@ -13,14 +13,16 @@ IMPLEMENTATION_AUTHORIZED=false
 PRODUCTION_MIGRATION_AUTHORIZED=false
 ```
 
-本计划把已完成的合同、Bundle 和代码盘点映射为可实施切片，不改变当前冻结门：
+本计划把已完成的合同、Bundle 和代码盘点映射为可实施切片。实施授权只取决于
+源码 Contract Bundle Freeze：
 
-1. `metadata/freeze-gates.json` 全部关闭；
+1. `metadata/freeze-gates.json` 中 `state_domain=contract_bundle_freeze` 的门全部关闭；
 2. `contract-manifest.json` 改为 `frozen=true` 且 `implementation_authorized=true`；
 3. 冻结对象 push 后，按远程完整 SHA 再审计；
 4. 之后才允许开始下述代码切片。
 
-本计划不授权生产部署、不可逆数据库清理、V0 路由删除或消费者切换。
+生产部署和消费者迁移有独立状态，不是源码 Bundle Freeze 的前置条件。本计划不
+授权生产部署、不可逆数据库清理、V0 路由删除或消费者切换。
 
 ## 1. 现状到目标的最小差距
 
@@ -367,7 +369,7 @@ npm run test:lifecycle
 使用 production build 和临时 PostgreSQL 启动真实进程，执行：
 
 1. JWKS 和健康检查；
-2. Direct agent/service 正例及 Bundle 全部负例；
+2. Direct Agent 正例、Service 对首批 Agent-only Audience 的拒绝，以及 Bundle 全部负例；
 3. ADC source token 到 workflow delegated token；
 4. Human authorize → code → access/refresh；
 5. refresh rotation 与旧凭证 replay；
@@ -380,7 +382,7 @@ Conformance 输出机器可读 JSON，包含 commit SHA、tree SHA、bundle dige
 
 ## 6. 分阶段迁移与回滚
 
-1. **Freeze**：关闭四个 Gate，固定远程 SHA，独立审阅 PASS，冻结 Bundle。
+1. **Freeze**：关闭 Contract Bundle Freeze 域的 Gate，固定首批远程 SHA，独立审阅 PASS，冻结 Bundle；生产与 Legacy 迁移门保持独立。
 2. **A/B**：构建输入和 additive schema；仅迁移，不切流；数据库回滚为停止使用新表，不 drop。
 3. **C/D**：V1 machine 代码与测试；`v0` 默认，随后 `v1_shadow`；观察差异但不记录 raw token。
 4. **Machine Canary**：只对已批准的首批 Audience/Client 启用 `v1`；消费者先验证再切签发。
@@ -404,13 +406,19 @@ Conformance 输出机器可读 JSON，包含 commit SHA、tree SHA、bundle dige
 
 ## 8. 当前执行门
 
-本计划完成后，可执行工作已收敛到四个外部/独立决策：
+当前三个状态域必须独立报告：
 
 ```text
-GATE-REMOTE-CONSUMER-SHAS=open
-GATE-EXACT-JWKS-URL=open
-GATE-LLM-TODO-AUTHORIZATION-MATRIX=open
+CONTRACT_BUNDLE_FREEZE=DRAFT
+PRODUCTION_DEPLOYMENT=NOT_READY
+CONSUMER_MIGRATION=NOT_STARTED
+
 GATE-BUNDLE-NARROW-REVIEW=open
+GATE-EXACT-JWKS-URL=open (production_deployment only)
+GATE-REMOTE-CONSUMER-SHAS=deferred (legacy consumer_migration only)
+GATE-LLM-TODO-AUTHORIZATION-MATRIX=deferred (legacy consumer_migration only)
 ```
 
-在这些门关闭前，允许继续的仅是只读验证、修订合同/Bundle、准备迁移清单和测试骨架设计；不允许宣称 Bundle Frozen 或实施已获授权。
+只有独立 Bundle 审阅门仍阻止源码 Freeze。其余门不会阻止 Bundle Freeze，
+但在真实生产 TLS/JWKS 外部验证或对应 Legacy 消费者迁移完成前，分别不得宣称
+生产生效或消费者迁移完成。

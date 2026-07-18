@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:minimal-auth-v1:oauth:1.0.0-draft.1",
+  "$id": "urn:minimal-auth-v1:oauth:1.0.0-draft.2",
   "title": "Minimal Auth V1 OAuth Token Endpoint Objects",
   "oneOf": [
     { "$ref": "#/$defs/clientCredentialsRequest" },
@@ -35,12 +35,12 @@
         "subject_token": { "type": "string", "minLength": 1 },
         "subject_token_type": { "const": "urn:ietf:params:oauth:token-type:access_token" },
         "requested_token_type": { "const": "urn:ietf:params:oauth:token-type:access_token" },
-        "resource": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "audience": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
         "scope": { "$ref": "#/$defs/canonicalScope" }
       },
       "required": [
         "grant_type", "subject_token", "subject_token_type",
-        "requested_token_type", "resource", "scope"
+        "requested_token_type", "audience", "scope"
       ]
     },
     "authorizationCodeRequest": {

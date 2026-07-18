@@ -5,6 +5,7 @@
 ```text
 CONTRACT_ID=HUMAN_SESSION_AND_REFRESH_CONTRACT_V1
 STATUS=DRAFT_V1_MODULE
+CONTRACT_VERSION=1.0.0-draft.2
 REFRESH_CREDENTIAL_IS_JWT=false
 ROTATION_REQUIRED=true
 TOKEN_FAMILY_REUSE_DETECTION=true
@@ -297,7 +298,7 @@ refresh.family_revoked
 - Machine/OBO Endpoint 永不返回 Refresh Credential；
 - 日志和错误无 Credential 泄露。
 
-只有这些测试与 `conformance.md` 的 Access Token 测试同时通过，Human V1 才能进入 Contract Bundle Freeze。
+这些是实现后的真实进程 Conformance 门，不是首次源码 Contract Bundle Freeze 的前置条件。只有全部通过，Human V1 才能进入消费者切换或生产生效；Schema、Wire 和失败语义先由 Bundle Freeze 固定。
 
 ## 16. 非目标
 

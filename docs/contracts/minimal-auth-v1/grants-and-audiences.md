@@ -4,6 +4,7 @@
 
 ```text
 STATUS=DRAFT_V1_MODULE
+CONTRACT_VERSION=1.0.0-draft.2
 GRANT_MODEL=three_explicit_structures
 SILENT_SCOPE_DOWNSCOPING=false
 ```
@@ -22,17 +23,15 @@ accepted_principal_types
 status
 ```
 
-候选首批 Audience：
+首批 Bundle Audience：
 
 ```text
 svc-workflow
 svc-okr
-svc-forum
-llm-todo
 adc-v2
 ```
 
-具体清单只有写入正式 Contract Manifest 并通过审阅后才生效。
+`svc-forum`、`llm-todo` 和 `workflow-todo` 不属于本轮 Audience 注册表；它们保持 Legacy/未迁移，未来必须通过独立 CCR 和消费者迁移审阅进入。
 
 Audience 使用实际资源服务已经消费或将消费的 Wire ID，不使用仓库或产品展示名替代。`agent-forum` 是仓库/产品名，当前资源服务 Wire ID 是 `svc-forum`；`workflow-todo` 当前是调用 `svc-workflow` 的 Client，不是独立资源 Audience。若未来它拥有自己的资源服务入口，必须通过独立 CCR 注册新 Audience。
 
@@ -65,8 +64,7 @@ Client 的三类授权必须分别记录：
 ```json
 {
   "human_audience_grants": [
-    "svc-okr",
-    "svc-forum"
+    "svc-okr"
   ],
   "machine_access_grants": {
     "svc-workflow": ["workflow.read"]
@@ -128,8 +126,8 @@ Machine Client 对不同 Audience 的 Scope 必须成对保存：
 ```json
 {
   "machine_access_grants": {
-    "svc-workflow": ["workflow.execute", "workflow.read"],
-    "svc-forum": ["forum.read"]
+    "adc-v2": ["adc.read"],
+    "svc-workflow": ["workflow.execute", "workflow.read"]
   }
 }
 ```

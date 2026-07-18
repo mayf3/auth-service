@@ -1,5 +1,25 @@
 # Change Log
 
+## 1.0.0-draft.2 — 2026-07-18
+
+- Split lifecycle reporting into independent Contract Bundle Freeze,
+  Production Deployment and Consumer Migration states.
+- Limited the first-wave Bundle and conformance inventory to `auth-service`,
+  `svc-workflow`, `svc-okr` and `adc-v2`; retained `svc-forum`,
+  `workflow-todo` and `llm-todo` as non-blocking Legacy migration records.
+- Froze the JWKS path, RS256/`kid`, issuer/audience, cache, key-retention and
+  fail-closed behavior without inventing a production hostname or URL.
+- Restored the V0 Token Exchange request field `audience` and added explicit
+  success/rejected Exchange Audit variants with a required `result`.
+- Bound no-downscope fixtures to an independent `requested_scope` and added
+  concrete partial-grant and output-mismatch rejection cases.
+- Added public-only JWKS fixtures and real compact-JWT RS256 verification,
+  including invalid-signature, algorithm-confusion and unknown-`kid` cases.
+- Added a Contract Manifest schema plus strict Draft 2020-12 meta-schema and
+  representative instance validation for all Bundle schemas.
+- Moved real-process Human Session/Refresh conformance after implementation;
+  it no longer blocks the initial source Contract Bundle Freeze.
+
 ## 1.0.0-draft.1 — 2026-07-18
 
 - Created an explicitly non-frozen machine-executable Bundle.

@@ -1,0 +1,348 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:minimal-auth-v1:contract-manifest:1.0.0-draft.2",
+  "title": "Minimal Auth V1 Contract Manifest",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "design_id": { "const": "MINIMAL_AUTH_FOUNDATION_V1" },
+    "contract_version": { "const": "1.0.0-draft.2" },
+    "lifecycle": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "contract_bundle_freeze": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": { "enum": ["draft", "frozen"] },
+            "frozen": { "type": "boolean" },
+            "implementation_authorized": { "type": "boolean" },
+            "reviewed_source_git_commit": {
+              "oneOf": [
+                { "type": "string", "pattern": "^[0-9a-f]{40}$" },
+                { "type": "null" }
+              ]
+            }
+          },
+          "required": [
+            "status", "frozen", "implementation_authorized",
+            "reviewed_source_git_commit"
+          ]
+        },
+        "production_deployment": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": { "enum": ["not_ready", "ready", "effective"] },
+            "exact_jwks_url": {
+              "oneOf": [
+                { "type": "string", "pattern": "^https://" },
+                { "type": "null" }
+              ]
+            },
+            "production_jwks_deployment_ready": { "type": "boolean" },
+            "auth_token_contract_v1_production_effective": { "type": "boolean" }
+          },
+          "required": [
+            "status", "exact_jwks_url", "production_jwks_deployment_ready",
+            "auth_token_contract_v1_production_effective"
+          ]
+        },
+        "consumer_migration": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "status": { "enum": ["not_started", "in_progress", "complete"] },
+            "first_wave_scope": {
+              "type": "array",
+              "minItems": 1,
+              "uniqueItems": true,
+              "items": { "type": "string", "minLength": 1 }
+            },
+            "legacy_out_of_scope": {
+              "type": "array",
+              "uniqueItems": true,
+              "items": { "type": "string", "minLength": 1 }
+            },
+            "in_scope_ready": { "type": "boolean" },
+            "legacy_consumers_migrated": { "type": "boolean" }
+          },
+          "required": [
+            "status", "first_wave_scope", "legacy_out_of_scope",
+            "in_scope_ready", "legacy_consumers_migrated"
+          ]
+        }
+      },
+      "required": [
+        "contract_bundle_freeze", "production_deployment", "consumer_migration"
+      ]
+    },
+    "exact_issuer": { "type": "string", "minLength": 1 },
+    "token_version": { "type": "string", "minLength": 1 },
+    "audience_registry_version": { "type": "string", "minLength": 1 },
+    "signing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "algorithm": { "const": "RS256" },
+        "jwks_path": { "type": "string", "pattern": "^/" },
+        "jwks_http_timeout_seconds": { "type": "integer", "minimum": 1 },
+        "jwks_cache_ttl_seconds": { "type": "integer", "minimum": 0 },
+        "jwks_max_stale_seconds": { "type": "integer", "minimum": 0 },
+        "cache_fetch_error_rule": {
+          "const": "use_trusted_cache_until_max_stale_then_fail_closed"
+        },
+        "unknown_kid_refresh_attempts": { "type": "integer", "minimum": 0 },
+        "unknown_kid_after_refresh_rule": { "const": "reject" },
+        "active_signing_key_count": { "const": 1 },
+        "new_token_signing_key_rule": { "const": "active_key_only" },
+        "previous_key_rule": {
+          "const": "verification_only_until_retention_elapsed"
+        },
+        "reject_duplicate_kid": { "const": true },
+        "require_active_signing_key": { "const": true },
+        "key_retention_minimum_seconds": { "type": "integer", "minimum": 1 },
+        "allow_hs256_fallback": { "const": false }
+      },
+      "required": [
+        "algorithm", "jwks_path", "jwks_http_timeout_seconds",
+        "jwks_cache_ttl_seconds", "jwks_max_stale_seconds",
+        "cache_fetch_error_rule", "unknown_kid_refresh_attempts",
+        "unknown_kid_after_refresh_rule", "active_signing_key_count",
+        "new_token_signing_key_rule", "previous_key_rule",
+        "reject_duplicate_kid", "require_active_signing_key",
+        "key_retention_minimum_seconds",
+        "allow_hs256_fallback"
+      ]
+    },
+    "timing": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "clock_skew_tolerance_seconds": { "type": "integer", "minimum": 0 },
+        "human_access_ttl_seconds": { "type": "integer", "minimum": 1 },
+        "machine_access_ttl_seconds": { "type": "integer", "minimum": 1 },
+        "obo_access_ttl_seconds": { "type": "integer", "minimum": 1 },
+        "human_session_absolute_ttl_seconds": { "type": "integer", "minimum": 1 },
+        "refresh_credential_ttl_seconds": { "type": "integer", "minimum": 1 }
+      },
+      "required": [
+        "clock_skew_tolerance_seconds", "human_access_ttl_seconds",
+        "machine_access_ttl_seconds", "obo_access_ttl_seconds",
+        "human_session_absolute_ttl_seconds", "refresh_credential_ttl_seconds"
+      ]
+    },
+    "refresh_verifier": { "$ref": "#/$defs/refreshVerifier" },
+    "refresh_credential": { "$ref": "#/$defs/refreshCredential" },
+    "scope_wire_format": { "$ref": "#/$defs/scopeWire" },
+    "profiles": { "$ref": "#/$defs/profiles" },
+    "oauth": { "$ref": "#/$defs/oauth" },
+    "human_login": { "$ref": "#/$defs/humanLogin" },
+    "management": { "$ref": "#/$defs/management" },
+    "human_session_refresh_contract_version": { "type": "string", "minLength": 1 },
+    "v0_compatibility": { "$ref": "#/$defs/v0Compatibility" },
+    "freeze_gate_file": { "const": "metadata/freeze-gates.json" }
+  },
+  "required": [
+    "design_id", "contract_version", "lifecycle", "exact_issuer",
+    "token_version", "audience_registry_version", "signing", "timing",
+    "refresh_verifier", "refresh_credential", "scope_wire_format", "profiles",
+    "oauth", "human_login", "management",
+    "human_session_refresh_contract_version", "v0_compatibility",
+    "freeze_gate_file"
+  ],
+  "$defs": {
+    "refreshVerifier": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["algorithm", "parameters_version", "parameters"],
+      "properties": {
+        "algorithm": { "const": "scrypt" },
+        "parameters_version": { "type": "string", "minLength": 1 },
+        "parameters": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "N": { "type": "integer", "minimum": 2 },
+            "r": { "type": "integer", "minimum": 1 },
+            "p": { "type": "integer", "minimum": 1 },
+            "key_length_bytes": { "type": "integer", "minimum": 32 },
+            "salt_length_bytes": { "type": "integer", "minimum": 16 }
+          },
+          "required": ["N", "r", "p", "key_length_bytes", "salt_length_bytes"]
+        }
+      }
+    },
+    "refreshCredential": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "format", "secret_entropy_bits", "wire_pattern",
+        "database_stores_complete_wire_value", "rotation_expires_at_rule"
+      ],
+      "properties": {
+        "format": { "type": "string", "minLength": 1 },
+        "secret_entropy_bits": { "type": "integer", "minimum": 256 },
+        "wire_pattern": { "type": "string", "minLength": 1 },
+        "database_stores_complete_wire_value": { "const": false },
+        "rotation_expires_at_rule": { "type": "string", "minLength": 1 }
+      }
+    },
+    "scopeWire": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "version", "json_type", "separator", "case_sensitive",
+        "allow_leading_or_trailing_space", "allow_duplicates", "sort",
+        "item_pattern"
+      ],
+      "properties": {
+        "version": { "type": "string", "minLength": 1 },
+        "json_type": { "const": "string" },
+        "separator": { "const": "U+0020" },
+        "case_sensitive": { "const": true },
+        "allow_leading_or_trailing_space": { "const": false },
+        "allow_duplicates": { "const": false },
+        "sort": { "const": "unsigned-ascii-byte-ascending" },
+        "item_pattern": { "type": "string", "minLength": 1 }
+      }
+    },
+    "tokenProfile": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "token_use": { "enum": ["access", "workflow_obo"] },
+        "type": { "const": "access" },
+        "principal_types": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["user", "agent", "service"] }
+        },
+        "refresh_credential_allowed": { "type": "boolean" }
+      },
+      "required": [
+        "token_use", "type", "principal_types", "refresh_credential_allowed"
+      ]
+    },
+    "profiles": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "human_access": { "$ref": "#/$defs/tokenProfile" },
+        "direct_machine_access": { "$ref": "#/$defs/tokenProfile" },
+        "delegated_access": { "$ref": "#/$defs/tokenProfile" }
+      },
+      "required": ["human_access", "direct_machine_access", "delegated_access"]
+    },
+    "oauth": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "authorization_endpoint_path": { "type": "string", "pattern": "^/" },
+        "token_endpoint_path": { "type": "string", "pattern": "^/" },
+        "request_content_type": { "const": "application/x-www-form-urlencoded" },
+        "reject_duplicate_parameters": { "const": true },
+        "client_authentication": { "const": "client_secret_basic" },
+        "success_cache_control": { "const": "no-store" },
+        "success_pragma": { "const": "no-cache" },
+        "error_cache_control": { "const": "no-store" },
+        "error_pragma": { "const": "no-cache" },
+        "token_type": { "const": "Bearer" },
+        "subject_token_type": { "type": "string", "minLength": 1 },
+        "requested_token_type": { "type": "string", "minLength": 1 },
+        "error_http_status": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "invalid_client": { "const": 401 },
+            "invalid_grant": { "const": 400 },
+            "invalid_request": { "const": 400 },
+            "invalid_scope": { "const": 400 },
+            "invalid_target": { "const": 400 },
+            "unsupported_grant_type": { "const": 400 },
+            "unsupported_token_type": { "const": 400 },
+            "temporarily_unavailable": { "const": 503 },
+            "server_error": { "const": 500 }
+          },
+          "required": [
+            "invalid_client", "invalid_grant", "invalid_request",
+            "invalid_scope", "invalid_target", "unsupported_grant_type",
+            "unsupported_token_type", "temporarily_unavailable", "server_error"
+          ]
+        }
+      },
+      "required": [
+        "authorization_endpoint_path", "token_endpoint_path",
+        "request_content_type", "reject_duplicate_parameters",
+        "client_authentication", "success_cache_control", "success_pragma",
+        "error_cache_control", "error_pragma", "token_type",
+        "subject_token_type", "requested_token_type", "error_http_status"
+      ]
+    },
+    "humanLogin": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "flow": { "const": "authorization_code" },
+        "pkce_method": { "const": "S256" },
+        "pkce_required_for_all_clients": { "const": true },
+        "authorization_transaction_ttl_seconds": { "type": "integer", "minimum": 1, "maximum": 300 },
+        "authorization_code_ttl_seconds": { "type": "integer", "minimum": 1, "maximum": 60 },
+        "authorization_code_format": { "type": "string", "minLength": 1 },
+        "authorization_code_secret_entropy_bits": { "type": "integer", "minimum": 256 },
+        "redirect_uri_match": { "const": "exact_string" },
+        "public_client_token_authentication": { "const": "none" },
+        "confidential_client_token_authentication": { "const": "client_secret_basic" },
+        "implicit_grant_allowed": { "const": false },
+        "password_grant_allowed": { "const": false }
+      },
+      "required": [
+        "flow", "pkce_method", "pkce_required_for_all_clients",
+        "authorization_transaction_ttl_seconds", "authorization_code_ttl_seconds",
+        "authorization_code_format", "authorization_code_secret_entropy_bits",
+        "redirect_uri_match", "public_client_token_authentication",
+        "confidential_client_token_authentication", "implicit_grant_allowed",
+        "password_grant_allowed"
+      ]
+    },
+    "management": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "grant_management_mode": { "const": "versioned_database_migration_only" },
+        "online_grant_management_enabled": { "const": false },
+        "optimistic_version_required": { "const": true },
+        "audit_in_same_transaction": { "const": true },
+        "forward_only_changes": { "const": true }
+      },
+      "required": [
+        "grant_management_mode", "online_grant_management_enabled",
+        "optimistic_version_required", "audit_in_same_transaction",
+        "forward_only_changes"
+      ]
+    },
+    "v0Compatibility": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "status": { "type": "string", "minLength": 1 },
+        "machine_claims_retained": {
+          "type": "array",
+          "minItems": 3,
+          "uniqueItems": true,
+          "items": { "enum": ["client_id", "jti", "nbf"] }
+        },
+        "direct_token_use": { "const": "access" },
+        "delegated_token_use": { "const": "workflow_obo" },
+        "supersedes_v0": { "type": "boolean" }
+      },
+      "required": [
+        "status", "machine_claims_retained", "direct_token_use",
+        "delegated_token_use", "supersedes_v0"
+      ]
+    }
+  }
+}

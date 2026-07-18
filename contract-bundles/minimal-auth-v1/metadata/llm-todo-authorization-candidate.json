@@ -1,5 +1,7 @@
 {
-  "contract_version": "1.0.0-draft.1",
+  "contract_version": "1.0.0-draft.2",
+  "artifact_class": "legacy_consumer_migration_candidate",
+  "blocks_contract_bundle_freeze": false,
   "consumer_id": "llm-todo",
   "consumer_git_sha": "7cc746240ba15161a5350bbe4c6d8fb88f41f5c6",
   "consumer_git_tree": "b45dc35aa7b3148a314c9d856efdb17b94387650",
