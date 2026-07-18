@@ -10,13 +10,15 @@ import { usersRouter } from './routes/users.js';
 import { rolesRouter } from './routes/roles.js';
 import { oauthRouter } from './routes/oauth.js';
 import { wellKnownRouter } from './routes/well-known.js';
-import { HttpError } from './utils/http-error.js';
+import { HttpError, OAuthHttpError } from './utils/http-error.js';
 import { prisma } from './lib/prisma.js';
 import { startCleanup } from './middleware/token-rotation.js';
 import { initializeAuthContract } from './lib/oauth/v1/contract.js';
+import { initializeV1TokenIssuer } from './lib/oauth/v1/signer.js';
 
 const app = express();
 const authContract = initializeAuthContract(env.AUTH_CONTRACT_MODE);
+if (env.AUTH_CONTRACT_MODE !== 'v0') initializeV1TokenIssuer();
 
 // ─── Security Middleware ────────────────────────────────────────────────
 
@@ -121,6 +123,13 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
   // Don't leak CORS errors as 500s
   if (err.message === 'CORS origin not allowed') {
     res.status(403).json({ message: 'Origin not allowed' });
+    return;
+  }
+
+  if (err instanceof OAuthHttpError) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Pragma', 'no-cache');
+    res.status(err.status).json({ error: err.message });
     return;
   }
 

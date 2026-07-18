@@ -14,7 +14,7 @@
     "machine-admin": "tsx src/cli/machine-admin.ts",
     "test:oauth": "JWT_SECRET=test-jwt-secret tsx --test tests/oauth/secret.test.ts tests/oauth/oauth-schemas.test.ts tests/oauth/oauth-token.test.ts tests/oauth/compatibility.test.ts tests/oauth/http-integration.test.ts tests/oauth/workflow-keyring.test.ts tests/oauth/workflow-signer.test.ts tests/oauth/workflow-rotation.test.ts tests/oauth/workflow-compatibility.test.ts tests/oauth/verify-token-routing.test.ts tests/oauth/workflow-jwks-endpoint.test.ts",
     "test:lifecycle": "JWT_SECRET=test-jwt-secret tsx --test tests/oauth/lifecycle.test.ts",
-    "test:contract-v1": "JWT_SECRET=test-jwt-secret npm run contract:v1:prepare && JWT_SECRET=test-jwt-secret tsx --test tests/oauth/contract-runtime-v1.test.ts tests/oauth/migration-v1-static.test.ts tests/oauth/grant-migration-v1.test.ts",
+    "test:contract-v1": "JWT_SECRET=test-jwt-secret npm run contract:v1:prepare && JWT_SECRET=test-jwt-secret tsx --test tests/oauth/contract-runtime-v1.test.ts tests/oauth/migration-v1-static.test.ts tests/oauth/grant-migration-v1.test.ts tests/oauth/v1-scope.test.ts tests/oauth/v1-direct.test.ts tests/oauth/v1-signer.test.ts",
     "test:smoke-oauth": "JWT_SECRET=test-jwt-secret node tests/oauth/local-smoke.mjs",
     "contract:v1:validate": "node contract-bundles/minimal-auth-v1/validate.mjs",
     "contract:v1:prepare": "node scripts/prepare-minimal-auth-v1.mjs",

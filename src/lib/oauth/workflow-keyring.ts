@@ -15,6 +15,7 @@
  */
 
 import crypto from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { env } from '../../config/env.js';
 
 /**
@@ -116,8 +117,6 @@ function readPemFromEnv(label: string): string {
   if (inline) return inline;
   const file = envVal('JWT_PRIVATE_KEY_FILE');
   if (file) {
-    // eslint-disable-next-line @typescript-eslint/no-var-requires
-    const { readFileSync } = require('node:fs') as typeof import('node:fs');
     return readFileSync(file, 'utf-8');
   }
   throw new Error(

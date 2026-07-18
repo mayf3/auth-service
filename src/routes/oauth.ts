@@ -19,14 +19,22 @@
  *   401 invalid_client
  */
 
+import { randomBytes } from 'node:crypto';
 import { Router } from 'express';
 import rateLimit from 'express-rate-limit';
 import { env } from '../config/env.js';
 import { tokenRequestSchema, tokenExchangeRequestSchema } from '../schemas/oauth.js';
 import { issueToken } from '../lib/oauth/service.js';
 import { exchangeToken } from '../lib/oauth/token-exchange.js';
+import {
+  authorizeV1DirectToken,
+  issueV1DirectToken,
+  type V1DirectTokenParams,
+} from '../lib/oauth/v1/direct.js';
+import { V1OAuthError } from '../lib/oauth/v1/errors.js';
+import { auditLog } from '../lib/oauth/audit.js';
 import { asyncHandler } from '../utils/async-handler.js';
-import { HttpError } from '../utils/http-error.js';
+import { OAuthHttpError } from '../utils/http-error.js';
 
 export const oauthRouter = Router();
 
@@ -40,6 +48,8 @@ const tokenLimiter = rateLimit({
 });
 
 oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
+  res.setHeader('Cache-Control', 'no-store');
+  res.setHeader('Pragma', 'no-cache');
   // ── 1. Validate Content-Type ───────────────────────────────────────────
   const contentType = req.headers['content-type'] || '';
 
@@ -48,7 +58,7 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
     contentType.startsWith('application/x-www-form-urlencoded');
 
   if (!isFormUrlencoded) {
-    throw new HttpError(400, 'unsupported_grant_type');
+    throw new OAuthHttpError(400, 'unsupported_grant_type');
   }
 
   // ── 2. Extract and validate body parameters ───────────────────────────
@@ -61,7 +71,7 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
     if (typeof val === 'string') return val;
     // Reject arrays (duplicate params), objects, booleans, numbers
     if (Array.isArray(val) || (val !== null && typeof val === 'object') || typeof val === 'number' || typeof val === 'boolean') {
-      throw new HttpError(400, 'invalid_grant');
+      throw new OAuthHttpError(400, 'invalid_grant');
     }
     return '';
   }
@@ -79,12 +89,12 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
     if (!parsed.success) {
       const firstError = parsed.error.errors[0];
       if (firstError?.path[0] === 'grant_type') {
-        throw new HttpError(400, 'unsupported_grant_type');
+        throw new OAuthHttpError(400, 'unsupported_grant_type');
       }
       if (firstError?.path[0] === 'resource') {
-        throw new HttpError(400, 'invalid_grant');
+        throw new OAuthHttpError(400, 'invalid_grant');
       }
-      throw new HttpError(400, 'invalid_request');
+      throw new OAuthHttpError(400, 'invalid_request');
     }
 
     const { scope: validatedScope, resource: validatedResource } = parsed.data;
@@ -92,19 +102,23 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
     // Extract Basic Auth
     const { clientId, clientSecret } = extractBasicAuth(req);
     if (!clientId || !clientSecret) {
-      throw new HttpError(401, 'invalid_client');
+      throw new OAuthHttpError(401, 'invalid_client');
     }
 
     try {
-      const result = await issueToken({
+      const tokenParams = {
         clientId,
         clientSecret,
         resource: validatedResource,
         scope: validatedScope,
-      });
+      };
+      const result = env.AUTH_CONTRACT_MODE === 'v1'
+        ? await issueV1DirectToken(tokenParams)
+        : await issueToken(tokenParams);
+      if (env.AUTH_CONTRACT_MODE === 'v1_shadow') {
+        await evaluateV1DirectShadow(tokenParams);
+      }
 
-      res.setHeader('Cache-Control', 'no-store');
-      res.setHeader('Pragma', 'no-cache');
       res.json({
         access_token: result.access_token,
         token_type: result.token_type,
@@ -115,7 +129,7 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
       const status = err.statusCode || 500;
       const message = err.message || 'internal_error';
       const oauthError = mapToOAuthError(message, status);
-      throw new HttpError(oauthError.status, oauthError.error);
+      throw new OAuthHttpError(oauthError.status, oauthError.error);
     }
     return;
   }
@@ -136,7 +150,7 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
       rawBody.requested_sub !== undefined ||
       rawBody.actor_token !== undefined
     ) {
-      throw new HttpError(400, 'invalid_request');
+      throw new OAuthHttpError(400, 'invalid_request');
     }
 
     const parsed = tokenExchangeRequestSchema.safeParse({
@@ -151,15 +165,15 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
     if (!parsed.success) {
       const firstError = parsed.error.errors[0];
       if (firstError?.path[0] === 'grant_type') {
-        throw new HttpError(400, 'unsupported_grant_type');
+        throw new OAuthHttpError(400, 'unsupported_grant_type');
       }
       if (firstError?.path[0] === 'subject_token') {
-        throw new HttpError(400, 'invalid_request');
+        throw new OAuthHttpError(400, 'invalid_request');
       }
       if (firstError?.path[0] === 'audience') {
-        throw new HttpError(400, 'invalid_grant');
+        throw new OAuthHttpError(400, 'invalid_grant');
       }
-      throw new HttpError(400, 'invalid_request');
+      throw new OAuthHttpError(400, 'invalid_request');
     }
 
     const teData = parsed.data;
@@ -167,7 +181,7 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
     // Extract Basic Auth
     const { clientId, clientSecret } = extractBasicAuth(req);
     if (!clientId || !clientSecret) {
-      throw new HttpError(401, 'invalid_client');
+      throw new OAuthHttpError(401, 'invalid_client');
     }
 
     try {
@@ -182,8 +196,6 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
         requestId: `req-${Date.now()}-${cryptoRandomHex(4)}`,
       });
 
-      res.setHeader('Cache-Control', 'no-store');
-      res.setHeader('Pragma', 'no-cache');
       res.json({
         access_token: result.access_token,
         token_type: result.token_type,
@@ -194,13 +206,13 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
       const status = err.statusCode || 500;
       const message = err.message || 'internal_error';
       const oauthError = mapToOAuthError(message, status);
-      throw new HttpError(oauthError.status, oauthError.error);
+      throw new OAuthHttpError(oauthError.status, oauthError.error);
     }
     return;
   }
 
   // ── 3c. Unknown grant type ─────────────────────────────────────────────
-  throw new HttpError(400, 'unsupported_grant_type');
+  throw new OAuthHttpError(400, 'unsupported_grant_type');
 }));
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
@@ -231,11 +243,31 @@ function extractBasicAuth(req: any): { clientId: string; clientSecret: string } 
  * Generate a random hex string for request IDs.
  */
 function cryptoRandomHex(bytes: number): string {
-  const buf = Buffer.allocUnsafe(bytes);
-  for (let i = 0; i < bytes; i++) {
-    buf[i] = Math.floor(Math.random() * 256);
+  return randomBytes(bytes).toString('hex');
+}
+
+async function evaluateV1DirectShadow(params: V1DirectTokenParams): Promise<void> {
+  try {
+    const authorized = await authorizeV1DirectToken(params);
+    auditLog({
+      timestamp: new Date().toISOString(),
+      type: 'v1.shadow.direct',
+      principalId: authorized.principalId,
+      agentId: authorized.agentId,
+      clientId: authorized.clientId,
+      resource: authorized.audience,
+      success: true,
+    });
+  } catch (error) {
+    auditLog({
+      timestamp: new Date().toISOString(),
+      type: 'v1.shadow.direct',
+      clientId: params.clientId,
+      resource: params.resource,
+      success: false,
+      error: error instanceof V1OAuthError ? error.category : 'shadow_evaluation_failed',
+    });
   }
-  return buf.toString('hex');
 }
 
 /**
@@ -250,6 +282,8 @@ function mapToOAuthError(
       return { status: 401, error: 'invalid_client' };
     case 'invalid_scope':
       return { status: 400, error: 'invalid_scope' };
+    case 'invalid_target':
+      return { status: 400, error: 'invalid_target' };
     case 'invalid_grant':
     case 'invalid_resource':
       return { status: 400, error: 'invalid_grant' };
@@ -257,6 +291,10 @@ function mapToOAuthError(
       return { status: 400, error: 'unsupported_token_type' };
     case 'unsupported_grant_type':
       return { status: 400, error: 'unsupported_grant_type' };
+    case 'temporarily_unavailable':
+      return { status: 503, error: 'temporarily_unavailable' };
+    case 'server_error':
+      return { status: 500, error: 'server_error' };
     case 'obo_chaining_rejected':
       return { status: 400, error: 'invalid_grant' };
     default:

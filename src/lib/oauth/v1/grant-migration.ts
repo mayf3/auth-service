@@ -53,10 +53,11 @@ function sortedUnique(values: readonly string[]): string[] {
 }
 
 function sameSet(left: readonly string[], right: readonly string[]): boolean {
+  if (new Set(left).size !== left.length || new Set(right).size !== right.length) return false;
   return JSON.stringify(sortedUnique(left)) === JSON.stringify(sortedUnique(right));
 }
 
-function audienceMismatch(
+export function findV1AudienceMismatch(
   expected: V1AudienceDefinition,
   actual: StoredAudienceDefinition,
 ): string | null {
@@ -99,7 +100,7 @@ export function planV1GrantMigration(
       audienceCreates.push({ kind: 'audience', audience });
       continue;
     }
-    const mismatch = audienceMismatch(audience, stored);
+    const mismatch = findV1AudienceMismatch(audience, stored);
     if (mismatch) {
       issues.push(`audience ${audience.audienceId} differs from frozen registry at ${mismatch}`);
     }
