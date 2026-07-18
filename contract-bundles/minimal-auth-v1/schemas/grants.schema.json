@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:minimal-auth-v1:grants:1.0.0-draft.2",
+  "$id": "urn:minimal-auth-v1:grants:1.0.0",
   "title": "Minimal Auth V1 Client Grants and Change Audit",
   "oneOf": [
     { "$ref": "#/$defs/clientGrants" },

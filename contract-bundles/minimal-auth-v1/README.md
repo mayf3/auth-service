@@ -3,10 +3,10 @@
 ## Status
 
 ```text
-CONTRACT_VERSION=1.0.0-draft.2
-CONTRACT_BUNDLE_FREEZE=DRAFT
-CONTRACT_BUNDLE_FROZEN=false
-IMPLEMENTATION_AUTHORIZED=false
+CONTRACT_VERSION=1.0.0
+CONTRACT_BUNDLE_FREEZE=FROZEN
+CONTRACT_BUNDLE_FROZEN=true
+IMPLEMENTATION_AUTHORIZED=true
 PRODUCTION_DEPLOYMENT=NOT_READY
 PRODUCTION_JWKS_DEPLOYMENT_READY=false
 AUTH_TOKEN_CONTRACT_V1_PRODUCTION_EFFECTIVE=false
@@ -34,8 +34,8 @@ deployment conforms. Real-process acceptance remains governed by
 
 | Artifact | Purpose |
 |---|---|
-| `contract-manifest.json` | Candidate exact protocol and runtime parameters |
-| `audience-registry.json` | Candidate resource audiences, namespaces and profiles |
+| `contract-manifest.json` | Frozen exact protocol and runtime parameters |
+| `audience-registry.json` | Frozen first-wave resource audiences, namespaces and profiles |
 | `schemas/` | Executed JSON Schema 2020-12 contracts for manifest, tokens, grants, proxy, audit, OAuth and sessions |
 | `fixtures/` | Public JWKS, signed compact JWT, schema-instance and positive/negative profile fixtures |
 | `metadata/` | Three-domain gates, first-wave SHA matrix, deferred migration candidates and change log |
@@ -47,17 +47,17 @@ deployment conforms. Real-process acceptance remains governed by
 npm run contract:v1:validate
 ```
 
-Expected lifecycle result for this draft:
+Expected lifecycle result for the frozen source Bundle:
 
 ```text
 MINIMAL_AUTH_V1_BUNDLE_VALID=true
-CONTRACT_BUNDLE_FREEZE=DRAFT
-CONTRACT_BUNDLE_FROZEN=false
+CONTRACT_BUNDLE_FREEZE=FROZEN
+CONTRACT_BUNDLE_FROZEN=true
 PRODUCTION_DEPLOYMENT=NOT_READY
 PRODUCTION_JWKS_DEPLOYMENT_READY=false
 AUTH_TOKEN_CONTRACT_V1_PRODUCTION_EFFECTIVE=false
 CONSUMER_MIGRATION=NOT_STARTED
-CONTRACT_FREEZE_BLOCKER_COUNT>0
+CONTRACT_FREEZE_BLOCKER_COUNT=0
 ```
 
 The command exits non-zero for malformed artifacts, a fixture expectation
@@ -73,7 +73,8 @@ Source Contract Bundle Freeze requires one review transition that:
    fail-closed semantics without inventing a deployment URL;
 3. fixes the first-wave source inventory to remote full SHAs;
 4. reruns this validator and the narrow contract review;
-5. changes `bundle_status` to `frozen` and `frozen` to `true` in one commit.
+5. changes `lifecycle.contract_bundle_freeze.status` to `frozen` and
+   `lifecycle.contract_bundle_freeze.frozen` to `true` in one commit.
 
 Production deployment and consumer migration have independent states. A
 frozen source Bundle may therefore still correctly report:

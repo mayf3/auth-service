@@ -2,14 +2,14 @@
 
 > 日期：2026-07-18
 > 对象：`auth-service` 现有主线 `18b7e0bf92a1983334b49c8b5bf0081b8ddbbc0d`
-> 合同：`contract-bundles/minimal-auth-v1/contract-manifest.json` `1.0.0-draft.2`
+> 合同：`contract-bundles/minimal-auth-v1/contract-manifest.json` `1.0.0`
 
 ## 0. 状态和边界
 
 ```text
 PLAN_COMPLETE=true
-CONTRACT_BUNDLE_FROZEN=false
-IMPLEMENTATION_AUTHORIZED=false
+CONTRACT_BUNDLE_FROZEN=true
+IMPLEMENTATION_AUTHORIZED=true
 PRODUCTION_MIGRATION_AUTHORIZED=false
 ```
 
@@ -409,16 +409,17 @@ Conformance 输出机器可读 JSON，包含 commit SHA、tree SHA、bundle dige
 当前三个状态域必须独立报告：
 
 ```text
-CONTRACT_BUNDLE_FREEZE=DRAFT
+CONTRACT_BUNDLE_FREEZE=FROZEN
 PRODUCTION_DEPLOYMENT=NOT_READY
 CONSUMER_MIGRATION=NOT_STARTED
 
-GATE-BUNDLE-NARROW-REVIEW=open
+GATE-BUNDLE-NARROW-REVIEW=closed
 GATE-EXACT-JWKS-URL=open (production_deployment only)
 GATE-REMOTE-CONSUMER-SHAS=deferred (legacy consumer_migration only)
 GATE-LLM-TODO-AUTHORIZATION-MATRIX=deferred (legacy consumer_migration only)
 ```
 
-只有独立 Bundle 审阅门仍阻止源码 Freeze。其余门不会阻止 Bundle Freeze，
-但在真实生产 TLS/JWKS 外部验证或对应 Legacy 消费者迁移完成前，分别不得宣称
-生产生效或消费者迁移完成。
+源码 Bundle 已通过独立审阅并进入 Freeze Transition；冻结提交本身仍须按远程
+完整 SHA 再审计后才能开始代码实施。其余门不会阻止 Bundle Freeze，但在真实
+生产 TLS/JWKS 外部验证或对应 Legacy 消费者迁移完成前，分别不得宣称生产生效
+或消费者迁移完成。

@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "design_id": "MINIMAL_AUTH_FOUNDATION_V1",
-  "contract_version": "1.0.0-draft.2",
+  "contract_version": "1.0.0",
   "lifecycle": {
     "contract_bundle_freeze": {
-      "status": "draft",
-      "frozen": false,
-      "implementation_authorized": false,
-      "reviewed_source_git_commit": null
+      "status": "frozen",
+      "frozen": true,
+      "implementation_authorized": true,
+      "reviewed_source_git_commit": "62ad3ec89c52e0fc4936279c23d2346706b948fa"
     },
     "production_deployment": {
       "status": "not_ready",
@@ -28,7 +28,7 @@
   },
   "exact_issuer": "auth-service",
   "token_version": "v1",
-  "audience_registry_version": "1.0.0-draft.2",
+  "audience_registry_version": "1.0.0",
   "signing": {
     "algorithm": "RS256",
     "jwks_path": "/.well-known/jwks.json",
@@ -148,9 +148,9 @@
     "audit_in_same_transaction": true,
     "forward_only_changes": true
   },
-  "human_session_refresh_contract_version": "1.0.0-draft.2",
+  "human_session_refresh_contract_version": "1.0.0",
   "v0_compatibility": {
-    "status": "wire-compatible-migration-candidate",
+    "status": "wire-compatible-frozen-contract",
     "machine_claims_retained": ["client_id", "jti", "nbf"],
     "direct_token_use": "access",
     "delegated_token_use": "workflow_obo",

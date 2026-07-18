@@ -4,20 +4,23 @@
 
 ```text
 DESIGN_ID=MINIMAL_AUTH_FOUNDATION_V1
-DESIGN_VERSION=1.2-draft
-CONTRACT_VERSION=1.0.0-draft.2
-STATUS=DRAFT_TARGET_DESIGN
+DESIGN_VERSION=1.2
+CONTRACT_VERSION=1.0.0
+STATUS=FROZEN_TARGET_CONTRACT
 ARCHITECTURE_DIRECTION_ACCEPTED=true
 REDESIGN_REQUIRED=false
 READY_FOR_IMPLEMENTATION_INVENTORY=true
-READY_FOR_CONTRACT_BUNDLE_FREEZE=false
+READY_FOR_CONTRACT_BUNDLE_FREEZE=true
+CONTRACT_BUNDLE_FROZEN=true
+IMPLEMENTATION_AUTHORIZED=true
 PRODUCTION_JWKS_DEPLOYMENT_READY=false
 AUTH_TOKEN_CONTRACT_V1_PRODUCTION_EFFECTIVE=false
 CONSUMER_MIGRATION_IN_SCOPE_READY=false
-NARROW_CONTRACT_REVIEW_REQUIRED=true
+NARROW_CONTRACT_REVIEW_REQUIRED=false
+NARROW_CONTRACT_REVIEW_PASS=true
 ```
 
-本目录冻结候选的统一身份架构边界，但尚未宣布 Bundle、消费者或生产生效。
+本目录冻结统一身份架构边界和源码 Contract Bundle；消费者迁移与生产生效仍未宣布。
 
 三个状态独立推进：
 
@@ -45,7 +48,7 @@ V1 正式在主线生效前，以下 V0 合同继续有效：
 - `../WORKFLOW_RS256_MACHINE_TOKEN_JWKS_V0.md`
 - `../WORKFLOW_AGENT_OBO_TOKEN_EXCHANGE_V0.md`
 
-本目录当前是 V1 候选合同，不得被实现方、消费者或部署方解释为已经 supersede V0。
+本目录当前是冻结的 V1 源码合同，但不得被实现方、消费者或部署方解释为已经 supersede V0。
 
 只有满足 `v0-to-v1-migration.md` 中的全部生效门后，才允许宣布：
 
@@ -68,12 +71,12 @@ V1 对机器 Token 的原则是 Wire Compatible。真正不兼容的变化必须
 | `conformance.md` | Contract Manifest、真实进程与负向 Conformance |
 | `human-session-refresh.md` | Human Session、Refresh Credential、Token Family |
 
-除本 `README.md` 外，目录中六份模块文件均属于同一个候选合同。单独摘取一个模块不能覆盖其他模块的约束。
+除本 `README.md` 外，目录中六份模块文件均属于同一个冻结合同。单独摘取一个模块不能覆盖其他模块的约束。
 
-机器可执行的 Draft Bundle 位于
+机器可执行的 Frozen Bundle 位于
 `../../../contract-bundles/minimal-auth-v1/`。Bundle 当前明确为
-`CONTRACT_BUNDLE_FROZEN=false`；其 Validator 通过只表示 Artifact、Schema、
-签名夹具和冻结门内部一致，不表示 V1 已生产生效。
+`CONTRACT_BUNDLE_FROZEN=true`；其 Validator 通过只表示 Artifact、Schema、
+签名夹具和 Contract Freeze Gate 内部一致，不表示 V1 已生产生效。
 
 ## 4. 目标与非目标
 

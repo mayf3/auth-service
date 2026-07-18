@@ -1,5 +1,22 @@
 # Change Log
 
+## 1.0.0 — 2026-07-18
+
+- Recorded the independent remote-object review PASS for draft.2 at commit
+  `62ad3ec89c52e0fc4936279c23d2346706b948fa` and tree
+  `9347e9297fefaad7bcd0347637336df0c39bc03c`.
+- Closed the only remaining Contract Bundle Freeze gate and promoted the
+  Manifest, Registry, schemas and fixtures to frozen source contract `1.0.0`.
+- Authorized implementation against the frozen source Bundle while retaining
+  Production Deployment as `NOT_READY` and Consumer Migration as
+  `NOT_STARTED`.
+- Kept the production exact JWKS URL `null`; no hostname, certificate, route or
+  live deployment is asserted by this release.
+- Kept all out-of-scope Legacy consumer migration gates deferred and
+  non-blocking for source Bundle Freeze.
+- Corrected the Bundle README lifecycle field to
+  `lifecycle.contract_bundle_freeze.status`.
+
 ## 1.0.0-draft.2 — 2026-07-18
 
 - Split lifecycle reporting into independent Contract Bundle Freeze,
