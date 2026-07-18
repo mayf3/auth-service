@@ -10,10 +10,16 @@ function getOrDeriveSecret(primary: string | undefined, fallback: string, label:
 
 const rawJwtSecret = process.env.JWT_SECRET ?? '';
 const rawRefreshSecret = process.env.JWT_REFRESH_SECRET ?? '';
+const authContractMode = process.env.AUTH_CONTRACT_MODE ?? 'v0';
+
+if (!['v0', 'v1_shadow', 'v1'].includes(authContractMode)) {
+  throw new Error('FATAL: AUTH_CONTRACT_MODE must be v0, v1_shadow, or v1');
+}
 
 export const env = {
   NODE_ENV: process.env.NODE_ENV ?? 'development',
   PORT: parseInt(process.env.PORT ?? '4001', 10),
+  AUTH_CONTRACT_MODE: authContractMode as 'v0' | 'v1_shadow' | 'v1',
 
   // Database — connects to ADC's PostgreSQL
   DATABASE_URL: process.env.DATABASE_URL ?? 'postgresql://postgres:postgres@localhost:5432/agent_dev_center',

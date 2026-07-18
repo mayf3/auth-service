@@ -13,8 +13,10 @@ import { wellKnownRouter } from './routes/well-known.js';
 import { HttpError } from './utils/http-error.js';
 import { prisma } from './lib/prisma.js';
 import { startCleanup } from './middleware/token-rotation.js';
+import { initializeAuthContract } from './lib/oauth/v1/contract.js';
 
 const app = express();
+const authContract = initializeAuthContract(env.AUTH_CONTRACT_MODE);
 
 // ─── Security Middleware ────────────────────────────────────────────────
 
@@ -77,6 +79,9 @@ app.get('/api/health', (_req, res) => {
     version: '1.0.0',
     issuer: env.JWT_ISSUER,
     audience: env.JWT_AUDIENCE,
+    authContractMode: authContract.mode,
+    authContractVersion: authContract.contractVersion,
+    authContractDigest: authContract.runtimeDigest,
     timestamp: new Date().toISOString(),
   });
 });
@@ -131,8 +136,7 @@ app.listen(env.PORT, () => {
   console.log(`\n  🔐 auth-service v1.0.0`);
   console.log(`  📡 http://localhost:${env.PORT}`);
   console.log(`  🏷️  issuer: ${env.JWT_ISSUER} | audience: ${env.JWT_AUDIENCE}`);
-  console.log(`  🔑 JWT secret: ${env.JWT_SECRET.slice(0, 8)}...`);
-  console.log(`  🔑 JWT refresh secret: ${env.JWT_REFRESH_SECRET.slice(0, 8)}...`);
+  console.log(`  📜 auth contract: ${authContract.mode} | ${authContract.contractVersion ?? 'legacy'} | ${authContract.runtimeDigest ?? 'not-loaded'}`);
   console.log(`  🛡️  CORS origins: ${allowedOrigins.join(', ')}`);
   console.log(`  ⏱️  Rate limit: ${env.RATE_LIMIT_MAX_REQUESTS}/${env.RATE_LIMIT_WINDOW_MS / 1000}s global, ${env.RATE_LIMIT_LOGIN_MAX_FAILS}/${env.RATE_LIMIT_WINDOW_MS / 1000}s auth\n`);
 
