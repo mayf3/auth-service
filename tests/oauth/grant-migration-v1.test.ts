@@ -129,3 +129,13 @@ test('refuses a stored active audience that is not frozen in the registry', () =
   ], []);
   assert.match(plan.issues[0], /absent from frozen registry/);
 });
+
+test('refuses duplicate values hidden inside a stored Audience array', () => {
+  const duplicated = stored.map((audience) => ({ ...audience }));
+  duplicated[0].registeredScopes = [
+    ...duplicated[0].registeredScopes,
+    duplicated[0].registeredScopes[0],
+  ];
+  const plan = planV1GrantMigration(audiences, duplicated, []);
+  assert.match(plan.issues[0], /registered_scopes/);
+});

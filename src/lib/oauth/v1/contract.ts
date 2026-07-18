@@ -33,6 +33,18 @@ export interface V1AudienceDefinition {
   freezeReady: boolean;
 }
 
+export interface V1ContractSettings {
+  exactIssuer: string;
+  tokenVersion: string;
+  signingAlgorithm: 'RS256';
+  jwksPath: string;
+  jwksCacheTtlSeconds: number;
+  clockSkewToleranceSeconds: number;
+  humanAccessTtlSeconds: number;
+  machineAccessTtlSeconds: number;
+  oboAccessTtlSeconds: number;
+}
+
 function asRuntimeSnapshot(value: unknown): RuntimeSnapshot {
   if (!value || typeof value !== 'object') {
     throw new Error('Minimal Auth V1 runtime snapshot has an invalid shape.');
@@ -123,6 +135,13 @@ function requiredBoolean(value: unknown, field: string): boolean {
   return value;
 }
 
+function requiredInteger(value: unknown, field: string): number {
+  if (!Number.isInteger(value) || (value as number) < 0) {
+    throw new Error(`Minimal Auth V1 runtime manifest has invalid ${field}.`);
+  }
+  return value as number;
+}
+
 function stringArray(value: unknown, field: string): string[] {
   if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
     throw new Error(`Minimal Auth V1 audience registry has invalid ${field}.`);
@@ -169,6 +188,41 @@ export function getV1AudienceDefinitions(): readonly V1AudienceDefinition[] {
       freezeReady: requiredBoolean(entry.freeze_ready, 'freeze_ready'),
     };
   });
+}
+
+export function getV1ContractSettings(): Readonly<V1ContractSettings> {
+  const manifest = getV1RuntimeSnapshot().manifest;
+  const signing = manifest.signing as Record<string, unknown> | undefined;
+  const timing = manifest.timing as Record<string, unknown> | undefined;
+  if (!signing || !timing || signing.algorithm !== 'RS256') {
+    throw new Error('Minimal Auth V1 runtime manifest has invalid signing or timing settings.');
+  }
+  return {
+    exactIssuer: requiredString(manifest.exact_issuer, 'exact_issuer'),
+    tokenVersion: requiredString(manifest.token_version, 'token_version'),
+    signingAlgorithm: 'RS256',
+    jwksPath: requiredString(signing.jwks_path, 'jwks_path'),
+    jwksCacheTtlSeconds: requiredInteger(
+      signing.jwks_cache_ttl_seconds,
+      'jwks_cache_ttl_seconds',
+    ),
+    clockSkewToleranceSeconds: requiredInteger(
+      timing.clock_skew_tolerance_seconds,
+      'clock_skew_tolerance_seconds',
+    ),
+    humanAccessTtlSeconds: requiredInteger(
+      timing.human_access_ttl_seconds,
+      'human_access_ttl_seconds',
+    ),
+    machineAccessTtlSeconds: requiredInteger(
+      timing.machine_access_ttl_seconds,
+      'machine_access_ttl_seconds',
+    ),
+    oboAccessTtlSeconds: requiredInteger(
+      timing.obo_access_ttl_seconds,
+      'obo_access_ttl_seconds',
+    ),
+  };
 }
 
 export function resetAuthContractForTests(): void {

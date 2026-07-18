@@ -21,6 +21,9 @@ export type AuditEventType =
   | 'client.revoked'
   | 'token.issued'
   | 'token.failed'
+  | 'v1.direct.issued'
+  | 'v1.direct.failed'
+  | 'v1.shadow.direct'
   // ─── OBO Token Exchange (PR-B) ─────────────────────────────────────────
   | 'obo.token.issued'
   | 'obo.token.failed';
