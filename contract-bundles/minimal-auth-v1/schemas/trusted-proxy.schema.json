@@ -7,6 +7,7 @@
   "properties": {
     "proxy_id": { "type": "string", "minLength": 1 },
     "proxy_principal_id": { "$ref": "#/$defs/uuid" },
+    "proxy_principal_type": { "const": "service" },
     "proxy_client_id": { "type": "string", "minLength": 1 },
     "accepted_subject_audiences": {
       "type": "array",
@@ -21,7 +22,7 @@
     "updated_at": { "type": "string", "format": "date-time" }
   },
   "required": [
-    "proxy_id", "proxy_principal_id", "proxy_client_id",
+    "proxy_id", "proxy_principal_id", "proxy_principal_type", "proxy_client_id",
     "accepted_subject_audiences", "delegation_grants", "status", "version",
     "created_at", "updated_at"
   ],

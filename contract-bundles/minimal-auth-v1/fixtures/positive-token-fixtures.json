@@ -128,6 +128,9 @@
           "nbf": 1784300000,
           "exp": 1784300600
         },
+        "source_machine_access_grants": {
+          "adc-v2": ["adc.invoke"]
+        },
         "accepted_subject_audiences": ["adc-v2"],
         "original_machine_access_grants": {
           "svc-workflow": ["workflow.read"]

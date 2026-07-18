@@ -125,6 +125,17 @@ logging = forbidden
 
 auth-service 数据库不得保存可直接重放的明文 Refresh Credential。查找可使用不敏感的 Credential ID 与 verifier 分离结构，但完整 bearer secret 只能由客户端持有。
 
+首个 Bundle 的 Wire Format 为：
+
+```text
+rc1.<refresh_credential_id UUIDv4>.<32-byte base64url secret>
+```
+
+数据库使用可公开的 UUID 定位记录，只对最后一段 Secret 保存带独立 Salt 的
+版本化 scrypt verifier。完整 Wire Value 和最后一段 Secret 均不得落库。
+Authorization Code 使用对应的 `ac1.<UUIDv4>.<secret>` 格式并同样只保存
+verifier。错误响应不得说明 UUID 是否存在。
+
 ## 7. Refresh 记录
 
 每个当前或历史 Refresh Credential 至少记录：

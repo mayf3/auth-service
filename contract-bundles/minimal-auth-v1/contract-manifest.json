@@ -38,6 +38,12 @@
       "salt_length_bytes": 16
     }
   },
+  "refresh_credential": {
+    "format": "rc1.<credential_uuid>.<base64url_secret>",
+    "secret_entropy_bits": 256,
+    "wire_pattern": "^rc1\\.[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\.[A-Za-z0-9_-]{43}$",
+    "database_stores_complete_wire_value": false
+  },
   "scope_wire_format": {
     "version": "ascii-space-v1",
     "json_type": "string",
@@ -70,12 +76,27 @@
   },
   "oauth": {
     "token_endpoint_path": "/oauth/token",
+    "request_content_type": "application/x-www-form-urlencoded",
+    "reject_duplicate_parameters": true,
     "client_authentication": "client_secret_basic",
     "success_cache_control": "no-store",
+    "success_pragma": "no-cache",
     "error_cache_control": "no-store",
+    "error_pragma": "no-cache",
     "token_type": "Bearer",
     "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
-    "requested_token_type": "urn:ietf:params:oauth:token-type:access_token"
+    "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+    "error_http_status": {
+      "invalid_client": 401,
+      "invalid_grant": 400,
+      "invalid_request": 400,
+      "invalid_scope": 400,
+      "invalid_target": 400,
+      "unsupported_grant_type": 400,
+      "unsupported_token_type": 400,
+      "temporarily_unavailable": 503,
+      "server_error": 500
+    }
   },
   "human_login": {
     "flow": "authorization_code",
@@ -83,6 +104,8 @@
     "pkce_required_for_all_clients": true,
     "authorization_transaction_ttl_seconds": 300,
     "authorization_code_ttl_seconds": 60,
+    "authorization_code_format": "ac1.<code_uuid>.<base64url_secret>",
+    "authorization_code_secret_entropy_bits": 256,
     "public_client_token_authentication": "none",
     "confidential_client_token_authentication": "client_secret_basic",
     "implicit_grant_allowed": false,
