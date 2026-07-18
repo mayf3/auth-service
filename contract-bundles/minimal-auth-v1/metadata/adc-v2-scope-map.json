@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.0.0-draft.2",
+  "contract_version": "1.0.0",
   "consumer_id": "adc-v2",
   "consumer_git_sha": "ddeeab2ff394af64b78d9820c9e64d5bf0952ebd",
   "consumer_git_tree": "6b7e69217cac99b381876e85750dea588ae501fd",

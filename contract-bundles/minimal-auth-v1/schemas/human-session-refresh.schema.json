@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:minimal-auth-v1:human-session-refresh:1.0.0-draft.2",
+  "$id": "urn:minimal-auth-v1:human-session-refresh:1.0.0",
   "title": "Minimal Auth V1 Human Login, Session and Refresh Records",
   "oneOf": [
     { "$ref": "#/$defs/humanClient" },

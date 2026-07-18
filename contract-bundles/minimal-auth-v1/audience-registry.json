@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "registry_version": "1.0.0-draft.2",
-  "status": "candidate",
+  "registry_version": "1.0.0",
+  "status": "frozen",
   "audiences": [
     {
       "audience_id": "svc-workflow",
@@ -12,7 +12,7 @@
       "machine_access_enabled": true,
       "delegated_access_enabled": true,
       "registered_scopes": ["workflow.admin", "workflow.execute", "workflow.read"],
-      "status": "candidate",
+      "status": "active",
       "freeze_ready": true,
       "notes": "Preserves the V0 wire audience; resource remains agent-only."
     },
@@ -25,7 +25,7 @@
       "machine_access_enabled": false,
       "delegated_access_enabled": false,
       "registered_scopes": [],
-      "status": "candidate",
+      "status": "active",
       "freeze_ready": true,
       "notes": "Human-only in the first V1 bundle; product roles stay local to svc-okr."
     },
@@ -38,7 +38,7 @@
       "machine_access_enabled": true,
       "delegated_access_enabled": false,
       "registered_scopes": ["adc.execute", "adc.read"],
-      "status": "candidate",
+      "status": "active",
       "freeze_ready": true,
       "notes": "Source audience for the trusted proxy; read/execute map to the fixed ADC V2 route categories."
     }

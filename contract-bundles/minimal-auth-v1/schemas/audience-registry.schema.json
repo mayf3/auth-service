@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:minimal-auth-v1:audience-registry:1.0.0-draft.2",
+  "$id": "urn:minimal-auth-v1:audience-registry:1.0.0",
   "title": "Minimal Auth V1 Audience Registry",
   "type": "object",
   "additionalProperties": false,

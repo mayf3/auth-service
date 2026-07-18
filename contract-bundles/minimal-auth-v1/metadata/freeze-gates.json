@@ -1,6 +1,6 @@
 {
-  "contract_version": "1.0.0-draft.2",
-  "contract_bundle_freeze_allowed": false,
+  "contract_version": "1.0.0",
+  "contract_bundle_freeze_allowed": true,
   "gates": [
     {
       "id": "GATE-REMOTE-CONSUMER-SHAS",
@@ -67,10 +67,14 @@
       "id": "GATE-BUNDLE-NARROW-REVIEW",
       "state_domain": "contract_bundle_freeze",
       "blocks_contract_bundle_freeze": true,
-      "status": "open",
+      "status": "closed",
       "owner": "independent-contract-reviewer",
-      "evidence": [],
-      "reason": "The fixed 1.0.0-draft.1 object failed independent review; draft.2 must be pushed and pass a new fixed-SHA review before freeze."
+      "evidence": [
+        "AUTH_TOKEN_CONTRACT_V1_BUNDLE_INDEPENDENT_REVIEW_REPORT.md",
+        "auth-service@62ad3ec89c52e0fc4936279c23d2346706b948fa",
+        "tree@9347e9297fefaad7bcd0347637336df0c39bc03c"
+      ],
+      "reason": "The fixed draft.2 source object passed independent read-only review with zero Blocker and zero High findings."
     }
   ]
 }
