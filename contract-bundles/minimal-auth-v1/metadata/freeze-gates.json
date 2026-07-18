@@ -33,8 +33,12 @@
       "id": "GATE-LLM-TODO-AUTHORIZATION-MATRIX",
       "status": "open",
       "owner": "llm-todo-owner",
-      "evidence": [],
-      "reason": "Accepted principal types, todo scopes and route/domain authorization are not frozen."
+      "evidence": [
+        "AUTH_TOKEN_CONTRACT_V1_LLM_TODO_AUTHORIZATION_CANDIDATE.md",
+        "metadata/llm-todo-authorization-candidate.json",
+        "llm-todo@7cc746240ba15161a5350bbe4c6d8fb88f41f5c6"
+      ],
+      "reason": "A complete candidate grouping exists, but the owner must decide accepted principal types, public discovery, metered invoke access and administrator ownership before freeze."
     },
     {
       "id": "GATE-ADC-V2-INGRESS-SCOPE",

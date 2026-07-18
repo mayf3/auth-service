@@ -50,10 +50,10 @@
       "human_access_enabled": true,
       "machine_access_enabled": true,
       "delegated_access_enabled": false,
-      "registered_scopes": ["todo.read", "todo.write"],
+      "registered_scopes": ["todo.admin", "todo.invoke", "todo.read", "todo.write"],
       "status": "candidate",
       "freeze_ready": false,
-      "notes": "Principal types, route matrix and scope meanings require consumer-owner review."
+      "notes": "Candidate matrix exists; principal types, public reads, invoke budget and admin boundaries require consumer-owner review."
     },
     {
       "audience_id": "adc-v2",
