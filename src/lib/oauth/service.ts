@@ -21,6 +21,26 @@ import type { PrincipalType, PrincipalStatus, ClientStatus } from '@prisma/clien
 export { issueToken } from './token-issuance.js';
 export type { IssueTokenParams, TokenResult } from './token-issuance.js';
 
+type LegacyAgentPrincipal = {
+  principalType: PrincipalType;
+  agentId: string | null;
+  ownerUserId: string | null;
+};
+
+function assertLegacyAgentPrincipal(
+  principal: LegacyAgentPrincipal,
+): asserts principal is LegacyAgentPrincipal & {
+  principalType: 'agent';
+  agentId: string;
+  ownerUserId: string;
+} {
+  if (principal.principalType !== 'agent' || !principal.agentId || !principal.ownerUserId) {
+    throw Object.assign(new Error('Legacy machine endpoint requires an Agent principal'), {
+      statusCode: 409,
+    });
+  }
+}
+
 /**
  * Generate a random ID string (url-safe, no padding).
  */
@@ -83,6 +103,7 @@ export async function createPrincipal(
       displayName: params.displayName ?? null,
     },
   });
+  assertLegacyAgentPrincipal(principal);
 
   auditLog({
     timestamp: new Date().toISOString(),
@@ -112,6 +133,7 @@ export async function getPrincipal(agentId: string): Promise<MachinePrincipalRes
     where: { agentId },
   });
   if (!principal) return null;
+  assertLegacyAgentPrincipal(principal);
 
   return {
     id: principal.id,
@@ -138,6 +160,7 @@ export async function disablePrincipal(agentId: string): Promise<MachinePrincipa
       statusCode: 404,
     });
   }
+  assertLegacyAgentPrincipal(principal);
 
   if (principal.status === 'disabled') {
     // Idempotent
@@ -160,6 +183,7 @@ export async function disablePrincipal(agentId: string): Promise<MachinePrincipa
       disabledAt: new Date(),
     },
   });
+  assertLegacyAgentPrincipal(updated);
 
   auditLog({
     timestamp: new Date().toISOString(),
@@ -220,6 +244,7 @@ export async function createClient(
       statusCode: 404,
     });
   }
+  assertLegacyAgentPrincipal(principal);
 
   if (principal.status === 'disabled') {
     throw Object.assign(new Error('MachinePrincipal is disabled'), { statusCode: 403 });
