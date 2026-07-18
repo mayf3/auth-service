@@ -18,10 +18,16 @@
     },
     {
       "id": "GATE-RUNTIME-PARAMETER-REVIEW",
-      "status": "open",
+      "status": "closed",
       "owner": "auth-service-contract-review",
-      "evidence": [],
-      "reason": "Candidate cache, stale, session, refresh, verifier and retention values require narrow review before freeze."
+      "evidence": [
+        "AUTH_TOKEN_CONTRACT_V1_RUNTIME_PARAMETER_REVIEW.md",
+        "RFC 9700",
+        "RFC 6749",
+        "RFC 8725",
+        "WORKFLOW_RS256_MACHINE_TOKEN_JWKS_V0.md"
+      ],
+      "reason": "Candidate cache, stale, token/session/refresh, PKCE, verifier, HTTP and retention values passed the 2026-07-18 narrow parameter review."
     },
     {
       "id": "GATE-LLM-TODO-AUTHORIZATION-MATRIX",
