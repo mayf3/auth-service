@@ -13,10 +13,20 @@ const migrationFile = path.resolve(
 );
 const schema = fs.readFileSync(schemaFile, 'utf8');
 const migration = fs.readFileSync(migrationFile, 'utf8');
+const legacyExchange = fs.readFileSync(
+  path.resolve(process.cwd(), 'src', 'lib', 'oauth', 'token-exchange.ts'),
+  'utf8',
+);
+const legacyExchangeTest = fs.readFileSync(
+  path.resolve(process.cwd(), 'tests', 'oauth', 'workflow-obo-token-exchange.test.ts'),
+  'utf8',
+);
 
 test('V1 Prisma and migration files stay within the repository line limit', () => {
   assert.ok(schema.split('\n').length <= 500, 'prisma/schema.prisma exceeds 500 lines');
   assert.ok(migration.split('\n').length <= 500, 'V1 migration exceeds 500 lines');
+  assert.ok(legacyExchange.split('\n').length <= 500, 'Legacy OBO module exceeds 500 lines');
+  assert.ok(legacyExchangeTest.split('\n').length <= 500, 'Legacy OBO test exceeds 500 lines');
 });
 
 test('V1 migration is additive and preserves Legacy authority carriers', () => {
@@ -54,5 +64,11 @@ test('database constraints preserve profile, replay, and immutable-audit invaria
   assert.match(migration, /human_clients_auth_method_check/);
   assert.match(migration, /refresh_credentials_one_active_per_family/);
   assert.match(migration, /token_exchange_audits_result_shape_check/);
+  assert.match(migration, /token_exchange_audits_text_check/);
+  assert.match(migration, /"original_principal_id" IS NULL AND "original_client_id" IS NULL/);
+  assert.match(migration, /"source_git_commit" TEXT NOT NULL/);
+  assert.match(migration, /"approval_ref" TEXT NOT NULL/);
+  assert.match(migration, /grant_change_audits_required_text_check/);
+  assert.match(migration, /grant_change_audits_value_shape_check/);
   assert.equal((migration.match(/EXECUTE FUNCTION reject_auth_audit_mutation\(\)/g) ?? []).length, 3);
 });

@@ -24,6 +24,9 @@ export type AuditEventType =
   | 'v1.direct.issued'
   | 'v1.direct.failed'
   | 'v1.shadow.direct'
+  | 'v1.obo.issued'
+  | 'v1.obo.failed'
+  | 'v1.shadow.obo'
   // ─── OBO Token Exchange (PR-B) ─────────────────────────────────────────
   | 'obo.token.issued'
   | 'obo.token.failed';

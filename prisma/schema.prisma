@@ -152,54 +152,50 @@ enum HumanClientType {
   public_browser
   native
 }
-
 enum HumanClientAuthenticationMethod {
   none
   client_secret_basic
 }
-
 enum HumanClientStatus {
   active
   revoked
 }
-
 enum AuthorizationTransactionStatus {
   pending
   authenticated
   consumed
   expired
 }
-
 enum AuthorizationCodeStatus {
   active
   consumed
   expired
 }
-
 enum HumanSessionStatus {
   active
   revoked
   expired
 }
-
 enum RefreshFamilyStatus {
   active
   revoked
   expired
 }
-
 enum RefreshCredentialStatus {
   active
   rotated
   revoked
   expired
 }
-
 enum ExchangeAuditResult {
   success
   rejected
 }
-
+enum GrantChangeType {
+  create
+  replace
+  revoke
+}
 model AuthAudience {
   audienceId             String         @id @map("audience_id")
   resourceService        String         @map("resource_service")
@@ -482,18 +478,20 @@ model AuthSecurityAudit {
 }
 
 model GrantChangeAudit {
-  id              String   @id @default(uuid()) @db.Uuid
-  migrationId     String   @map("migration_id")
-  objectType      String   @map("object_type")
-  objectId        String   @map("object_id")
-  beforeState     Json?    @map("before_state")
-  afterState      Json     @map("after_state")
-  expectedVersion Int?     @map("expected_version")
-  newVersion      Int      @map("new_version")
-  actorId         String   @map("actor_id")
-  timestamp       DateTime @default(now())
-
-  @@unique([migrationId, objectType, objectId])
+  id                    String          @id @default(uuid()) @map("change_id") @db.Uuid
+  migrationId           String          @map("migration_id")
+  sourceGitCommit       String          @map("source_git_commit")
+  operatorId            String          @map("operator_id")
+  approvalRef           String          @map("approval_ref")
+  reason                String
+  clientId              String          @map("client_id")
+  changeType            GrantChangeType @map("change_type")
+  expectedGrantVersion  Int?            @map("expected_grant_version")
+  resultingGrantVersion Int             @map("resulting_grant_version")
+  beforeValue           Json?           @map("before_value")
+  afterValue            Json?           @map("after_value")
+  timestamp             DateTime        @default(now())
+  @@unique([migrationId, clientId, changeType])
   @@index([timestamp])
   @@map("grant_change_audits")
 }

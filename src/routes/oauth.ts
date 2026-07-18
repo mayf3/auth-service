@@ -32,6 +32,12 @@ import {
   type V1DirectTokenParams,
 } from '../lib/oauth/v1/direct.js';
 import { V1OAuthError } from '../lib/oauth/v1/errors.js';
+import {
+  authorizeV1TokenExchange,
+  exchangeV1Token,
+  persistV1EarlyExchangeRejection,
+  type V1TokenExchangeParams,
+} from '../lib/oauth/v1/exchange.js';
 import { auditLog } from '../lib/oauth/audit.js';
 import { asyncHandler } from '../utils/async-handler.js';
 import { OAuthHttpError } from '../utils/http-error.js';
@@ -136,6 +142,24 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
 
   // ── 3b. Token Exchange (RFC 8693) ──────────────────────────────────────
   if (grantType === 'urn:ietf:params:oauth:grant-type:token-exchange') {
+    const exchangeRequestId = `req-${Date.now()}-${cryptoRandomHex(4)}`;
+    const exchangeFields = [
+      'subject_token', 'subject_token_type', 'requested_token_type', 'audience', 'scope',
+    ];
+    const malformedField = exchangeFields.find((field) => (
+      rawBody[field] !== undefined && typeof rawBody[field] !== 'string'
+    ));
+    if (malformedField) {
+      if (env.AUTH_CONTRACT_MODE === 'v1') {
+        await auditV1RouteExchangeRejection(
+          exchangeRequestId,
+          typeof rawBody.audience === 'string' ? rawBody.audience : '',
+          typeof rawBody.scope === 'string' ? rawBody.scope : '',
+          `request_shape:${malformedField}`,
+        );
+      }
+      throw new OAuthHttpError(400, 'invalid_request');
+    }
     const subjectToken = safeString(rawBody.subject_token, 'subject_token');
     const subjectTokenType = safeString(rawBody.subject_token_type, 'subject_token_type');
     const requestedTokenType = safeString(rawBody.requested_token_type, 'requested_token_type');
@@ -150,6 +174,14 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
       rawBody.requested_sub !== undefined ||
       rawBody.actor_token !== undefined
     ) {
+      if (env.AUTH_CONTRACT_MODE === 'v1') {
+        await auditV1RouteExchangeRejection(
+          exchangeRequestId,
+          audience,
+          scopeTE,
+          'arbitrary_subject_parameter',
+        );
+      }
       throw new OAuthHttpError(400, 'invalid_request');
     }
 
@@ -164,6 +196,14 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
 
     if (!parsed.success) {
       const firstError = parsed.error.errors[0];
+      if (env.AUTH_CONTRACT_MODE === 'v1') {
+        await auditV1RouteExchangeRejection(
+          exchangeRequestId,
+          audience,
+          scopeTE,
+          `request_validation:${String(firstError?.path[0] ?? 'unknown')}`,
+        );
+      }
       if (firstError?.path[0] === 'grant_type') {
         throw new OAuthHttpError(400, 'unsupported_grant_type');
       }
@@ -181,11 +221,19 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
     // Extract Basic Auth
     const { clientId, clientSecret } = extractBasicAuth(req);
     if (!clientId || !clientSecret) {
+      if (env.AUTH_CONTRACT_MODE === 'v1') {
+        await auditV1RouteExchangeRejection(
+          exchangeRequestId,
+          teData.audience,
+          teData.scope,
+          'client_authentication_missing',
+        );
+      }
       throw new OAuthHttpError(401, 'invalid_client');
     }
 
     try {
-      const result = await exchangeToken({
+      const exchangeParams = {
         clientId,
         clientSecret,
         subjectToken: teData.subject_token,
@@ -193,8 +241,14 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
         requestedTokenType: teData.requested_token_type,
         audience: teData.audience,
         scope: teData.scope,
-        requestId: `req-${Date.now()}-${cryptoRandomHex(4)}`,
-      });
+        requestId: exchangeRequestId,
+      };
+      const result = env.AUTH_CONTRACT_MODE === 'v1'
+        ? await exchangeV1Token(exchangeParams)
+        : await exchangeToken(exchangeParams);
+      if (env.AUTH_CONTRACT_MODE === 'v1_shadow') {
+        await evaluateV1ExchangeShadow(exchangeParams);
+      }
 
       res.json({
         access_token: result.access_token,
@@ -267,6 +321,48 @@ async function evaluateV1DirectShadow(params: V1DirectTokenParams): Promise<void
       success: false,
       error: error instanceof V1OAuthError ? error.category : 'shadow_evaluation_failed',
     });
+  }
+}
+
+async function evaluateV1ExchangeShadow(params: V1TokenExchangeParams): Promise<void> {
+  try {
+    const authorized = await authorizeV1TokenExchange(params);
+    auditLog({
+      timestamp: new Date().toISOString(),
+      type: 'v1.shadow.obo',
+      principalId: authorized.originalPrincipalId,
+      clientId: authorized.proxyClientId,
+      resource: authorized.targetAudience,
+      scopes: authorized.scope,
+      success: true,
+      requestId: params.requestId,
+      subjectSub: authorized.originalPrincipalId,
+      subjectJti: authorized.sourceTokenJti,
+      actSub: authorized.proxyPrincipalId,
+    });
+  } catch (error) {
+    auditLog({
+      timestamp: new Date().toISOString(),
+      type: 'v1.shadow.obo',
+      clientId: params.clientId,
+      resource: params.audience,
+      success: false,
+      error: error instanceof V1OAuthError ? error.category : 'shadow_evaluation_failed',
+      requestId: params.requestId,
+    });
+  }
+}
+
+async function auditV1RouteExchangeRejection(
+  requestId: string,
+  audience: string,
+  scope: string,
+  category: string,
+): Promise<void> {
+  try {
+    await persistV1EarlyExchangeRejection({ requestId, audience, scope, category });
+  } catch {
+    throw new OAuthHttpError(500, 'server_error');
   }
 }
 
