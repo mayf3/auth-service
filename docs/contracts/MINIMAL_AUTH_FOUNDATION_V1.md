@@ -31,7 +31,7 @@ CONSUMER_MIGRATION_IN_SCOPE_READY=false
 
 ## 权威规则
 
-1. 当前 V1 仍是 Draft Target Design，不代表生产或消费者迁移已生效。
+1. 当前 V1 源码 Contract Bundle 已冻结并授权实现，但不代表生产或消费者迁移已生效。
 2. V1 生效前，两份现有 V0 冻结合同继续有效。
 3. 本入口文件不覆盖 `minimal-auth-v1/` 中任何规范内容。
 4. 若本入口与模块合同冲突，以模块合同和其中定义的权威关系为准。
