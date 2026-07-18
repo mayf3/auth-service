@@ -1,0 +1,44 @@
+{
+  "contract_version": "1.0.0-draft.1",
+  "consumer_id": "adc-v2",
+  "consumer_git_sha": "ddeeab2ff394af64b78d9820c9e64d5bf0952ebd",
+  "consumer_git_tree": "6b7e69217cac99b381876e85750dea588ae501fd",
+  "source_audience": "adc-v2",
+  "target_audience": "svc-workflow",
+  "public_routes": [
+    { "method": "GET", "path": "/api/v2/health" },
+    { "method": "GET", "path": "/api/v2/definition-bindings" }
+  ],
+  "protected_routes": [
+    {
+      "method": "GET",
+      "path": "/api/v2/worklist",
+      "required_source_scope": "adc.read",
+      "requested_target_scopes": ["workflow.read"]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/workflow-instances",
+      "required_source_scope": "adc.execute",
+      "requested_target_scopes": ["workflow.execute"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/workflow-instances/:workflowInstanceId",
+      "required_source_scope": "adc.read",
+      "requested_target_scopes": ["workflow.read"]
+    },
+    {
+      "method": "GET",
+      "path": "/api/v2/workflow-instances/:workflowInstanceId/timeline",
+      "required_source_scope": "adc.read",
+      "requested_target_scopes": ["workflow.read"]
+    },
+    {
+      "method": "POST",
+      "path": "/api/v2/workflow-instances/:workflowInstanceId/transitions",
+      "required_source_scope": "adc.execute",
+      "requested_target_scopes": ["workflow.execute"]
+    }
+  ]
+}

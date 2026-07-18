@@ -216,6 +216,7 @@ const manifest = readJson('contract-manifest.json');
 const registry = readJson('audience-registry.json');
 const freezeGates = readJson('metadata/freeze-gates.json');
 const consumerMatrix = readJson('metadata/consumer-verification-matrix.json');
+const adcScopeMap = readJson('metadata/adc-v2-scope-map.json');
 const jwks = readJson('fixtures/jwks.json');
 const positive = readJson('fixtures/positive-token-fixtures.json');
 const negative = readJson('fixtures/negative-token-fixtures.json');
@@ -301,6 +302,7 @@ if (manifest.frozen) {
 }
 
 const audienceIds = registry.audiences.map((audience) => audience.audience_id);
+const audienceById = new Map(registry.audiences.map((audience) => [audience.audience_id, audience]));
 check(new Set(audienceIds).size === audienceIds.length, 'registry: duplicate Audience ID');
 check(!audienceIds.includes('agent-forum'), 'registry: repository name agent-forum cannot be a Wire Audience');
 check(!audienceIds.includes('workflow-todo'), 'registry: workflow-todo is a Client, not a resource Audience');
@@ -315,6 +317,16 @@ for (const audience of registry.audiences) {
   check(!(audience.machine_access_enabled || audience.delegated_access_enabled) || audience.registered_scopes.length > 0, `registry: Machine Audience ${audience.audience_id} has no Scopes`);
 }
 
+check(adcScopeMap.consumer_git_sha === 'ddeeab2ff394af64b78d9820c9e64d5bf0952ebd', 'ADC Scope map: unexpected consumer SHA');
+const adcAudience = audienceById.get(adcScopeMap.source_audience);
+const workflowAudience = audienceById.get(adcScopeMap.target_audience);
+check(Boolean(adcAudience && workflowAudience), 'ADC Scope map: source or target Audience missing');
+for (const route of adcScopeMap.protected_routes) {
+  check(adcAudience?.registered_scopes.includes(route.required_source_scope), `ADC Scope map: unregistered source Scope for ${route.method} ${route.path}`);
+  check(route.requested_target_scopes.length > 0, `ADC Scope map: empty target Scope for ${route.method} ${route.path}`);
+  check(route.requested_target_scopes.every((scope) => workflowAudience?.registered_scopes.includes(scope)), `ADC Scope map: unregistered target Scope for ${route.method} ${route.path}`);
+}
+
 const privateJwkFields = ['d', 'p', 'q', 'dp', 'dq', 'qi', 'oth'];
 check(Array.isArray(jwks.keys) && jwks.keys.length > 0, 'JWKS fixture has no keys');
 for (const key of jwks.keys) {
@@ -323,7 +335,6 @@ for (const key of jwks.keys) {
   check(privateJwkFields.every((field) => !(field in key)), `JWKS: private field exposed by ${key.kid}`);
 }
 const jwksKids = new Set(jwks.keys.map((key) => key.kid));
-const audienceById = new Map(registry.audiences.map((audience) => [audience.audience_id, audience]));
 const positiveByName = new Map();
 for (const fixture of positive.fixtures) {
   try {
@@ -362,7 +373,7 @@ for (const testCase of negative.cases) {
 for (const relativePath of [
   'README.md', 'contract-manifest.json', 'audience-registry.json',
   'metadata/change-log.md', 'metadata/consumer-verification-matrix.json',
-  'metadata/freeze-gates.json',
+  'metadata/freeze-gates.json', 'metadata/adc-v2-scope-map.json',
 ]) {
   check(fs.existsSync(path.join(bundleDir, relativePath)), `missing required artifact: ${relativePath}`);
 }

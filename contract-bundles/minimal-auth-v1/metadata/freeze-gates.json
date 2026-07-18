@@ -38,10 +38,14 @@
     },
     {
       "id": "GATE-ADC-V2-INGRESS-SCOPE",
-      "status": "open",
+      "status": "closed",
       "owner": "adc-v2-owner",
-      "evidence": [],
-      "reason": "The adc-v2 source-audience ingress scope name and endpoint mapping require review."
+      "evidence": [
+        "AUTH_TOKEN_CONTRACT_V1_ADC_V2_SCOPE_REVIEW.md",
+        "metadata/adc-v2-scope-map.json",
+        "adc-v2@ddeeab2ff394af64b78d9820c9e64d5bf0952ebd"
+      ],
+      "reason": "The fixed remote ADC V2 route surface maps exactly to adc.read/adc.execute and workflow.read/workflow.execute."
     },
     {
       "id": "GATE-BUNDLE-NARROW-REVIEW",

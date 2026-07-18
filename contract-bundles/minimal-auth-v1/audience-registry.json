@@ -63,10 +63,10 @@
       "human_access_enabled": false,
       "machine_access_enabled": true,
       "delegated_access_enabled": false,
-      "registered_scopes": ["adc.invoke"],
+      "registered_scopes": ["adc.execute", "adc.read"],
       "status": "candidate",
-      "freeze_ready": false,
-      "notes": "Source audience for the trusted proxy; exact ingress scope requires ADC review."
+      "freeze_ready": true,
+      "notes": "Source audience for the trusted proxy; read/execute map to the fixed ADC V2 route categories."
     }
   ]
 }
