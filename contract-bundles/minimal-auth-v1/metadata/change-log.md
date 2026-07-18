@@ -16,6 +16,9 @@
   binding flow; both public and confidential clients use PKCE.
 - Defined first-bundle Grant administration as versioned, audited, optimistic,
   forward-only database migrations with no online Grant management endpoint.
+- Froze candidate Authorization Code and Refresh Credential opaque wire formats,
+  Human refresh request/response shapes, OAuth error status mapping and cache
+  headers for review.
 - Corrected resource topology to `svc-forum` and `llm-todo`; retained
   `workflow-todo` as a Client, not an Audience.
 - Recorded unresolved deployment, consumer SHA and scope decisions as freeze

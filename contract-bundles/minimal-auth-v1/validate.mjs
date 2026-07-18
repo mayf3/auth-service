@@ -180,8 +180,10 @@ function validateFixture(fixture, manifest, audienceById, jwksKids, now, options
       profile: 'direct_machine_access',
       header: fixture.header,
       claims: source,
-      authorization_context: {},
-    }, manifest, audienceById, jwksKids, now, { skipAuthorization: true });
+      authorization_context: {
+        machine_access_grants: context.source_machine_access_grants,
+      },
+    }, manifest, audienceById, jwksKids, now);
     if (source.principal_type !== 'agent' || source.sub !== claims.sub
       || source.token_use !== 'access' || 'act' in source || 'azp' in source) {
       contractError('INVALID_SOURCE_TOKEN', 'Source must be a Direct Agent token for the same sub.');
@@ -246,7 +248,26 @@ check(manifest.human_login.flow === 'authorization_code', 'manifest: Human login
 check(manifest.human_login.pkce_method === 'S256' && manifest.human_login.pkce_required_for_all_clients === true, 'manifest: PKCE S256 must be required for all Human Clients');
 check(manifest.human_login.authorization_transaction_ttl_seconds <= 300, 'manifest: Authorization Transaction TTL exceeds 300s');
 check(manifest.human_login.authorization_code_ttl_seconds <= 60, 'manifest: Authorization Code TTL exceeds 60s');
+check(manifest.human_login.authorization_code_secret_entropy_bits >= 256, 'manifest: Authorization Code entropy is below 256 bits');
 check(manifest.human_login.implicit_grant_allowed === false && manifest.human_login.password_grant_allowed === false, 'manifest: unsafe Human OAuth grant enabled');
+check(manifest.refresh_credential.secret_entropy_bits >= 256, 'manifest: Refresh Credential entropy is below 256 bits');
+check(manifest.refresh_credential.database_stores_complete_wire_value === false, 'manifest: complete Refresh Credential cannot be stored');
+check(manifest.oauth.request_content_type === 'application/x-www-form-urlencoded', 'manifest: OAuth token request encoding changed');
+check(manifest.oauth.reject_duplicate_parameters === true, 'manifest: duplicate OAuth parameters must be rejected');
+check(manifest.oauth.success_cache_control === 'no-store' && manifest.oauth.success_pragma === 'no-cache', 'manifest: OAuth success cache headers are incomplete');
+check(manifest.oauth.error_cache_control === 'no-store' && manifest.oauth.error_pragma === 'no-cache', 'manifest: OAuth error cache headers are incomplete');
+const requiredOauthErrors = {
+  invalid_client: 401,
+  invalid_grant: 400,
+  invalid_request: 400,
+  invalid_scope: 400,
+  invalid_target: 400,
+  unsupported_grant_type: 400,
+  unsupported_token_type: 400,
+  temporarily_unavailable: 503,
+  server_error: 500,
+};
+check(Object.entries(requiredOauthErrors).every(([code, status]) => manifest.oauth.error_http_status[code] === status), 'manifest: OAuth error/status map is incomplete');
 check(manifest.management.grant_management_mode === 'versioned_database_migration_only', 'manifest: V1 grants must be migration managed');
 check(manifest.management.online_grant_management_enabled === false, 'manifest: online Grant management must be disabled');
 check(manifest.management.optimistic_version_required === true, 'manifest: Grant optimistic concurrency is required');
