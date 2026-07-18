@@ -31,7 +31,7 @@ export interface AuditEvent {
   /** MachinePrincipal UUID (omitted if not yet created) */
   principalId?: string;
   /** OpenClaw canonical agent ID */
-  agentId?: string;
+  agentId?: string | null;
   /** OAuth clientId (not the DB id — the public client_id string) */
   clientId?: string;
   /** Requested resource (token events only) */

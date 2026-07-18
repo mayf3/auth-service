@@ -18,6 +18,21 @@ interface RuntimeSnapshot {
   runtimeDigest: string;
 }
 
+export type V1PrincipalType = 'user' | 'agent' | 'service';
+
+export interface V1AudienceDefinition {
+  audienceId: string;
+  resourceService: string;
+  scopeNamespace: string;
+  acceptedPrincipalTypes: readonly V1PrincipalType[];
+  registeredScopes: readonly string[];
+  humanAccessEnabled: boolean;
+  machineAccessEnabled: boolean;
+  delegatedAccessEnabled: boolean;
+  status: 'candidate' | 'active' | 'disabled' | 'retired';
+  freezeReady: boolean;
+}
+
 function asRuntimeSnapshot(value: unknown): RuntimeSnapshot {
   if (!value || typeof value !== 'object') {
     throw new Error('Minimal Auth V1 runtime snapshot has an invalid shape.');
@@ -92,6 +107,68 @@ export function initializeAuthContract(mode: AuthContractMode): AuthContractIden
 
 export function getV1RuntimeSnapshot(): Readonly<RuntimeSnapshotPayload> {
   return loadSnapshot().payload;
+}
+
+function requiredString(value: unknown, field: string): string {
+  if (typeof value !== 'string' || value.length === 0) {
+    throw new Error(`Minimal Auth V1 audience registry has invalid ${field}.`);
+  }
+  return value;
+}
+
+function requiredBoolean(value: unknown, field: string): boolean {
+  if (typeof value !== 'boolean') {
+    throw new Error(`Minimal Auth V1 audience registry has invalid ${field}.`);
+  }
+  return value;
+}
+
+function stringArray(value: unknown, field: string): string[] {
+  if (!Array.isArray(value) || value.some((item) => typeof item !== 'string')) {
+    throw new Error(`Minimal Auth V1 audience registry has invalid ${field}.`);
+  }
+  return [...value];
+}
+
+export function getV1AudienceDefinitions(): readonly V1AudienceDefinition[] {
+  const registry = getV1RuntimeSnapshot().audienceRegistry;
+  if (registry.status !== 'frozen' || !Array.isArray(registry.audiences)) {
+    throw new Error('Minimal Auth V1 audience registry is not frozen or has no audiences.');
+  }
+  return registry.audiences.map((value, index) => {
+    if (!value || typeof value !== 'object') {
+      throw new Error(`Minimal Auth V1 audience registry entry ${index} is invalid.`);
+    }
+    const entry = value as Record<string, unknown>;
+    const acceptedPrincipalTypes = stringArray(
+      entry.accepted_principal_types,
+      'accepted_principal_types',
+    );
+    if (acceptedPrincipalTypes.some(
+      (item) => !['user', 'agent', 'service'].includes(item),
+    )) {
+      throw new Error('Minimal Auth V1 audience registry has an invalid principal type.');
+    }
+    const status = requiredString(entry.status, 'status');
+    if (!['candidate', 'active', 'disabled', 'retired'].includes(status)) {
+      throw new Error('Minimal Auth V1 audience registry has an invalid status.');
+    }
+    return {
+      audienceId: requiredString(entry.audience_id, 'audience_id'),
+      resourceService: requiredString(entry.resource_service, 'resource_service'),
+      scopeNamespace: requiredString(entry.scope_namespace, 'scope_namespace'),
+      acceptedPrincipalTypes: acceptedPrincipalTypes as V1PrincipalType[],
+      registeredScopes: stringArray(entry.registered_scopes, 'registered_scopes'),
+      humanAccessEnabled: requiredBoolean(entry.human_access_enabled, 'human_access_enabled'),
+      machineAccessEnabled: requiredBoolean(entry.machine_access_enabled, 'machine_access_enabled'),
+      delegatedAccessEnabled: requiredBoolean(
+        entry.delegated_access_enabled,
+        'delegated_access_enabled',
+      ),
+      status: status as V1AudienceDefinition['status'],
+      freezeReady: requiredBoolean(entry.freeze_ready, 'freeze_ready'),
+    };
+  });
 }
 
 export function resetAuthContractForTests(): void {
