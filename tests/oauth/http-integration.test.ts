@@ -62,6 +62,10 @@ describe('express.urlencoded middleware configuration', () => {
       'server.ts should have express.urlencoded middleware');
     assert.ok(content.includes('express.json()'),
       'server.ts should still have express.json');
+    const oauthNoStore = content.indexOf("req.path.startsWith('/oauth/')");
+    const globalLimiter = content.indexOf('app.use(globalLimiter)');
+    assert.ok(oauthNoStore >= 0 && oauthNoStore < globalLimiter,
+      'OAuth no-store middleware must run before the global rate limiter');
   });
 });
 

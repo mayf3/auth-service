@@ -9,6 +9,7 @@ import { serviceRegistrationRouter } from './routes/service-registrations.js';
 import { usersRouter } from './routes/users.js';
 import { rolesRouter } from './routes/roles.js';
 import { oauthRouter } from './routes/oauth.js';
+import { oauthHumanRouter } from './routes/oauth-human.js';
 import { wellKnownRouter } from './routes/well-known.js';
 import { HttpError, OAuthHttpError } from './utils/http-error.js';
 import { prisma } from './lib/prisma.js';
@@ -46,6 +47,16 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// OAuth success, error and rate-limit responses must never be cached. This is
+// intentionally before the global limiter so its 429 response has the same rule.
+app.use((req, res, next) => {
+  if (req.path === '/oauth' || req.path.startsWith('/oauth/')) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Pragma', 'no-cache');
+  }
+  next();
+});
 
 // ─── Rate Limiting ──────────────────────────────────────────────────────
 
@@ -100,6 +111,7 @@ app.use('/api/auth', authRouter);
 
 // ─── OAuth 2.0 Token Endpoint ──────────────────────────────────────────────
 
+app.use('/oauth', oauthHumanRouter);
 app.use('/oauth', oauthRouter);
 
 // ─── JWKS — public workflow verification keys (PR-A) ───────────────────────

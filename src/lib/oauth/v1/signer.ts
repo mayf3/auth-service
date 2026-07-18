@@ -22,6 +22,28 @@ export interface SignV1DirectMachineTokenParams {
   scope: string;
 }
 
+export interface SignV1HumanAccessTokenParams {
+  userId: string;
+  clientId: string;
+  audience: string;
+  maximumExpiresAt?: number;
+}
+
+export interface V1HumanAccessTokenClaims {
+  iss: string;
+  sub: string;
+  aud: string;
+  principal_type: 'user';
+  client_id: string;
+  token_use: 'access';
+  type: 'access';
+  version: string;
+  jti: string;
+  iat: number;
+  nbf: number;
+  exp: number;
+}
+
 export interface V1DirectMachineTokenClaims {
   iss: string;
   sub: string;
@@ -120,6 +142,47 @@ export function signV1DirectMachineToken(
     iat: now,
     nbf: now,
     exp: now + settings.machineAccessTtlSeconds,
+  };
+  const { active } = getWorkflowKeyring();
+  const token = jwt.sign(claims, activePrivateKeyPem(), {
+    algorithm: 'RS256',
+    keyid: active.kid,
+  });
+  return { token, claims, kid: active.kid };
+}
+
+export function signV1HumanAccessToken(
+  params: SignV1HumanAccessTokenParams,
+): { token: string; claims: V1HumanAccessTokenClaims; kid: string } {
+  const settings = getV1ContractSettings();
+  const audience = getV1AudienceDefinitions().find(
+    (candidate) => candidate.audienceId === params.audience,
+  );
+  if (!audience?.humanAccessEnabled || !audience.acceptedPrincipalTypes.includes('user')) {
+    throw new Error('V1 Human signer received an invalid Human audience.');
+  }
+  if (!UUID_PATTERN.test(params.userId) || !params.clientId) {
+    throw new Error('V1 Human signer received an invalid User or Client.');
+  }
+  const now = Math.floor(Date.now() / 1000);
+  const exp = Math.min(
+    now + settings.humanAccessTtlSeconds,
+    params.maximumExpiresAt ?? Number.MAX_SAFE_INTEGER,
+  );
+  if (exp <= now) throw new Error('V1 Human signer received an expired Session.');
+  const claims: V1HumanAccessTokenClaims = {
+    iss: settings.exactIssuer,
+    sub: params.userId,
+    aud: params.audience,
+    principal_type: 'user',
+    client_id: params.clientId,
+    token_use: 'access',
+    type: 'access',
+    version: settings.tokenVersion,
+    jti: randomUUID(),
+    iat: now,
+    nbf: now,
+    exp,
   };
   const { active } = getWorkflowKeyring();
   const token = jwt.sign(claims, activePrivateKeyPem(), {
@@ -245,6 +308,57 @@ export function verifyV1DirectMachineToken(
     throw new Error('V1 Direct token has invalid time claims.');
   }
   assertCanonicalV1Scope(claims.scope, audience.scopeNamespace);
+  return claims;
+}
+
+export function verifyV1HumanAccessToken(
+  token: string,
+  expectedAudience: string,
+  now = Math.floor(Date.now() / 1000),
+): V1HumanAccessTokenClaims {
+  const settings = getV1ContractSettings();
+  const audience = getV1AudienceDefinitions().find(
+    (candidate) => candidate.audienceId === expectedAudience,
+  );
+  if (!audience?.humanAccessEnabled || !audience.acceptedPrincipalTypes.includes('user')) {
+    throw new Error('V1 Human verifier received an invalid Human audience.');
+  }
+  const header = peekHeader(token);
+  if (header.alg !== 'RS256' || typeof header.kid !== 'string') {
+    throw new Error('V1 Human token requires alg=RS256 and kid.');
+  }
+  const key = getWorkflowKeyring().verificationKeys.get(header.kid);
+  if (!key) throw new Error('V1 Human token kid is not recognized.');
+  const publicKey = key.publicKey.export({ format: 'pem', type: 'spki' });
+  const claims = jwt.verify(token, publicKey, {
+    algorithms: ['RS256'],
+    issuer: settings.exactIssuer,
+    audience: expectedAudience,
+    clockTimestamp: now,
+    clockTolerance: settings.clockSkewToleranceSeconds,
+  }) as unknown as V1HumanAccessTokenClaims;
+  const allowed = new Set([
+    'iss', 'sub', 'aud', 'principal_type', 'client_id', 'token_use', 'type',
+    'version', 'jti', 'iat', 'nbf', 'exp',
+  ]);
+  if (Object.keys(claims).some((claim) => !allowed.has(claim))) {
+    throw new Error('V1 Human token contains a forbidden claim.');
+  }
+  if (!UUID_PATTERN.test(claims.sub) || claims.aud !== expectedAudience
+    || claims.principal_type !== 'user' || claims.token_use !== 'access'
+    || claims.type !== 'access' || claims.version !== settings.tokenVersion
+    || typeof claims.client_id !== 'string' || !claims.client_id
+    || typeof claims.jti !== 'string' || claims.jti.length < 16) {
+    throw new Error('V1 Human token has invalid profile claims.');
+  }
+  if (![claims.iat, claims.nbf, claims.exp].every(Number.isInteger)
+    || claims.nbf > claims.iat || claims.exp <= claims.iat
+    || claims.exp - claims.iat > settings.humanAccessTtlSeconds
+    || claims.iat > now + settings.clockSkewToleranceSeconds
+    || claims.nbf > now + settings.clockSkewToleranceSeconds
+    || claims.exp <= now - settings.clockSkewToleranceSeconds) {
+    throw new Error('V1 Human token has invalid time claims.');
+  }
   return claims;
 }
 

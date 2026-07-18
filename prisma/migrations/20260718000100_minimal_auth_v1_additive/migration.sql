@@ -148,7 +148,23 @@ CREATE TABLE "authorization_transactions" (
   "consumed_at" TIMESTAMP(3),
   "version" INTEGER NOT NULL DEFAULT 1,
   CONSTRAINT "authorization_transactions_pkey" PRIMARY KEY ("id"),
-  CONSTRAINT "authorization_transactions_pkce_check" CHECK ("code_challenge_method" = 'S256')
+  CONSTRAINT "authorization_transactions_pkce_check" CHECK (
+    "code_challenge_method" = 'S256'
+    AND "code_challenge" ~ '^[A-Za-z0-9_-]{43}$'
+  ),
+  CONSTRAINT "authorization_transactions_timing_check" CHECK (
+    "expires_at" > "created_at"
+    AND "expires_at" <= "created_at" + INTERVAL '5 minutes'
+  ),
+  CONSTRAINT "authorization_transactions_shape_check" CHECK (
+    length("state") BETWEEN 1 AND 512 AND length("redirect_uri") > 0 AND "version" >= 1
+    AND (
+      ("status" = 'pending' AND "authenticated_user_id" IS NULL AND "consumed_at" IS NULL)
+      OR ("status" = 'authenticated' AND "authenticated_user_id" IS NOT NULL AND "consumed_at" IS NULL)
+      OR ("status" = 'consumed' AND "authenticated_user_id" IS NOT NULL AND "consumed_at" IS NOT NULL)
+      OR ("status" = 'expired' AND "consumed_at" IS NULL)
+    )
+  )
 );
 
 CREATE INDEX "authorization_transactions_human_client_id_status_expires_a_idx"
@@ -168,7 +184,23 @@ CREATE TABLE "authorization_codes" (
   "expires_at" TIMESTAMP(3) NOT NULL,
   "consumed_at" TIMESTAMP(3),
   "version" INTEGER NOT NULL DEFAULT 1,
-  CONSTRAINT "authorization_codes_pkey" PRIMARY KEY ("id")
+  CONSTRAINT "authorization_codes_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "authorization_codes_verifier_check" CHECK (
+    "verifier_parameters_version" = 'scrypt-v1'
+    AND "credential_verifier" ~ '^[0-9a-f]{32}:[0-9a-f]{64}$'
+  ),
+  CONSTRAINT "authorization_codes_timing_check" CHECK (
+    "expires_at" > "issued_at"
+    AND "expires_at" <= "issued_at" + INTERVAL '60 seconds'
+  ),
+  CONSTRAINT "authorization_codes_shape_check" CHECK (
+    length("redirect_uri") > 0 AND "version" >= 1
+    AND (
+      ("status" = 'active' AND "consumed_at" IS NULL)
+      OR ("status" = 'consumed' AND "consumed_at" IS NOT NULL)
+      OR ("status" = 'expired' AND "consumed_at" IS NULL)
+    )
+  )
 );
 
 CREATE UNIQUE INDEX "authorization_codes_authorization_transaction_id_key" ON "authorization_codes"("authorization_transaction_id");
@@ -188,7 +220,20 @@ CREATE TABLE "human_sessions" (
   "revoked_at" TIMESTAMP(3),
   "revocation_reason" TEXT,
   "version" INTEGER NOT NULL DEFAULT 1,
-  CONSTRAINT "human_sessions_pkey" PRIMARY KEY ("id")
+  CONSTRAINT "human_sessions_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "human_sessions_timing_check" CHECK (
+    "last_refreshed_at" >= "authenticated_at"
+    AND "last_refreshed_at" < "absolute_expires_at"
+    AND "absolute_expires_at" > "authenticated_at"
+    AND "absolute_expires_at" <= "authenticated_at" + INTERVAL '30 days'
+  ),
+  CONSTRAINT "human_sessions_shape_check" CHECK (
+    "version" >= 1 AND ("revocation_reason" IS NULL OR length("revocation_reason") BETWEEN 1 AND 128)
+    AND (
+      ("status" = 'active' AND "revoked_at" IS NULL AND "revocation_reason" IS NULL)
+      OR ("status" IN ('revoked', 'expired') AND "revoked_at" IS NOT NULL AND "revocation_reason" IS NOT NULL)
+    )
+  )
 );
 
 CREATE UNIQUE INDEX "human_sessions_token_family_id_key" ON "human_sessions"("token_family_id");
@@ -203,7 +248,18 @@ CREATE TABLE "refresh_families" (
   "revoked_at" TIMESTAMP(3),
   "revoke_reason" TEXT,
   "version" INTEGER NOT NULL DEFAULT 1,
-  CONSTRAINT "refresh_families_pkey" PRIMARY KEY ("id")
+  CONSTRAINT "refresh_families_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "refresh_families_timing_check" CHECK (
+    "absolute_expires_at" > "created_at"
+    AND "absolute_expires_at" <= "created_at" + INTERVAL '30 days'
+  ),
+  CONSTRAINT "refresh_families_shape_check" CHECK (
+    "version" >= 1 AND ("revoke_reason" IS NULL OR length("revoke_reason") BETWEEN 1 AND 128)
+    AND (
+      ("status" = 'active' AND "revoked_at" IS NULL AND "revoke_reason" IS NULL)
+      OR ("status" IN ('revoked', 'expired') AND "revoked_at" IS NOT NULL AND "revoke_reason" IS NOT NULL)
+    )
+  )
 );
 
 CREATE INDEX "refresh_families_human_session_id_status_idx" ON "refresh_families"("human_session_id", "status");
@@ -224,7 +280,23 @@ CREATE TABLE "refresh_credentials" (
   "revoked_at" TIMESTAMP(3),
   "reuse_detected_at" TIMESTAMP(3),
   "version" INTEGER NOT NULL DEFAULT 1,
-  CONSTRAINT "refresh_credentials_pkey" PRIMARY KEY ("id")
+  CONSTRAINT "refresh_credentials_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "refresh_credentials_verifier_check" CHECK (
+    "verifier_parameters_version" = 'scrypt-v1'
+    AND "secret_verifier" ~ '^[0-9a-f]{32}:[0-9a-f]{64}$'
+  ),
+  CONSTRAINT "refresh_credentials_timing_check" CHECK (
+    "expires_at" > "issued_at"
+    AND "expires_at" <= "issued_at" + INTERVAL '7 days'
+  ),
+  CONSTRAINT "refresh_credentials_shape_check" CHECK (
+    "version" >= 1 AND (
+      ("status" = 'active' AND "rotated_at" IS NULL AND "replaced_by_id" IS NULL
+        AND "revoked_at" IS NULL AND "reuse_detected_at" IS NULL)
+      OR ("status" = 'rotated' AND "rotated_at" IS NOT NULL AND "revoked_at" IS NULL)
+      OR ("status" IN ('revoked', 'expired') AND "revoked_at" IS NOT NULL)
+    )
+  )
 );
 
 CREATE UNIQUE INDEX "refresh_credentials_replaced_by_id_key" ON "refresh_credentials"("replaced_by_id");
@@ -282,7 +354,12 @@ CREATE TABLE "auth_security_audits" (
   "request_correlation_id" TEXT,
   "details" JSONB,
   "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "auth_security_audits_pkey" PRIMARY KEY ("id")
+  CONSTRAINT "auth_security_audits_pkey" PRIMARY KEY ("id"),
+  CONSTRAINT "auth_security_audits_text_check" CHECK (
+    length("event_type") BETWEEN 1 AND 128
+    AND "result" IN ('success', 'rejected')
+    AND ("request_correlation_id" IS NULL OR length("request_correlation_id") BETWEEN 1 AND 256)
+  )
 );
 
 CREATE INDEX "auth_security_audits_timestamp_idx" ON "auth_security_audits"("timestamp");

@@ -43,6 +43,18 @@ export interface V1ContractSettings {
   humanAccessTtlSeconds: number;
   machineAccessTtlSeconds: number;
   oboAccessTtlSeconds: number;
+  humanSessionAbsoluteTtlSeconds: number;
+  refreshCredentialTtlSeconds: number;
+  authorizationTransactionTtlSeconds: number;
+  authorizationCodeTtlSeconds: number;
+  refreshVerifier: {
+    parametersVersion: string;
+    N: number;
+    r: number;
+    p: number;
+    keyLengthBytes: number;
+    saltLengthBytes: number;
+  };
 }
 
 function asRuntimeSnapshot(value: unknown): RuntimeSnapshot {
@@ -194,7 +206,11 @@ export function getV1ContractSettings(): Readonly<V1ContractSettings> {
   const manifest = getV1RuntimeSnapshot().manifest;
   const signing = manifest.signing as Record<string, unknown> | undefined;
   const timing = manifest.timing as Record<string, unknown> | undefined;
-  if (!signing || !timing || signing.algorithm !== 'RS256') {
+  const humanLogin = manifest.human_login as Record<string, unknown> | undefined;
+  const refreshVerifier = manifest.refresh_verifier as Record<string, unknown> | undefined;
+  const verifierParameters = refreshVerifier?.parameters as Record<string, unknown> | undefined;
+  if (!signing || !timing || !humanLogin || !refreshVerifier || !verifierParameters
+    || signing.algorithm !== 'RS256' || refreshVerifier.algorithm !== 'scrypt') {
     throw new Error('Minimal Auth V1 runtime manifest has invalid signing or timing settings.');
   }
   return {
@@ -222,6 +238,39 @@ export function getV1ContractSettings(): Readonly<V1ContractSettings> {
       timing.obo_access_ttl_seconds,
       'obo_access_ttl_seconds',
     ),
+    humanSessionAbsoluteTtlSeconds: requiredInteger(
+      timing.human_session_absolute_ttl_seconds,
+      'human_session_absolute_ttl_seconds',
+    ),
+    refreshCredentialTtlSeconds: requiredInteger(
+      timing.refresh_credential_ttl_seconds,
+      'refresh_credential_ttl_seconds',
+    ),
+    authorizationTransactionTtlSeconds: requiredInteger(
+      humanLogin.authorization_transaction_ttl_seconds,
+      'authorization_transaction_ttl_seconds',
+    ),
+    authorizationCodeTtlSeconds: requiredInteger(
+      humanLogin.authorization_code_ttl_seconds,
+      'authorization_code_ttl_seconds',
+    ),
+    refreshVerifier: {
+      parametersVersion: requiredString(
+        refreshVerifier.parameters_version,
+        'refresh_verifier.parameters_version',
+      ),
+      N: requiredInteger(verifierParameters.N, 'refresh_verifier.parameters.N'),
+      r: requiredInteger(verifierParameters.r, 'refresh_verifier.parameters.r'),
+      p: requiredInteger(verifierParameters.p, 'refresh_verifier.parameters.p'),
+      keyLengthBytes: requiredInteger(
+        verifierParameters.key_length_bytes,
+        'refresh_verifier.parameters.key_length_bytes',
+      ),
+      saltLengthBytes: requiredInteger(
+        verifierParameters.salt_length_bytes,
+        'refresh_verifier.parameters.salt_length_bytes',
+      ),
+    },
   };
 }
 
