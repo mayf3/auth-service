@@ -4,6 +4,7 @@
 
 ```text
 STATUS=DRAFT_V1_MODULE
+CONTRACT_VERSION=1.0.0-draft.2
 DELEGATION_DEPTH=1
 HUMAN_OBO=false
 OBO_CHAINING=false
@@ -200,6 +201,7 @@ result
 
 ```text
 exchange_id
+result=rejected
 proxy_principal_id（若已解析）
 proxy_client_id（掩码或内部受控值）
 source_token_jti（若已验证）
@@ -209,6 +211,9 @@ requested_scopes
 timestamp
 rejection_category
 ```
+
+无法安全解析或验证的字段必须写 `null`，不能把未验证的 Token 内容补成审计
+事实。成功记录固定 `result=success`，失败记录固定 `result=rejected`。
 
 不得记录：
 

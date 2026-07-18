@@ -1,22 +1,48 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "design_id": "MINIMAL_AUTH_FOUNDATION_V1",
-  "contract_version": "1.0.0-draft.1",
-  "bundle_status": "draft",
-  "frozen": false,
-  "implementation_authorized": false,
-  "mainline_effective": false,
+  "contract_version": "1.0.0-draft.2",
+  "lifecycle": {
+    "contract_bundle_freeze": {
+      "status": "draft",
+      "frozen": false,
+      "implementation_authorized": false,
+      "reviewed_source_git_commit": null
+    },
+    "production_deployment": {
+      "status": "not_ready",
+      "exact_jwks_url": null,
+      "production_jwks_deployment_ready": false,
+      "auth_token_contract_v1_production_effective": false
+    },
+    "consumer_migration": {
+      "status": "not_started",
+      "first_wave_scope": ["auth-service", "svc-workflow", "svc-okr", "adc-v2"],
+      "legacy_out_of_scope": [
+        "svc-forum", "workflow-todo", "llm-todo",
+        "openclaw-credential-broker-candidate"
+      ],
+      "in_scope_ready": false,
+      "legacy_consumers_migrated": false
+    }
+  },
   "exact_issuer": "auth-service",
   "token_version": "v1",
-  "audience_registry_version": "1.0.0-draft.1",
+  "audience_registry_version": "1.0.0-draft.2",
   "signing": {
     "algorithm": "RS256",
-    "jwks_url": null,
     "jwks_path": "/.well-known/jwks.json",
     "jwks_http_timeout_seconds": 5,
     "jwks_cache_ttl_seconds": 300,
     "jwks_max_stale_seconds": 600,
+    "cache_fetch_error_rule": "use_trusted_cache_until_max_stale_then_fail_closed",
     "unknown_kid_refresh_attempts": 1,
+    "unknown_kid_after_refresh_rule": "reject",
+    "active_signing_key_count": 1,
+    "new_token_signing_key_rule": "active_key_only",
+    "previous_key_rule": "verification_only_until_retention_elapsed",
+    "reject_duplicate_kid": true,
+    "require_active_signing_key": true,
     "key_retention_minimum_seconds": 1560,
     "allow_hs256_fallback": false
   },
@@ -122,7 +148,7 @@
     "audit_in_same_transaction": true,
     "forward_only_changes": true
   },
-  "human_session_refresh_contract_version": "1.0.0-draft.1",
+  "human_session_refresh_contract_version": "1.0.0-draft.2",
   "v0_compatibility": {
     "status": "wire-compatible-migration-candidate",
     "machine_claims_retained": ["client_id", "jti", "nbf"],
@@ -130,6 +156,5 @@
     "delegated_token_use": "workflow_obo",
     "supersedes_v0": false
   },
-  "source_git_commit": null,
   "freeze_gate_file": "metadata/freeze-gates.json"
 }

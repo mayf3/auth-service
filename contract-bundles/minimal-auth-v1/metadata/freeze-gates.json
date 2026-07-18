@@ -1,25 +1,31 @@
 {
-  "contract_version": "1.0.0-draft.1",
-  "freeze_allowed": false,
+  "contract_version": "1.0.0-draft.2",
+  "contract_bundle_freeze_allowed": false,
   "gates": [
     {
       "id": "GATE-REMOTE-CONSUMER-SHAS",
-      "status": "open",
+      "state_domain": "consumer_migration",
+      "blocks_contract_bundle_freeze": false,
+      "status": "deferred",
       "owner": "consumer-repository-owners",
-      "evidence": [],
-      "reason": "svc-forum, current llm-todo, workflow-todo and the OpenClaw broker candidate lack fixed auditable remote full SHAs."
+      "evidence": ["metadata/consumer-verification-matrix.json"],
+      "reason": "Out-of-scope Legacy consumers lack fixed migration SHAs; this blocks only their later migration, not the first-wave source Contract Bundle freeze."
     },
     {
       "id": "GATE-EXACT-JWKS-URL",
+      "state_domain": "production_deployment",
+      "blocks_contract_bundle_freeze": false,
       "status": "open",
       "owner": "auth-service-deployment-owner",
       "evidence": [
         "AUTH_TOKEN_CONTRACT_V1_JWKS_DEPLOYMENT_EVIDENCE.md"
       ],
-      "reason": "The only discovered public origin uses a self-signed IP certificate without SAN; the public auth path and live backend both return 404 for JWKS. A deployment owner must provision and prove a CA-trusted exact HTTPS route."
+      "reason": "The frozen source contract defines the exact JWKS path and behavior. A CA-trusted exact URL and live route remain mandatory before production effective, but do not block source Contract Bundle freeze."
     },
     {
       "id": "GATE-RUNTIME-PARAMETER-REVIEW",
+      "state_domain": "contract_bundle_freeze",
+      "blocks_contract_bundle_freeze": true,
       "status": "closed",
       "owner": "auth-service-contract-review",
       "evidence": [
@@ -33,17 +39,21 @@
     },
     {
       "id": "GATE-LLM-TODO-AUTHORIZATION-MATRIX",
-      "status": "open",
+      "state_domain": "consumer_migration",
+      "blocks_contract_bundle_freeze": false,
+      "status": "deferred",
       "owner": "llm-todo-owner",
       "evidence": [
         "AUTH_TOKEN_CONTRACT_V1_LLM_TODO_AUTHORIZATION_CANDIDATE.md",
         "metadata/llm-todo-authorization-candidate.json",
         "llm-todo@7cc746240ba15161a5350bbe4c6d8fb88f41f5c6"
       ],
-      "reason": "A complete candidate grouping exists, but the owner must decide accepted principal types, public discovery, metered invoke access and administrator ownership before freeze."
+      "reason": "llm-todo remains Legacy and outside the first-wave Bundle. Owner decisions block only a later llm-todo migration contract."
     },
     {
       "id": "GATE-ADC-V2-INGRESS-SCOPE",
+      "state_domain": "contract_bundle_freeze",
+      "blocks_contract_bundle_freeze": true,
       "status": "closed",
       "owner": "adc-v2-owner",
       "evidence": [
@@ -55,10 +65,12 @@
     },
     {
       "id": "GATE-BUNDLE-NARROW-REVIEW",
+      "state_domain": "contract_bundle_freeze",
+      "blocks_contract_bundle_freeze": true,
       "status": "open",
       "owner": "independent-contract-reviewer",
       "evidence": [],
-      "reason": "This draft Bundle has not yet passed an independent narrow review at a fixed remote SHA."
+      "reason": "The fixed 1.0.0-draft.1 object failed independent review; draft.2 must be pushed and pass a new fixed-SHA review before freeze."
     }
   ]
 }

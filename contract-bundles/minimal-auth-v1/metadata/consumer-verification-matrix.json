@@ -1,7 +1,9 @@
 {
-  "contract_version": "1.0.0-draft.1",
+  "contract_version": "1.0.0-draft.2",
   "inventory_date": "2026-07-18",
-  "all_in_scope_consumers_fixed_remote_sha": false,
+  "contract_bundle_scope": ["auth-service", "svc-workflow", "svc-okr", "adc-v2"],
+  "all_contract_bundle_scope_fixed_remote_sha": true,
+  "all_first_wave_migrations_ready": false,
   "consumers": [
     {
       "id": "auth-service",
@@ -10,15 +12,19 @@
       "git_tree": "70674b6621ff3b5f252552aabb87824f067b71de",
       "remote_ref": "origin/codex/minimal-auth-v1-contract",
       "fixed_remote_sha": true,
+      "contract_bundle_scope": true,
+      "migration_status": "not_started",
       "v1_ready": false
     },
     {
       "id": "svc-workflow",
       "kind": "resource-and-obo-consumer",
-      "git_sha": "2dff1320d1488ff4d2137795df1622d61d01c00c",
-      "git_tree": "3fb6d70785daff0d44821a0845389df3c027e8d9",
-      "remote_ref": "origin/main",
+      "git_sha": "93d81f5fdab00dd6e04e22b5e16816213b317ec5",
+      "git_tree": "a19642cbd2d814aa045f22afa8e29ee98f4beab7",
+      "remote_ref": "server/main",
       "fixed_remote_sha": true,
+      "contract_bundle_scope": true,
+      "migration_status": "not_started",
       "v1_ready": false
     },
     {
@@ -28,6 +34,8 @@
       "git_tree": "eb39002085059db5ae4a3451fa7a68517a6462cb",
       "remote_ref": "server/fix/blank-config-bypass",
       "fixed_remote_sha": true,
+      "contract_bundle_scope": true,
+      "migration_status": "not_started",
       "v1_ready": false
     },
     {
@@ -37,6 +45,8 @@
       "git_tree": "466ddd513a55c8404c7177851f435cd4c9b1877c",
       "remote_ref": null,
       "fixed_remote_sha": false,
+      "contract_bundle_scope": false,
+      "migration_status": "legacy_out_of_scope",
       "v1_ready": false
     },
     {
@@ -46,6 +56,8 @@
       "git_tree": "b45dc35aa7b3148a314c9d856efdb17b94387650",
       "remote_ref": null,
       "fixed_remote_sha": false,
+      "contract_bundle_scope": false,
+      "migration_status": "legacy_out_of_scope",
       "v1_ready": false
     },
     {
@@ -55,6 +67,8 @@
       "git_tree": "6b7e69217cac99b381876e85750dea588ae501fd",
       "remote_ref": "server/main",
       "fixed_remote_sha": true,
+      "contract_bundle_scope": true,
+      "migration_status": "not_started",
       "v1_ready": false
     },
     {
@@ -64,6 +78,8 @@
       "git_tree": "6ac1fd0d31914755ae93bc42d4cea38113e43193",
       "remote_ref": null,
       "fixed_remote_sha": false,
+      "contract_bundle_scope": false,
+      "migration_status": "legacy_out_of_scope",
       "v1_ready": false
     },
     {
@@ -73,6 +89,8 @@
       "git_tree": "163e3a0df34c4dbd4b253447de1f7bb12d31b80a",
       "remote_ref": null,
       "fixed_remote_sha": false,
+      "contract_bundle_scope": false,
+      "migration_status": "legacy_out_of_scope",
       "v1_ready": false
     }
   ]

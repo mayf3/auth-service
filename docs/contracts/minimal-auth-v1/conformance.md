@@ -4,6 +4,7 @@
 
 ```text
 STATUS=DRAFT_V1_MODULE
+CONTRACT_VERSION=1.0.0-draft.2
 REAL_PROCESS_REQUIRED=true
 FIXTURE_ONLY_ACCEPTANCE=false
 DOMAIN_AUTHORIZATION_PROOF_REQUIRED=true
@@ -43,7 +44,7 @@ contract_version
 exact_issuer
 audience_registry_version
 signing_algorithm=RS256
-jwks_url
+jwks_path
 jwks_cache_ttl_seconds
 jwks_max_stale_seconds
 clock_skew_tolerance_seconds
@@ -58,6 +59,9 @@ scope_wire_format_version
 human_session_refresh_contract_version
 v0_compatibility_status
 ```
+
+精确生产 `jwks_url` 属于 `PRODUCTION_DEPLOYMENT` attestation，不是源码
+Bundle Freeze 的占位字段。生产生效前必须补充可信 HTTPS 精确 URL 和外部运行证据；`null` 或示例域名不得解释为就绪。
 
 Conformance Runner 必须读取 Manifest，不得在测试代码中维护第二套默认值。
 
@@ -84,12 +88,16 @@ Conformance Runner 必须读取 Manifest，不得在测试代码中维护第二�
 
 ## 5. Direct Machine Token
 
-正向测试至少覆盖 Agent 和 Service：
+第一批注册表没有接受 Service Principal 的 Machine Audience，因此 Direct
+正向测试至少覆盖 Agent；Service Profile 的 Wire 和签发能力仍由合同冻结，但
+第一批必须以 `AUDIENCE_PROFILE_NOT_ACCEPTED` 证明 Service 不能访问 Agent-only
+Audience。未来只有通过 CCR 注册接受 Service 的 Audience 后，才增加 Service
+正向 Conformance：
 
 - Wire Claim 保留 `client_id`、`jti`、`nbf`；
 - `token_use=access`，Direct Token 无 `azp` 和 `act`；
 - `principal_type` 与数据库 Principal 一致；
-- Agent Token 可有 `agent_id`，Service Token 不得有；
+- Agent Token 可有 `agent_id`；Service Token 不得有；
 - Scope 非空、规范化、属于目标 Audience Namespace；
 - requested scopes 是 `machine_access_grants[audience]` 的子集；
 - 最终 Scope 精确等于请求集合；
@@ -248,10 +256,10 @@ valid token
 auth-service fixed SHA
 real database with versioned migrations
 JWKS endpoint
-one Human consumer
-one Direct Machine consumer
-one OBO resource service
-one domain authorization path
+svc-okr Human consumer
+svc-workflow Direct/OBO resource service
+adc-v2 source audience and trusted proxy
+svc-workflow domain authorization path
 ```
 
 必须记录进程版本、完整 Git SHA、配置摘要、数据库迁移版本、请求 ID 和新鲜 ingress 证据。
@@ -266,6 +274,9 @@ Conformance 报告必须明确输出：
 CONTRACT_MANIFEST_HASH
 AUTH_SERVICE_REMOTE_SHA
 CONSUMER_REMOTE_SHAS
+CONTRACT_BUNDLE_FREEZE
+PRODUCTION_DEPLOYMENT
+CONSUMER_MIGRATION
 DATABASE_MIGRATION_VERSION
 POSITIVE_PASS_COUNT
 NEGATIVE_PASS_COUNT
@@ -273,5 +284,9 @@ DOMAIN_AUTHORIZATION_NEGATIVE_PASS
 LEGACY_FALLBACK_DISABLED
 REAL_PROCESS_CONFORMANCE_PASS
 ```
+
+`REAL_PROCESS_CONFORMANCE_PASS` 可以在受控非生产环境取得；它不自动设置
+`PRODUCTION_JWKS_DEPLOYMENT_READY` 或
+`AUTH_TOKEN_CONTRACT_V1_PRODUCTION_EFFECTIVE`。
 
 如果任一固定 SHA 之后发生代码变化，原报告立即失效，必须推送新 SHA 并重新运行、重新独立审计。

@@ -7,11 +7,14 @@
 ```text
 DESIGN_ID=MINIMAL_AUTH_FOUNDATION_V1
 STATUS=DRAFT_TARGET_DESIGN
+CONTRACT_VERSION=1.0.0-draft.2
 ARCHITECTURE_DIRECTION_ACCEPTED=true
 REDESIGN_REQUIRED=false
 READY_FOR_IMPLEMENTATION_INVENTORY=true
 READY_FOR_CONTRACT_BUNDLE_FREEZE=false
-CURRENT_MAINLINE_EFFECTIVE=false
+PRODUCTION_JWKS_DEPLOYMENT_READY=false
+AUTH_TOKEN_CONTRACT_V1_PRODUCTION_EFFECTIVE=false
+CONSUMER_MIGRATION_IN_SCOPE_READY=false
 ```
 
 原单文件设计已经拆分到 [`minimal-auth-v1/README.md`](./minimal-auth-v1/README.md) 及其六份模块合同。
@@ -26,11 +29,12 @@ CURRENT_MAINLINE_EFFECTIVE=false
 
 ## 权威规则
 
-1. 当前 V1 仍是 Draft Target Design，不代表主线或生产已生效。
+1. 当前 V1 仍是 Draft Target Design，不代表生产或消费者迁移已生效。
 2. V1 生效前，两份现有 V0 冻结合同继续有效。
 3. 本入口文件不覆盖 `minimal-auth-v1/` 中任何规范内容。
 4. 若本入口与模块合同冲突，以模块合同和其中定义的权威关系为准。
 5. 只有窄范围合同审阅、Contract Bundle、真实进程 Conformance、固定远程 SHA 独立审计和主线重新验证全部通过后，才能宣布 V1 supersede V0。
+6. `CONTRACT_BUNDLE_FREEZE`、`PRODUCTION_DEPLOYMENT`、`CONSUMER_MIGRATION` 是三个独立状态；源码冻结不证明生产 JWKS 或 Legacy 消费者迁移完成。
 
 ## 模块
 

@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.0.0-draft.1",
+  "contract_version": "1.0.0-draft.2",
   "now": 1784300000,
   "fixtures": [
     {
@@ -7,7 +7,7 @@
       "profile": "human_access",
       "header": {
         "alg": "RS256",
-        "kid": "fixture-key-v1-20260718"
+        "kid": "fixture-key-v1-draft2-20260718"
       },
       "claims": {
         "iss": "auth-service",
@@ -25,14 +25,15 @@
       },
       "authorization_context": {
         "human_audience_grants": ["svc-okr"]
-      }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLWRyYWZ0Mi0yMDI2MDcxOCJ9.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIxMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJzdmMtb2tyIiwicHJpbmNpcGFsX3R5cGUiOiJ1c2VyIiwiY2xpZW50X2lkIjoiaHVtYW4td2ViLXN2Yy1va3IiLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJ0eXBlIjoiYWNjZXNzIiwidmVyc2lvbiI6InYxIiwianRpIjoiaHVtYW4tanRpLTAwMDAwMDAxIiwiaWF0IjoxNzg0MzAwMDAwLCJuYmYiOjE3ODQzMDAwMDAsImV4cCI6MTc4NDMwMDkwMH0.uIOFv_cJ5FUpRdPfe7dteRrIKug4EwFz9xL98raEwXVZi_3hYkNUdm9JQKLyPrKaQLO1XFvPEb0RPEKI6p3Np0G-VjNGMdO1l32j9YZXjEVU50whJOtiQU61-XLvG4-EaiYLFG2Etvz2GGdb4QK8FJcA4Faq2a-Ox2gZyOYOrmUcy_barfkfR1g8fqgaej6q_Z_n0LCaYonAX5uL_DkXVtgFY8EOEv8UbN_xxl0B_2dxsF86CsZAesixgCd9wrW-_UxNHsMXL-ekqHwj5OSaoo2OOlDj-iyUv6UxqfaAbK8fD3j9N2XHqAPUiUd3s_03tnr4jNAk0nxr0ox5O5hotQ"
     },
     {
       "name": "direct-agent-svc-workflow",
       "profile": "direct_machine_access",
       "header": {
         "alg": "RS256",
-        "kid": "fixture-key-v1-20260718"
+        "kid": "fixture-key-v1-draft2-20260718"
       },
       "claims": {
         "iss": "auth-service",
@@ -51,45 +52,50 @@
         "exp": 1784300600
       },
       "authorization_context": {
+        "requested_scope": "workflow.execute workflow.read",
         "machine_access_grants": {
           "svc-workflow": ["workflow.execute", "workflow.read"]
         }
-      }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLWRyYWZ0Mi0yMDI2MDcxOCJ9.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIyMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJzdmMtd29ya2Zsb3ciLCJwcmluY2lwYWxfdHlwZSI6ImFnZW50IiwiY2xpZW50X2lkIjoiYWdlbnQtY2xpZW50LXdvcmtmbG93IiwidG9rZW5fdXNlIjoiYWNjZXNzIiwidHlwZSI6ImFjY2VzcyIsInZlcnNpb24iOiJ2MSIsInNjb3BlIjoid29ya2Zsb3cuZXhlY3V0ZSB3b3JrZmxvdy5yZWFkIiwiYWdlbnRfaWQiOiJhZ2VudC1yZXZpZXdlciIsImp0aSI6ImRpcmVjdC1qdGktMDAwMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.V5OfxSzTln6IFtwfbhYMHSNCnZQvundoHM_ZvfIMo1VwXGvyOeAs027bmrj-iqvfdwr3nB83H4rokNSY_8cBASTmnwiaIOk80Liciq94MhBep2Y_OykDsd3jmP_dAeeu3xvh_3UW-ZRhUYdiOIhKwwWTJPRzWQZurqQaV_orBSZcSABSCxWMRM7_GaHU9rRGzVTl79TTGJYW5X7MHtrfES-VL0McLvaP1nUI9QmzkPCPaupm90TMTY-gFxuV3pmb3J6cSoBL6PXM9-gKJ8hb5xcV0_t98WVpBVhIO2pIbJ1r7jLtrmbyznupn-AJ8hkm3EscvCGdy0-ROkP4gKdmjQ"
     },
     {
-      "name": "direct-service-llm-todo-candidate",
+      "name": "direct-agent-adc-v2",
       "profile": "direct_machine_access",
       "header": {
         "alg": "RS256",
-        "kid": "fixture-key-v1-20260718"
+        "kid": "fixture-key-v1-draft2-20260718"
       },
       "claims": {
         "iss": "auth-service",
-        "sub": "30000000-0000-4000-8000-000000000001",
-        "aud": "llm-todo",
-        "principal_type": "service",
-        "client_id": "todo-automation-service",
+        "sub": "20000000-0000-4000-8000-000000000001",
+        "aud": "adc-v2",
+        "principal_type": "agent",
+        "client_id": "agent-client-adc",
         "token_use": "access",
         "type": "access",
         "version": "v1",
-        "scope": "todo.read todo.write",
-        "jti": "service-jti-0000001",
+        "scope": "adc.read",
+        "agent_id": "agent-reviewer",
+        "jti": "source-jti-00000001",
         "iat": 1784300000,
         "nbf": 1784300000,
         "exp": 1784300600
       },
       "authorization_context": {
+        "requested_scope": "adc.read",
         "machine_access_grants": {
-          "llm-todo": ["todo.read", "todo.write"]
+          "adc-v2": ["adc.read"]
         }
-      }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLWRyYWZ0Mi0yMDI2MDcxOCJ9.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIyMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZGMtdjIiLCJwcmluY2lwYWxfdHlwZSI6ImFnZW50IiwiY2xpZW50X2lkIjoiYWdlbnQtY2xpZW50LWFkYyIsInRva2VuX3VzZSI6ImFjY2VzcyIsInR5cGUiOiJhY2Nlc3MiLCJ2ZXJzaW9uIjoidjEiLCJzY29wZSI6ImFkYy5yZWFkIiwiYWdlbnRfaWQiOiJhZ2VudC1yZXZpZXdlciIsImp0aSI6InNvdXJjZS1qdGktMDAwMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.ArwwK37eMiO95QnZuCkTWJAw6mByuGoE6ArcnW9f4oAtJcyMGrPCwvRtSCMWmb0RPEbsGRS8cxWQTc2yruGgFoz7OIpPxt3faQ4V66AQabAtD2YO02-63nvYhTtb1vV-LdG1R-9pZJ4X3uFmpkkXkBVoKVLEkIAcFyp-PXg7q1R9l8yT5P88g9WqjkyBKQ3uwPDnJN-pBCH_ebgL4KlNI1mSyXZrHRsa0Jcoq0J1BKSJwc0dpeslVneVv-u8MdwPts7WvZsPIZyRDbtQFznJTDh7ydaG59eT435Ta3nvAoB_fSkzYeXIlkAfcSDqOoc4goN53Uj8f7G3VTRrNxWl9A"
     },
     {
       "name": "obo-adc-v2-to-svc-workflow",
       "profile": "delegated_access",
       "header": {
         "alg": "RS256",
-        "kid": "fixture-key-v1-20260718"
+        "kid": "fixture-key-v1-draft2-20260718"
       },
       "claims": {
         "iss": "auth-service",
@@ -112,6 +118,7 @@
         "exp": 1784300300
       },
       "authorization_context": {
+        "requested_scope": "workflow.read",
         "source_claims": {
           "iss": "auth-service",
           "sub": "20000000-0000-4000-8000-000000000001",
@@ -138,7 +145,8 @@
         "proxy_delegation_grants": {
           "svc-workflow": ["workflow.read"]
         }
-      }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLWRyYWZ0Mi0yMDI2MDcxOCJ9.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIyMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJzdmMtd29ya2Zsb3ciLCJwcmluY2lwYWxfdHlwZSI6ImFnZW50IiwiY2xpZW50X2lkIjoiYWRjLXYyLXByb3h5LWNsaWVudCIsImF6cCI6ImFkYy12Mi1wcm94eS1jbGllbnQiLCJhY3QiOnsic3ViIjoiNDAwMDAwMDAtMDAwMC00MDAwLTgwMDAtMDAwMDAwMDAwMDAxIn0sInRva2VuX3VzZSI6IndvcmtmbG93X29ibyIsInR5cGUiOiJhY2Nlc3MiLCJ2ZXJzaW9uIjoidjEiLCJzY29wZSI6IndvcmtmbG93LnJlYWQiLCJhZ2VudF9pZCI6ImFnZW50LXJldmlld2VyIiwianRpIjoiZGVsZWdhdGVkLWp0aS0wMDAwMSIsImlhdCI6MTc4NDMwMDAwMCwibmJmIjoxNzg0MzAwMDAwLCJleHAiOjE3ODQzMDAzMDB9.oaMXE7MMSJeio4nvFEI5nF98_HKoS3wHhXXBBVYo8yl1CfoudTwppQAGzX7Z7SPibc7XRS8mYi_gmeypGPyp8Dhli7SaR2UW0Abhq_hacC0N18MRwfI1k2t1CdrNQCU-00EVsUS7n5CNC9qOR8ZzN30YVxM4miusWBqYNcLeeo4mW_lDPjXrOQO0ouZVq0wfFOXFCTvLheAR0nUR66Bu00EPndPKryVmDfS7dizSjrjibR9dKYbo_bu6RMr7UmC-B-MSDNAcf7ozlimoYKeaDtvyvcU_MYaeUTW4njfO2iR_rP-Ta1EQd5j9fCengGblrCpQZvtiwnD94Wzwlpg_1A"
     }
   ]
 }

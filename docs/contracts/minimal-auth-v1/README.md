@@ -4,17 +4,30 @@
 
 ```text
 DESIGN_ID=MINIMAL_AUTH_FOUNDATION_V1
-DESIGN_VERSION=1.1-draft
+DESIGN_VERSION=1.2-draft
+CONTRACT_VERSION=1.0.0-draft.2
 STATUS=DRAFT_TARGET_DESIGN
 ARCHITECTURE_DIRECTION_ACCEPTED=true
 REDESIGN_REQUIRED=false
 READY_FOR_IMPLEMENTATION_INVENTORY=true
 READY_FOR_CONTRACT_BUNDLE_FREEZE=false
-CURRENT_MAINLINE_EFFECTIVE=false
+PRODUCTION_JWKS_DEPLOYMENT_READY=false
+AUTH_TOKEN_CONTRACT_V1_PRODUCTION_EFFECTIVE=false
+CONSUMER_MIGRATION_IN_SCOPE_READY=false
 NARROW_CONTRACT_REVIEW_REQUIRED=true
 ```
 
-本目录冻结候选的统一身份架构边界，但尚未宣布 V1 Wire Contract 生效。
+本目录冻结候选的统一身份架构边界，但尚未宣布 Bundle、消费者或生产生效。
+
+三个状态独立推进：
+
+```text
+CONTRACT_BUNDLE_FREEZE
+PRODUCTION_DEPLOYMENT
+CONSUMER_MIGRATION
+```
+
+源码 Bundle 可以在生产 URL 尚未配置、Legacy 消费者尚未迁移时先冻结；这不产生生产就绪或消费者已迁移的推论。
 
 本次修订以两个原则为前提：
 
@@ -59,7 +72,8 @@ V1 对机器 Token 的原则是 Wire Compatible。真正不兼容的变化必须
 
 机器可执行的 Draft Bundle 位于
 `../../../contract-bundles/minimal-auth-v1/`。Bundle 当前明确为
-`frozen=false`；其 Validator 通过只表示 Artifact 内部一致，不表示 V1 已生效。
+`CONTRACT_BUNDLE_FROZEN=false`；其 Validator 通过只表示 Artifact、Schema、
+签名夹具和冻结门内部一致，不表示 V1 已生产生效。
 
 ## 4. 目标与非目标
 
@@ -320,13 +334,15 @@ moderator
 → V1 窄范围合同审阅通过
 → 当前实现与消费者盘点
 → Contract Bundle Freeze
+→ auth-service 与首批消费者实现
 → 真实服务进程 Conformance
 → 固定远程 SHA
 → READY_FOR_INDEPENDENT_AUDIT
 → INDEPENDENT_AUDIT_PASS
 → 受控合并
 → 主线重新运行 Conformance
-→ MINIMAL_AUTH_FOUNDATION_V1_MAINLINE_EFFECTIVE
+→ 生产 TLS/JWKS 外部验证
+→ AUTH_TOKEN_CONTRACT_V1_PRODUCTION_EFFECTIVE
 ```
 
 任何代码变化都必须重新固定、推送并审计完整远程 SHA。未经审计的对象不得合并；不得仅凭设计文档或局部测试宣称 V1 已生效。

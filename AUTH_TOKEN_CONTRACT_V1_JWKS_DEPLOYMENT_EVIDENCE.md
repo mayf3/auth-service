@@ -75,14 +75,17 @@ curl: (60) SSL certificate problem: self signed certificate
 部署 Owner 需要提供或批准：
 
 ```text
-exact_origin=https://<CA-trusted DNS name>
-exact_jwks_url=https://<same name>/<exact path>/.well-known/jwks.json
+exact_origin=<部署 Agent 提交的真实 CA-trusted HTTPS origin>
+exact_jwks_url=<由真实 origin 与冻结 jwks_path 形成的精确 URL>
 certificate_chain_validation=PASS
 hostname_validation=PASS
 content_type=application/json
 jwks_schema_validation=PASS
 public_route_to_auth_service=proven
 ```
+
+上述两项在部署完成前必须保持未赋值；尖括号只描述证据字段，不是候选域名、
+URL 或部署证据。
 
 关闭前必须从至少一个真实消费者网络位置执行不带 `-k`、不注入私有 CA 的 GET，并验证返回 JSON 满足冻结 JWKS fixture/schema、只含 public key material。
 

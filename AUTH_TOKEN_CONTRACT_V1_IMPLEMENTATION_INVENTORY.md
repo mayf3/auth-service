@@ -4,7 +4,7 @@
 
 ```text
 INVENTORY_DATE=2026-07-18
-STATUS=COMPLETE_WITH_PRE_FREEZE_GATES
+STATUS=COMPLETE_WITH_THREE_STATE_BOUNDARY
 SCOPE=read_only_file_table_entrypoint_consumer_inventory
 
 AUTH_SERVICE_FIXED_REMOTE_SHA=true
@@ -18,6 +18,11 @@ IMPLEMENTATION_AUTHORIZED=false
 ```
 
 本报告只盘点当前实现，不把“代码看起来支持”解释为部署、数据、配置或迁移已经完成。盘点期间未修改任何消费者仓库。
+
+2026-07-18 的批准边界把首批 Bundle/Conformance 限定为 `auth-service`、
+`svc-workflow`、`svc-okr` 和 `adc-v2`。下表仍保留 Legacy 调查事实，但
+`svc-forum`、`workflow-todo`、`llm-todo` 及 OpenClaw 候选的远程缺口只阻止
+各自后续消费者迁移，不阻止首批源码 Contract Bundle Freeze。
 
 ## 2. 调查对象与证据锚点
 
@@ -33,7 +38,9 @@ IMPLEMENTATION_AUTHORIZED=false
 | `workflow-todo` | `d405755ed259e54f9b6d9d667033758058ad6234` | `6ac1fd0d31914755ae93bc42d4cea38113e43193` | **GitHub remote 当前不可访问** | 迁移生成结果有既存修改，未触碰 |
 | OpenClaw/Auth CLI 候选 | `430d5a0feecbfd2376464eeca73e28cb8b92c60b` | `163e3a0df34c4dbd4b253447de1f7bb12d31b80a` | **未推送** | `feat/adc-subject-token-transport-v0`，且 worktree 有无关 keyring 修复 |
 
-远程 SHA 缺口不阻止完成只读盘点，但按 V1 合同，它们阻止 `CONTRACT_BUNDLE_FROZEN=true` 和消费者迁移验收。
+首批四个对象由 Bundle Consumer Matrix 固定远程完整 SHA。Legacy 对象的远程
+SHA 缺口不阻止只读盘点或 `CONTRACT_BUNDLE_FROZEN=true`，只阻止相应消费者
+迁移验收。
 
 ## 3. 资源与 Client 拓扑结论
 
@@ -270,22 +277,22 @@ V1 目标是 source Token `aud=adc-v2`，ADC 用服务端 Proxy Client 交换 `a
 
 `workflow-todo` 当前从 `SVC_WORKFLOW_ACCESS_TOKEN` 读取长期 Bearer，直接调用 `svc-workflow`；它是 Client，不是 Audience。正式迁移应通过 Broker 按固定 `svc-workflow + workflow.*` 映射取得短期 Direct Token。其 provisioning/smoke 脚本内自签 HS256 只能保留在明确隔离测试模式。
 
-## 7. Contract Bundle Freeze 前必须关闭的门
+## 7. 三个独立状态域的门
 
-### Gate A：修正 Audience 拓扑
+### Contract Bundle Freeze：首批 Audience 拓扑
 
 ```text
-agent-forum -> svc-forum (沿用现有 Wire Audience)
-remove workflow-todo as resource audience
-add llm-todo as actual resource audience
 retain adc-v2 as source audience / proxy ingress
+register svc-workflow and svc-okr
+exclude svc-forum, workflow-todo and llm-todo from the first-wave registry
 ```
 
-同时为每个 Audience 冻结 `scope_namespace` 和 `accepted_principal_types`。尚无真实 Scope 模型的 Human-only Audience 也必须明确其 namespace 是否仅保留、禁止 Machine grant，不能留给消费者猜测。
+同时为首批每个 Audience 冻结 `scope_namespace` 和
+`accepted_principal_types`。Legacy Audience 未来进入 V1 时必须走独立 CCR。
 
-### Gate B：固定未锚定消费者
+### Consumer Migration：未锚定 Legacy 消费者
 
-`svc-forum`、当前 `llm-todo`、`workflow-todo` 和 OpenClaw 候选实现没有可复核的远程完整 SHA。必须由各仓库 owner 提供/确认 remote 与审计分支，或明确从 Bundle 首批消费者中移出并保留 Legacy 状态。
+`svc-forum`、当前 `llm-todo`、`workflow-todo` 和 OpenClaw 候选实现没有可复核的远程完整 SHA。它们已明确移出首批 Bundle 并保持 Legacy；只有各自迁移时才必须由仓库 Owner 提供 remote 与审计分支。
 
 ### Gate C：冻结数据与 OAuth Schema
 
@@ -297,19 +304,23 @@ retain adc-v2 as source audience / proxy ingress
 - client_credentials 与 token-exchange 的请求/响应/错误 Schema；
 - 管理写入口的操作者、并发、审计、回滚规则。
 
-### Gate D：冻结精确运行参数
+### Contract Bundle Freeze 与 Production Deployment：运行参数
 
-至少包括 issuer、JWKS URL、cache TTL、max stale、clock skew、三个 Access TTL、Session absolute TTL、Refresh TTL、key retention 和 error/cache headers。
+源码 Freeze 固定 issuer、JWKS 规范路径、RS256/`kid`、cache TTL、max stale、
+clock skew、三个 Access TTL、Session absolute TTL、Refresh TTL、key retention
+和 error/cache headers。精确生产 JWKS URL 只由可信域名、DNS、CA 证书、
+Nginx 路由和实际部署后的外部验证关闭，不阻止源码 Freeze。
 
 ## 8. 推荐实施切片
 
 1. 先修订候选 Audience 与 Consumer Matrix，不改变任何线上 Wire。
 2. 生成 Draft Contract Bundle 和 schema/fixture validator；保持 `FROZEN=false`。
-3. 取得 Gate B 的远程锚点并执行 Bundle 窄审，才置 `CONTRACT_BUNDLE_FROZEN=true`。
+3. 固定首批四个对象的远程锚点并执行 Bundle 窄审，才置 `CONTRACT_BUNDLE_FROZEN=true`。
 4. auth-service 先增加新表和 V1 显式入口，不删除 V0/Legacy。
 5. 先迁移 `svc-workflow` 的严格 Profile/Scope 解析，再实现 `adc-v2` cross-audience Exchange。
-6. 分别迁移 `svc-okr`、`svc-forum`、`llm-todo`；Product Role 必须先落到资源服务本地权威。
-7. 所有真实进程、领域授权负向、Legacy 零流量和远程精确 SHA 门通过后，V1 才 supersede V0。
+6. 首批迁移只包含 `svc-okr`、`svc-workflow` 和 `adc-v2`；Product Role 必须先落到资源服务本地权威。
+7. `svc-forum`、`workflow-todo`、`llm-todo` 保持 Legacy，未来独立迁移。
+8. 真实生产 TLS/JWKS 与消费者迁移分别验收；不得用 Bundle Freeze 代替其中任何一个状态。
 
 ## 9. 当前结论
 
@@ -325,6 +336,9 @@ CONTRACT_BUNDLE_DRAFT_ALLOWED=true
 CONTRACT_BUNDLE_FREEZE_ALLOWED=false
 ISSUER_IMPLEMENTATION_ALLOWED=false
 CONSUMER_MIGRATION_ALLOWED=false
+PRODUCTION_JWKS_DEPLOYMENT_READY=false
+AUTH_TOKEN_CONTRACT_V1_PRODUCTION_EFFECTIVE=false
 ```
 
-当前最小正确动作不是写签发代码，而是依据本报告修正 Audience 拓扑、生成 Draft Bundle，并关闭远程 SHA 与精确参数门。
+当前最小正确动作是让修订后的首批 Draft Bundle 通过固定远程 SHA 的独立审阅；
+Freeze 之后才能写签发代码。生产 JWKS 和 Legacy Consumer Gate 继续独立保持未就绪。

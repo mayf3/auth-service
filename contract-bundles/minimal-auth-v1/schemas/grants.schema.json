@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "$id": "urn:minimal-auth-v1:grants:1.0.0-draft.1",
+  "$id": "urn:minimal-auth-v1:grants:1.0.0-draft.2",
   "title": "Minimal Auth V1 Client Grants and Change Audit",
   "oneOf": [
     { "$ref": "#/$defs/clientGrants" },
@@ -56,20 +56,22 @@
       ],
       "allOf": [
         {
-          "if": { "properties": { "client_kind": { "const": "human" } } },
+          "if": { "type": "object", "properties": { "client_kind": { "const": "human" } } },
           "then": {
+            "type": "object",
             "properties": {
               "principal_id": { "type": "null" },
               "principal_type": { "type": "null" },
-              "machine_access_grants": { "maxProperties": 0 },
-              "delegation_grants": { "maxProperties": 0 }
+              "machine_access_grants": { "type": "object", "maxProperties": 0 },
+              "delegation_grants": { "type": "object", "maxProperties": 0 }
             }
           },
           "else": {
+            "type": "object",
             "properties": {
               "principal_id": { "$ref": "#/$defs/uuid" },
               "principal_type": { "enum": ["agent", "service"] },
-              "human_audience_grants": { "maxItems": 0 }
+              "human_audience_grants": { "type": "array", "maxItems": 0 }
             }
           }
         }

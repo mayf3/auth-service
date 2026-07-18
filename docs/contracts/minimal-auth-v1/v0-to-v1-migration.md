@@ -4,6 +4,7 @@
 
 ```text
 STATUS=DRAFT_V1_MODULE
+CONTRACT_VERSION=1.0.0-draft.2
 V0_CONTRACTS_REMAIN_GOVERNING_UNTIL_V1=true
 V0_PRODUCTION_EFFECTIVE=unproven
 V1_CURRENTLY_EFFECTIVE=false
@@ -155,7 +156,7 @@ Principal 类型增加 `service`，但不扩大任何资源服务入口。每个
 
 ## 6. 消费者盘点要求
 
-Contract Bundle Freeze 前必须逐服务、逐入口记录：
+进入某个消费者的迁移前必须逐服务、逐入口记录：
 
 ```text
 consumer repository
@@ -173,17 +174,25 @@ migration owner
 cutover and deletion gate
 ```
 
-首批必须盘点：
+本轮 Contract Bundle/Conformance 首批固定范围：
 
 ```text
 svc-workflow
 svc-okr
-agent-forum / svc-forum
-llm-todo
 ADC V2
-OpenClaw Credential Broker
 auth-service 自身管理入口
 ```
+
+以下对象保持 Legacy/未迁移，不阻塞本轮源码 Bundle Freeze：
+
+```text
+svc-forum
+workflow-todo
+llm-todo
+OpenClaw Credential Broker candidate
+```
+
+它们缺少远程 SHA 或授权矩阵只阻塞各自未来的 `CONSUMER_MIGRATION`。
 
 不得从中间件“看起来支持”推断数据迁移、生产配置或完整路由已经可切换。
 
@@ -198,7 +207,7 @@ auth-service 自身管理入口
 
 ### Phase 1：实现与消费者盘点
 
-- 固定 auth-service 和每个消费者远程 SHA；
+- 固定 auth-service 和首批范围消费者远程 SHA；
 - 建立逐入口验证矩阵；
 - 识别 Product Role、通用 Audience、HS256 和 fallback 依赖；
 - 不修改消费者。

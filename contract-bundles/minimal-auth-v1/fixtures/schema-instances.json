@@ -1,0 +1,270 @@
+{
+  "contract_version": "1.0.0-draft.2",
+  "instances": [
+    {
+      "id": "oauth-client-credentials-request",
+      "schema_file": "oauth.schema.json",
+      "value": {
+        "grant_type": "client_credentials",
+        "resource": "svc-workflow",
+        "scope": "workflow.read"
+      }
+    },
+    {
+      "id": "oauth-token-exchange-request-preserves-v0-audience",
+      "schema_file": "oauth.schema.json",
+      "value": {
+        "grant_type": "urn:ietf:params:oauth:grant-type:token-exchange",
+        "subject_token": "signed-agent-access-token",
+        "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+        "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+        "audience": "svc-workflow",
+        "scope": "workflow.read"
+      }
+    },
+    {
+      "id": "oauth-authorization-code-request",
+      "schema_file": "oauth.schema.json",
+      "value": {
+        "grant_type": "authorization_code",
+        "code": "ac1.10000000-0000-4000-8000-000000000001.AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA",
+        "redirect_uri": "https://client.invalid/callback",
+        "client_id": "human-web-svc-okr",
+        "code_verifier": "AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA"
+      }
+    },
+    {
+      "id": "oauth-refresh-request",
+      "schema_file": "oauth.schema.json",
+      "value": {
+        "grant_type": "refresh_token",
+        "refresh_token": "rc1.10000000-0000-4000-8000-000000000002.BBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBBB",
+        "client_id": "human-web-svc-okr",
+        "resource": "svc-okr"
+      }
+    },
+    {
+      "id": "oauth-machine-response",
+      "schema_file": "oauth.schema.json",
+      "value": {
+        "access_token": "signed-machine-access-token",
+        "issued_token_type": "urn:ietf:params:oauth:token-type:access_token",
+        "token_type": "Bearer",
+        "expires_in": 600,
+        "scope": "workflow.read"
+      }
+    },
+    {
+      "id": "oauth-error",
+      "schema_file": "oauth.schema.json",
+      "value": { "error": "invalid_scope" }
+    },
+    {
+      "id": "human-client-grants",
+      "schema_file": "grants.schema.json",
+      "value": {
+        "client_id": "human-web-svc-okr",
+        "client_kind": "human",
+        "principal_id": null,
+        "principal_type": null,
+        "human_audience_grants": ["svc-okr"],
+        "machine_access_grants": {},
+        "delegation_grants": {},
+        "status": "active",
+        "version": 1
+      }
+    },
+    {
+      "id": "machine-client-grants",
+      "schema_file": "grants.schema.json",
+      "value": {
+        "client_id": "agent-client-workflow",
+        "client_kind": "machine",
+        "principal_id": "20000000-0000-4000-8000-000000000001",
+        "principal_type": "agent",
+        "human_audience_grants": [],
+        "machine_access_grants": {
+          "svc-workflow": ["workflow.execute", "workflow.read"]
+        },
+        "delegation_grants": {},
+        "status": "active",
+        "version": 1
+      }
+    },
+    {
+      "id": "trusted-proxy",
+      "schema_file": "trusted-proxy.schema.json",
+      "value": {
+        "proxy_id": "adc-v2-proxy",
+        "proxy_principal_id": "40000000-0000-4000-8000-000000000001",
+        "proxy_principal_type": "service",
+        "proxy_client_id": "adc-v2-proxy-client",
+        "accepted_subject_audiences": ["adc-v2"],
+        "delegation_grants": { "svc-workflow": ["workflow.read"] },
+        "status": "active",
+        "version": 1,
+        "created_at": "2026-07-18T00:00:00Z",
+        "updated_at": "2026-07-18T00:00:00Z"
+      }
+    },
+    {
+      "id": "exchange-audit-success",
+      "schema_file": "exchange-audit.schema.json",
+      "value": {
+        "exchange_id": "exchange-000000000001",
+        "result": "success",
+        "original_principal_id": "20000000-0000-4000-8000-000000000001",
+        "original_client_id": "agent-client-adc",
+        "proxy_principal_id": "40000000-0000-4000-8000-000000000001",
+        "proxy_client_id": "adc-v2-proxy-client",
+        "source_token_jti": "source-jti-00000001",
+        "delegated_token_jti": "delegated-jti-00001",
+        "source_audience": "adc-v2",
+        "target_audience": "svc-workflow",
+        "requested_scopes": ["workflow.read"],
+        "granted_scopes": ["workflow.read"],
+        "timestamp": "2026-07-18T00:00:00Z",
+        "request_correlation_id": "request-00000001"
+      }
+    },
+    {
+      "id": "exchange-audit-rejected",
+      "schema_file": "exchange-audit.schema.json",
+      "value": {
+        "exchange_id": "exchange-000000000002",
+        "result": "rejected",
+        "proxy_principal_id": null,
+        "proxy_client_id": "adc-v2-proxy-client",
+        "source_token_jti": null,
+        "source_audience": null,
+        "target_audience": "svc-workflow",
+        "requested_scopes": ["workflow.read"],
+        "rejection_category": "invalid_client",
+        "timestamp": "2026-07-18T00:00:01Z",
+        "request_correlation_id": "request-00000002"
+      }
+    },
+    {
+      "id": "human-client",
+      "schema_file": "human-session-refresh.schema.json",
+      "value": {
+        "client_id": "human-web-svc-okr",
+        "client_type": "confidential_web",
+        "client_authentication_method": "client_secret_basic",
+        "credential_verifier": "0123456789abcdef0123456789abcdef",
+        "redirect_uris": ["https://client.invalid/callback"],
+        "human_audience_grants": ["svc-okr"],
+        "status": "active",
+        "version": 1
+      }
+    },
+    {
+      "id": "authorization-transaction",
+      "schema_file": "human-session-refresh.schema.json",
+      "value": {
+        "authorization_transaction_id": "10000000-0000-4000-8000-000000000003",
+        "client_id": "human-web-svc-okr",
+        "redirect_uri": "https://client.invalid/callback",
+        "audience": "svc-okr",
+        "code_challenge": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+        "code_challenge_method": "S256",
+        "status": "pending",
+        "created_at": "2026-07-18T00:00:00Z",
+        "expires_at": "2026-07-18T00:05:00Z",
+        "consumed_at": null,
+        "version": 1
+      }
+    },
+    {
+      "id": "authorization-code",
+      "schema_file": "human-session-refresh.schema.json",
+      "value": {
+        "authorization_code_id": "10000000-0000-4000-8000-000000000004",
+        "authorization_transaction_id": "10000000-0000-4000-8000-000000000003",
+        "user_principal_id": "10000000-0000-4000-8000-000000000001",
+        "client_id": "human-web-svc-okr",
+        "audience": "svc-okr",
+        "redirect_uri": "https://client.invalid/callback",
+        "code_challenge": "CCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCCC",
+        "code_challenge_method": "S256",
+        "credential_verifier": "0123456789abcdef0123456789abcdef",
+        "status": "active",
+        "issued_at": "2026-07-18T00:00:00Z",
+        "expires_at": "2026-07-18T00:01:00Z",
+        "consumed_at": null,
+        "version": 1
+      }
+    },
+    {
+      "id": "human-session",
+      "schema_file": "human-session-refresh.schema.json",
+      "value": {
+        "session_id": "10000000-0000-4000-8000-000000000005",
+        "user_principal_id": "10000000-0000-4000-8000-000000000001",
+        "client_id": "human-web-svc-okr",
+        "token_family_id": "10000000-0000-4000-8000-000000000006",
+        "status": "active",
+        "authenticated_at": "2026-07-18T00:00:00Z",
+        "last_refreshed_at": "2026-07-18T00:00:00Z",
+        "absolute_expires_at": "2026-08-17T00:00:00Z",
+        "revoked_at": null,
+        "revocation_reason": null,
+        "created_at": "2026-07-18T00:00:00Z",
+        "updated_at": "2026-07-18T00:00:00Z",
+        "version": 1
+      }
+    },
+    {
+      "id": "refresh-family",
+      "schema_file": "human-session-refresh.schema.json",
+      "value": {
+        "token_family_id": "10000000-0000-4000-8000-000000000006",
+        "session_id": "10000000-0000-4000-8000-000000000005",
+        "status": "active",
+        "created_at": "2026-07-18T00:00:00Z",
+        "absolute_expires_at": "2026-08-17T00:00:00Z",
+        "revoked_at": null,
+        "revoke_reason": null,
+        "version": 1
+      }
+    },
+    {
+      "id": "refresh-credential",
+      "schema_file": "human-session-refresh.schema.json",
+      "value": {
+        "refresh_credential_id": "10000000-0000-4000-8000-000000000007",
+        "token_family_id": "10000000-0000-4000-8000-000000000006",
+        "session_id": "10000000-0000-4000-8000-000000000005",
+        "user_principal_id": "10000000-0000-4000-8000-000000000001",
+        "client_id": "human-web-svc-okr",
+        "credential_verifier": "0123456789abcdef0123456789abcdef",
+        "credential_version": "scrypt-v1",
+        "status": "active",
+        "issued_at": "2026-07-18T00:00:00Z",
+        "expires_at": "2026-07-25T00:00:00Z",
+        "rotated_at": null,
+        "replaced_by_id": null,
+        "revoked_at": null,
+        "reuse_detected_at": null,
+        "version": 1
+      }
+    },
+    {
+      "id": "security-event",
+      "schema_file": "human-session-refresh.schema.json",
+      "value": {
+        "event_id": "10000000-0000-4000-8000-000000000008",
+        "event_type": "session.created",
+        "user_principal_id": "10000000-0000-4000-8000-000000000001",
+        "client_id": "human-web-svc-okr",
+        "session_id": "10000000-0000-4000-8000-000000000005",
+        "token_family_id": "10000000-0000-4000-8000-000000000006",
+        "refresh_credential_id": null,
+        "result": "success",
+        "rejection_category": null,
+        "timestamp": "2026-07-18T00:00:00Z",
+        "request_correlation_id": "request-00000003"
+      }
+    }
+  ]
+}
