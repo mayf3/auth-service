@@ -1,0 +1,89 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:minimal-auth-v1:oauth:1.0.0-draft.1",
+  "title": "Minimal Auth V1 OAuth Token Endpoint Objects",
+  "oneOf": [
+    { "$ref": "#/$defs/clientCredentialsRequest" },
+    { "$ref": "#/$defs/tokenExchangeRequest" },
+    { "$ref": "#/$defs/authorizationCodeRequest" },
+    { "$ref": "#/$defs/tokenResponse" },
+    { "$ref": "#/$defs/oauthError" }
+  ],
+  "$defs": {
+    "canonicalScope": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9-]*\\.[a-z][a-z0-9._-]*( [a-z][a-z0-9-]*\\.[a-z][a-z0-9._-]*)*$"
+    },
+    "clientCredentialsRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "grant_type": { "const": "client_credentials" },
+        "resource": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "scope": { "$ref": "#/$defs/canonicalScope" }
+      },
+      "required": ["grant_type", "resource", "scope"]
+    },
+    "tokenExchangeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "grant_type": { "const": "urn:ietf:params:oauth:grant-type:token-exchange" },
+        "subject_token": { "type": "string", "minLength": 1 },
+        "subject_token_type": { "const": "urn:ietf:params:oauth:token-type:access_token" },
+        "requested_token_type": { "const": "urn:ietf:params:oauth:token-type:access_token" },
+        "resource": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "scope": { "$ref": "#/$defs/canonicalScope" }
+      },
+      "required": [
+        "grant_type", "subject_token", "subject_token_type",
+        "requested_token_type", "resource", "scope"
+      ]
+    },
+    "authorizationCodeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "grant_type": { "const": "authorization_code" },
+        "code": { "type": "string", "minLength": 43 },
+        "redirect_uri": { "type": "string", "format": "uri" },
+        "client_id": { "type": "string", "minLength": 1 },
+        "code_verifier": {
+          "type": "string",
+          "minLength": 43,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9._~-]+$"
+        }
+      },
+      "required": ["grant_type", "code", "redirect_uri", "client_id", "code_verifier"]
+    },
+    "tokenResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "access_token": { "type": "string", "minLength": 1 },
+        "issued_token_type": { "const": "urn:ietf:params:oauth:token-type:access_token" },
+        "token_type": { "const": "Bearer" },
+        "expires_in": { "type": "integer", "minimum": 1 },
+        "scope": { "$ref": "#/$defs/canonicalScope" }
+      },
+      "required": ["access_token", "token_type", "expires_in", "scope"]
+    },
+    "oauthError": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "enum": [
+            "invalid_client", "invalid_grant", "invalid_request",
+            "invalid_scope", "invalid_target", "unsupported_grant_type",
+            "unsupported_token_type", "temporarily_unavailable", "server_error"
+          ]
+        },
+        "error_description": { "type": "string", "maxLength": 256 }
+      },
+      "required": ["error"]
+    }
+  }
+}

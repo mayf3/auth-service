@@ -1,0 +1,48 @@
+{
+  "contract_version": "1.0.0-draft.1",
+  "freeze_allowed": false,
+  "gates": [
+    {
+      "id": "GATE-REMOTE-CONSUMER-SHAS",
+      "status": "open",
+      "owner": "consumer-repository-owners",
+      "evidence": [],
+      "reason": "svc-forum, current llm-todo, workflow-todo and the OpenClaw broker candidate lack fixed auditable remote full SHAs."
+    },
+    {
+      "id": "GATE-EXACT-JWKS-URL",
+      "status": "open",
+      "owner": "auth-service-deployment-owner",
+      "evidence": [],
+      "reason": "The deployment origin is not defined in this repository; a relative path is not the exact production JWKS URL."
+    },
+    {
+      "id": "GATE-RUNTIME-PARAMETER-REVIEW",
+      "status": "open",
+      "owner": "auth-service-contract-review",
+      "evidence": [],
+      "reason": "Candidate cache, stale, session, refresh, verifier and retention values require narrow review before freeze."
+    },
+    {
+      "id": "GATE-LLM-TODO-AUTHORIZATION-MATRIX",
+      "status": "open",
+      "owner": "llm-todo-owner",
+      "evidence": [],
+      "reason": "Accepted principal types, todo scopes and route/domain authorization are not frozen."
+    },
+    {
+      "id": "GATE-ADC-V2-INGRESS-SCOPE",
+      "status": "open",
+      "owner": "adc-v2-owner",
+      "evidence": [],
+      "reason": "The adc-v2 source-audience ingress scope name and endpoint mapping require review."
+    },
+    {
+      "id": "GATE-BUNDLE-NARROW-REVIEW",
+      "status": "open",
+      "owner": "independent-contract-reviewer",
+      "evidence": [],
+      "reason": "This draft Bundle has not yet passed an independent narrow review at a fixed remote SHA."
+    }
+  ]
+}

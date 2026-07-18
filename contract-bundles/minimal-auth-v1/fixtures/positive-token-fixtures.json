@@ -1,0 +1,141 @@
+{
+  "contract_version": "1.0.0-draft.1",
+  "now": 1784300000,
+  "fixtures": [
+    {
+      "name": "human-svc-okr",
+      "profile": "human_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-20260718"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "10000000-0000-4000-8000-000000000001",
+        "aud": "svc-okr",
+        "principal_type": "user",
+        "client_id": "human-web-svc-okr",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "jti": "human-jti-00000001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300900
+      },
+      "authorization_context": {
+        "human_audience_grants": ["svc-okr"]
+      }
+    },
+    {
+      "name": "direct-agent-svc-workflow",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-20260718"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "20000000-0000-4000-8000-000000000001",
+        "aud": "svc-workflow",
+        "principal_type": "agent",
+        "client_id": "agent-client-workflow",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "workflow.execute workflow.read",
+        "agent_id": "agent-reviewer",
+        "jti": "direct-jti-00000001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "machine_access_grants": {
+          "svc-workflow": ["workflow.execute", "workflow.read"]
+        }
+      }
+    },
+    {
+      "name": "direct-service-llm-todo-candidate",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-20260718"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "30000000-0000-4000-8000-000000000001",
+        "aud": "llm-todo",
+        "principal_type": "service",
+        "client_id": "todo-automation-service",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "todo.read todo.write",
+        "jti": "service-jti-0000001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "machine_access_grants": {
+          "llm-todo": ["todo.read", "todo.write"]
+        }
+      }
+    },
+    {
+      "name": "obo-adc-v2-to-svc-workflow",
+      "profile": "delegated_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-20260718"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "20000000-0000-4000-8000-000000000001",
+        "aud": "svc-workflow",
+        "principal_type": "agent",
+        "client_id": "adc-v2-proxy-client",
+        "azp": "adc-v2-proxy-client",
+        "act": {
+          "sub": "40000000-0000-4000-8000-000000000001"
+        },
+        "token_use": "workflow_obo",
+        "type": "access",
+        "version": "v1",
+        "scope": "workflow.read",
+        "agent_id": "agent-reviewer",
+        "jti": "delegated-jti-00001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300300
+      },
+      "authorization_context": {
+        "source_claims": {
+          "iss": "auth-service",
+          "sub": "20000000-0000-4000-8000-000000000001",
+          "aud": "adc-v2",
+          "principal_type": "agent",
+          "client_id": "agent-client-adc",
+          "token_use": "access",
+          "type": "access",
+          "version": "v1",
+          "scope": "adc.invoke",
+          "agent_id": "agent-reviewer",
+          "jti": "source-jti-00000001",
+          "iat": 1784300000,
+          "nbf": 1784300000,
+          "exp": 1784300600
+        },
+        "accepted_subject_audiences": ["adc-v2"],
+        "original_machine_access_grants": {
+          "svc-workflow": ["workflow.read"]
+        },
+        "proxy_delegation_grants": {
+          "svc-workflow": ["workflow.read"]
+        }
+      }
+    }
+  ]
+}

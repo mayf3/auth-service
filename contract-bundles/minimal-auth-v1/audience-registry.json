@@ -1,0 +1,72 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "registry_version": "1.0.0-draft.1",
+  "status": "candidate",
+  "audiences": [
+    {
+      "audience_id": "svc-workflow",
+      "resource_service": "svc-workflow",
+      "scope_namespace": "workflow",
+      "accepted_principal_types": ["agent"],
+      "human_access_enabled": false,
+      "machine_access_enabled": true,
+      "delegated_access_enabled": true,
+      "registered_scopes": ["workflow.admin", "workflow.execute", "workflow.read"],
+      "status": "candidate",
+      "freeze_ready": true,
+      "notes": "Preserves the V0 wire audience; resource remains agent-only."
+    },
+    {
+      "audience_id": "svc-okr",
+      "resource_service": "svc-okr",
+      "scope_namespace": "okr",
+      "accepted_principal_types": ["user"],
+      "human_access_enabled": true,
+      "machine_access_enabled": false,
+      "delegated_access_enabled": false,
+      "registered_scopes": [],
+      "status": "candidate",
+      "freeze_ready": true,
+      "notes": "Human-only in the first V1 bundle; product roles stay local to svc-okr."
+    },
+    {
+      "audience_id": "svc-forum",
+      "resource_service": "svc-forum",
+      "scope_namespace": "forum",
+      "accepted_principal_types": ["user", "agent"],
+      "human_access_enabled": true,
+      "machine_access_enabled": true,
+      "delegated_access_enabled": false,
+      "registered_scopes": ["forum.read", "forum.write"],
+      "status": "candidate",
+      "freeze_ready": true,
+      "notes": "Uses the existing wire audience, not the repository name agent-forum."
+    },
+    {
+      "audience_id": "llm-todo",
+      "resource_service": "llm-todo",
+      "scope_namespace": "todo",
+      "accepted_principal_types": ["user", "agent", "service"],
+      "human_access_enabled": true,
+      "machine_access_enabled": true,
+      "delegated_access_enabled": false,
+      "registered_scopes": ["todo.read", "todo.write"],
+      "status": "candidate",
+      "freeze_ready": false,
+      "notes": "Principal types, route matrix and scope meanings require consumer-owner review."
+    },
+    {
+      "audience_id": "adc-v2",
+      "resource_service": "adc-v2",
+      "scope_namespace": "adc",
+      "accepted_principal_types": ["agent"],
+      "human_access_enabled": false,
+      "machine_access_enabled": true,
+      "delegated_access_enabled": false,
+      "registered_scopes": ["adc.invoke"],
+      "status": "candidate",
+      "freeze_ready": false,
+      "notes": "Source audience for the trusted proxy; exact ingress scope requires ADC review."
+    }
+  ]
+}
