@@ -34,6 +34,18 @@ let clientDbId: string;
 let clientPublicId: string;
 let clientSecret: string;
 
+async function cleanupTestData(): Promise<void> {
+  await prisma.machineClient.deleteMany({
+    where: { principal: { agentId: { startsWith: TEST_PREFIX } } },
+  });
+  await prisma.machinePrincipal.deleteMany({
+    where: { agentId: { startsWith: TEST_PREFIX } },
+  });
+  await prisma.user.deleteMany({
+    where: { email: { endsWith: '@test.local' } },
+  });
+}
+
 describe('Machine Principal lifecycle', () => {
   before(async () => {
     // Create a synthetic owner user
@@ -46,19 +58,6 @@ describe('Machine Principal lifecycle', () => {
       },
     });
     ownerUserId = owner.id;
-  });
-
-  after(async () => {
-    // Clean up all test data
-    await prisma.machineClient.deleteMany({
-      where: { principal: { agentId: { startsWith: TEST_PREFIX } } },
-    });
-    await prisma.machinePrincipal.deleteMany({
-      where: { agentId: { startsWith: TEST_PREFIX } },
-    });
-    await prisma.user.deleteMany({
-      where: { email: { endsWith: '@test.local' } },
-    });
   });
 
   it('1. creates a MachinePrincipal', async () => {
@@ -260,23 +259,34 @@ describe('Machine Client lifecycle', () => {
     assert.equal(result.status, 'revoked');
   });
 
-  it('19. disabled principal blocks token issuance', async () => {
-    // Create a new client for a disabled principal
-    await prisma.machinePrincipal.update({
-      where: { id: principalId },
-      data: { status: 'disabled', disabledAt: new Date() },
-    });
-
-    const newClient = await createClient({
+  it('19. disabled principal blocks client creation and token issuance', async () => {
+    // Create a client while principal is still active, then disable
+    const activeClient = await createClient({
       agentId: `${TEST_PREFIX}-agent`,
       resources: ['svc-forum'],
       scopes: ['forum.read'],
     });
 
+    await prisma.machinePrincipal.update({
+      where: { id: principalId },
+      data: { status: 'disabled', disabledAt: new Date() },
+    });
+
+    // Disabled principal blocks new client creation
+    await assert.rejects(
+      () => createClient({
+        agentId: `${TEST_PREFIX}-agent`,
+        resources: ['svc-forum'],
+        scopes: ['forum.read'],
+      }),
+      /disabled/,
+    );
+
+    // Existing client cannot issue tokens after principal is disabled
     await assert.rejects(
       () => issueToken({
-        clientId: newClient.clientId,
-        clientSecret: newClient.secret,
+        clientId: activeClient.clientId,
+        clientSecret: activeClient.secret,
         resource: 'svc-forum',
         scope: 'forum.read',
       }),
@@ -284,3 +294,5 @@ describe('Machine Client lifecycle', () => {
     );
   });
 });
+
+after(cleanupTestData);

@@ -17,6 +17,25 @@ export const tokenRequestSchema = z.object({
   resource: z.string().min(1, 'resource is required'),
 });
 
+/**
+ * Schema for POST /oauth/token with grant_type=token-exchange (RFC 8693).
+ */
+export const tokenExchangeRequestSchema = z.object({
+  grant_type: z.literal(
+    'urn:ietf:params:oauth:grant-type:token-exchange',
+    { errorMap: () => ({ message: 'Unsupported grant type' }) },
+  ),
+  subject_token: z.string().min(1, 'subject_token is required'),
+  subject_token_type: z
+    .string()
+    .default('urn:ietf:params:oauth:token-type:access_token'),
+  requested_token_type: z
+    .string()
+    .default('urn:ietf:params:oauth:token-type:access_token'),
+  audience: z.string().min(1, 'audience is required'),
+  scope: z.string().optional().default(''),
+});
+
 // ─── Machine Principal ─────────────────────────────────────────────────────
 
 /**
