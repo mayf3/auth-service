@@ -121,7 +121,7 @@
           "token_use": "access",
           "type": "access",
           "version": "v1",
-          "scope": "adc.invoke",
+          "scope": "adc.read",
           "agent_id": "agent-reviewer",
           "jti": "source-jti-00000001",
           "iat": 1784300000,
@@ -129,7 +129,7 @@
           "exp": 1784300600
         },
         "source_machine_access_grants": {
-          "adc-v2": ["adc.invoke"]
+          "adc-v2": ["adc.read"]
         },
         "accepted_subject_audiences": ["adc-v2"],
         "original_machine_access_grants": {

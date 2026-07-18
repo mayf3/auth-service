@@ -22,6 +22,9 @@
 - Closed the runtime-parameter review gate after checking the candidate values
   against V0 compatibility, derived retention bounds and current IETF security
   guidance; the deployment-specific exact JWKS URL remains open.
+- Replaced the over-broad candidate `adc.invoke` with `adc.read` and
+  `adc.execute`, added a fixed-SHA route/exchange map and closed the ADC ingress
+  Scope review gate.
 - Corrected resource topology to `svc-forum` and `llm-todo`; retained
   `workflow-todo` as a Client, not an Audience.
 - Recorded unresolved deployment, consumer SHA and scope decisions as freeze
