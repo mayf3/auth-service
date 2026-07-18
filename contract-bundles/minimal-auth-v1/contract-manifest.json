@@ -13,6 +13,7 @@
     "algorithm": "RS256",
     "jwks_url": null,
     "jwks_path": "/.well-known/jwks.json",
+    "jwks_http_timeout_seconds": 5,
     "jwks_cache_ttl_seconds": 300,
     "jwks_max_stale_seconds": 600,
     "unknown_kid_refresh_attempts": 1,
@@ -42,7 +43,8 @@
     "format": "rc1.<credential_uuid>.<base64url_secret>",
     "secret_entropy_bits": 256,
     "wire_pattern": "^rc1\\.[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\.[A-Za-z0-9_-]{43}$",
-    "database_stores_complete_wire_value": false
+    "database_stores_complete_wire_value": false,
+    "rotation_expires_at_rule": "min(now_plus_refresh_ttl,session_absolute_expires_at)"
   },
   "scope_wire_format": {
     "version": "ascii-space-v1",
@@ -75,6 +77,7 @@
     }
   },
   "oauth": {
+    "authorization_endpoint_path": "/oauth/authorize",
     "token_endpoint_path": "/oauth/token",
     "request_content_type": "application/x-www-form-urlencoded",
     "reject_duplicate_parameters": true,
@@ -106,6 +109,7 @@
     "authorization_code_ttl_seconds": 60,
     "authorization_code_format": "ac1.<code_uuid>.<base64url_secret>",
     "authorization_code_secret_entropy_bits": 256,
+    "redirect_uri_match": "exact_string",
     "public_client_token_authentication": "none",
     "confidential_client_token_authentication": "client_secret_basic",
     "implicit_grant_allowed": false,

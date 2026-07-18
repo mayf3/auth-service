@@ -236,6 +236,7 @@ check(manifest.contract_version === freezeGates.contract_version, 'manifest/free
 check(manifest.contract_version === consumerMatrix.contract_version, 'manifest/consumer matrix version mismatch');
 check(manifest.signing.algorithm === 'RS256', 'manifest: signing algorithm must be RS256');
 check(manifest.signing.allow_hs256_fallback === false, 'manifest: HS256 fallback must be false');
+check(manifest.signing.jwks_http_timeout_seconds === 5, 'manifest: JWKS HTTP timeout must be 5s');
 check(manifest.profiles.direct_machine_access.token_use === 'access', 'manifest: V0 Direct token_use changed');
 check(manifest.profiles.delegated_access.token_use === 'workflow_obo', 'manifest: V0 OBO token_use changed');
 check(['client_id', 'jti', 'nbf'].every((claim) => manifest.v0_compatibility.machine_claims_retained.includes(claim)), 'manifest: required V0 claims not retained');
@@ -249,9 +250,11 @@ check(manifest.human_login.pkce_method === 'S256' && manifest.human_login.pkce_r
 check(manifest.human_login.authorization_transaction_ttl_seconds <= 300, 'manifest: Authorization Transaction TTL exceeds 300s');
 check(manifest.human_login.authorization_code_ttl_seconds <= 60, 'manifest: Authorization Code TTL exceeds 60s');
 check(manifest.human_login.authorization_code_secret_entropy_bits >= 256, 'manifest: Authorization Code entropy is below 256 bits');
+check(manifest.human_login.redirect_uri_match === 'exact_string', 'manifest: Redirect URI matching must be exact');
 check(manifest.human_login.implicit_grant_allowed === false && manifest.human_login.password_grant_allowed === false, 'manifest: unsafe Human OAuth grant enabled');
 check(manifest.refresh_credential.secret_entropy_bits >= 256, 'manifest: Refresh Credential entropy is below 256 bits');
 check(manifest.refresh_credential.database_stores_complete_wire_value === false, 'manifest: complete Refresh Credential cannot be stored');
+check(manifest.refresh_credential.rotation_expires_at_rule === 'min(now_plus_refresh_ttl,session_absolute_expires_at)', 'manifest: Refresh rotation expiry rule changed');
 check(manifest.oauth.request_content_type === 'application/x-www-form-urlencoded', 'manifest: OAuth token request encoding changed');
 check(manifest.oauth.reject_duplicate_parameters === true, 'manifest: duplicate OAuth parameters must be rejected');
 check(manifest.oauth.success_cache_control === 'no-store' && manifest.oauth.success_pragma === 'no-cache', 'manifest: OAuth success cache headers are incomplete');
