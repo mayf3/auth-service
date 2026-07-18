@@ -13,8 +13,10 @@
       "id": "GATE-EXACT-JWKS-URL",
       "status": "open",
       "owner": "auth-service-deployment-owner",
-      "evidence": [],
-      "reason": "The deployment origin is not defined in this repository; a relative path is not the exact production JWKS URL."
+      "evidence": [
+        "AUTH_TOKEN_CONTRACT_V1_JWKS_DEPLOYMENT_EVIDENCE.md"
+      ],
+      "reason": "The only discovered public origin uses a self-signed IP certificate without SAN; the public auth path and live backend both return 404 for JWKS. A deployment owner must provision and prove a CA-trusted exact HTTPS route."
     },
     {
       "id": "GATE-RUNTIME-PARAMETER-REVIEW",
