@@ -250,6 +250,25 @@ Grant 写入是安全敏感管理操作。正式 Contract Bundle 必须定义：
 
 auth-service 只拥有 Grant 事实，不因此拥有资源服务的产品授权。
 
+V1 首个 Bundle 不提供在线 Grant 管理 API。Audience、Scope 和三类 Grant
+只能由版本化数据库迁移写入，迁移必须来自固定 Git SHA，并携带：
+
+```text
+migration_id
+operator_id
+approval_ref
+reason
+expected_grant_version
+before_value
+after_value
+timestamp
+```
+
+写入使用 `expected_grant_version` 做乐观并发检查，并在同一事务中写安全审计。
+版本不匹配或审计写入失败时整次回滚。缩小或撤销授权使用新的前向迁移，不
+允许通过无审计的数据库手改或回滚旧迁移恢复更大的授权。未来在线管理入口
+必须通过独立 CCR 定义操作者认证、领域授权、审批和审计后才能启用。
+
 ## 10. 失败关闭
 
 以下情况不得签发：

@@ -1,0 +1,79 @@
+{
+  "contract_version": "1.0.0-draft.1",
+  "inventory_date": "2026-07-18",
+  "all_in_scope_consumers_fixed_remote_sha": false,
+  "consumers": [
+    {
+      "id": "auth-service",
+      "kind": "issuer",
+      "git_sha": "bdb5e5bf308b9a39b7ff808d995bed82fc541a13",
+      "git_tree": "70674b6621ff3b5f252552aabb87824f067b71de",
+      "remote_ref": "origin/codex/minimal-auth-v1-contract",
+      "fixed_remote_sha": true,
+      "v1_ready": false
+    },
+    {
+      "id": "svc-workflow",
+      "kind": "resource-and-obo-consumer",
+      "git_sha": "2dff1320d1488ff4d2137795df1622d61d01c00c",
+      "git_tree": "3fb6d70785daff0d44821a0845389df3c027e8d9",
+      "remote_ref": "origin/main",
+      "fixed_remote_sha": true,
+      "v1_ready": false
+    },
+    {
+      "id": "svc-okr",
+      "kind": "human-resource-consumer",
+      "git_sha": "19781e46f35d10f1cd3148375752b03dd32ec1fc",
+      "git_tree": "eb39002085059db5ae4a3451fa7a68517a6462cb",
+      "remote_ref": "server/fix/blank-config-bypass",
+      "fixed_remote_sha": true,
+      "v1_ready": false
+    },
+    {
+      "id": "svc-forum",
+      "kind": "human-and-machine-resource-consumer",
+      "git_sha": "3053bc18ae53a546fed64b75180efc344f2cc5ab",
+      "git_tree": "466ddd513a55c8404c7177851f435cd4c9b1877c",
+      "remote_ref": null,
+      "fixed_remote_sha": false,
+      "v1_ready": false
+    },
+    {
+      "id": "llm-todo",
+      "kind": "human-and-machine-resource-consumer",
+      "git_sha": "7cc746240ba15161a5350bbe4c6d8fb88f41f5c6",
+      "git_tree": "b45dc35aa7b3148a314c9d856efdb17b94387650",
+      "remote_ref": null,
+      "fixed_remote_sha": false,
+      "v1_ready": false
+    },
+    {
+      "id": "adc-v2",
+      "kind": "source-resource-and-trusted-proxy",
+      "git_sha": "ddeeab2ff394af64b78d9820c9e64d5bf0952ebd",
+      "git_tree": "6b7e69217cac99b381876e85750dea588ae501fd",
+      "remote_ref": "server/main",
+      "fixed_remote_sha": true,
+      "v1_ready": false
+    },
+    {
+      "id": "workflow-todo",
+      "kind": "machine-client",
+      "git_sha": "d405755ed259e54f9b6d9d667033758058ad6234",
+      "git_tree": "6ac1fd0d31914755ae93bc42d4cea38113e43193",
+      "remote_ref": null,
+      "fixed_remote_sha": false,
+      "v1_ready": false
+    },
+    {
+      "id": "openclaw-credential-broker-candidate",
+      "kind": "credential-broker-and-machine-client",
+      "git_sha": "430d5a0feecbfd2376464eeca73e28cb8b92c60b",
+      "git_tree": "163e3a0df34c4dbd4b253447de1f7bb12d31b80a",
+      "remote_ref": null,
+      "fixed_remote_sha": false,
+      "v1_ready": false
+    }
+  ]
+}

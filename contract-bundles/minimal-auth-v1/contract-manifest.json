@@ -1,0 +1,108 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "design_id": "MINIMAL_AUTH_FOUNDATION_V1",
+  "contract_version": "1.0.0-draft.1",
+  "bundle_status": "draft",
+  "frozen": false,
+  "implementation_authorized": false,
+  "mainline_effective": false,
+  "exact_issuer": "auth-service",
+  "token_version": "v1",
+  "audience_registry_version": "1.0.0-draft.1",
+  "signing": {
+    "algorithm": "RS256",
+    "jwks_url": null,
+    "jwks_path": "/.well-known/jwks.json",
+    "jwks_cache_ttl_seconds": 300,
+    "jwks_max_stale_seconds": 600,
+    "unknown_kid_refresh_attempts": 1,
+    "key_retention_minimum_seconds": 1560,
+    "allow_hs256_fallback": false
+  },
+  "timing": {
+    "clock_skew_tolerance_seconds": 60,
+    "human_access_ttl_seconds": 900,
+    "machine_access_ttl_seconds": 600,
+    "obo_access_ttl_seconds": 300,
+    "human_session_absolute_ttl_seconds": 2592000,
+    "refresh_credential_ttl_seconds": 604800
+  },
+  "refresh_verifier": {
+    "algorithm": "scrypt",
+    "parameters_version": "scrypt-v1",
+    "parameters": {
+      "N": 16384,
+      "r": 8,
+      "p": 1,
+      "key_length_bytes": 32,
+      "salt_length_bytes": 16
+    }
+  },
+  "scope_wire_format": {
+    "version": "ascii-space-v1",
+    "json_type": "string",
+    "separator": "U+0020",
+    "case_sensitive": true,
+    "allow_leading_or_trailing_space": false,
+    "allow_duplicates": false,
+    "sort": "unsigned-ascii-byte-ascending",
+    "item_pattern": "^[a-z][a-z0-9-]*\\.[a-z][a-z0-9._-]*$"
+  },
+  "profiles": {
+    "human_access": {
+      "token_use": "access",
+      "type": "access",
+      "principal_types": ["user"],
+      "refresh_credential_allowed": true
+    },
+    "direct_machine_access": {
+      "token_use": "access",
+      "type": "access",
+      "principal_types": ["agent", "service"],
+      "refresh_credential_allowed": false
+    },
+    "delegated_access": {
+      "token_use": "workflow_obo",
+      "type": "access",
+      "principal_types": ["agent"],
+      "refresh_credential_allowed": false
+    }
+  },
+  "oauth": {
+    "token_endpoint_path": "/oauth/token",
+    "client_authentication": "client_secret_basic",
+    "success_cache_control": "no-store",
+    "error_cache_control": "no-store",
+    "token_type": "Bearer",
+    "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+    "requested_token_type": "urn:ietf:params:oauth:token-type:access_token"
+  },
+  "human_login": {
+    "flow": "authorization_code",
+    "pkce_method": "S256",
+    "pkce_required_for_all_clients": true,
+    "authorization_transaction_ttl_seconds": 300,
+    "authorization_code_ttl_seconds": 60,
+    "public_client_token_authentication": "none",
+    "confidential_client_token_authentication": "client_secret_basic",
+    "implicit_grant_allowed": false,
+    "password_grant_allowed": false
+  },
+  "management": {
+    "grant_management_mode": "versioned_database_migration_only",
+    "online_grant_management_enabled": false,
+    "optimistic_version_required": true,
+    "audit_in_same_transaction": true,
+    "forward_only_changes": true
+  },
+  "human_session_refresh_contract_version": "1.0.0-draft.1",
+  "v0_compatibility": {
+    "status": "wire-compatible-migration-candidate",
+    "machine_claims_retained": ["client_id", "jti", "nbf"],
+    "direct_token_use": "access",
+    "delegated_token_use": "workflow_obo",
+    "supersedes_v0": false
+  },
+  "source_git_commit": null,
+  "freeze_gate_file": "metadata/freeze-gates.json"
+}

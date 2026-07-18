@@ -48,6 +48,30 @@ session_id
 - 未定义完整证明流程的 `credential_type` 不得启用；
 - Client inactive/revoked 时不得创建 Session 或刷新。
 
+V1 首个 Bundle 只支持 Authorization Code + PKCE S256 登录绑定。Public 与
+Confidential Client 都必须使用 PKCE；Confidential Client 还必须在 Token
+Endpoint 使用 `client_secret_basic`。Implicit、Password Grant、把密码交给
+第三方 Client 后端以及从 `Origin`/`Referer` 推断 Client 都不受支持。
+
+登录流程固定为：
+
+1. auth-service 创建短期 Authorization Transaction，服务端验证已注册
+   `client_id`、精确 `redirect_uri`、目标 Audience Grant 和 S256
+   `code_challenge`；
+2. 用户认证提交只引用不可猜测的 Transaction ID，不重新接收
+   `client_id`、Audience 或 Redirect URI；
+3. 登录成功后签发单次 Authorization Code；数据库只保存 Code verifier
+   hash，并绑定 User、Client、Audience、Redirect URI 和 PKCE Challenge；
+4. Token Endpoint 原子消费 Code，验证原 Client、精确 Redirect URI、
+   `code_verifier` 和 Client Authentication；
+5. 成功后才创建 Session、Token Family、首个 Refresh Credential 和 Human
+   Access Token。
+
+Authorization Transaction 最长 5 分钟，Authorization Code 最长 60 秒，
+两者均只允许成功使用一次。失败、过期或并发重放不得创建 Session。用户
+可以主动开始另一个已注册 Client 的独立登录流程，但不能在既有 Transaction、
+Code、Session 或 Refresh 请求中替换 Client。
+
 ## 4. 最小 Session 对象
 
 Session 至少记录：

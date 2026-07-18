@@ -57,6 +57,10 @@ V1 对机器 Token 的原则是 Wire Compatible。真正不兼容的变化必须
 
 除本 `README.md` 外，目录中六份模块文件均属于同一个候选合同。单独摘取一个模块不能覆盖其他模块的约束。
 
+机器可执行的 Draft Bundle 位于
+`../../../contract-bundles/minimal-auth-v1/`。Bundle 当前明确为
+`frozen=false`；其 Validator 通过只表示 Artifact 内部一致，不表示 V1 已生效。
+
 ## 4. 目标与非目标
 
 统一身份系统只回答：
@@ -146,7 +150,8 @@ updated_at
 
 名称、邮箱、Agent 名称、工作区、机器或部署环境变化不得改变 Principal ID。
 
-Client 表示一个可以代表 Principal 申请 Token 的应用或运行实例。最小字段：
+Machine Client 表示一个可以代表 Agent 或 Service Principal 申请 Token 的
+应用或运行实例。最小字段：
 
 ```text
 client_id
@@ -154,7 +159,6 @@ principal_id
 credential_type
 credential_verifier
 credential_version
-human_audience_grants
 machine_access_grants
 delegation_grants
 status              active | revoked
@@ -162,7 +166,24 @@ created_at
 updated_at
 ```
 
-调用方不得通过请求参数改变服务端绑定的 `client_id -> principal_id`。
+Human Client 表示一个已注册的人类登录应用，不预先绑定到某个 User
+Principal：
+
+```text
+client_id
+client_type
+redirect_uris
+client_authentication_method
+credential_verifier         confidential only
+human_audience_grants
+status                       active | revoked
+created_at
+updated_at
+```
+
+Machine 调用方不得通过请求参数改变服务端绑定的
+`client_id -> principal_id`。Human Client 与 User 的关系只在完成受信任登录
+流程后由 Session 固定，不得把 Human Client 错建成某个 User 的长期所有物。
 
 ## 7. 所有权边界
 
