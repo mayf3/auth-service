@@ -1,11 +1,3 @@
-/**
- * Tests for Workflow Agent OBO Token Exchange (PR-B).
- *
- * Covers subject token profile validation, scope intersection, claim checks,
- * error contract, and audit field presence. DB-dependent paths require
- * DATABASE_URL to be set with a provisioned test database.
- */
-
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
@@ -19,8 +11,6 @@ import { resetWorkflowKeyringForTests } from '../../src/lib/oauth/workflow-keyri
 import { exchangeToken, OBO_MAX_TTL } from '../../src/lib/oauth/token-exchange.js';
 import { parseScopeString } from '../../src/schemas/oauth.js';
 
-// ─── Test Key Setup ─────────────────────────────────────────────────────────
-
 const ACTIVE_KID = 'test-obo-key-v0-20260716';
 const JWT_ISSUER = 'auth-service';
 const ORIGINAL_ENV = { ...process.env };
@@ -29,9 +19,6 @@ let activeKey: ReturnType<typeof generateTestKeyPair>;
 let subjectToken: string;
 let subjectTokenPayload: Record<string, unknown>;
 
-/**
- * Generate a fresh subject token (direct workflow agent token).
- */
 async function makeSubjectToken(opts?: {
   overrides?: Record<string, unknown>;
   algorithm?: string;
@@ -85,11 +72,8 @@ function teardownKeyring(): void {
   Object.assign(process.env, ORIGINAL_ENV);
 }
 
-// Helper: valid DB client credentials for tests that reach Prisma
 const DB_CLIENT_ID = 'mc_subject_client';
 const DB_CLIENT_SECRET = 'EL8Xak-5c-ZTaJ5e8tZ0LKwg4uN-KKK3aFt289QOQ84';
-
-// ─── Tests ──────────────────────────────────────────────────────────────────
 
 describe('OBO token exchange', () => {
   beforeEach(async () => {
@@ -99,8 +83,6 @@ describe('OBO token exchange', () => {
   afterEach(() => {
     teardownKeyring();
   });
-
-  // ── Request Parsing ────────────────────────────────────────────────────
 
   it('rejects unsupported subject_token_type', async () => {
     await assert.rejects(
@@ -129,8 +111,6 @@ describe('OBO token exchange', () => {
       (err: any) => err.message === 'unsupported_token_type',
     );
   });
-
-  // ── Algorithm / Verification ───────────────────────────────────────────
 
   it('rejects subject token with unknown kid', async () => {
     const badToken = await makeSubjectToken({ kid: 'unknown-kid-v999' });
@@ -196,8 +176,6 @@ describe('OBO token exchange', () => {
       (err: any) => err.statusCode === 400,
     );
   });
-
-  // ── Subject Profile Checks ────────────────────────────────────────────
 
   it('rejects subject token with token_use=workflow_obo (chaining block)', async () => {
     const oboToken = await makeSubjectToken({
@@ -305,13 +283,9 @@ describe('OBO token exchange', () => {
     );
   });
 
-  // ── TTL ────────────────────────────────────────────────────────────────
-
   it('caps OBO TTL at 300 seconds', () => {
     assert.equal(OBO_MAX_TTL, 300);
   });
-
-  // ── Scope Intersection ─────────────────────────────────────────────────
 
   it('computes correct 3-way scope intersection', () => {
     const subjectScopes = ['workflow.read', 'workflow.execute'];
@@ -372,8 +346,6 @@ describe('OBO token exchange', () => {
     assert.deepEqual(subjectParsed, ['workflow.execute', 'workflow.read']);
   });
 
-  // ── Claims ─────────────────────────────────────────────────────────────
-
   it('OBO token has correct frozen claims (when exchange succeeds)', () => {
     assert.ok(subjectTokenPayload, 'subject token should be decodable');
     assert.equal(subjectTokenPayload.token_use, 'access');
@@ -387,8 +359,6 @@ describe('OBO token exchange', () => {
     assert.ok(!subjectTokenPayload.azp, 'subject token should not have azp');
   });
 });
-
-// ── Pipeline validation (DB required) ──────────────────────────────────────
 
 describe('OBO token exchange — pipeline validation', () => {
   beforeEach(async () => {
@@ -474,8 +444,6 @@ describe('OBO token exchange — pipeline validation', () => {
     assert.equal(subjectTokenPayload.type, 'access');
   });
 });
-
-// ── Audit ──────────────────────────────────────────────────────────────────
 
 describe('OBO audit field presence', () => {
   beforeEach(async () => {

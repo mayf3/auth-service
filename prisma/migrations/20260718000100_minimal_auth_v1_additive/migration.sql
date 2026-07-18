@@ -29,6 +29,7 @@ CREATE TYPE "HumanSessionStatus" AS ENUM ('active', 'revoked', 'expired');
 CREATE TYPE "RefreshFamilyStatus" AS ENUM ('active', 'revoked', 'expired');
 CREATE TYPE "RefreshCredentialStatus" AS ENUM ('active', 'rotated', 'revoked', 'expired');
 CREATE TYPE "ExchangeAuditResult" AS ENUM ('success', 'rejected');
+CREATE TYPE "GrantChangeType" AS ENUM ('create', 'replace', 'revoke');
 
 CREATE TABLE "auth_audiences" (
   "audience_id" TEXT NOT NULL,
@@ -248,6 +249,10 @@ CREATE TABLE "token_exchange_audits" (
   "request_correlation_id" TEXT NOT NULL,
   "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
   CONSTRAINT "token_exchange_audits_pkey" PRIMARY KEY ("exchange_id"),
+  CONSTRAINT "token_exchange_audits_text_check" CHECK (
+    length("request_correlation_id") > 0 AND
+    ("rejection_category" IS NULL OR length("rejection_category") BETWEEN 1 AND 128)
+  ),
   CONSTRAINT "token_exchange_audits_result_shape_check" CHECK (
     ("result" = 'success' AND "original_principal_id" IS NOT NULL AND "original_client_id" IS NOT NULL
       AND "proxy_principal_id" IS NOT NULL AND "proxy_client_id" IS NOT NULL
@@ -256,6 +261,7 @@ CREATE TABLE "token_exchange_audits" (
       AND "requested_scopes" IS NOT NULL AND "granted_scopes" IS NOT NULL
       AND "rejection_category" IS NULL)
     OR ("result" = 'rejected' AND "delegated_token_jti" IS NULL AND "granted_scopes" IS NULL
+      AND "original_principal_id" IS NULL AND "original_client_id" IS NULL
       AND "rejection_category" IS NOT NULL)
   )
 );
@@ -282,21 +288,38 @@ CREATE TABLE "auth_security_audits" (
 CREATE INDEX "auth_security_audits_timestamp_idx" ON "auth_security_audits"("timestamp");
 
 CREATE TABLE "grant_change_audits" (
-  "id" UUID NOT NULL,
+  "change_id" UUID NOT NULL,
   "migration_id" TEXT NOT NULL,
-  "object_type" TEXT NOT NULL,
-  "object_id" TEXT NOT NULL,
-  "before_state" JSONB,
-  "after_state" JSONB NOT NULL,
-  "expected_version" INTEGER,
-  "new_version" INTEGER NOT NULL,
-  "actor_id" TEXT NOT NULL,
+  "source_git_commit" TEXT NOT NULL,
+  "operator_id" TEXT NOT NULL,
+  "approval_ref" TEXT NOT NULL,
+  "reason" TEXT NOT NULL,
+  "client_id" TEXT NOT NULL,
+  "change_type" "GrantChangeType" NOT NULL,
+  "expected_grant_version" INTEGER,
+  "resulting_grant_version" INTEGER NOT NULL,
+  "before_value" JSONB,
+  "after_value" JSONB,
   "timestamp" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  CONSTRAINT "grant_change_audits_pkey" PRIMARY KEY ("id")
+  CONSTRAINT "grant_change_audits_pkey" PRIMARY KEY ("change_id"),
+  CONSTRAINT "grant_change_audits_source_commit_check" CHECK ("source_git_commit" ~ '^[0-9a-f]{40}$'),
+  CONSTRAINT "grant_change_audits_required_text_check" CHECK (
+    length("migration_id") > 0 AND length("operator_id") > 0
+    AND length("approval_ref") > 0 AND length("client_id") > 0
+  ),
+  CONSTRAINT "grant_change_audits_reason_check" CHECK (length("reason") BETWEEN 1 AND 512),
+  CONSTRAINT "grant_change_audits_version_check" CHECK (
+    "resulting_grant_version" >= 1 AND
+    ("expected_grant_version" IS NULL OR "expected_grant_version" >= 1)
+  ),
+  CONSTRAINT "grant_change_audits_value_shape_check" CHECK (
+    ("change_type" IN ('create', 'replace') AND "after_value" IS NOT NULL)
+    OR ("change_type" = 'revoke' AND "after_value" IS NULL)
+  )
 );
 
-CREATE UNIQUE INDEX "grant_change_audits_migration_id_object_type_object_id_key"
-  ON "grant_change_audits"("migration_id", "object_type", "object_id");
+CREATE UNIQUE INDEX "grant_change_audits_migration_id_client_id_change_type_key"
+  ON "grant_change_audits"("migration_id", "client_id", "change_type");
 CREATE INDEX "grant_change_audits_timestamp_idx" ON "grant_change_audits"("timestamp");
 
 ALTER TABLE "human_client_redirect_uris" ADD CONSTRAINT "human_client_redirect_uris_human_client_id_fkey" FOREIGN KEY ("human_client_id") REFERENCES "human_clients"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

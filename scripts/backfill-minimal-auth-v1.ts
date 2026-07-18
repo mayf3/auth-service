@@ -49,7 +49,15 @@ function report(plan: Awaited<ReturnType<typeof loadPlan>>, apply: boolean) {
   };
 }
 
-async function applyPlan(migrationId: string, actorId: string) {
+interface ChangeMetadata {
+  migrationId: string;
+  sourceGitCommit: string;
+  operatorId: string;
+  approvalRef: string;
+  reason: string;
+}
+
+async function applyPlan(metadata: ChangeMetadata) {
   return prisma.$transaction(async (tx) => {
     const plan = await loadPlan(tx);
     if (plan.issues.length > 0) {
@@ -85,25 +93,24 @@ async function applyPlan(migrationId: string, actorId: string) {
           version: 1,
         },
       });
-      await tx.grantChangeAudit.create({
+      await tx.authSecurityAudit.create({
         data: {
-          migrationId,
-          objectType: 'auth_audience',
-          objectId: audience.audienceId,
-          afterState,
-          newVersion: 1,
-          actorId,
+          eventType: 'audience.registered',
+          result: 'success',
+          requestCorrelationId: metadata.migrationId,
+          details: {
+            migration_id: metadata.migrationId,
+            source_git_commit: metadata.sourceGitCommit,
+            operator_id: metadata.operatorId,
+            approval_ref: metadata.approvalRef,
+            reason: metadata.reason,
+            after_value: afterState,
+          },
         },
       });
     }
 
     for (const grant of plan.grantCreates) {
-      const afterState = {
-        machine_client_id: grant.machineClientId,
-        audience_id: grant.audienceId,
-        scopes: [...grant.scopes],
-        version: 1,
-      };
       await tx.machineAccessGrant.create({
         data: {
           machineClientId: grant.machineClientId,
@@ -112,14 +119,37 @@ async function applyPlan(migrationId: string, actorId: string) {
           version: 1,
         },
       });
+      const client = await tx.machineClient.findUniqueOrThrow({
+        where: { id: grant.machineClientId },
+        include: { principal: true, accessGrants: { orderBy: { audienceId: 'asc' } } },
+      });
+      const machineAccessGrants = Object.fromEntries(
+        client.accessGrants.map((item) => [item.audienceId, [...item.scopes].sort()]),
+      );
+      const afterValue = {
+        client_id: client.clientId,
+        client_kind: 'machine',
+        principal_id: client.machinePrincipalId,
+        principal_type: client.principal.principalType,
+        human_audience_grants: [],
+        machine_access_grants: machineAccessGrants,
+        delegation_grants: {},
+        status: client.status,
+        version: Math.max(...client.accessGrants.map((item) => item.version)),
+      };
       await tx.grantChangeAudit.create({
         data: {
-          migrationId,
-          objectType: 'machine_access_grant',
-          objectId: `${grant.machineClientId}:${grant.audienceId}`,
-          afterState,
-          newVersion: 1,
-          actorId,
+          migrationId: metadata.migrationId,
+          sourceGitCommit: metadata.sourceGitCommit,
+          operatorId: metadata.operatorId,
+          approvalRef: metadata.approvalRef,
+          reason: metadata.reason,
+          clientId: client.clientId,
+          changeType: 'create',
+          expectedGrantVersion: null,
+          resultingGrantVersion: afterValue.version,
+          beforeValue: undefined,
+          afterValue,
         },
       });
     }
@@ -139,14 +169,21 @@ async function main() {
     console.log('MINIMAL_AUTH_V1_BACKFILL_APPLIED=false');
     return;
   }
-  const migrationId = process.env.MINIMAL_AUTH_V1_MIGRATION_ID;
-  const actorId = process.env.MINIMAL_AUTH_V1_MIGRATION_ACTOR_ID;
-  if (!migrationId || !actorId) {
+  const metadata = {
+    migrationId: process.env.MINIMAL_AUTH_V1_MIGRATION_ID ?? '',
+    sourceGitCommit: process.env.MINIMAL_AUTH_V1_SOURCE_GIT_COMMIT ?? '',
+    operatorId: process.env.MINIMAL_AUTH_V1_OPERATOR_ID ?? '',
+    approvalRef: process.env.MINIMAL_AUTH_V1_APPROVAL_REF ?? '',
+    reason: process.env.MINIMAL_AUTH_V1_CHANGE_REASON ?? '',
+  };
+  if (!metadata.migrationId || !/^[0-9a-f]{40}$/.test(metadata.sourceGitCommit)
+    || !metadata.operatorId || !metadata.approvalRef
+    || metadata.reason.length < 1 || metadata.reason.length > 512) {
     throw new Error(
-      '--apply requires MINIMAL_AUTH_V1_MIGRATION_ID and MINIMAL_AUTH_V1_MIGRATION_ACTOR_ID.',
+      '--apply requires migration ID, exact source Git commit, operator, approval ref, and reason.',
     );
   }
-  const applied = await applyPlan(migrationId, actorId);
+  const applied = await applyPlan(metadata);
   console.log(`MINIMAL_AUTH_V1_AUDIENCES_CREATED=${applied.audienceCreates.length}`);
   console.log(`MINIMAL_AUTH_V1_MACHINE_GRANTS_CREATED=${applied.grantCreates.length}`);
   console.log('MINIMAL_AUTH_V1_BACKFILL_APPLIED=true');

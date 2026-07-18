@@ -39,6 +39,35 @@ export interface V1DirectMachineTokenClaims {
   exp: number;
 }
 
+export interface SignV1DelegatedTokenParams {
+  originalPrincipalId: string;
+  originalAgentId: string;
+  proxyPrincipalId: string;
+  proxyClientId: string;
+  audience: string;
+  scope: string;
+  sourceExp: number;
+}
+
+export interface V1DelegatedTokenClaims {
+  iss: string;
+  sub: string;
+  aud: string;
+  principal_type: 'agent';
+  client_id: string;
+  azp: string;
+  act: { sub: string };
+  token_use: 'workflow_obo';
+  type: 'access';
+  version: string;
+  scope: string;
+  agent_id?: string;
+  jti: string;
+  iat: number;
+  nbf: number;
+  exp: number;
+}
+
 function activePrivateKeyPem(): string | Buffer {
   return getWorkflowKeyring().active.privateKey.export({ format: 'pem', type: 'pkcs8' });
 }
@@ -100,6 +129,53 @@ export function signV1DirectMachineToken(
   return { token, claims, kid: active.kid };
 }
 
+export function signV1DelegatedToken(
+  params: SignV1DelegatedTokenParams,
+): { token: string; claims: V1DelegatedTokenClaims; kid: string } {
+  const settings = getV1ContractSettings();
+  const audience = getV1AudienceDefinitions().find(
+    (candidate) => candidate.audienceId === params.audience,
+  );
+  if (!audience?.delegatedAccessEnabled
+    || !audience.acceptedPrincipalTypes.includes('agent')) {
+    throw new Error('V1 delegated signer received an invalid target audience.');
+  }
+  if (!UUID_PATTERN.test(params.originalPrincipalId)
+    || !UUID_PATTERN.test(params.proxyPrincipalId) || !params.originalAgentId) {
+    throw new Error('V1 delegated signer received an invalid Principal profile.');
+  }
+  assertCanonicalV1Scope(params.scope, audience.scopeNamespace);
+  const now = Math.floor(Date.now() / 1000);
+  const exp = Math.min(now + settings.oboAccessTtlSeconds, params.sourceExp);
+  if (!Number.isInteger(params.sourceExp) || exp <= now) {
+    throw new Error('V1 delegated signer received an expired source token.');
+  }
+  const claims: V1DelegatedTokenClaims = {
+    iss: settings.exactIssuer,
+    sub: params.originalPrincipalId,
+    aud: params.audience,
+    principal_type: 'agent',
+    client_id: params.proxyClientId,
+    azp: params.proxyClientId,
+    act: { sub: params.proxyPrincipalId },
+    token_use: 'workflow_obo',
+    type: 'access',
+    version: settings.tokenVersion,
+    scope: params.scope,
+    agent_id: params.originalAgentId,
+    jti: randomUUID(),
+    iat: now,
+    nbf: now,
+    exp,
+  };
+  const { active } = getWorkflowKeyring();
+  const token = jwt.sign(claims, activePrivateKeyPem(), {
+    algorithm: 'RS256',
+    keyid: active.kid,
+  });
+  return { token, claims, kid: active.kid };
+}
+
 function peekHeader(token: string): Record<string, unknown> {
   const parts = token.split('.');
   if (parts.length !== 3) throw new Error('V1 token is malformed.');
@@ -119,7 +195,9 @@ export function verifyV1DirectMachineToken(
   const audience = getV1AudienceDefinitions().find(
     (candidate) => candidate.audienceId === expectedAudience,
   );
-  if (!audience) throw new Error('V1 verifier received an unregistered audience.');
+  if (!audience?.machineAccessEnabled) {
+    throw new Error('V1 verifier received an invalid machine audience.');
+  }
   const header = peekHeader(token);
   if (header.alg !== 'RS256' || typeof header.kid !== 'string') {
     throw new Error('V1 token requires alg=RS256 and kid.');
@@ -148,7 +226,11 @@ export function verifyV1DirectMachineToken(
     || claims.client_id.length === 0 || typeof claims.jti !== 'string' || claims.jti.length < 16) {
     throw new Error('V1 Direct token has invalid common claims.');
   }
-  if (claims.principal_type === 'agent' && !claims.agent_id) {
+  if (!audience.acceptedPrincipalTypes.includes(claims.principal_type)) {
+    throw new Error('V1 Direct token principal profile is not accepted by the audience.');
+  }
+  if (claims.principal_type === 'agent'
+    && (typeof claims.agent_id !== 'string' || !claims.agent_id)) {
     throw new Error('V1 Agent token is missing agent_id.');
   }
   if (claims.principal_type === 'service' && 'agent_id' in claims) {
@@ -161,6 +243,65 @@ export function verifyV1DirectMachineToken(
     || claims.nbf > now + settings.clockSkewToleranceSeconds
     || claims.exp <= now - settings.clockSkewToleranceSeconds) {
     throw new Error('V1 Direct token has invalid time claims.');
+  }
+  assertCanonicalV1Scope(claims.scope, audience.scopeNamespace);
+  return claims;
+}
+
+export function verifyV1DelegatedToken(
+  token: string,
+  expectedAudience: string,
+  now = Math.floor(Date.now() / 1000),
+): V1DelegatedTokenClaims {
+  const settings = getV1ContractSettings();
+  const audience = getV1AudienceDefinitions().find(
+    (candidate) => candidate.audienceId === expectedAudience,
+  );
+  if (!audience?.delegatedAccessEnabled
+    || !audience.acceptedPrincipalTypes.includes('agent')) {
+    throw new Error('V1 delegated verifier received an invalid target audience.');
+  }
+  const header = peekHeader(token);
+  if (header.alg !== 'RS256' || typeof header.kid !== 'string') {
+    throw new Error('V1 delegated token requires alg=RS256 and kid.');
+  }
+  const key = getWorkflowKeyring().verificationKeys.get(header.kid);
+  if (!key) throw new Error('V1 delegated token kid is not recognized.');
+  const publicKey = key.publicKey.export({ format: 'pem', type: 'spki' });
+  const claims = jwt.verify(token, publicKey, {
+    algorithms: ['RS256'],
+    issuer: settings.exactIssuer,
+    audience: expectedAudience,
+    clockTimestamp: now,
+    clockTolerance: settings.clockSkewToleranceSeconds,
+  }) as unknown as V1DelegatedTokenClaims;
+  const allowed = new Set([
+    'iss', 'sub', 'aud', 'principal_type', 'client_id', 'azp', 'act',
+    'token_use', 'type', 'version', 'scope', 'agent_id', 'jti', 'iat', 'nbf', 'exp',
+  ]);
+  if (Object.keys(claims).some((claim) => !allowed.has(claim))) {
+    throw new Error('V1 delegated token contains a forbidden claim.');
+  }
+  if (!UUID_PATTERN.test(claims.sub) || typeof claims.aud !== 'string'
+    || claims.aud !== expectedAudience || claims.principal_type !== 'agent'
+    || claims.token_use !== 'workflow_obo' || claims.type !== 'access'
+    || claims.version !== settings.tokenVersion || typeof claims.client_id !== 'string'
+    || !claims.client_id || claims.azp !== claims.client_id
+    || !claims.act || Object.keys(claims.act).length !== 1
+    || !UUID_PATTERN.test(claims.act.sub)
+    || typeof claims.jti !== 'string' || claims.jti.length < 16) {
+    throw new Error('V1 delegated token has invalid profile claims.');
+  }
+  if ('agent_id' in claims && (typeof claims.agent_id !== 'string' || !claims.agent_id)) {
+    throw new Error('V1 delegated token has an invalid agent_id.');
+  }
+  if (![claims.iat, claims.nbf, claims.exp].every(Number.isInteger)
+    || claims.nbf > claims.iat || claims.exp <= claims.iat
+    || claims.exp - claims.iat > settings.oboAccessTtlSeconds
+    || claims.iat > now + settings.clockSkewToleranceSeconds
+    || claims.nbf > now + settings.clockSkewToleranceSeconds
+    || claims.exp <= now - settings.clockSkewToleranceSeconds) {
+    throw new Error('V1 delegated token has invalid time claims.');
   }
   assertCanonicalV1Scope(claims.scope, audience.scopeNamespace);
   return claims;
