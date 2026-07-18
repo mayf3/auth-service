@@ -28,6 +28,9 @@
 - Added a full llm-todo route-group authorization candidate using
   `todo.read/write/invoke/admin`; kept its freeze gate open for explicit product
   decisions that cannot be recovered from permissive Legacy code.
+- Recorded live deployment evidence that the default IP certificate is
+  self-signed without SAN and the public/backend JWKS routes are not live; kept
+  the exact JWKS URL gate open for a deployment-owner-provided trusted origin.
 - Corrected resource topology to `svc-forum` and `llm-todo`; retained
   `workflow-todo` as a Client, not an Audience.
 - Recorded unresolved deployment, consumer SHA and scope decisions as freeze
