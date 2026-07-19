@@ -42,18 +42,31 @@ import { auditLog } from '../lib/oauth/audit.js';
 import { asyncHandler } from '../utils/async-handler.js';
 import { OAuthHttpError } from '../utils/http-error.js';
 
-export const oauthRouter = Router();
+// ---------------------------------------------------------------------------
+// Factory — enables dependency injection for integration tests
+// ---------------------------------------------------------------------------
 
-// Rate limiter for token endpoint
-const tokenLimiter = rateLimit({
-  windowMs: env.RATE_LIMIT_WINDOW_MS,
-  max: env.RATE_LIMIT_LOGIN_MAX_FAILS,
-  standardHeaders: true,
-  legacyHeaders: false,
-  message: { error: 'invalid_client', error_description: 'Too many requests' },
-});
+export interface OAuthRouterDependencies {
+  issueV1DirectToken: typeof issueV1DirectToken;
+  exchangeV1Token?: typeof exchangeV1Token;
+}
 
-oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
+export function createOAuthRouter(deps?: OAuthRouterDependencies): Router {
+  const doIssueV1DirectToken = deps?.issueV1DirectToken ?? issueV1DirectToken;
+  const doExchangeV1Token = deps?.exchangeV1Token ?? exchangeV1Token;
+
+  const router = Router();
+
+  // Rate limiter for token endpoint
+  const tokenLimiter = rateLimit({
+    windowMs: env.RATE_LIMIT_WINDOW_MS,
+    max: env.RATE_LIMIT_LOGIN_MAX_FAILS,
+    standardHeaders: true,
+    legacyHeaders: false,
+    message: { error: 'invalid_client', error_description: 'Too many requests' },
+  });
+
+  router.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
   res.setHeader('Cache-Control', 'no-store');
   res.setHeader('Pragma', 'no-cache');
   // ── 1. Validate Content-Type ───────────────────────────────────────────
@@ -119,7 +132,7 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
         scope: validatedScope,
       };
       const result = env.AUTH_CONTRACT_MODE === 'v1'
-        ? await issueV1DirectToken(tokenParams)
+        ? await doIssueV1DirectToken(tokenParams)
         : await issueToken(tokenParams);
       if (env.AUTH_CONTRACT_MODE === 'v1_shadow') {
         await evaluateV1DirectShadow(tokenParams);
@@ -244,7 +257,7 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
         requestId: exchangeRequestId,
       };
       const result = env.AUTH_CONTRACT_MODE === 'v1'
-        ? await exchangeV1Token(exchangeParams)
+        ? await doExchangeV1Token(exchangeParams)
         : await exchangeToken(exchangeParams);
       if (env.AUTH_CONTRACT_MODE === 'v1_shadow') {
         await evaluateV1ExchangeShadow(exchangeParams);
@@ -268,6 +281,12 @@ oauthRouter.post('/token', tokenLimiter, asyncHandler(async (req, res) => {
   // ── 3c. Unknown grant type ─────────────────────────────────────────────
   throw new OAuthHttpError(400, 'unsupported_grant_type');
 }));
+
+  return router;
+}
+
+/** Default router instance using production dependencies. */
+export const oauthRouter = createOAuthRouter();
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

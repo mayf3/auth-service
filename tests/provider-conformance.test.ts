@@ -1,15 +1,17 @@
 /**
- * Machine Token Provider — Auth-Service Route Conformance Test
+ * Machine Token Provider — V1 Token Issuance Conformance Test
  *
- * Tests the provider through the real auth-service code paths:
+ * Tests the provider through the real auth-service token issuance code paths:
  *   - Real V1DirectToken authorization (authorizeV1DirectToken)
  *   - Real RS256 signing (signV1DirectMachineToken)
- *   - Real route handler parsing and error mapping
  *   - Real client_secret verification (verifyClientSecret)
+ *   - Provider → custom fetch adapter → issueV1DirectToken
  *
  * Uses a synthetic V1DirectDatabase adapter (test data, not production).
  * Does NOT start an HTTP server — the core business logic and signing
  * are validated directly through the real module functions.
+ *
+ * See provider-route-conformance.test.ts for the full HTTP route test.
  */
 
 import assert from 'node:assert/strict';
