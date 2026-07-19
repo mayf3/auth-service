@@ -21,6 +21,12 @@ export type AuditEventType =
   | 'client.revoked'
   | 'token.issued'
   | 'token.failed'
+  | 'v1.direct.issued'
+  | 'v1.direct.failed'
+  | 'v1.shadow.direct'
+  | 'v1.obo.issued'
+  | 'v1.obo.failed'
+  | 'v1.shadow.obo'
   // ─── OBO Token Exchange (PR-B) ─────────────────────────────────────────
   | 'obo.token.issued'
   | 'obo.token.failed';
@@ -31,7 +37,7 @@ export interface AuditEvent {
   /** MachinePrincipal UUID (omitted if not yet created) */
   principalId?: string;
   /** OpenClaw canonical agent ID */
-  agentId?: string;
+  agentId?: string | null;
   /** OAuth clientId (not the DB id — the public client_id string) */
   clientId?: string;
   /** Requested resource (token events only) */

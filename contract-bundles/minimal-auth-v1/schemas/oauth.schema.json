@@ -1,0 +1,126 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:minimal-auth-v1:oauth:1.0.0",
+  "title": "Minimal Auth V1 OAuth Token Endpoint Objects",
+  "oneOf": [
+    { "$ref": "#/$defs/clientCredentialsRequest" },
+    { "$ref": "#/$defs/tokenExchangeRequest" },
+    { "$ref": "#/$defs/authorizationCodeRequest" },
+    { "$ref": "#/$defs/refreshTokenRequest" },
+    { "$ref": "#/$defs/machineTokenResponse" },
+    { "$ref": "#/$defs/humanTokenResponse" },
+    { "$ref": "#/$defs/oauthError" }
+  ],
+  "$defs": {
+    "canonicalScope": {
+      "type": "string",
+      "minLength": 1,
+      "pattern": "^[a-z][a-z0-9-]*\\.[a-z][a-z0-9._-]*( [a-z][a-z0-9-]*\\.[a-z][a-z0-9._-]*)*$"
+    },
+    "clientCredentialsRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "grant_type": { "const": "client_credentials" },
+        "resource": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "scope": { "$ref": "#/$defs/canonicalScope" }
+      },
+      "required": ["grant_type", "resource", "scope"]
+    },
+    "tokenExchangeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "grant_type": { "const": "urn:ietf:params:oauth:grant-type:token-exchange" },
+        "subject_token": { "type": "string", "minLength": 1 },
+        "subject_token_type": { "const": "urn:ietf:params:oauth:token-type:access_token" },
+        "requested_token_type": { "const": "urn:ietf:params:oauth:token-type:access_token" },
+        "audience": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "scope": { "$ref": "#/$defs/canonicalScope" }
+      },
+      "required": [
+        "grant_type", "subject_token", "subject_token_type",
+        "requested_token_type", "audience", "scope"
+      ]
+    },
+    "authorizationCodeRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "grant_type": { "const": "authorization_code" },
+        "code": {
+          "type": "string",
+          "pattern": "^ac1\\.[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\.[A-Za-z0-9_-]{43}$"
+        },
+        "redirect_uri": { "type": "string", "format": "uri" },
+        "client_id": { "type": "string", "minLength": 1 },
+        "code_verifier": {
+          "type": "string",
+          "minLength": 43,
+          "maxLength": 128,
+          "pattern": "^[A-Za-z0-9._~-]+$"
+        }
+      },
+      "required": ["grant_type", "code", "redirect_uri", "client_id", "code_verifier"]
+    },
+    "refreshTokenRequest": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "grant_type": { "const": "refresh_token" },
+        "refresh_token": {
+          "type": "string",
+          "pattern": "^rc1\\.[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\.[A-Za-z0-9_-]{43}$"
+        },
+        "client_id": { "type": "string", "minLength": 1 },
+        "resource": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" }
+      },
+      "required": ["grant_type", "refresh_token", "client_id", "resource"]
+    },
+    "machineTokenResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "access_token": { "type": "string", "minLength": 1 },
+        "issued_token_type": { "const": "urn:ietf:params:oauth:token-type:access_token" },
+        "token_type": { "const": "Bearer" },
+        "expires_in": { "type": "integer", "minimum": 1 },
+        "scope": { "$ref": "#/$defs/canonicalScope" }
+      },
+      "required": ["access_token", "token_type", "expires_in", "scope"]
+    },
+    "humanTokenResponse": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "access_token": { "type": "string", "minLength": 1 },
+        "token_type": { "const": "Bearer" },
+        "expires_in": { "type": "integer", "minimum": 1, "maximum": 900 },
+        "refresh_token": {
+          "type": "string",
+          "pattern": "^rc1\\.[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\.[A-Za-z0-9_-]{43}$"
+        },
+        "refresh_expires_in": { "type": "integer", "minimum": 1 }
+      },
+      "required": [
+        "access_token", "token_type", "expires_in", "refresh_token",
+        "refresh_expires_in"
+      ]
+    },
+    "oauthError": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "error": {
+          "enum": [
+            "invalid_client", "invalid_grant", "invalid_request",
+            "invalid_scope", "invalid_target", "unsupported_grant_type",
+            "unsupported_token_type", "temporarily_unavailable", "server_error"
+          ]
+        },
+        "error_description": { "type": "string", "maxLength": 256 }
+      },
+      "required": ["error"]
+    }
+  }
+}

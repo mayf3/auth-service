@@ -1,0 +1,160 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "design_id": "MINIMAL_AUTH_FOUNDATION_V1",
+  "contract_version": "1.0.0",
+  "lifecycle": {
+    "contract_bundle_freeze": {
+      "status": "frozen",
+      "frozen": true,
+      "implementation_authorized": true,
+      "reviewed_source_git_commit": "62ad3ec89c52e0fc4936279c23d2346706b948fa"
+    },
+    "production_deployment": {
+      "status": "not_ready",
+      "exact_jwks_url": null,
+      "production_jwks_deployment_ready": false,
+      "auth_token_contract_v1_production_effective": false
+    },
+    "consumer_migration": {
+      "status": "not_started",
+      "first_wave_scope": ["auth-service", "svc-workflow", "svc-okr", "adc-v2"],
+      "legacy_out_of_scope": [
+        "svc-forum", "workflow-todo", "llm-todo",
+        "openclaw-credential-broker-candidate"
+      ],
+      "in_scope_ready": false,
+      "legacy_consumers_migrated": false
+    }
+  },
+  "exact_issuer": "auth-service",
+  "token_version": "v1",
+  "audience_registry_version": "1.0.0",
+  "signing": {
+    "algorithm": "RS256",
+    "jwks_path": "/.well-known/jwks.json",
+    "jwks_http_timeout_seconds": 5,
+    "jwks_cache_ttl_seconds": 300,
+    "jwks_max_stale_seconds": 600,
+    "cache_fetch_error_rule": "use_trusted_cache_until_max_stale_then_fail_closed",
+    "unknown_kid_refresh_attempts": 1,
+    "unknown_kid_after_refresh_rule": "reject",
+    "active_signing_key_count": 1,
+    "new_token_signing_key_rule": "active_key_only",
+    "previous_key_rule": "verification_only_until_retention_elapsed",
+    "reject_duplicate_kid": true,
+    "require_active_signing_key": true,
+    "key_retention_minimum_seconds": 1560,
+    "allow_hs256_fallback": false
+  },
+  "timing": {
+    "clock_skew_tolerance_seconds": 60,
+    "human_access_ttl_seconds": 900,
+    "machine_access_ttl_seconds": 600,
+    "obo_access_ttl_seconds": 300,
+    "human_session_absolute_ttl_seconds": 2592000,
+    "refresh_credential_ttl_seconds": 604800
+  },
+  "refresh_verifier": {
+    "algorithm": "scrypt",
+    "parameters_version": "scrypt-v1",
+    "parameters": {
+      "N": 16384,
+      "r": 8,
+      "p": 1,
+      "key_length_bytes": 32,
+      "salt_length_bytes": 16
+    }
+  },
+  "refresh_credential": {
+    "format": "rc1.<credential_uuid>.<base64url_secret>",
+    "secret_entropy_bits": 256,
+    "wire_pattern": "^rc1\\.[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\\.[A-Za-z0-9_-]{43}$",
+    "database_stores_complete_wire_value": false,
+    "rotation_expires_at_rule": "min(now_plus_refresh_ttl,session_absolute_expires_at)"
+  },
+  "scope_wire_format": {
+    "version": "ascii-space-v1",
+    "json_type": "string",
+    "separator": "U+0020",
+    "case_sensitive": true,
+    "allow_leading_or_trailing_space": false,
+    "allow_duplicates": false,
+    "sort": "unsigned-ascii-byte-ascending",
+    "item_pattern": "^[a-z][a-z0-9-]*\\.[a-z][a-z0-9._-]*$"
+  },
+  "profiles": {
+    "human_access": {
+      "token_use": "access",
+      "type": "access",
+      "principal_types": ["user"],
+      "refresh_credential_allowed": true
+    },
+    "direct_machine_access": {
+      "token_use": "access",
+      "type": "access",
+      "principal_types": ["agent", "service"],
+      "refresh_credential_allowed": false
+    },
+    "delegated_access": {
+      "token_use": "workflow_obo",
+      "type": "access",
+      "principal_types": ["agent"],
+      "refresh_credential_allowed": false
+    }
+  },
+  "oauth": {
+    "authorization_endpoint_path": "/oauth/authorize",
+    "token_endpoint_path": "/oauth/token",
+    "request_content_type": "application/x-www-form-urlencoded",
+    "reject_duplicate_parameters": true,
+    "client_authentication": "client_secret_basic",
+    "success_cache_control": "no-store",
+    "success_pragma": "no-cache",
+    "error_cache_control": "no-store",
+    "error_pragma": "no-cache",
+    "token_type": "Bearer",
+    "subject_token_type": "urn:ietf:params:oauth:token-type:access_token",
+    "requested_token_type": "urn:ietf:params:oauth:token-type:access_token",
+    "error_http_status": {
+      "invalid_client": 401,
+      "invalid_grant": 400,
+      "invalid_request": 400,
+      "invalid_scope": 400,
+      "invalid_target": 400,
+      "unsupported_grant_type": 400,
+      "unsupported_token_type": 400,
+      "temporarily_unavailable": 503,
+      "server_error": 500
+    }
+  },
+  "human_login": {
+    "flow": "authorization_code",
+    "pkce_method": "S256",
+    "pkce_required_for_all_clients": true,
+    "authorization_transaction_ttl_seconds": 300,
+    "authorization_code_ttl_seconds": 60,
+    "authorization_code_format": "ac1.<code_uuid>.<base64url_secret>",
+    "authorization_code_secret_entropy_bits": 256,
+    "redirect_uri_match": "exact_string",
+    "public_client_token_authentication": "none",
+    "confidential_client_token_authentication": "client_secret_basic",
+    "implicit_grant_allowed": false,
+    "password_grant_allowed": false
+  },
+  "management": {
+    "grant_management_mode": "versioned_database_migration_only",
+    "online_grant_management_enabled": false,
+    "optimistic_version_required": true,
+    "audit_in_same_transaction": true,
+    "forward_only_changes": true
+  },
+  "human_session_refresh_contract_version": "1.0.0",
+  "v0_compatibility": {
+    "status": "wire-compatible-frozen-contract",
+    "machine_claims_retained": ["client_id", "jti", "nbf"],
+    "direct_token_use": "access",
+    "delegated_token_use": "workflow_obo",
+    "supersedes_v0": false
+  },
+  "freeze_gate_file": "metadata/freeze-gates.json"
+}

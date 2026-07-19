@@ -7,3 +7,10 @@ export class HttpError extends Error {
     this.name = 'HttpError';
   }
 }
+
+export class OAuthHttpError extends HttpError {
+  constructor(status: number, error: string) {
+    super(status, error);
+    this.name = 'OAuthHttpError';
+  }
+}

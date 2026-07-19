@@ -9,12 +9,17 @@ import { serviceRegistrationRouter } from './routes/service-registrations.js';
 import { usersRouter } from './routes/users.js';
 import { rolesRouter } from './routes/roles.js';
 import { oauthRouter } from './routes/oauth.js';
+import { oauthHumanRouter } from './routes/oauth-human.js';
 import { wellKnownRouter } from './routes/well-known.js';
-import { HttpError } from './utils/http-error.js';
+import { HttpError, OAuthHttpError } from './utils/http-error.js';
 import { prisma } from './lib/prisma.js';
 import { startCleanup } from './middleware/token-rotation.js';
+import { initializeAuthContract } from './lib/oauth/v1/contract.js';
+import { initializeV1TokenIssuer } from './lib/oauth/v1/signer.js';
 
 const app = express();
+const authContract = initializeAuthContract(env.AUTH_CONTRACT_MODE);
+if (env.AUTH_CONTRACT_MODE !== 'v0') initializeV1TokenIssuer();
 
 // ─── Security Middleware ────────────────────────────────────────────────
 
@@ -42,6 +47,16 @@ app.use(cors({
 
 app.use(express.json());
 app.use(express.urlencoded({ extended: false }));
+
+// OAuth success, error and rate-limit responses must never be cached. This is
+// intentionally before the global limiter so its 429 response has the same rule.
+app.use((req, res, next) => {
+  if (req.path === '/oauth' || req.path.startsWith('/oauth/')) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Pragma', 'no-cache');
+  }
+  next();
+});
 
 // ─── Rate Limiting ──────────────────────────────────────────────────────
 
@@ -77,6 +92,9 @@ app.get('/api/health', (_req, res) => {
     version: '1.0.0',
     issuer: env.JWT_ISSUER,
     audience: env.JWT_AUDIENCE,
+    authContractMode: authContract.mode,
+    authContractVersion: authContract.contractVersion,
+    authContractDigest: authContract.runtimeDigest,
     timestamp: new Date().toISOString(),
   });
 });
@@ -93,6 +111,7 @@ app.use('/api/auth', authRouter);
 
 // ─── OAuth 2.0 Token Endpoint ──────────────────────────────────────────────
 
+app.use('/oauth', oauthHumanRouter);
 app.use('/oauth', oauthRouter);
 
 // ─── JWKS — public workflow verification keys (PR-A) ───────────────────────
@@ -119,6 +138,13 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
     return;
   }
 
+  if (err instanceof OAuthHttpError) {
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Pragma', 'no-cache');
+    res.status(err.status).json({ error: err.message });
+    return;
+  }
+
   console.error(`[ERROR] ${err.message}`, err.stack);
   const status = err instanceof HttpError ? err.status : 500;
   const message = err instanceof HttpError ? err.message : '服务器内部错误';
@@ -131,8 +157,7 @@ app.listen(env.PORT, () => {
   console.log(`\n  🔐 auth-service v1.0.0`);
   console.log(`  📡 http://localhost:${env.PORT}`);
   console.log(`  🏷️  issuer: ${env.JWT_ISSUER} | audience: ${env.JWT_AUDIENCE}`);
-  console.log(`  🔑 JWT secret: ${env.JWT_SECRET.slice(0, 8)}...`);
-  console.log(`  🔑 JWT refresh secret: ${env.JWT_REFRESH_SECRET.slice(0, 8)}...`);
+  console.log(`  📜 auth contract: ${authContract.mode} | ${authContract.contractVersion ?? 'legacy'} | ${authContract.runtimeDigest ?? 'not-loaded'}`);
   console.log(`  🛡️  CORS origins: ${allowedOrigins.join(', ')}`);
   console.log(`  ⏱️  Rate limit: ${env.RATE_LIMIT_MAX_REQUESTS}/${env.RATE_LIMIT_WINDOW_MS / 1000}s global, ${env.RATE_LIMIT_LOGIN_MAX_FAILS}/${env.RATE_LIMIT_WINDOW_MS / 1000}s auth\n`);
 

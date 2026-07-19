@@ -4,9 +4,9 @@
   "description": "Unified authentication service for all agent platforms",
   "type": "module",
   "scripts": {
-    "build": "tsc -p tsconfig.json",
+    "build": "npm run contract:v1:prepare && tsc -p tsconfig.json",
     "start": "node dist/src/server.js",
-    "dev": "tsx watch src/server.ts",
+    "dev": "npm run contract:v1:prepare && tsx watch src/server.ts",
     "test": "tsx --test tests/identity/*.test.ts",
     "test:identity": "tsx --test tests/identity/resolver.test.ts tests/identity/env-file.test.ts",
     "test:smoke": "node tests/identity/forum-identity-smoke.mjs",
@@ -14,7 +14,12 @@
     "machine-admin": "tsx src/cli/machine-admin.ts",
     "test:oauth": "JWT_SECRET=test-jwt-secret tsx --test tests/oauth/secret.test.ts tests/oauth/oauth-schemas.test.ts tests/oauth/oauth-token.test.ts tests/oauth/compatibility.test.ts tests/oauth/http-integration.test.ts tests/oauth/workflow-keyring.test.ts tests/oauth/workflow-signer.test.ts tests/oauth/workflow-rotation.test.ts tests/oauth/workflow-compatibility.test.ts tests/oauth/verify-token-routing.test.ts tests/oauth/workflow-jwks-endpoint.test.ts",
     "test:lifecycle": "JWT_SECRET=test-jwt-secret tsx --test tests/oauth/lifecycle.test.ts",
-    "test:smoke-oauth": "JWT_SECRET=test-jwt-secret node tests/oauth/local-smoke.mjs"
+    "test:contract-v1": "JWT_SECRET=test-jwt-secret npm run contract:v1:prepare && JWT_SECRET=test-jwt-secret tsx --test tests/oauth/contract-runtime-v1.test.ts tests/oauth/migration-v1-static.test.ts tests/oauth/grant-migration-v1.test.ts tests/oauth/v1-scope.test.ts tests/oauth/v1-direct.test.ts tests/oauth/v1-signer.test.ts tests/oauth/v1-exchange.test.ts tests/oauth/v1-human.test.ts",
+    "test:smoke-oauth": "JWT_SECRET=test-jwt-secret node tests/oauth/local-smoke.mjs",
+    "contract:v1:validate": "node contract-bundles/minimal-auth-v1/validate.mjs",
+    "contract:v1:prepare": "node scripts/prepare-minimal-auth-v1.mjs",
+    "contract:v1:backfill": "npm run contract:v1:prepare && tsx scripts/backfill-minimal-auth-v1.ts",
+    "contract:v1:readiness": "npm run contract:v1:prepare && tsx scripts/check-minimal-auth-v1-readiness.ts"
   },
   "bin": {
     "agent-identity": "dist/src/cli/agent-identity.js"
@@ -31,6 +36,8 @@
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "ajv": "^8.17.1",
+    "ajv-formats": "^3.0.1",
     "@types/bcrypt": "^5.0.2",
     "@types/cors": "^2.8.17",
     "@types/express": "^5.0.0",

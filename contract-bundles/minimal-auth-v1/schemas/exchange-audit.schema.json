@@ -1,0 +1,88 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:minimal-auth-v1:exchange-audit:1.0.0",
+  "title": "Minimal Auth V1 Persistent Token Exchange Audit",
+  "oneOf": [
+    { "$ref": "#/$defs/success" },
+    { "$ref": "#/$defs/rejected" }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "nullableUuid": {
+      "oneOf": [{ "$ref": "#/$defs/uuid" }, { "type": "null" }]
+    },
+    "audienceId": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*$"
+    },
+    "nullableAudienceId": {
+      "oneOf": [{ "$ref": "#/$defs/audienceId" }, { "type": "null" }]
+    },
+    "scope": {
+      "type": "string",
+      "pattern": "^[a-z][a-z0-9-]*\\.[a-z][a-z0-9._-]*$"
+    },
+    "scopes": {
+      "type": "array",
+      "minItems": 1,
+      "uniqueItems": true,
+      "items": { "$ref": "#/$defs/scope" }
+    },
+    "nullableScopes": {
+      "oneOf": [{ "$ref": "#/$defs/scopes" }, { "type": "null" }]
+    },
+    "success": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "exchange_id": { "type": "string", "minLength": 16 },
+        "result": { "const": "success" },
+        "original_principal_id": { "$ref": "#/$defs/uuid" },
+        "original_client_id": { "type": "string", "minLength": 1 },
+        "proxy_principal_id": { "$ref": "#/$defs/uuid" },
+        "proxy_client_id": { "type": "string", "minLength": 1 },
+        "source_token_jti": { "type": "string", "minLength": 16 },
+        "delegated_token_jti": { "type": "string", "minLength": 16 },
+        "source_audience": { "$ref": "#/$defs/audienceId" },
+        "target_audience": { "$ref": "#/$defs/audienceId" },
+        "requested_scopes": { "$ref": "#/$defs/scopes" },
+        "granted_scopes": { "$ref": "#/$defs/scopes" },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "request_correlation_id": { "type": "string", "minLength": 1 }
+      },
+      "required": [
+        "exchange_id", "result", "original_principal_id", "original_client_id",
+        "proxy_principal_id", "proxy_client_id", "source_token_jti",
+        "delegated_token_jti", "source_audience", "target_audience",
+        "requested_scopes", "granted_scopes", "timestamp",
+        "request_correlation_id"
+      ]
+    },
+    "rejected": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "exchange_id": { "type": "string", "minLength": 16 },
+        "result": { "const": "rejected" },
+        "proxy_principal_id": { "$ref": "#/$defs/nullableUuid" },
+        "proxy_client_id": { "type": ["string", "null"], "minLength": 1 },
+        "source_token_jti": { "type": ["string", "null"], "minLength": 16 },
+        "source_audience": { "$ref": "#/$defs/nullableAudienceId" },
+        "target_audience": { "$ref": "#/$defs/nullableAudienceId" },
+        "requested_scopes": { "$ref": "#/$defs/nullableScopes" },
+        "rejection_category": { "type": "string", "minLength": 1, "maxLength": 128 },
+        "timestamp": { "type": "string", "format": "date-time" },
+        "request_correlation_id": { "type": "string", "minLength": 1 }
+      },
+      "required": [
+        "exchange_id", "result", "proxy_principal_id", "proxy_client_id",
+        "source_token_jti", "source_audience", "target_audience",
+        "requested_scopes", "rejection_category", "timestamp",
+        "request_correlation_id"
+      ]
+    }
+  }
+}

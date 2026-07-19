@@ -1,0 +1,220 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:minimal-auth-v1:human-session-refresh:1.0.0",
+  "title": "Minimal Auth V1 Human Login, Session and Refresh Records",
+  "oneOf": [
+    { "$ref": "#/$defs/humanClient" },
+    { "$ref": "#/$defs/authorizationTransaction" },
+    { "$ref": "#/$defs/authorizationCode" },
+    { "$ref": "#/$defs/session" },
+    { "$ref": "#/$defs/tokenFamily" },
+    { "$ref": "#/$defs/refreshCredential" },
+    { "$ref": "#/$defs/securityEvent" }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "nullableUuid": {
+      "oneOf": [{ "$ref": "#/$defs/uuid" }, { "type": "null" }]
+    },
+    "dateTime": { "type": "string", "format": "date-time" },
+    "nullableDateTime": {
+      "oneOf": [{ "$ref": "#/$defs/dateTime" }, { "type": "null" }]
+    },
+    "audienceId": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+    "humanClient": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "client_id": { "type": "string", "minLength": 1 },
+        "client_type": { "enum": ["confidential_web", "public_browser", "native"] },
+        "client_authentication_method": { "enum": ["client_secret_basic", "none"] },
+        "credential_verifier": { "type": ["string", "null"], "minLength": 32 },
+        "redirect_uris": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "type": "string", "format": "uri" }
+        },
+        "human_audience_grants": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": { "$ref": "#/$defs/audienceId" }
+        },
+        "status": { "enum": ["active", "revoked"] },
+        "version": { "type": "integer", "minimum": 1 }
+      },
+      "required": [
+        "client_id", "client_type", "client_authentication_method",
+        "credential_verifier", "redirect_uris", "human_audience_grants",
+        "status", "version"
+      ],
+      "allOf": [
+        {
+          "if": { "properties": { "client_type": { "const": "confidential_web" } } },
+          "then": {
+            "properties": {
+              "client_authentication_method": { "const": "client_secret_basic" },
+              "credential_verifier": { "type": "string", "minLength": 32 }
+            }
+          },
+          "else": {
+            "properties": {
+              "client_authentication_method": { "const": "none" },
+              "credential_verifier": { "type": "null" }
+            }
+          }
+        }
+      ]
+    },
+    "authorizationTransaction": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "authorization_transaction_id": { "$ref": "#/$defs/uuid" },
+        "client_id": { "type": "string", "minLength": 1 },
+        "redirect_uri": { "type": "string", "format": "uri" },
+        "audience": { "$ref": "#/$defs/audienceId" },
+        "code_challenge": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+        "code_challenge_method": { "const": "S256" },
+        "status": { "enum": ["pending", "authenticated", "consumed", "expired"] },
+        "created_at": { "$ref": "#/$defs/dateTime" },
+        "expires_at": { "$ref": "#/$defs/dateTime" },
+        "consumed_at": { "$ref": "#/$defs/nullableDateTime" },
+        "version": { "type": "integer", "minimum": 1 }
+      },
+      "required": [
+        "authorization_transaction_id", "client_id", "redirect_uri", "audience",
+        "code_challenge", "code_challenge_method", "status", "created_at",
+        "expires_at", "consumed_at", "version"
+      ]
+    },
+    "authorizationCode": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "authorization_code_id": { "$ref": "#/$defs/uuid" },
+        "authorization_transaction_id": { "$ref": "#/$defs/uuid" },
+        "user_principal_id": { "$ref": "#/$defs/uuid" },
+        "client_id": { "type": "string", "minLength": 1 },
+        "audience": { "$ref": "#/$defs/audienceId" },
+        "redirect_uri": { "type": "string", "format": "uri" },
+        "code_challenge": { "type": "string", "pattern": "^[A-Za-z0-9_-]{43}$" },
+        "code_challenge_method": { "const": "S256" },
+        "credential_verifier": { "type": "string", "minLength": 32 },
+        "status": { "enum": ["active", "consumed", "expired"] },
+        "issued_at": { "$ref": "#/$defs/dateTime" },
+        "expires_at": { "$ref": "#/$defs/dateTime" },
+        "consumed_at": { "$ref": "#/$defs/nullableDateTime" },
+        "version": { "type": "integer", "minimum": 1 }
+      },
+      "required": [
+        "authorization_code_id", "authorization_transaction_id",
+        "user_principal_id", "client_id", "audience", "redirect_uri",
+        "code_challenge", "code_challenge_method", "credential_verifier",
+        "status", "issued_at", "expires_at", "consumed_at", "version"
+      ]
+    },
+    "session": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "session_id": { "$ref": "#/$defs/uuid" },
+        "user_principal_id": { "$ref": "#/$defs/uuid" },
+        "client_id": { "type": "string", "minLength": 1 },
+        "token_family_id": { "$ref": "#/$defs/uuid" },
+        "status": { "enum": ["active", "revoked", "expired"] },
+        "authenticated_at": { "$ref": "#/$defs/dateTime" },
+        "last_refreshed_at": { "$ref": "#/$defs/dateTime" },
+        "absolute_expires_at": { "$ref": "#/$defs/dateTime" },
+        "revoked_at": { "$ref": "#/$defs/nullableDateTime" },
+        "revocation_reason": { "type": ["string", "null"], "maxLength": 128 },
+        "created_at": { "$ref": "#/$defs/dateTime" },
+        "updated_at": { "$ref": "#/$defs/dateTime" },
+        "version": { "type": "integer", "minimum": 1 }
+      },
+      "required": [
+        "session_id", "user_principal_id", "client_id", "token_family_id",
+        "status", "authenticated_at", "last_refreshed_at",
+        "absolute_expires_at", "revoked_at", "revocation_reason", "created_at",
+        "updated_at", "version"
+      ]
+    },
+    "tokenFamily": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "token_family_id": { "$ref": "#/$defs/uuid" },
+        "session_id": { "$ref": "#/$defs/uuid" },
+        "status": { "enum": ["active", "revoked", "expired"] },
+        "created_at": { "$ref": "#/$defs/dateTime" },
+        "absolute_expires_at": { "$ref": "#/$defs/dateTime" },
+        "revoked_at": { "$ref": "#/$defs/nullableDateTime" },
+        "revoke_reason": { "type": ["string", "null"], "maxLength": 128 },
+        "version": { "type": "integer", "minimum": 1 }
+      },
+      "required": [
+        "token_family_id", "session_id", "status", "created_at",
+        "absolute_expires_at", "revoked_at", "revoke_reason", "version"
+      ]
+    },
+    "refreshCredential": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "refresh_credential_id": { "$ref": "#/$defs/uuid" },
+        "token_family_id": { "$ref": "#/$defs/uuid" },
+        "session_id": { "$ref": "#/$defs/uuid" },
+        "user_principal_id": { "$ref": "#/$defs/uuid" },
+        "client_id": { "type": "string", "minLength": 1 },
+        "credential_verifier": { "type": "string", "minLength": 32 },
+        "credential_version": { "const": "scrypt-v1" },
+        "status": { "enum": ["active", "rotated", "revoked", "expired"] },
+        "issued_at": { "$ref": "#/$defs/dateTime" },
+        "expires_at": { "$ref": "#/$defs/dateTime" },
+        "rotated_at": { "$ref": "#/$defs/nullableDateTime" },
+        "replaced_by_id": { "$ref": "#/$defs/nullableUuid" },
+        "revoked_at": { "$ref": "#/$defs/nullableDateTime" },
+        "reuse_detected_at": { "$ref": "#/$defs/nullableDateTime" },
+        "version": { "type": "integer", "minimum": 1 }
+      },
+      "required": [
+        "refresh_credential_id", "token_family_id", "session_id",
+        "user_principal_id", "client_id", "credential_verifier",
+        "credential_version", "status", "issued_at", "expires_at",
+        "rotated_at", "replaced_by_id", "revoked_at", "reuse_detected_at",
+        "version"
+      ]
+    },
+    "securityEvent": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "event_id": { "$ref": "#/$defs/uuid" },
+        "event_type": {
+          "enum": [
+            "session.created", "session.revoked", "refresh.issued",
+            "refresh.rotated", "refresh.failed", "refresh.reuse_detected",
+            "refresh.family_revoked"
+          ]
+        },
+        "user_principal_id": { "$ref": "#/$defs/uuid" },
+        "client_id": { "type": "string", "minLength": 1 },
+        "session_id": { "$ref": "#/$defs/uuid" },
+        "token_family_id": { "$ref": "#/$defs/nullableUuid" },
+        "refresh_credential_id": { "$ref": "#/$defs/nullableUuid" },
+        "result": { "enum": ["success", "rejected"] },
+        "rejection_category": { "type": ["string", "null"], "maxLength": 128 },
+        "timestamp": { "$ref": "#/$defs/dateTime" },
+        "request_correlation_id": { "type": "string", "minLength": 1 }
+      },
+      "required": [
+        "event_id", "event_type", "user_principal_id", "client_id",
+        "session_id", "token_family_id", "refresh_credential_id", "result",
+        "rejection_category", "timestamp", "request_correlation_id"
+      ]
+    }
+  }
+}

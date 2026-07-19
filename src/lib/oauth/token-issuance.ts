@@ -88,6 +88,19 @@ export async function issueToken(params: IssueTokenParams): Promise<TokenResult>
     });
     throw Object.assign(new Error('invalid_client'), { statusCode: 401 });
   }
+  if (client.principal.principalType !== 'agent' || !client.principal.agentId) {
+    auditLog({
+      timestamp: new Date().toISOString(),
+      type: 'token.failed',
+      principalId: client.machinePrincipalId,
+      clientId: client.clientId,
+      resource: params.resource,
+      success: false,
+      error: 'legacy_principal_profile_mismatch',
+    });
+    throw Object.assign(new Error('invalid_client'), { statusCode: 401 });
+  }
+  const agentId = client.principal.agentId;
 
   // 4. Verify secret (constant-time)
   const secretValid = verifyClientSecret(params.clientSecret, client.secretHash);
@@ -114,7 +127,7 @@ export async function issueToken(params: IssueTokenParams): Promise<TokenResult>
       timestamp: new Date().toISOString(),
       type: 'token.failed',
       principalId: client.machinePrincipalId,
-      agentId: client.principal.agentId,
+      agentId,
       clientId: client.clientId,
       resource: params.resource,
       success: false,
@@ -132,7 +145,7 @@ export async function issueToken(params: IssueTokenParams): Promise<TokenResult>
       timestamp: new Date().toISOString(),
       type: 'token.failed',
       principalId: client.machinePrincipalId,
-      agentId: client.principal.agentId,
+      agentId,
       clientId: client.clientId,
       resource: params.resource,
       scopes: params.scope,
@@ -158,7 +171,7 @@ export async function issueToken(params: IssueTokenParams): Promise<TokenResult>
         timestamp: new Date().toISOString(),
         type: 'token.failed',
         principalId: client.principal.id,
-        agentId: client.principal.agentId,
+        agentId,
         clientId: client.clientId,
         resource: params.resource,
         scopes: validatedScope,
@@ -169,7 +182,7 @@ export async function issueToken(params: IssueTokenParams): Promise<TokenResult>
     }
     token = signWorkflowAccessToken({
       principalId: client.principal.id,
-      agentId: client.principal.agentId,
+      agentId,
       clientId: client.clientId,
       scope: validatedScope,
       ttl: DEFAULT_TTL,
@@ -179,7 +192,7 @@ export async function issueToken(params: IssueTokenParams): Promise<TokenResult>
   } else {
     token = signAgentAccessToken({
       principalId: client.principal.id,
-      agentId: client.principal.agentId,
+      agentId,
       clientId: client.clientId,
       audience: params.resource,
       scope: validatedScope,
@@ -196,7 +209,7 @@ export async function issueToken(params: IssueTokenParams): Promise<TokenResult>
     timestamp: new Date().toISOString(),
     type: 'token.issued',
     principalId: client.principal.id,
-    agentId: client.principal.agentId,
+    agentId,
     clientId: client.clientId,
     resource: params.resource,
     scopes: validatedScope,

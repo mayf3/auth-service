@@ -1,0 +1,178 @@
+{
+  "contract_version": "1.0.0",
+  "cases": [
+    {
+      "name": "human-forbidden-scope",
+      "base_fixture": "human-svc-okr",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "okr.read" }
+      ],
+      "expected_error": "PROFILE_FORBIDDEN_CLAIM"
+    },
+    {
+      "name": "human-ungranted-audience",
+      "base_fixture": "human-svc-okr",
+      "mutations": [
+        { "op": "set", "path": "/authorization_context/human_audience_grants", "value": [] }
+      ],
+      "expected_error": "AUDIENCE_NOT_GRANTED"
+    },
+    {
+      "name": "direct-noncanonical-double-space",
+      "base_fixture": "direct-agent-svc-workflow",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "workflow.execute  workflow.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-duplicate-scope",
+      "base_fixture": "direct-agent-svc-workflow",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "workflow.read workflow.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-wrong-namespace",
+      "base_fixture": "direct-agent-svc-workflow",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "forum.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-partial-grant-rejected",
+      "base_fixture": "direct-agent-svc-workflow",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/authorization_context/machine_access_grants/svc-workflow",
+          "value": ["workflow.read"]
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "direct-silent-downscope-rejected",
+      "base_fixture": "direct-agent-svc-workflow",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "workflow.read" }
+      ],
+      "expected_error": "SCOPE_OUTPUT_MISMATCH"
+    },
+    {
+      "name": "direct-forbidden-act",
+      "base_fixture": "direct-agent-svc-workflow",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/act",
+          "value": { "sub": "40000000-0000-4000-8000-000000000001" }
+        }
+      ],
+      "expected_error": "PROFILE_FORBIDDEN_CLAIM"
+    },
+    {
+      "name": "obo-proxy-client-mismatch",
+      "base_fixture": "obo-adc-v2-to-svc-workflow",
+      "mutations": [
+        { "op": "set", "path": "/claims/azp", "value": "other-proxy-client" }
+      ],
+      "expected_error": "OBO_PROXY_CLIENT_MISMATCH"
+    },
+    {
+      "name": "obo-subject-audience-not-accepted",
+      "base_fixture": "obo-adc-v2-to-svc-workflow",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/authorization_context/accepted_subject_audiences",
+          "value": ["svc-forum"]
+        }
+      ],
+      "expected_error": "SUBJECT_AUDIENCE_NOT_ACCEPTED"
+    },
+    {
+      "name": "obo-partial-proxy-grant-rejected",
+      "base_fixture": "obo-adc-v2-to-svc-workflow",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "workflow.execute workflow.read" },
+        {
+          "op": "set",
+          "path": "/authorization_context/requested_scope",
+          "value": "workflow.execute workflow.read"
+        },
+        {
+          "op": "set",
+          "path": "/authorization_context/original_machine_access_grants/svc-workflow",
+          "value": ["workflow.execute", "workflow.read"]
+        },
+        {
+          "op": "set",
+          "path": "/authorization_context/proxy_delegation_grants/svc-workflow",
+          "value": ["workflow.read"]
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "obo-silent-downscope-rejected",
+      "base_fixture": "obo-adc-v2-to-svc-workflow",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/authorization_context/requested_scope",
+          "value": "workflow.execute workflow.read"
+        },
+        {
+          "op": "set",
+          "path": "/authorization_context/original_machine_access_grants/svc-workflow",
+          "value": ["workflow.execute", "workflow.read"]
+        },
+        {
+          "op": "set",
+          "path": "/authorization_context/proxy_delegation_grants/svc-workflow",
+          "value": ["workflow.execute", "workflow.read"]
+        }
+      ],
+      "expected_error": "SCOPE_OUTPUT_MISMATCH"
+    },
+    {
+      "name": "invalid-time-order",
+      "base_fixture": "direct-agent-svc-workflow",
+      "mutations": [
+        { "op": "set", "path": "/claims/nbf", "value": 1784300001 }
+      ],
+      "expected_error": "INVALID_TIME_ORDER"
+    },
+    {
+      "name": "human-ttl-exceeded",
+      "base_fixture": "human-svc-okr",
+      "mutations": [
+        { "op": "set", "path": "/claims/exp", "value": 1784300901 }
+      ],
+      "expected_error": "TOKEN_TTL_EXCEEDED"
+    }
+  ],
+  "signature_cases": [
+    {
+      "name": "compact-jwt-invalid-signature",
+      "base_fixture": "direct-agent-svc-workflow",
+      "mutation": "corrupt_signature",
+      "expected_error": "INVALID_JWT_SIGNATURE"
+    },
+    {
+      "name": "compact-jwt-hs256-confusion",
+      "base_fixture": "direct-agent-svc-workflow",
+      "mutation": "set_alg_hs256",
+      "expected_error": "INVALID_JWT_ALGORITHM"
+    },
+    {
+      "name": "compact-jwt-unknown-kid",
+      "base_fixture": "direct-agent-svc-workflow",
+      "mutation": "set_unknown_kid",
+      "expected_error": "UNKNOWN_JWT_KID"
+    }
+  ]
+}

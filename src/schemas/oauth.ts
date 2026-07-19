@@ -36,6 +36,52 @@ export const tokenExchangeRequestSchema = z.object({
   scope: z.string().optional().default(''),
 });
 
+// ─── Human Authorization Code and Session ─────────────────────────────────
+
+const audienceIdSchema = z.string().regex(/^[a-z][a-z0-9-]*$/);
+const authorizationCodeSchema = z.string().regex(
+  /^ac1\.[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.[A-Za-z0-9_-]{43}$/,
+);
+const refreshCredentialSchema = z.string().regex(
+  /^rc1\.[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}\.[A-Za-z0-9_-]{43}$/,
+);
+
+export const humanAuthorizeRequestSchema = z.object({
+  response_type: z.literal('code'),
+  client_id: z.string().min(1),
+  redirect_uri: z.string().url(),
+  audience: audienceIdSchema,
+  state: z.string().min(1).max(512),
+  code_challenge: z.string().regex(/^[A-Za-z0-9_-]{43}$/),
+  code_challenge_method: z.literal('S256'),
+}).strict();
+
+export const humanAuthenticationRequestSchema = z.object({
+  authorization_transaction_id: z.string().uuid(),
+  email: z.string().email(),
+  password: z.string().min(1),
+}).strict();
+
+export const authorizationCodeTokenRequestSchema = z.object({
+  grant_type: z.literal('authorization_code'),
+  code: authorizationCodeSchema,
+  redirect_uri: z.string().url(),
+  client_id: z.string().min(1),
+  code_verifier: z.string().min(43).max(128).regex(/^[A-Za-z0-9._~-]+$/),
+}).strict();
+
+export const refreshTokenRequestSchema = z.object({
+  grant_type: z.literal('refresh_token'),
+  refresh_token: refreshCredentialSchema,
+  client_id: z.string().min(1),
+  resource: audienceIdSchema,
+}).strict();
+
+export const humanLogoutRequestSchema = z.object({
+  refresh_token: refreshCredentialSchema,
+  client_id: z.string().min(1),
+}).strict();
+
 // ─── Machine Principal ─────────────────────────────────────────────────────
 
 /**
