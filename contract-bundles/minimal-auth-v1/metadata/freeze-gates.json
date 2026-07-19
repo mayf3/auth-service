@@ -1,0 +1,80 @@
+{
+  "contract_version": "1.0.0",
+  "contract_bundle_freeze_allowed": true,
+  "gates": [
+    {
+      "id": "GATE-REMOTE-CONSUMER-SHAS",
+      "state_domain": "consumer_migration",
+      "blocks_contract_bundle_freeze": false,
+      "status": "deferred",
+      "owner": "consumer-repository-owners",
+      "evidence": ["metadata/consumer-verification-matrix.json"],
+      "reason": "Out-of-scope Legacy consumers lack fixed migration SHAs; this blocks only their later migration, not the first-wave source Contract Bundle freeze."
+    },
+    {
+      "id": "GATE-EXACT-JWKS-URL",
+      "state_domain": "production_deployment",
+      "blocks_contract_bundle_freeze": false,
+      "status": "open",
+      "owner": "auth-service-deployment-owner",
+      "evidence": [
+        "AUTH_TOKEN_CONTRACT_V1_JWKS_DEPLOYMENT_EVIDENCE.md"
+      ],
+      "reason": "The frozen source contract defines the exact JWKS path and behavior. A CA-trusted exact URL and live route remain mandatory before production effective, but do not block source Contract Bundle freeze."
+    },
+    {
+      "id": "GATE-RUNTIME-PARAMETER-REVIEW",
+      "state_domain": "contract_bundle_freeze",
+      "blocks_contract_bundle_freeze": true,
+      "status": "closed",
+      "owner": "auth-service-contract-review",
+      "evidence": [
+        "AUTH_TOKEN_CONTRACT_V1_RUNTIME_PARAMETER_REVIEW.md",
+        "RFC 9700",
+        "RFC 6749",
+        "RFC 8725",
+        "WORKFLOW_RS256_MACHINE_TOKEN_JWKS_V0.md"
+      ],
+      "reason": "Candidate cache, stale, token/session/refresh, PKCE, verifier, HTTP and retention values passed the 2026-07-18 narrow parameter review."
+    },
+    {
+      "id": "GATE-LLM-TODO-AUTHORIZATION-MATRIX",
+      "state_domain": "consumer_migration",
+      "blocks_contract_bundle_freeze": false,
+      "status": "deferred",
+      "owner": "llm-todo-owner",
+      "evidence": [
+        "AUTH_TOKEN_CONTRACT_V1_LLM_TODO_AUTHORIZATION_CANDIDATE.md",
+        "metadata/llm-todo-authorization-candidate.json",
+        "llm-todo@7cc746240ba15161a5350bbe4c6d8fb88f41f5c6"
+      ],
+      "reason": "llm-todo remains Legacy and outside the first-wave Bundle. Owner decisions block only a later llm-todo migration contract."
+    },
+    {
+      "id": "GATE-ADC-V2-INGRESS-SCOPE",
+      "state_domain": "contract_bundle_freeze",
+      "blocks_contract_bundle_freeze": true,
+      "status": "closed",
+      "owner": "adc-v2-owner",
+      "evidence": [
+        "AUTH_TOKEN_CONTRACT_V1_ADC_V2_SCOPE_REVIEW.md",
+        "metadata/adc-v2-scope-map.json",
+        "adc-v2@ddeeab2ff394af64b78d9820c9e64d5bf0952ebd"
+      ],
+      "reason": "The fixed remote ADC V2 route surface maps exactly to adc.read/adc.execute and workflow.read/workflow.execute."
+    },
+    {
+      "id": "GATE-BUNDLE-NARROW-REVIEW",
+      "state_domain": "contract_bundle_freeze",
+      "blocks_contract_bundle_freeze": true,
+      "status": "closed",
+      "owner": "independent-contract-reviewer",
+      "evidence": [
+        "AUTH_TOKEN_CONTRACT_V1_BUNDLE_INDEPENDENT_REVIEW_REPORT.md",
+        "auth-service@62ad3ec89c52e0fc4936279c23d2346706b948fa",
+        "tree@9347e9297fefaad7bcd0347637336df0c39bc03c"
+      ],
+      "reason": "The fixed draft.2 source object passed independent read-only review with zero Blocker and zero High findings."
+    }
+  ]
+}

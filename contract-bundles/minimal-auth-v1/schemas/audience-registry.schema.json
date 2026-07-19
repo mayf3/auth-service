@@ -1,0 +1,55 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:minimal-auth-v1:audience-registry:1.0.0",
+  "title": "Minimal Auth V1 Audience Registry",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "$schema": { "type": "string" },
+    "registry_version": { "type": "string", "minLength": 1 },
+    "status": { "enum": ["candidate", "frozen", "retired"] },
+    "audiences": {
+      "type": "array",
+      "minItems": 1,
+      "items": { "$ref": "#/$defs/audience" }
+    }
+  },
+  "required": ["registry_version", "status", "audiences"],
+  "$defs": {
+    "audience": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "audience_id": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "resource_service": { "type": "string", "minLength": 1 },
+        "scope_namespace": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "accepted_principal_types": {
+          "type": "array",
+          "minItems": 1,
+          "uniqueItems": true,
+          "items": { "enum": ["user", "agent", "service"] }
+        },
+        "human_access_enabled": { "type": "boolean" },
+        "machine_access_enabled": { "type": "boolean" },
+        "delegated_access_enabled": { "type": "boolean" },
+        "registered_scopes": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "pattern": "^[a-z][a-z0-9-]*\\.[a-z][a-z0-9._-]*$"
+          }
+        },
+        "status": { "enum": ["candidate", "active", "disabled", "retired"] },
+        "freeze_ready": { "type": "boolean" },
+        "notes": { "type": "string" }
+      },
+      "required": [
+        "audience_id", "resource_service", "scope_namespace",
+        "accepted_principal_types", "human_access_enabled",
+        "machine_access_enabled", "delegated_access_enabled",
+        "registered_scopes", "status", "freeze_ready"
+      ]
+    }
+  }
+}

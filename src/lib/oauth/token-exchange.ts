@@ -13,16 +13,12 @@
  */
 
 import crypto from 'node:crypto';
-import jwt from 'jsonwebtoken';
 import { prisma } from '../../lib/prisma.js';
 import { verifyClientSecret } from './secret.js';
-import { verifyWorkflowToken, getActiveKid } from './workflow-signer.js';
+import { verifyWorkflowToken } from './workflow-signer.js';
 import { auditLog } from './audit.js';
 import { parseScopeString } from '../../schemas/oauth.js';
-import { env } from '../../config/env.js';
-import { getWorkflowKeyring } from './workflow-keyring.js';
-
-// ─── Constants ───────────────────────────────────────────────────────────────
+import { signLegacyOboToken } from './token-exchange-signing.js';
 
 /** OBO access token TTL: hard-capped at 300 seconds (design §8). */
 export const OBO_MAX_TTL = 300;
@@ -43,8 +39,6 @@ const ACCEPTED_SUBJECT_TOKEN_TYPE =
 /** V0 only produces this requested_token_type. */
 const ACCEPTED_REQUESTED_TOKEN_TYPE =
   'urn:ietf:params:oauth:token-type:access_token';
-
-// ─── Interfaces ──────────────────────────────────────────────────────────────
 
 export interface TokenExchangeParams {
   /** ADC MachineClient.clientId (from Basic Auth). */
@@ -489,76 +483,17 @@ export async function exchangeToken(
     throw Object.assign(new Error('invalid_grant'), { statusCode: 400 });
   }
 
-  // ── 9. Sign OBO Token ──────────────────────────────────────────────────
-  // Build the OBO-specific claims. We reuse signWorkflowAccessToken for the
-  // base RS256 signing, but assemble the OBO payload separately since the
-  // claim set is different from the direct token.
-  const oboJti = `${client.machinePrincipalId}-${now}-${crypto.randomBytes(8).toString('hex')}`;
-  const oboIat = now;
-  const oboNbf = now;
-  const oboExp = now + ttl;
-
-  const oboPayload: Record<string, unknown> = {
-    iss: env.JWT_ISSUER,
-    sub: subjectSub,
-    aud: REQUIRED_AUDIENCE,
-    principal_type: subjectPrincipalType,
-    scope: finalScope,
-    token_use: 'workflow_obo',
-    type: 'access',
-    version: env.JWT_VERSION,
-    act: { sub: client.principal.id },
-    azp: client.clientId,
-    client_id: client.clientId,
-    jti: oboJti,
-    iat: oboIat,
-    nbf: oboNbf,
-    exp: oboExp,
-  };
-
-  // Add agent_id only if the subject has one
-  if (subjectAgentId) {
-    oboPayload.agent_id = subjectAgentId;
-  }
-
-  // Sign with RS256 using the active key
-  const { active } = getWorkflowKeyring();
-  const privateKeyPem = active.privateKey.export({ format: 'pem', type: 'pkcs8' });
-  const token = jwt.sign(oboPayload, privateKeyPem, {
-    algorithm: 'RS256',
-    keyid: active.kid,
-  });
-
-  const kid = getActiveKid();
-
-  // ── 10. Audit ────────────────────────────────────────────────────────────
-  auditLog({
-    timestamp: new Date().toISOString(),
-    type: 'obo.token.issued',
-    principalId: client.machinePrincipalId,
-    agentId: client.principal.agentId,
-    clientId: client.clientId,
-    resource: params.audience,
-    scopes: params.scope,
-    jti: oboJti,
-    success: true,
-    algorithm: 'RS256',
-    kid,
+  return signLegacyOboToken({
+    client,
+    audience: params.audience,
+    requestedScope: params.scope,
+    finalScope,
     requestId,
     subjectSub,
     subjectPrincipalType,
+    subjectAgentId,
     subjectJti,
-    azp: client.clientId,
-    actSub: client.principal.id,
-    issuedScopes: finalScope,
-    issuedAt: new Date(oboIat * 1000).toISOString(),
-    expiresAt: new Date(oboExp * 1000).toISOString(),
+    now,
+    ttl,
   });
-
-  return {
-    access_token: token,
-    token_type: 'Bearer',
-    expires_in: ttl,
-    scope: finalScope,
-  };
 }

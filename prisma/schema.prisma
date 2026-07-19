@@ -34,32 +34,37 @@ enum OkrRole {
 }
 
 model User {
-  id             String        @id @default(uuid()) @db.Uuid
+  id             String          @id @default(uuid()) @db.Uuid
   name           String
-  email          String        @unique
+  email          String          @unique
   password       String
-  role           UserRole      @default(requester)
-  internalRole   InternalRole? @map("internal_role")
-  okrRole        OkrRole       @default(okr_member) @map("okr_role")
-  agentId        String?       @unique
-  permissions    Json          @default("[]")
+  role           UserRole        @default(requester)
+  internalRole   InternalRole?   @map("internal_role")
+  okrRole        OkrRole         @default(okr_member) @map("okr_role")
+  agentId        String?         @unique
+  permissions    Json            @default("[]")
   bio            String?
   phone          String?
   avatar         String?
   department     String?
   title          String?
-  employeeNo     String?       @unique
+  employeeNo     String?         @unique
   onboardingDate DateTime?
-  managerId      String?       @db.Uuid
+  managerId      String?         @db.Uuid
+  status         PrincipalStatus @default(active)
+  updatedAt      DateTime        @updatedAt @map("updated_at")
+  disabledAt     DateTime?       @map("disabled_at")
 
   createdAt DateTime @default(now())
 
-  machinePrincipals MachinePrincipal[]
+  machinePrincipals         MachinePrincipal[]
+  authorizationTransactions AuthorizationTransaction[]
+  authorizationCodes        AuthorizationCode[]
+  humanSessions             HumanSession[]
+  refreshCredentials        RefreshCredential[]
 
   @@map("users")
 }
-
-// ─── Service Registration (SSO Gateway) ──────────────────────────────────
 
 enum ServiceRegistrationStatus {
   active
@@ -82,10 +87,9 @@ model ServiceRegistration {
   @@map("service_registrations")
 }
 
-// ─── Machine Principal (Agent Machine Identity) ─────────────────────────────
-
 enum PrincipalType {
   agent
+  service
 }
 
 enum PrincipalStatus {
@@ -101,34 +105,393 @@ enum ClientStatus {
 model MachinePrincipal {
   id            String          @id @default(uuid()) @db.Uuid
   principalType PrincipalType   @default(agent) @map("principal_type")
-  agentId       String          @unique @map("agent_id")
-  ownerUserId   String          @map("owner_user_id") @db.Uuid
+  agentId       String?         @unique @map("agent_id")
+  ownerUserId   String?         @map("owner_user_id") @db.Uuid
   displayName   String?         @map("display_name")
   status        PrincipalStatus @default(active)
   createdAt     DateTime        @default(now()) @map("created_at")
   updatedAt     DateTime        @updatedAt @map("updated_at")
   disabledAt    DateTime?       @map("disabled_at")
 
-  owner     User             @relation(fields: [ownerUserId], references: [id])
-  clients   MachineClient[]
+  owner        User?           @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
+  clients      MachineClient[]
+  trustedProxy TrustedProxy?   @relation("ProxyPrincipal")
 
   @@map("machine_principals")
 }
 
 model MachineClient {
-  id                  String       @id @default(uuid()) @db.Uuid
-  clientId            String       @unique @map("client_id")
-  machinePrincipalId  String       @map("machine_principal_id") @db.Uuid
-  secretHash          String       @map("secret_hash")
-  status              ClientStatus @default(active)
-  allowedResources    String[]     @map("allowed_resources")
-  allowedScopes       String[]     @map("allowed_scopes")
-  createdAt           DateTime     @default(now()) @map("created_at")
-  updatedAt           DateTime     @updatedAt @map("updated_at")
-  rotatedAt           DateTime?    @map("rotated_at")
-  revokedAt           DateTime?    @map("revoked_at")
+  id                 String       @id @default(uuid()) @db.Uuid
+  clientId           String       @unique @map("client_id")
+  machinePrincipalId String       @map("machine_principal_id") @db.Uuid
+  secretHash         String       @map("secret_hash")
+  status             ClientStatus @default(active)
+  allowedResources   String[]     @map("allowed_resources")
+  allowedScopes      String[]     @map("allowed_scopes")
+  createdAt          DateTime     @default(now()) @map("created_at")
+  updatedAt          DateTime     @updatedAt @map("updated_at")
+  rotatedAt          DateTime?    @map("rotated_at")
+  revokedAt          DateTime?    @map("revoked_at")
 
-  principal MachinePrincipal @relation(fields: [machinePrincipalId], references: [id])
+  principal    MachinePrincipal     @relation(fields: [machinePrincipalId], references: [id])
+  accessGrants MachineAccessGrant[]
+  trustedProxy TrustedProxy?        @relation("ProxyClient")
 
   @@map("machine_clients")
+}
+
+enum AudienceStatus {
+  candidate
+  active
+  disabled
+  retired
+}
+
+enum HumanClientType {
+  confidential_web
+  public_browser
+  native
+}
+enum HumanClientAuthenticationMethod {
+  none
+  client_secret_basic
+}
+enum HumanClientStatus {
+  active
+  revoked
+}
+enum AuthorizationTransactionStatus {
+  pending
+  authenticated
+  consumed
+  expired
+}
+enum AuthorizationCodeStatus {
+  active
+  consumed
+  expired
+}
+enum HumanSessionStatus {
+  active
+  revoked
+  expired
+}
+enum RefreshFamilyStatus {
+  active
+  revoked
+  expired
+}
+enum RefreshCredentialStatus {
+  active
+  rotated
+  revoked
+  expired
+}
+enum ExchangeAuditResult {
+  success
+  rejected
+}
+enum GrantChangeType {
+  create
+  replace
+  revoke
+}
+model AuthAudience {
+  audienceId             String         @id @map("audience_id")
+  resourceService        String         @map("resource_service")
+  scopeNamespace         String         @map("scope_namespace")
+  acceptedPrincipalTypes String[]       @map("accepted_principal_types")
+  registeredScopes       String[]       @map("registered_scopes")
+  humanAccessEnabled     Boolean        @map("human_access_enabled")
+  machineAccessEnabled   Boolean        @map("machine_access_enabled")
+  delegatedAccessEnabled Boolean        @map("delegated_access_enabled")
+  status                 AudienceStatus @default(candidate)
+  freezeReady            Boolean        @default(false) @map("freeze_ready")
+  version                Int            @default(1)
+  createdAt              DateTime       @default(now()) @map("created_at")
+  updatedAt              DateTime       @updatedAt @map("updated_at")
+
+  humanGrants               HumanAudienceGrant[]
+  machineGrants             MachineAccessGrant[]
+  acceptedByProxies         ProxyAcceptedSubjectAudience[]
+  delegationGrants          DelegationGrant[]
+  authorizationTransactions AuthorizationTransaction[]
+  authorizationCodes        AuthorizationCode[]
+
+  @@map("auth_audiences")
+}
+
+model HumanClient {
+  id                         String                          @id @default(uuid()) @db.Uuid
+  clientId                   String                          @unique @map("client_id")
+  clientType                 HumanClientType                 @map("client_type")
+  clientAuthenticationMethod HumanClientAuthenticationMethod @map("client_authentication_method")
+  credentialVerifier         String?                         @map("credential_verifier")
+  status                     HumanClientStatus               @default(active)
+  version                    Int                             @default(1)
+  createdAt                  DateTime                        @default(now()) @map("created_at")
+  updatedAt                  DateTime                        @updatedAt @map("updated_at")
+  revokedAt                  DateTime?                       @map("revoked_at")
+
+  redirectUris              HumanClientRedirectUri[]
+  audienceGrants            HumanAudienceGrant[]
+  authorizationTransactions AuthorizationTransaction[]
+  authorizationCodes        AuthorizationCode[]
+  humanSessions             HumanSession[]
+  refreshCredentials        RefreshCredential[]
+
+  @@map("human_clients")
+}
+
+model HumanClientRedirectUri {
+  humanClientId String      @map("human_client_id") @db.Uuid
+  redirectUri   String      @map("redirect_uri")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  humanClient   HumanClient @relation(fields: [humanClientId], references: [id])
+
+  @@id([humanClientId, redirectUri])
+  @@map("human_client_redirect_uris")
+}
+
+model HumanAudienceGrant {
+  humanClientId String       @map("human_client_id") @db.Uuid
+  audienceId    String       @map("audience_id")
+  version       Int          @default(1)
+  createdAt     DateTime     @default(now()) @map("created_at")
+  updatedAt     DateTime     @updatedAt @map("updated_at")
+  humanClient   HumanClient  @relation(fields: [humanClientId], references: [id])
+  audience      AuthAudience @relation(fields: [audienceId], references: [audienceId])
+
+  @@id([humanClientId, audienceId])
+  @@map("human_audience_grants")
+}
+
+model MachineAccessGrant {
+  machineClientId String        @map("machine_client_id") @db.Uuid
+  audienceId      String        @map("audience_id")
+  scopes          String[]
+  version         Int           @default(1)
+  createdAt       DateTime      @default(now()) @map("created_at")
+  updatedAt       DateTime      @updatedAt @map("updated_at")
+  machineClient   MachineClient @relation(fields: [machineClientId], references: [id])
+  audience        AuthAudience  @relation(fields: [audienceId], references: [audienceId])
+
+  @@id([machineClientId, audienceId])
+  @@map("machine_access_grants")
+}
+
+model TrustedProxy {
+  id                String                         @id @default(uuid()) @db.Uuid
+  proxyPrincipalId  String                         @unique @map("proxy_principal_id") @db.Uuid
+  proxyClientId     String                         @unique @map("proxy_client_id") @db.Uuid
+  status            ClientStatus                   @default(active)
+  version           Int                            @default(1)
+  createdAt         DateTime                       @default(now()) @map("created_at")
+  updatedAt         DateTime                       @updatedAt @map("updated_at")
+  revokedAt         DateTime?                      @map("revoked_at")
+  proxyPrincipal    MachinePrincipal               @relation("ProxyPrincipal", fields: [proxyPrincipalId], references: [id])
+  proxyClient       MachineClient                  @relation("ProxyClient", fields: [proxyClientId], references: [id])
+  acceptedAudiences ProxyAcceptedSubjectAudience[]
+  delegationGrants  DelegationGrant[]
+
+  @@map("trusted_proxies")
+}
+
+model ProxyAcceptedSubjectAudience {
+  trustedProxyId String       @map("trusted_proxy_id") @db.Uuid
+  audienceId     String       @map("audience_id")
+  createdAt      DateTime     @default(now()) @map("created_at")
+  trustedProxy   TrustedProxy @relation(fields: [trustedProxyId], references: [id])
+  audience       AuthAudience @relation(fields: [audienceId], references: [audienceId])
+
+  @@id([trustedProxyId, audienceId])
+  @@map("proxy_accepted_subject_audiences")
+}
+
+model DelegationGrant {
+  trustedProxyId String       @map("trusted_proxy_id") @db.Uuid
+  audienceId     String       @map("audience_id")
+  scopes         String[]
+  version        Int          @default(1)
+  createdAt      DateTime     @default(now()) @map("created_at")
+  updatedAt      DateTime     @updatedAt @map("updated_at")
+  trustedProxy   TrustedProxy @relation(fields: [trustedProxyId], references: [id])
+  audience       AuthAudience @relation(fields: [audienceId], references: [audienceId])
+
+  @@id([trustedProxyId, audienceId])
+  @@map("delegation_grants")
+}
+
+model AuthorizationTransaction {
+  id                  String                         @id @default(uuid()) @db.Uuid
+  humanClientId       String                         @map("human_client_id") @db.Uuid
+  audienceId          String                         @map("audience_id")
+  redirectUri         String                         @map("redirect_uri")
+  state               String
+  codeChallenge       String                         @map("code_challenge")
+  codeChallengeMethod String                         @default("S256") @map("code_challenge_method")
+  authenticatedUserId String?                        @map("authenticated_user_id") @db.Uuid
+  status              AuthorizationTransactionStatus @default(pending)
+  createdAt           DateTime                       @default(now()) @map("created_at")
+  expiresAt           DateTime                       @map("expires_at")
+  consumedAt          DateTime?                      @map("consumed_at")
+  version             Int                            @default(1)
+  humanClient         HumanClient                    @relation(fields: [humanClientId], references: [id])
+  audience            AuthAudience                   @relation(fields: [audienceId], references: [audienceId])
+  authenticatedUser   User?                          @relation(fields: [authenticatedUserId], references: [id])
+  authorizationCode   AuthorizationCode?
+
+  @@index([humanClientId, status, expiresAt])
+  @@map("authorization_transactions")
+}
+
+model AuthorizationCode {
+  id                         String                   @id @default(uuid()) @db.Uuid
+  credentialVerifier         String                   @map("credential_verifier")
+  verifierParametersVersion  String                   @map("verifier_parameters_version")
+  authorizationTransactionId String                   @unique @map("authorization_transaction_id") @db.Uuid
+  userId                     String                   @map("user_id") @db.Uuid
+  humanClientId              String                   @map("human_client_id") @db.Uuid
+  audienceId                 String                   @map("audience_id")
+  redirectUri                String                   @map("redirect_uri")
+  status                     AuthorizationCodeStatus  @default(active)
+  issuedAt                   DateTime                 @default(now()) @map("issued_at")
+  expiresAt                  DateTime                 @map("expires_at")
+  consumedAt                 DateTime?                @map("consumed_at")
+  version                    Int                      @default(1)
+  authorizationTransaction   AuthorizationTransaction @relation(fields: [authorizationTransactionId], references: [id])
+  user                       User                     @relation(fields: [userId], references: [id])
+  humanClient                HumanClient              @relation(fields: [humanClientId], references: [id])
+  audience                   AuthAudience             @relation(fields: [audienceId], references: [audienceId])
+
+  @@index([status, expiresAt])
+  @@map("authorization_codes")
+}
+
+model HumanSession {
+  id                 String              @id @default(uuid()) @db.Uuid
+  userId             String              @map("user_id") @db.Uuid
+  humanClientId      String              @map("human_client_id") @db.Uuid
+  tokenFamilyId      String?             @unique @map("token_family_id") @db.Uuid
+  status             HumanSessionStatus  @default(active)
+  authenticatedAt    DateTime            @map("authenticated_at")
+  lastRefreshedAt    DateTime            @map("last_refreshed_at")
+  absoluteExpiresAt  DateTime            @map("absolute_expires_at")
+  createdAt          DateTime            @default(now()) @map("created_at")
+  updatedAt          DateTime            @updatedAt @map("updated_at")
+  revokedAt          DateTime?           @map("revoked_at")
+  revocationReason   String?             @map("revocation_reason")
+  version            Int                 @default(1)
+  user               User                @relation(fields: [userId], references: [id])
+  humanClient        HumanClient         @relation(fields: [humanClientId], references: [id])
+  tokenFamily        RefreshFamily?      @relation("SessionCurrentFamily", fields: [tokenFamilyId], references: [id])
+  families           RefreshFamily[]     @relation("FamilySession")
+  refreshCredentials RefreshCredential[]
+
+  @@index([userId, humanClientId, status])
+  @@map("human_sessions")
+}
+
+model RefreshFamily {
+  id                String              @id @default(uuid()) @db.Uuid
+  humanSessionId    String              @map("human_session_id") @db.Uuid
+  status            RefreshFamilyStatus @default(active)
+  createdAt         DateTime            @default(now()) @map("created_at")
+  absoluteExpiresAt DateTime            @map("absolute_expires_at")
+  revokedAt         DateTime?           @map("revoked_at")
+  revokeReason      String?             @map("revoke_reason")
+  version           Int                 @default(1)
+  humanSession      HumanSession        @relation("FamilySession", fields: [humanSessionId], references: [id])
+  currentForSession HumanSession?       @relation("SessionCurrentFamily")
+  credentials       RefreshCredential[]
+
+  @@index([humanSessionId, status])
+  @@map("refresh_families")
+}
+
+model RefreshCredential {
+  id                        String                  @id @default(uuid()) @db.Uuid
+  familyId                  String                  @map("family_id") @db.Uuid
+  sessionId                 String                  @map("session_id") @db.Uuid
+  userId                    String                  @map("user_id") @db.Uuid
+  humanClientId             String                  @map("human_client_id") @db.Uuid
+  secretVerifier            String                  @map("secret_verifier")
+  verifierParametersVersion String                  @map("verifier_parameters_version")
+  status                    RefreshCredentialStatus @default(active)
+  issuedAt                  DateTime                @default(now()) @map("issued_at")
+  expiresAt                 DateTime                @map("expires_at")
+  rotatedAt                 DateTime?               @map("rotated_at")
+  replacedById              String?                 @unique @map("replaced_by_id") @db.Uuid
+  revokedAt                 DateTime?               @map("revoked_at")
+  reuseDetectedAt           DateTime?               @map("reuse_detected_at")
+  version                   Int                     @default(1)
+  family                    RefreshFamily           @relation(fields: [familyId], references: [id])
+  session                   HumanSession            @relation(fields: [sessionId], references: [id])
+  user                      User                    @relation(fields: [userId], references: [id])
+  humanClient               HumanClient             @relation(fields: [humanClientId], references: [id])
+  replacedBy                RefreshCredential?      @relation("RefreshReplacement", fields: [replacedById], references: [id])
+  replaces                  RefreshCredential?      @relation("RefreshReplacement")
+
+  @@index([familyId, status])
+  @@index([sessionId, status])
+  @@map("refresh_credentials")
+}
+
+model TokenExchangeAudit {
+  exchangeId           String              @id @default(uuid()) @map("exchange_id") @db.Uuid
+  result               ExchangeAuditResult
+  originalPrincipalId  String?             @map("original_principal_id") @db.Uuid
+  originalClientId     String?             @map("original_client_id")
+  proxyPrincipalId     String?             @map("proxy_principal_id") @db.Uuid
+  proxyClientId        String?             @map("proxy_client_id")
+  sourceTokenJti       String?             @map("source_token_jti")
+  delegatedTokenJti    String?             @map("delegated_token_jti")
+  sourceAudience       String?             @map("source_audience")
+  targetAudience       String?             @map("target_audience")
+  requestedScopes      Json?               @map("requested_scopes")
+  grantedScopes        Json?               @map("granted_scopes")
+  rejectionCategory    String?             @map("rejection_category")
+  requestCorrelationId String              @map("request_correlation_id")
+  timestamp            DateTime            @default(now())
+
+  @@index([timestamp])
+  @@index([sourceTokenJti])
+  @@index([delegatedTokenJti])
+  @@map("token_exchange_audits")
+}
+
+model AuthSecurityAudit {
+  id                   String   @id @default(uuid()) @db.Uuid
+  eventType            String   @map("event_type")
+  result               String
+  userId               String?  @map("user_id") @db.Uuid
+  humanClientId        String?  @map("human_client_id") @db.Uuid
+  humanSessionId       String?  @map("human_session_id") @db.Uuid
+  refreshFamilyId      String?  @map("refresh_family_id") @db.Uuid
+  credentialId         String?  @map("credential_id") @db.Uuid
+  requestCorrelationId String?  @map("request_correlation_id")
+  details              Json?
+  timestamp            DateTime @default(now())
+
+  @@index([timestamp])
+  @@map("auth_security_audits")
+}
+
+model GrantChangeAudit {
+  id                    String          @id @default(uuid()) @map("change_id") @db.Uuid
+  migrationId           String          @map("migration_id")
+  sourceGitCommit       String          @map("source_git_commit")
+  operatorId            String          @map("operator_id")
+  approvalRef           String          @map("approval_ref")
+  reason                String
+  clientId              String          @map("client_id")
+  changeType            GrantChangeType @map("change_type")
+  expectedGrantVersion  Int?            @map("expected_grant_version")
+  resultingGrantVersion Int             @map("resulting_grant_version")
+  beforeValue           Json?           @map("before_value")
+  afterValue            Json?           @map("after_value")
+  timestamp             DateTime        @default(now())
+  @@unique([migrationId, clientId, changeType])
+  @@index([timestamp])
+  @@map("grant_change_audits")
 }

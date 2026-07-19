@@ -10,7 +10,9 @@
 
 import { Router, type Request, type Response } from 'express';
 import crypto from 'node:crypto';
+import { env } from '../config/env.js';
 import { getWorkflowKeyring } from '../lib/oauth/workflow-keyring.js';
+import { getV1ContractSettings } from '../lib/oauth/v1/contract.js';
 
 export const wellKnownRouter = Router();
 
@@ -38,7 +40,10 @@ export function resetJwksCacheForTests(): void {
 
 wellKnownRouter.get('/jwks.json', (_req: Request, res: Response) => {
   const { body, etag } = current();
-  res.setHeader('Cache-Control', 'public, max-age=3600, must-revalidate');
+  const maxAge = env.AUTH_CONTRACT_MODE === 'v0'
+    ? 3600
+    : getV1ContractSettings().jwksCacheTtlSeconds;
+  res.setHeader('Cache-Control', `public, max-age=${maxAge}, must-revalidate`);
   res.setHeader('ETag', etag);
   res.type('application/json');
   res.send(body);

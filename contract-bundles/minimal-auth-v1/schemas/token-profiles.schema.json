@@ -1,0 +1,105 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:minimal-auth-v1:token-profiles:1.0.0",
+  "title": "Minimal Auth V1 Access Token Claims",
+  "oneOf": [
+    { "$ref": "#/$defs/humanAccess" },
+    { "$ref": "#/$defs/directMachineAccess" },
+    { "$ref": "#/$defs/delegatedAccess" }
+  ],
+  "$defs": {
+    "uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$"
+    },
+    "numericDate": {
+      "type": "integer",
+      "minimum": 0
+    },
+    "humanAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "iss": { "type": "string", "minLength": 1 },
+        "sub": { "$ref": "#/$defs/uuid" },
+        "aud": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "principal_type": { "const": "user" },
+        "client_id": { "type": "string", "minLength": 1 },
+        "token_use": { "const": "access" },
+        "type": { "const": "access" },
+        "version": { "const": "v1" },
+        "jti": { "type": "string", "minLength": 16 },
+        "iat": { "$ref": "#/$defs/numericDate" },
+        "nbf": { "$ref": "#/$defs/numericDate" },
+        "exp": { "$ref": "#/$defs/numericDate" }
+      },
+      "required": [
+        "iss", "sub", "aud", "principal_type", "client_id", "token_use",
+        "type", "version", "jti", "iat", "nbf", "exp"
+      ]
+    },
+    "directMachineAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "iss": { "type": "string", "minLength": 1 },
+        "sub": { "$ref": "#/$defs/uuid" },
+        "aud": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "principal_type": { "enum": ["agent", "service"] },
+        "client_id": { "type": "string", "minLength": 1 },
+        "token_use": { "const": "access" },
+        "type": { "const": "access" },
+        "version": { "const": "v1" },
+        "scope": { "type": "string", "minLength": 1 },
+        "agent_id": { "type": "string", "minLength": 1 },
+        "jti": { "type": "string", "minLength": 16 },
+        "iat": { "$ref": "#/$defs/numericDate" },
+        "nbf": { "$ref": "#/$defs/numericDate" },
+        "exp": { "$ref": "#/$defs/numericDate" }
+      },
+      "required": [
+        "iss", "sub", "aud", "principal_type", "client_id", "token_use",
+        "type", "version", "scope", "jti", "iat", "nbf", "exp"
+      ],
+      "allOf": [
+        {
+          "if": { "properties": { "principal_type": { "const": "service" } } },
+          "then": { "not": { "required": ["agent_id"] } }
+        }
+      ]
+    },
+    "delegatedAccess": {
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "iss": { "type": "string", "minLength": 1 },
+        "sub": { "$ref": "#/$defs/uuid" },
+        "aud": { "type": "string", "pattern": "^[a-z][a-z0-9-]*$" },
+        "principal_type": { "const": "agent" },
+        "client_id": { "type": "string", "minLength": 1 },
+        "azp": { "type": "string", "minLength": 1 },
+        "act": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "sub": { "$ref": "#/$defs/uuid" }
+          },
+          "required": ["sub"]
+        },
+        "token_use": { "const": "workflow_obo" },
+        "type": { "const": "access" },
+        "version": { "const": "v1" },
+        "scope": { "type": "string", "minLength": 1 },
+        "agent_id": { "type": "string", "minLength": 1 },
+        "jti": { "type": "string", "minLength": 16 },
+        "iat": { "$ref": "#/$defs/numericDate" },
+        "nbf": { "$ref": "#/$defs/numericDate" },
+        "exp": { "$ref": "#/$defs/numericDate" }
+      },
+      "required": [
+        "iss", "sub", "aud", "principal_type", "client_id", "azp", "act",
+        "token_use", "type", "version", "scope", "jti", "iat", "nbf", "exp"
+      ]
+    }
+  }
+}

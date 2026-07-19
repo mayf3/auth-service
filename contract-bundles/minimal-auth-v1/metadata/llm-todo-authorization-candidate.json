@@ -1,0 +1,147 @@
+{
+  "contract_version": "1.0.0",
+  "artifact_class": "legacy_consumer_migration_candidate",
+  "blocks_contract_bundle_freeze": false,
+  "consumer_id": "llm-todo",
+  "consumer_git_sha": "7cc746240ba15161a5350bbe4c6d8fb88f41f5c6",
+  "consumer_git_tree": "b45dc35aa7b3148a314c9d856efdb17b94387650",
+  "decision_status": "owner_review_required",
+  "audience": "llm-todo",
+  "candidate_principal_types": ["user", "agent", "service"],
+  "candidate_scopes": ["todo.admin", "todo.invoke", "todo.read", "todo.write"],
+  "matching_rule": "most_specific_path_pattern_wins_and_any_tie_denies",
+  "route_groups": [
+    {
+      "id": "public-operational",
+      "methods": ["GET"],
+      "path_patterns": ["/api/health"],
+      "authentication": "public",
+      "machine_scope": null,
+      "domain_authorization": "none",
+      "owner_decision_required": false
+    },
+    {
+      "id": "public-discovery-candidate",
+      "methods": ["GET"],
+      "path_patterns": [
+        "/api/chat/providers",
+        "/api/capabilities",
+        "/api/capabilities/:id",
+        "/api/capabilities/discover",
+        "/api/capabilities/discover/:name"
+      ],
+      "authentication": "public_candidate",
+      "machine_scope": null,
+      "domain_authorization": "return only explicitly public metadata",
+      "owner_decision_required": true
+    },
+    {
+      "id": "todo-read",
+      "methods": ["GET"],
+      "path_patterns": [
+        "/api/todos/**",
+        "/api/agent/auth",
+        "/api/agent/tasks",
+        "/api/agent/tasks/:id/reports",
+        "/api/agent/goals",
+        "/api/capabilities/requests",
+        "/api/capabilities/requests/:id"
+      ],
+      "authentication": "v1_required",
+      "machine_scope": "todo.read",
+      "domain_authorization": "local visibility, assignment, creator, requester or matched-agent relations based on token sub",
+      "owner_decision_required": false
+    },
+    {
+      "id": "todo-write",
+      "methods": ["POST", "PUT", "PATCH", "DELETE"],
+      "path_patterns": [
+        "/api/todos/**",
+        "/api/agent/tasks",
+        "/api/agent/tasks/:id",
+        "/api/agent/tasks/:id/report",
+        "/api/capabilities",
+        "/api/capabilities/:id",
+        "/api/capabilities/requests",
+        "/api/capabilities/requests/:id/complete",
+        "/api/capabilities/requests/:id/fail"
+      ],
+      "authentication": "v1_required",
+      "machine_scope": "todo.write",
+      "domain_authorization": "local creator, assignee, assignment, capability owner, requester, matched-agent and state rules based on token sub",
+      "owner_decision_required": false
+    },
+    {
+      "id": "metered-invoke",
+      "methods": ["POST"],
+      "path_patterns": [
+        "/api/chat",
+        "/api/todos/analyze",
+        "/api/compile"
+      ],
+      "authentication": "v1_required",
+      "machine_scope": "todo.invoke",
+      "domain_authorization": "local invocation quota, input data visibility and export policy",
+      "owner_decision_required": true
+    },
+    {
+      "id": "invoke-history",
+      "methods": ["GET"],
+      "path_patterns": [
+        "/api/compile/history",
+        "/api/compile/:id",
+        "/api/compile/:id/logs"
+      ],
+      "authentication": "v1_required",
+      "machine_scope": "todo.invoke",
+      "domain_authorization": "local invocation owner or administrator relation",
+      "owner_decision_required": true
+    },
+    {
+      "id": "administration",
+      "methods": ["GET", "POST", "PUT", "PATCH", "DELETE"],
+      "path_patterns": [
+        "/api/webhook/**",
+        "/api/trace/**",
+        "/api/todos/audit-logs",
+        "/api/todos/archive/**",
+        "/api/todos/templates",
+        "/api/todos/preferences",
+        "/api/agent/users",
+        "/api/agent/tasks/:id/assign"
+      ],
+      "authentication": "v1_required",
+      "machine_scope": "todo.admin",
+      "domain_authorization": "local administrator role plus object ownership where applicable",
+      "owner_decision_required": true
+    }
+  ],
+  "legacy_routes_to_remove": [
+    "/api/auth/sso/status",
+    "/api/agent/sso-login",
+    "/api/agent/verify",
+    "/api/agent/sync"
+  ],
+  "legacy_credentials_to_retire_after_zero_usage": [
+    "users.api_key",
+    "AUTH_JWT_SECRET",
+    "SSO_JWT_SECRET",
+    "ADC shared JWT secret"
+  ],
+  "required_local_authority_changes": [
+    "map auth-service sub to a stable local principal record",
+    "store product role and administrator facts only in llm-todo",
+    "replace display-name and legacy agent_id authorization with canonical principal linkage",
+    "require authentication on every non-public route before evaluating domain authorization",
+    "remove automatic auth-protocol fallthrough",
+    "remove seeded static API keys and rotate every deployed key",
+    "make security audit writes fail closed for security-sensitive administration"
+  ],
+  "owner_decisions": [
+    "confirm whether user, agent and service are all accepted principal types",
+    "confirm which capability and provider metadata is intentionally public",
+    "define quota and data-boundary policy for chat, analyze and compile",
+    "define the local administrator assignment and break-glass process",
+    "decide whether global preferences, templates, archives, webhooks and trace data require todo.admin"
+  ]
+}

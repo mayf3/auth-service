@@ -8,6 +8,9 @@
 
 import { describe, it, beforeEach, afterEach } from 'node:test';
 import assert from 'node:assert/strict';
+import fs from 'node:fs';
+import os from 'node:os';
+import path from 'node:path';
 import {
   loadWorkflowKeyring,
   isWorkflowKeyringConfigured,
@@ -47,6 +50,22 @@ describe('workflow keyring — startup validation', () => {
     assert.equal(ring.jwksKeys[0].kid, 'key-v1-20260716');
     assert.equal(ring.jwksKeys[0].e, 'AQAB');
     assert.ok(ring.jwksKeys[0].n.length > 0);
+  });
+
+  it('loads the active key from JWT_PRIVATE_KEY_FILE in ESM runtime', () => {
+    const active = generateTestKeyPair('key-v1-file-20260718', 2048);
+    const directory = fs.mkdtempSync(path.join(os.tmpdir(), 'auth-v1-keyring-'));
+    const file = path.join(directory, 'active.pem');
+    try {
+      fs.writeFileSync(file, active.privateKeyPem, { mode: 0o600 });
+      process.env.JWT_PRIVATE_KEY = '';
+      process.env.JWT_PRIVATE_KEY_FILE = file;
+      process.env.JWT_KID = active.kid;
+      const ring = loadWorkflowKeyring();
+      assert.equal(ring.active.kid, active.kid);
+    } finally {
+      fs.rmSync(directory, { recursive: true, force: true });
+    }
   });
 
   it('JWKS keys NEVER contain private parameters (d/p/q/dp/dq/qi)', () => {
