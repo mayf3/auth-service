@@ -19,7 +19,7 @@
   ],
   "scripts": {
     "build": "tsc",
-    "test": "tsx --test tests/provider.test.ts",
+    "test": "tsx --test tests/*.test.ts",
     "prepack": "npm run build",
     "clean": "rm -rf dist"
   },
