@@ -10,6 +10,7 @@ import test from 'node:test';
 
 import { createMachineTokenProvider } from '../src/provider.js';
 import {
+  ConfigurationError,
   AuthenticationError,
   RateLimitError,
   ServiceError,

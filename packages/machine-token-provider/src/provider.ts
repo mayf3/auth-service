@@ -94,7 +94,13 @@ export function createMachineTokenProvider(
 
   // ── Internal: Acquire a new token ────────────────────────────────────
   async function acquireToken(): Promise<string> {
-    const clientSecret = await config.credentialProvider();
+    let clientSecret: string;
+    try {
+      clientSecret = await config.credentialProvider();
+    } catch {
+      // Sandbox: credentialProvider errors must never leak secret-adjacent content
+      throw new ConfigurationError('Machine credential could not be loaded');
+    }
 
     const body = new URLSearchParams({
       grant_type: 'client_credentials',
@@ -140,19 +146,10 @@ export function createMachineTokenProvider(
       } finally {
         clearTimeout(timer);
       }
-    } catch (error) {
-      if (error instanceof DOMException && error.name === 'AbortError') {
-        throw new ServiceError(
-          `Token request timed out after ${timeoutMs}ms`,
-          undefined,
-          error,
-        );
-      }
-      throw new ServiceError(
-        'Token request failed: network error',
-        undefined,
-        error,
-      );
+    } catch {
+      // Sandbox: fetch/network errors must never leak message, cause, stack,
+      // headers, Authorization, client_secret, or access_token.
+      throw new ServiceError('Auth service request failed');
     }
 
     // ── Non-2xx handling ──────────────────────────────────────────────
