@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "registry_version": "1.1.0",
-  "status": "candidate",
+  "status": "frozen",
   "audiences": [
     {
       "audience_id": "svc-workflow",
@@ -26,7 +26,7 @@
       "delegated_access_enabled": false,
       "registered_scopes": ["okr.read"],
       "status": "active",
-      "freeze_ready": false,
+      "freeze_ready": true,
       "notes": "Human-first V1 audience with machine scope okr.read for Agent read-only access."
     },
     {

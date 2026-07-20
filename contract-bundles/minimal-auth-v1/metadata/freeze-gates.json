@@ -71,10 +71,11 @@
       "owner": "independent-contract-reviewer",
       "evidence": [
         "AUTH_TOKEN_CONTRACT_V1_BUNDLE_INDEPENDENT_REVIEW_REPORT.md",
-        "auth-service@62ad3ec89c52e0fc4936279c23d2346706b948fa",
-        "tree@9347e9297fefaad7bcd0347637336df0c39bc03c"
+        "auth-service@f0376d11c06c84e60b540a47b73919c41e890a2f",
+        "tree@9f6ab8f4478f329bf75cb8ca38820fc52618d021",
+        "AUTH_CONTRACT_V1_SVC_OKR_AGENT_READ_INDEPENDENT_AUDIT_PASS"
       ],
-      "reason": "The fixed draft.2 source object passed independent read-only review with zero Blocker and zero High findings."
+      "reason": "The svc-okr agent-read candidate (1.1.0, commit f0376d1) passed independent read-only review with zero Blocker, zero High findings. Audited objects match remote exactly. Ready for controlled freeze."
     }
   ]
 }
