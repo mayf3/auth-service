@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.0.0",
+  "contract_version": "1.1.0",
   "now": 1784300000,
   "fixtures": [
     {
@@ -89,6 +89,37 @@
         }
       },
       "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLWRyYWZ0Mi0yMDI2MDcxOCJ9.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIyMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZGMtdjIiLCJwcmluY2lwYWxfdHlwZSI6ImFnZW50IiwiY2xpZW50X2lkIjoiYWdlbnQtY2xpZW50LWFkYyIsInRva2VuX3VzZSI6ImFjY2VzcyIsInR5cGUiOiJhY2Nlc3MiLCJ2ZXJzaW9uIjoidjEiLCJzY29wZSI6ImFkYy5yZWFkIiwiYWdlbnRfaWQiOiJhZ2VudC1yZXZpZXdlciIsImp0aSI6InNvdXJjZS1qdGktMDAwMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.ArwwK37eMiO95QnZuCkTWJAw6mByuGoE6ArcnW9f4oAtJcyMGrPCwvRtSCMWmb0RPEbsGRS8cxWQTc2yruGgFoz7OIpPxt3faQ4V66AQabAtD2YO02-63nvYhTtb1vV-LdG1R-9pZJ4X3uFmpkkXkBVoKVLEkIAcFyp-PXg7q1R9l8yT5P88g9WqjkyBKQ3uwPDnJN-pBCH_ebgL4KlNI1mSyXZrHRsa0Jcoq0J1BKSJwc0dpeslVneVv-u8MdwPts7WvZsPIZyRDbtQFznJTDh7ydaG59eT435Ta3nvAoB_fSkzYeXIlkAfcSDqOoc4goN53Uj8f7G3VTRrNxWl9A"
+    },
+    {
+      "name": "direct-agent-svc-okr",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-svc-okr-canary-20260719"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "30000000-0000-4000-8000-000000000001",
+        "aud": "svc-okr",
+        "principal_type": "agent",
+        "client_id": "agent-client-svc-okr-canary",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "okr.read",
+        "agent_id": "agent-canary-reader",
+        "jti": "direct-jti-svc-okr-00001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "okr.read",
+        "machine_access_grants": {
+          "svc-okr": ["okr.read"]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIzMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJzdmMtb2tyIiwicHJpbmNpcGFsX3R5cGUiOiJhZ2VudCIsImNsaWVudF9pZCI6ImFnZW50LWNsaWVudC1zdmMtb2tyLWNhbmFyeSIsInRva2VuX3VzZSI6ImFjY2VzcyIsInR5cGUiOiJhY2Nlc3MiLCJ2ZXJzaW9uIjoidjEiLCJzY29wZSI6Im9rci5yZWFkIiwiYWdlbnRfaWQiOiJhZ2VudC1jYW5hcnktcmVhZGVyIiwianRpIjoiZGlyZWN0LWp0aS1zdmMtb2tyLTAwMDAxIiwiaWF0IjoxNzg0MzAwMDAwLCJuYmYiOjE3ODQzMDAwMDAsImV4cCI6MTc4NDMwMDYwMH0.VaQ6vfukn65ArmfBXw33Zi6Rw5MyWiha15ONcMVHNfeA5Ftj8KoWYoEGrwrcOLq2o6FmelUj_R9zU7Mh0dBgT4cOLI3GLCQ5Z8WLDfRqrN7M0TTlGDsQDu8tRjb5A7aWNGAZ7ZxfU5oN0DWwqe-q6H3rsqyPLQg7IOJG1idmnGE4TF_qHfKklGD4OtH-qc_FW-jO1CID_5BqfGkQHsb-bWgpTIuMOGJkWLmA9qulibhafKQzse9z-3g-ELwaD8K9upT1QHR82TgpvboMdv7GPlLj5GkCK42Kp6RdivfERjo-2qTIEPBW18m8JI8jtwE-dIW-UOKVl23rUWVc7XkTcA"
     },
     {
       "name": "obo-adc-v2-to-svc-workflow",

@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "registry_version": "1.0.0",
-  "status": "frozen",
+  "registry_version": "1.1.0",
+  "status": "candidate",
   "audiences": [
     {
       "audience_id": "svc-workflow",
@@ -20,14 +20,14 @@
       "audience_id": "svc-okr",
       "resource_service": "svc-okr",
       "scope_namespace": "okr",
-      "accepted_principal_types": ["user"],
+      "accepted_principal_types": ["user", "agent"],
       "human_access_enabled": true,
-      "machine_access_enabled": false,
+      "machine_access_enabled": true,
       "delegated_access_enabled": false,
-      "registered_scopes": [],
+      "registered_scopes": ["okr.read"],
       "status": "active",
-      "freeze_ready": true,
-      "notes": "Human-only in the first V1 bundle; product roles stay local to svc-okr."
+      "freeze_ready": false,
+      "notes": "Human-first V1 audience with machine scope okr.read for Agent read-only access."
     },
     {
       "audience_id": "adc-v2",

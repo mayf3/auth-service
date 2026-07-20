@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.0.0",
+  "contract_version": "1.1.0",
   "inventory_date": "2026-07-18",
   "contract_bundle_scope": ["auth-service", "svc-workflow", "svc-okr", "adc-v2"],
   "all_contract_bundle_scope_fixed_remote_sha": true,
@@ -29,7 +29,7 @@
     },
     {
       "id": "svc-okr",
-      "kind": "human-resource-consumer",
+      "kind": "human-and-machine-resource-consumer",
       "git_sha": "19781e46f35d10f1cd3148375752b03dd32ec1fc",
       "git_tree": "eb39002085059db5ae4a3451fa7a68517a6462cb",
       "remote_ref": "server/fix/blank-config-bypass",

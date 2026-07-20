@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "design_id": "MINIMAL_AUTH_FOUNDATION_V1",
-  "contract_version": "1.0.0",
+  "contract_version": "1.1.0",
   "lifecycle": {
     "contract_bundle_freeze": {
-      "status": "frozen",
-      "frozen": true,
-      "implementation_authorized": true,
-      "reviewed_source_git_commit": "62ad3ec89c52e0fc4936279c23d2346706b948fa"
+      "status": "draft",
+      "frozen": false,
+      "implementation_authorized": false,
+      "reviewed_source_git_commit": null
     },
     "production_deployment": {
       "status": "not_ready",

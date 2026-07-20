@@ -18,6 +18,7 @@
     "test:smoke-oauth": "JWT_SECRET=test-jwt-secret node tests/oauth/local-smoke.mjs",
     "contract:v1:validate": "node contract-bundles/minimal-auth-v1/validate.mjs",
     "contract:v1:prepare": "node scripts/prepare-minimal-auth-v1.mjs",
+    "contract:v1:candidate": "node scripts/prepare-candidate-snapshot.mjs",
     "contract:v1:backfill": "npm run contract:v1:prepare && tsx scripts/backfill-minimal-auth-v1.ts",
     "contract:v1:readiness": "npm run contract:v1:prepare && tsx scripts/check-minimal-auth-v1-readiness.ts"
   },

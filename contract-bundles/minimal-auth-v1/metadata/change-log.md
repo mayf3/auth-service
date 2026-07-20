@@ -1,5 +1,17 @@
 # Change Log
 
+## 1.1.0 — 2026-07-20
+
+- CCR: Enabled svc-okr Agent machine access via Draft Contract Candidate.
+- Added `agent` to `svc-okr.accepted_principal_types`.
+- Set `svc-okr.machine_access_enabled=true`.
+- Registered `svc-okr.registered_scopes=["okr.read"]`.
+- Added `direct-agent-svc-okr` positive fixture and 5 negative fixture cases.
+- Updated Consumer Verification Matrix: svc-okr kind → `human-and-machine-resource-consumer`.
+- All scopes, grants, audience definitions remain otherwise unchanged.
+- `PRODUCT_ROLES_IN_TOKEN=false` remains enforced.
+- `okr.write` and `okr.admin` remain unregistered.
+
 ## 1.0.0 — 2026-07-18
 
 - Recorded the independent remote-object review PASS for draft.2 at commit

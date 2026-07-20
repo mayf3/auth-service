@@ -7,6 +7,14 @@
       "use": "sig",
       "alg": "RS256",
       "kid": "fixture-key-v1-draft2-20260718"
+    },
+    {
+      "kty": "RSA",
+      "n": "4WArWO2dUocNe0Sus6y38wvoufcIGmEHUSSMwd8R0TwsJ1oFbGUT1LWo6rrs0EPa9KWTZa4_sje9eC9uGWUSivmuQq5Xswl2f6zWMa337l16GbmHOHyypUL0IWiQS5FKRD-m2FwV508V0Fp_Ji8EXXXSpZWZ0xlPqqtqbRP09RwcsLpIEtTXyIuRtTo5Uky8Mfoo-K9E_itued-eF3baq-snIFuM6JJji-UNgAKxubYx72ZNk8SMouLqyu0UTzY6bFtxE42DdBsCjSaSUvMAgqSwGyzaVLAkh0e-Ndb2LIGZVdLDUdYxMDeK0TuwNulSJvw-T9jf4IttUGvGV43x9w",
+      "e": "AQAB",
+      "use": "sig",
+      "alg": "RS256",
+      "kid": "fixture-key-v1-svc-okr-canary-20260719"
     }
   ]
 }
