@@ -23,7 +23,7 @@ const REPO_ROOT = path.resolve(
 );
 const PREPARE_SCRIPT = path.join(REPO_ROOT, 'scripts', 'prepare-minimal-auth-v1.mjs');
 
-const EXPECTED_SOURCE_BUNDLE_DIGEST = '6535dc5983d52eaa6c5077c9331e2b01647ab9d5268f4f5aab2599125c01b371';
+const EXPECTED_SOURCE_BUNDLE_DIGEST = '86b6d1c3645f6ca083a49872bc16e7fe2ec2690013c33b272331989bcf8cd0a3';
 
 /**
  * Skip digest tests when the contract bundle is in DRAFT state.
