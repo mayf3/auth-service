@@ -1,0 +1,23 @@
+{
+  "header": {
+    "alg": "RS256",
+    "kid": "fixture-key-v1-svc-okr-canary-20260719"
+  },
+  "claims": {
+    "iss": "auth-service",
+    "sub": "30000000-0000-4000-8000-000000000001",
+    "aud": "svc-okr",
+    "principal_type": "agent",
+    "client_id": "agent-client-svc-okr-canary",
+    "token_use": "access",
+    "type": "access",
+    "version": "v1",
+    "scope": "okr.read",
+    "agent_id": "agent-canary-reader",
+    "jti": "direct-jti-svc-okr-00001",
+    "iat": 1784300000,
+    "nbf": 1784300000,
+    "exp": 1784300600
+  },
+  "outputJwkFile": "tests/fixtures/keys/svc-okr-canary-test-public.jwk.json"
+}

@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.0.0",
+  "contract_version": "1.1.0",
   "instances": [
     {
       "id": "oauth-client-credentials-request",
@@ -85,6 +85,23 @@
         "human_audience_grants": [],
         "machine_access_grants": {
           "svc-workflow": ["workflow.execute", "workflow.read"]
+        },
+        "delegation_grants": {},
+        "status": "active",
+        "version": 1
+      }
+    },
+    {
+      "id": "machine-client-grants-svc-okr",
+      "schema_file": "grants.schema.json",
+      "value": {
+        "client_id": "agent-client-svc-okr-canary",
+        "client_kind": "machine",
+        "principal_id": "30000000-0000-4000-8000-000000000001",
+        "principal_type": "agent",
+        "human_audience_grants": [],
+        "machine_access_grants": {
+          "svc-okr": ["okr.read"]
         },
         "delegation_grants": {},
         "status": "active",

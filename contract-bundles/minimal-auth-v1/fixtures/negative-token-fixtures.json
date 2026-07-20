@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.0.0",
+  "contract_version": "1.1.0",
   "cases": [
     {
       "name": "human-forbidden-scope",
@@ -153,6 +153,54 @@
         { "op": "set", "path": "/claims/exp", "value": 1784300901 }
       ],
       "expected_error": "TOKEN_TTL_EXCEEDED"
+    },
+    {
+      "name": "direct-svc-okr-forbidden-product-role",
+      "base_fixture": "direct-agent-svc-okr",
+      "mutations": [
+        { "op": "set", "path": "/claims/product_role", "value": "okr-owner" }
+      ],
+      "expected_error": "PROFILE_FORBIDDEN_CLAIM"
+    },
+    {
+      "name": "direct-svc-okr-wrong-namespace",
+      "base_fixture": "direct-agent-svc-okr",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "adc.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-svc-okr-partial-grant-rejected",
+      "base_fixture": "direct-agent-svc-okr",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/authorization_context/machine_access_grants/svc-okr",
+          "value": []
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "direct-svc-okr-forbidden-act-claim",
+      "base_fixture": "direct-agent-svc-okr",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/act",
+          "value": { "sub": "40000000-0000-4000-8000-000000000001" }
+        }
+      ],
+      "expected_error": "PROFILE_FORBIDDEN_CLAIM"
+    },
+    {
+      "name": "direct-svc-okr-unregistered-scope",
+      "base_fixture": "direct-agent-svc-okr",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "okr.write" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
     }
   ],
   "signature_cases": [
