@@ -108,6 +108,8 @@ model MachinePrincipal {
   agentId       String?         @unique @map("agent_id")
   ownerUserId   String?         @map("owner_user_id") @db.Uuid
   displayName   String?         @map("display_name")
+  externalRef   String?         @unique @map("external_ref")
+  requestDigest String?         @map("request_digest")
   status        PrincipalStatus @default(active)
   createdAt     DateTime        @default(now()) @map("created_at")
   updatedAt     DateTime        @updatedAt @map("updated_at")
@@ -125,6 +127,7 @@ model MachineClient {
   clientId           String       @unique @map("client_id")
   machinePrincipalId String       @map("machine_principal_id") @db.Uuid
   secretHash         String       @map("secret_hash")
+  externalRef        String?      @unique @map("external_ref")
   status             ClientStatus @default(active)
   allowedResources   String[]     @map("allowed_resources")
   allowedScopes      String[]     @map("allowed_scopes")
