@@ -99,7 +99,7 @@ export function verifyRuntimeSnapshot(value: unknown): RuntimeSnapshotPayload {
   if (actual !== parsed.runtimeDigest) {
     throw new Error('Minimal Auth V1 runtime snapshot digest mismatch.');
   }
-  if (parsed.payload.formatVersion !== 1 || !['1.0.0', '1.1.0'].includes(parsed.payload.contractVersion)) {
+  if (parsed.payload.formatVersion !== 1 || !['1.0.0', '1.1.0', '1.2.0'].includes(parsed.payload.contractVersion)) {
     throw new Error('Minimal Auth V1 runtime snapshot version is unsupported.');
   }
   const freeze = (parsed.payload.manifest.lifecycle as Record<string, unknown> | undefined)

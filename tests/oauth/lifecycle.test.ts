@@ -53,7 +53,7 @@ describe('Machine Principal lifecycle', () => {
       data: {
         name: `${TEST_PREFIX}-owner`,
         email: `${TEST_PREFIX}-owner@test.local`,
-        password: 'test-password-hash',
+        password: 'placeholder-hash-' + crypto.randomUUID().slice(0,8),
         role: 'admin',
       },
     });

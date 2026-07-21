@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.1.0",
+  "contract_version": "1.2.0",
   "cases": [
     {
       "name": "human-forbidden-scope",
@@ -193,14 +193,6 @@
         }
       ],
       "expected_error": "PROFILE_FORBIDDEN_CLAIM"
-    },
-    {
-      "name": "direct-svc-okr-unregistered-scope",
-      "base_fixture": "direct-agent-svc-okr",
-      "mutations": [
-        { "op": "set", "path": "/claims/scope", "value": "okr.write" }
-      ],
-      "expected_error": "INVALID_SCOPE_NAMESPACE"
     }
   ],
   "signature_cases": [

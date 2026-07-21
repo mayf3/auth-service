@@ -146,9 +146,9 @@ export function loadCandidateSnapshot(candidatePath?: string): CandidateSnapshot
     throw new Error('Candidate runtime snapshot digest mismatch.');
   }
 
-  // Validate version (accept both 1.0.0 and 1.1.0)
-  if (parsed.payload.formatVersion !== 1
-    || !['1.0.0', '1.1.0'].includes(parsed.payload.contractVersion)) {
+	// Validate version (accept 1.0.0, 1.1.0, and 1.2.0)
+	  if (parsed.payload.formatVersion !== 1
+	    || !['1.0.0', '1.1.0', '1.2.0'].includes(parsed.payload.contractVersion)) {
     throw new Error('Candidate runtime snapshot version is unsupported.');
   }
 
