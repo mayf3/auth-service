@@ -55,7 +55,7 @@ async function getTestOwner(): Promise<string> {
     data: {
       name: 'Idempotent Test Owner',
       email,
-      password: 'test-hash',
+      password: 'placeholder-hash-' + crypto.randomUUID().slice(0,8),
       role: 'admin',
     },
   });

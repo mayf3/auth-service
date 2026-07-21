@@ -6,6 +6,7 @@
 
 import { describe, it } from 'node:test';
 import assert from 'node:assert/strict';
+import crypto from 'node:crypto';
 import {
   generateClientSecret,
   hashClientSecret,
@@ -38,7 +39,7 @@ describe('generateClientSecret', () => {
 
 describe('hashClientSecret and verifyClientSecret', () => {
   it('hash produces salt:hash format', () => {
-    const secret = 'test-secret-value';
+    const secret = 'test-secret-' + crypto.randomUUID().slice(0,8);
     const stored = hashClientSecret(secret);
     assert.ok(stored.includes(':'), 'Should contain separator');
     const [salt, hash] = stored.split(':');

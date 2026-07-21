@@ -7,7 +7,7 @@
   "properties": {
     "$schema": { "type": "string" },
     "design_id": { "const": "MINIMAL_AUTH_FOUNDATION_V1" },
-    "contract_version": { "const": "1.1.0" },
+    "contract_version": { "const": "1.2.0" },
     "lifecycle": {
       "type": "object",
       "additionalProperties": false,

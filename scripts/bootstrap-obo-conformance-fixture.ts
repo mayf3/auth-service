@@ -219,7 +219,7 @@ async function main() {
 
   // Build manifest (always built, written if not --print-manifest)
   const manifest: FixtureManifest = {
-    contractVersion: '1.1.0',
+	    contractVersion: '1.2.0',
     audiences: [
       { audienceId: 'svc-workflow', status: svcWorkflow.status, scopes: [...svcWorkflow.registeredScopes] },
       { audienceId: 'adc-v2', status: adcV2.status, scopes: [...adcV2.registeredScopes] },
@@ -530,7 +530,7 @@ async function main() {
           id: HUMAN_USER_ID,
           name: 'OBO Human Test User',
           email: 'obo-human@obo-conformance.test.local',
-          password: 'obo-conformance-test-pw',
+          password: 'obo-placeholder-' + crypto.randomUUID().slice(0,8),
           role: 'agent',
         },
       });

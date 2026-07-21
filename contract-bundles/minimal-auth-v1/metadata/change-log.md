@@ -1,5 +1,13 @@
 # Change Log
 
+## 1.2.0 — 2026-07-22
+
+- Registered `svc-okr.registered_scopes=["okr.read", "okr.write"]`.
+- Added coarse-grained `okr.write` scope for svc-okr write API access.
+- No product_role claims: `PRODUCT_ROLES_IN_TOKEN=false` remains enforced.
+- Updated frozen runtime contract with new digest.
+- Added conformance: agent + okr.read + okr.write issues RS256 JWT.
+
 ## 1.1.0 — 2026-07-20
 
 - CCR: Enabled svc-okr Agent machine access via Draft Contract Candidate.

@@ -4,8 +4,8 @@ import { loadCandidateSnapshot } from '../helpers/load-candidate-snapshot.js';
 
 const snapshot = loadCandidateSnapshot();
 
-test('Candidate contract version is 1.1.0', () => {
-  assert.equal(snapshot.contractVersion, '1.1.0');
+test('Candidate contract version is 1.2.0', () => {
+  assert.equal(snapshot.contractVersion, '1.2.0');
 });
 
 test('Candidate registry status is not frozen (draft bundle)', () => {
@@ -52,8 +52,8 @@ test('svc-okr registered_scopes contains okr.read', () => {
   assert.ok(svcOkrAudience!.registeredScopes.includes('okr.read'));
 });
 
-test('svc-okr registered_scopes does NOT contain okr.write', () => {
-  assert.ok(!svcOkrAudience!.registeredScopes.includes('okr.write'));
+test('svc-okr registered_scopes contains okr.write', () => {
+  assert.ok(svcOkrAudience!.registeredScopes.includes('okr.write'));
 });
 
 test('svc-okr registered_scopes does NOT contain okr.admin', () => {
@@ -151,7 +151,7 @@ test('svc-okr negative fixtures reference valid base fixture', () => {
   const svcOkrCases = negativeFixtures.cases.filter(
     (c: any) => c.base_fixture === 'direct-agent-svc-okr',
   );
-  assert.equal(svcOkrCases.length, 5, 'expected 5 svc-okr negative cases');
+  assert.equal(svcOkrCases.length, 4, 'expected 4 svc-okr negative cases');
   for (const c of svcOkrCases) {
     const base = positiveFixtures.fixtures.find(
       (f: any) => f.name === c.base_fixture,

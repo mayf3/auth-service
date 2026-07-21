@@ -1,5 +1,6 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
+import crypto from 'node:crypto';
 import { hashClientSecret } from '../../src/lib/oauth/secret.js';
 import {
   authorizeV1DirectToken,
@@ -7,7 +8,7 @@ import {
 } from '../../src/lib/oauth/v1/direct.js';
 import { getV1AudienceDefinitions } from '../../src/lib/oauth/v1/contract.js';
 
-const secret = 'unit-test-client-secret';
+const secret = 'test-secret-' + crypto.randomUUID().slice(0,8);
 
 function database(overrides: Record<string, unknown> = {}): V1DirectDatabase {
   const audience = getV1AudienceDefinitions().find((item) => item.audienceId === 'svc-workflow')!;

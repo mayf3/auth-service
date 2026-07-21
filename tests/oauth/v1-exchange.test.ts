@@ -18,10 +18,11 @@ import {
   configureKeyringEnv,
   generateTestKeyPair,
 } from './_workflow-test-keys.js';
+import crypto from 'node:crypto';
 import { resetWorkflowKeyringForTests } from '../../src/lib/oauth/workflow-keyring.js';
 
 const originalEnv = { ...process.env };
-const secret = 'v1-proxy-test-secret';
+const secret = 'test-secret-' + crypto.randomUUID().slice(0,8);
 const originalPrincipalId = '20000000-0000-4000-8000-000000000001';
 const proxyPrincipalId = '40000000-0000-4000-8000-000000000001';
 const originalClientId = 'agent-client-adc';

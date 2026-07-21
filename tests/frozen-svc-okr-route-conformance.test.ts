@@ -1,14 +1,14 @@
 /**
  * svc-okr Frozen Route Conformance — Real HTTP POST /oauth/token
  *
- * Proves the frozen v1.1.0 Runtime Contract can issue svc-okr Agent tokens
+ * Proves the frozen v1.2.0 Runtime Contract can issue svc-okr Agent tokens
  * through the full real Express route production pipeline:
  *
  *   Express
  *   → POST /oauth/token
  *   → Basic Auth parser
  *   → client_credentials
- *   → Frozen Runtime Contract 1.1.0 (svc-okr agent-read)
+ *   → Frozen Runtime Contract 1.2.0 (svc-okr agent read/write)
  *   → authorizeV1DirectToken
  *   → RS256 signer
  *
@@ -267,20 +267,63 @@ test('svc-okr frozen route: agent + okr.read issues RS256 JWT (HTTP 200)', async
 });
 
 // ---------------------------------------------------------------------------
-// Negative: svc-okr + okr.write → rejected (unregistered scope)
+// Positive: svc-okr + okr.write + agent → 200, valid RS256 JWT
 // ---------------------------------------------------------------------------
 
-test('svc-okr frozen route: okr.write is rejected', async () => {
-  const db = makeDatabase({ principalType: 'agent', scopes: ['okr.read'] });
+test('svc-okr frozen route: agent + okr.write issues RS256 JWT (HTTP 200)', async (t) => {
+  const db = makeDatabase({ principalType: 'agent', scopes: ['okr.read', 'okr.write'] });
 
   await withServer(db, async (serverUrl) => {
-    const { status } = await rawTokenRequest(serverUrl, {
+    const { status, body } = await rawTokenRequest(serverUrl, {
       clientId: TEST_CLIENT_ID,
       clientSecret: TEST_CLIENT_SECRET,
       resource: 'svc-okr',
       scope: 'okr.write',
     });
-    assert.ok(status !== 200, 'okr.write must not issue a token');
+
+    assert.equal(status, 200, 'HTTP status should be 200');
+
+    const payload = decodeJwtPayload(body.access_token as string);
+    assert.equal(payload.aud, 'svc-okr');
+    assert.equal(payload.scope, 'okr.write');
+    assert.equal(payload.principal_type, 'agent');
+    assert.equal(payload.sub, TEST_PRINCIPAL_ID);
+    assert.equal(payload.product_role, undefined,
+      'product_role claim must not be present for svc-okr agent-write');
+
+    t.diagnostic(
+      `svc-okr frozen: HTTP ${status} aud=${payload.aud} scope=${payload.scope} principal_type=${payload.principal_type}`,
+    );
+  });
+});
+
+// ---------------------------------------------------------------------------
+// Positive: svc-okr + okr.read okr.write + agent → 200, valid RS256 JWT
+// ---------------------------------------------------------------------------
+
+test('svc-okr frozen route: agent + okr.read okr.write issues RS256 JWT (HTTP 200)', async (t) => {
+  const db = makeDatabase({ principalType: 'agent', scopes: ['okr.read', 'okr.write'] });
+
+  await withServer(db, async (serverUrl) => {
+    const { status, body } = await rawTokenRequest(serverUrl, {
+      clientId: TEST_CLIENT_ID,
+      clientSecret: TEST_CLIENT_SECRET,
+      resource: 'svc-okr',
+      scope: 'okr.read okr.write',
+    });
+
+    assert.equal(status, 200, 'HTTP status should be 200');
+
+    const payload = decodeJwtPayload(body.access_token as string);
+    assert.equal(payload.aud, 'svc-okr');
+    assert.equal(payload.scope, 'okr.read okr.write');
+    assert.equal(payload.principal_type, 'agent');
+    assert.equal(payload.product_role, undefined,
+      'product_role claim must not be present');
+
+    t.diagnostic(
+      `svc-okr frozen: HTTP ${status} aud=${payload.aud} scope=${payload.scope} principal_type=${payload.principal_type}`,
+    );
   });
 });
 
