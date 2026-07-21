@@ -16,7 +16,10 @@
 export type AuditEventType =
   | 'principal.created'
   | 'principal.disabled'
+  | 'principal.resolved'
+  | 'principal.bound'
   | 'client.created'
+  | 'client.resolved'
   | 'client.rotated'
   | 'client.revoked'
   | 'token.issued'

@@ -73,6 +73,11 @@ export interface MachinePrincipalResult {
 /**
  * Create a new MachinePrincipal for an agent.
  * Throws if agentId already exists or owner not found.
+ *
+ * @deprecated Use createOrGetPrincipal from src/lib/oauth/v1/idempotent.js for
+ * production paths. This function is retained for admin/migration use only.
+ * The idempotent path provides external_ref-based resolution, atomic claims,
+ * and concurrent safety via DB UNIQUE constraint.
  */
 export async function createPrincipal(
   params: CreatePrincipalParams,

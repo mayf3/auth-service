@@ -4,3 +4,5 @@ generated
 *.env
 .env.local
 scripts/fixture-keys/
+.zcode/
+scripts/
