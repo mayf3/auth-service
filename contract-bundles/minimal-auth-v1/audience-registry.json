@@ -1,7 +1,7 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "registry_version": "1.2.0",
-  "status": "frozen",
+  "status": "candidate",
   "audiences": [
     {
       "audience_id": "svc-workflow",
