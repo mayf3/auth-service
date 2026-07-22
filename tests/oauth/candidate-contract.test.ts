@@ -8,9 +8,8 @@ test('Candidate contract version is 1.2.0', () => {
   assert.equal(snapshot.contractVersion, '1.2.0');
 });
 
-test('Candidate registry status is not frozen (draft bundle)', () => {
-  assert.ok(snapshot.registryStatus !== 'frozen');
-  assert.equal(snapshot.registryStatus, 'candidate');
+test('Candidate registry status reflects frozen bundle', () => {
+  assert.equal(snapshot.registryStatus, 'frozen');
 });
 
 test('Candidate snapshot has valid source bundle digest', () => {
