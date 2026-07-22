@@ -31,7 +31,7 @@ const TARGET_CLIENT_IDS = [
 ];
 
 const EFFICIENCY_CLIENT_ID = 'mc_VEkoUF8KEdGk5rzD08urEGe9';
-const CEO_CLIENT_ID = 'mc_xKGDsFSfU-Vdpv8nrofFQMu3';
+const CEO_CLIENT_ID = 'mc_HLxfspbjzHEdXmiiX3Gk7D27';
 
 const ARCHIVE_DIR = path.join(process.env.HOME || '/tmp', '.auth-service', 'archives', 'cleanup-round-1');
 
