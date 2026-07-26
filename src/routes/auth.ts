@@ -141,8 +141,8 @@ authRouter.post(
         },
       });
     } else {
-      // Update name on login
-      await prisma.user.update({
+      // Update name on login & capture updated user
+      user = await prisma.user.update({
         where: { id: user.id },
         data: { name: agentName },
       });

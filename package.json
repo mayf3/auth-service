@@ -7,7 +7,7 @@
     "build": "npm run contract:v1:prepare && tsc -p tsconfig.json",
     "start": "node dist/src/server.js",
     "dev": "npm run contract:v1:prepare && tsx watch src/server.ts",
-    "test": "tsx --test tests/identity/*.test.ts",
+    "test": "tsx --test tests/identity/*.test.ts tests/token-login-stale-name.test.ts",
     "test:identity": "tsx --test tests/identity/resolver.test.ts tests/identity/env-file.test.ts",
     "test:smoke": "node tests/identity/forum-identity-smoke.mjs",
     "agent-identity": "tsx src/cli/agent-identity.ts",
