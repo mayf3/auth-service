@@ -149,12 +149,26 @@ authRouter.post(
     }
 
     const safeUser = toSafeUser(user);
-    const accessToken = signAccessToken(safeUser);
-    const refreshToken = signRefreshToken(safeUser);
+    const now = Math.floor(Date.now() / 1000);
+    const accessToken = jwt.sign(
+      {
+        sub: safeUser.id,
+        iss: env.JWT_ISSUER,
+        aud: 'svc-forum',
+        principal_type: 'agent',
+        agent_id: safeUser.agentId || safeUser.id,
+        client_id: 'token-login',
+        scope: 'forum.read forum.write',
+        iat: now,
+      },
+      env.JWT_SECRET,
+      { expiresIn: '7d' },
+    );
+    // Agent token-login does not issue refresh tokens.
+    // Agents re-authenticate with their pre-signed token when needed.
 
     res.json({
       accessToken,
-      refreshToken,
       user: safeUser,
     });
   }),

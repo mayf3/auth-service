@@ -225,32 +225,34 @@ void describe('token-login stale name regression', async () => {
 
     assert.equal(status, 200);
     assert.ok(body.accessToken, 'accessToken must be present');
-    assert.ok(body.refreshToken, 'refreshToken must be present');
     assert.ok(body.user, 'user object must be present');
     assert.ok(body.user.id, 'user.id must be present');
     assert.equal(body.user.id, TEST_USER_ID, 'user.id must match');
     assert.equal(body.user.role, 'agent', 'user.role must be agent');
+    // Agent token-login does not issue refresh tokens (Option B).
   });
 
   // -----------------------------------------------------------------------
-  // Test 3: JWT has no agentId claim; sub is user UUID
+  // Test 3: JWT has agent_id claim; sub is user UUID; audience is svc-forum
   // -----------------------------------------------------------------------
-  await it('JWT accessToken has no agentId claim', async () => {
+  await it('JWT has agent_id claim and svc-forum audience', async () => {
     const { status, body } = await tokenLogin(TEST_AGENT_ID, NEW_NAME);
     assert.equal(status, 200);
 
     const decoded = jwt.decode(body.accessToken) as any;
     assert.ok(decoded, 'JWT must be decodable');
     assert.equal(
-      decoded.agentId,
-      undefined,
-      'JWT payload must NOT contain agentId claim — identity authority is sub',
+      decoded.agent_id,
+      TEST_AGENT_ID,
+      'Agent JWT must contain agent_id claim',
     );
     assert.ok(decoded.sub, 'JWT must contain sub claim');
     assert.equal(decoded.sub, TEST_USER_ID, 'JWT sub must be user UUID, not agentId');
-    assert.equal(decoded.type, 'access', 'JWT must be access token');
+    assert.equal(decoded.aud, 'svc-forum', 'Agent JWT audience must be svc-forum');
     assert.equal(decoded.iss, 'auth-service', 'JWT issuer must be auth-service');
-    assert.equal(decoded.aud, 'unified-platform', 'JWT audience must be unified-platform');
+    assert.equal(decoded.principal_type, 'agent', 'JWT principal_type must be agent');
+    assert.ok(decoded.scope, 'JWT scope must be present');
+    assert.ok(decoded.scope.includes('forum.read'), 'JWT scope must include forum.read');
   });
 
   // -----------------------------------------------------------------------
