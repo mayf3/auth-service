@@ -11,11 +11,9 @@
  * Separated from service.ts to keep each file ≤ 500 lines.
  */
 
-import { prisma } from '../../lib/prisma.js';
-import { verifyClientSecret } from './secret.js';
+import { authenticateMachineClient } from './service.js';
 import { signAgentAccessToken } from './token.js';
 import { auditLog } from './audit.js';
-import { validateRequestedScope } from '../../schemas/oauth.js';
 import { WORKFLOW_AUDIENCE, isWorkflowKeyringConfigured } from './workflow-keyring.js';
 import { signWorkflowAccessToken, getActiveKid } from './workflow-signer.js';
 
@@ -42,122 +40,24 @@ export interface TokenResult {
  * @throws Error with `statusCode` property for HTTP error mapping.
  */
 export async function issueToken(params: IssueTokenParams): Promise<TokenResult> {
-  // 1. Find client by clientId (don't reveal if clientId exists or not)
-  const client = await prisma.machineClient.findUnique({
-    where: { clientId: params.clientId },
-    include: { principal: true },
+  // 1-6. Delegate client authentication + authorization to shared function
+  const { principal, client } = await authenticateMachineClient({
+    clientId: params.clientId,
+    clientSecret: params.clientSecret,
+    resource: params.resource,
+    requestedScopes: params.scope.split(' ').filter(Boolean),
   });
 
-  if (!client) {
-    auditLog({
-      timestamp: new Date().toISOString(),
-      type: 'token.failed',
-      clientId: params.clientId,
-      resource: params.resource,
-      success: false,
-      error: 'client_not_found',
-    });
-    throw Object.assign(new Error('invalid_client'), { statusCode: 401 });
-  }
+  const agentId = principal.agentId;
 
-  // 2. Check client status
-  if (client.status === 'revoked') {
-    auditLog({
-      timestamp: new Date().toISOString(),
-      type: 'token.failed',
-      principalId: client.machinePrincipalId,
-      clientId: client.clientId,
-      resource: params.resource,
-      success: false,
-      error: 'client_revoked',
-    });
-    throw Object.assign(new Error('invalid_client'), { statusCode: 401 });
-  }
+  // 7. Validate scope string for audit trail (shared fn already validated)
+  const validatedScope = params.scope
+    .split(' ')
+    .filter(Boolean)
+    .filter((s) => client.allowedScopes.includes(s))
+    .join(' ');
 
-  // 3. Check principal status
-  if (client.principal.status === 'disabled') {
-    auditLog({
-      timestamp: new Date().toISOString(),
-      type: 'token.failed',
-      principalId: client.machinePrincipalId,
-      agentId: client.principal.agentId,
-      clientId: client.clientId,
-      resource: params.resource,
-      success: false,
-      error: 'principal_disabled',
-    });
-    throw Object.assign(new Error('invalid_client'), { statusCode: 401 });
-  }
-  if (client.principal.principalType !== 'agent' || !client.principal.agentId) {
-    auditLog({
-      timestamp: new Date().toISOString(),
-      type: 'token.failed',
-      principalId: client.machinePrincipalId,
-      clientId: client.clientId,
-      resource: params.resource,
-      success: false,
-      error: 'legacy_principal_profile_mismatch',
-    });
-    throw Object.assign(new Error('invalid_client'), { statusCode: 401 });
-  }
-  const agentId = client.principal.agentId;
-
-  // 4. Verify secret (constant-time)
-  const secretValid = verifyClientSecret(params.clientSecret, client.secretHash);
-  if (!secretValid) {
-    auditLog({
-      timestamp: new Date().toISOString(),
-      type: 'token.failed',
-      principalId: client.machinePrincipalId,
-      clientId: client.clientId,
-      resource: params.resource,
-      success: false,
-      error: 'invalid_secret',
-    });
-    // Generic error — don't reveal whether clientId or secret was wrong
-    throw Object.assign(new Error('invalid_client'), { statusCode: 401 });
-  }
-
-  // 5. Validate resource — exact match only
-  const resourceMatch = client.allowedResources.some(
-    (r) => r === params.resource,
-  );
-  if (!resourceMatch) {
-    auditLog({
-      timestamp: new Date().toISOString(),
-      type: 'token.failed',
-      principalId: client.machinePrincipalId,
-      agentId,
-      clientId: client.clientId,
-      resource: params.resource,
-      success: false,
-      error: 'invalid_resource',
-    });
-    throw Object.assign(new Error('invalid_grant'), { statusCode: 400 });
-  }
-
-  // 6. Validate scope — must be subset of allowed scopes
-  let validatedScope: string;
-  try {
-    validatedScope = validateRequestedScope(params.scope, client.allowedScopes);
-  } catch (err: any) {
-    auditLog({
-      timestamp: new Date().toISOString(),
-      type: 'token.failed',
-      principalId: client.machinePrincipalId,
-      agentId,
-      clientId: client.clientId,
-      resource: params.resource,
-      scopes: params.scope,
-      success: false,
-      error: 'invalid_scope',
-    });
-    throw Object.assign(new Error('invalid_scope'), { statusCode: 400 });
-  }
-
-  // 7. Sign token — dispatch by audience.
-  //    aud=svc-workflow  → RS256 workflow signer (PR-A)
-  //    any other audience → existing HS256 signer (UNCHANGED)
+  // 8. Sign token — dispatch by audience.
   const DEFAULT_TTL = 600;
   const isWorkflow = params.resource === WORKFLOW_AUDIENCE;
 
@@ -170,7 +70,7 @@ export async function issueToken(params: IssueTokenParams): Promise<TokenResult>
       auditLog({
         timestamp: new Date().toISOString(),
         type: 'token.failed',
-        principalId: client.principal.id,
+        principalId: principal.id,
         agentId,
         clientId: client.clientId,
         resource: params.resource,
@@ -181,7 +81,7 @@ export async function issueToken(params: IssueTokenParams): Promise<TokenResult>
       throw Object.assign(new Error('invalid_grant'), { statusCode: 400 });
     }
     token = signWorkflowAccessToken({
-      principalId: client.principal.id,
+      principalId: principal.id,
       agentId,
       clientId: client.clientId,
       scope: validatedScope,
@@ -191,7 +91,7 @@ export async function issueToken(params: IssueTokenParams): Promise<TokenResult>
     kid = getActiveKid();
   } else {
     token = signAgentAccessToken({
-      principalId: client.principal.id,
+      principalId: principal.id,
       agentId,
       clientId: client.clientId,
       audience: params.resource,
@@ -208,7 +108,7 @@ export async function issueToken(params: IssueTokenParams): Promise<TokenResult>
   auditLog({
     timestamp: new Date().toISOString(),
     type: 'token.issued',
-    principalId: client.principal.id,
+    principalId: principal.id,
     agentId,
     clientId: client.clientId,
     resource: params.resource,
