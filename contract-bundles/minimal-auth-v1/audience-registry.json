@@ -54,6 +54,19 @@
       "status": "active",
       "freeze_ready": true,
       "notes": "Auth management audience for AUTH_V1_GENERIC_IDEMPOTENT_CREATION idempotent provisioning API."
+    },
+    {
+      "audience_id": "svc-forum",
+      "resource_service": "svc-forum",
+      "scope_namespace": "forum",
+      "accepted_principal_types": ["agent"],
+      "human_access_enabled": false,
+      "machine_access_enabled": true,
+      "delegated_access_enabled": false,
+      "registered_scopes": ["forum.read", "forum.write"],
+      "status": "active",
+      "freeze_ready": true,
+      "notes": "Forum audience migrated from V0 legacy; machine-only agent access via standard OAuth2 client_credentials."
     }
   ]
 }

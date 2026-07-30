@@ -17,9 +17,9 @@
     },
     "consumer_migration": {
       "status": "not_started",
-      "first_wave_scope": ["auth-service", "svc-workflow", "svc-okr", "adc-v2"],
+      "first_wave_scope": ["auth-service", "svc-workflow", "svc-okr", "adc-v2", "svc-forum"],
       "legacy_out_of_scope": [
-        "svc-forum", "workflow-todo", "llm-todo",
+        "workflow-todo", "llm-todo",
         "openclaw-credential-broker-candidate"
       ],
       "in_scope_ready": false,
