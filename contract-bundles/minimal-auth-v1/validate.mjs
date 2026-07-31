@@ -335,10 +335,10 @@ const productionBlockers = freezeGates.gates.filter(
 const consumerMigrationBlockers = freezeGates.gates.filter(
   (gate) => gate.state_domain === 'consumer_migration' && gate.status !== 'closed',
 );
-	check(
-	  freezeGates.contract_bundle_freeze_allowed === (contractFreezeBlockers.length === 0),
-	  'freeze gates: contract_bundle_freeze_allowed contradicts blocking gate states',
-	);
+check(
+  freezeGates.contract_bundle_freeze_allowed === (contractFreezeBlockers.length === 0),
+  'freeze gates: contract_bundle_freeze_allowed contradicts blocking gate states',
+);
 const freezeState = manifest.lifecycle.contract_bundle_freeze;
 const productionState = manifest.lifecycle.production_deployment;
 const migrationState = manifest.lifecycle.consumer_migration;
@@ -348,10 +348,7 @@ if (freezeState.frozen) {
   check(contractFreezeBlockers.length === 0, 'frozen manifest still has Contract Bundle blockers');
   check(registry.status === 'frozen', 'frozen Bundle requires registry status=frozen');
   check(registry.audiences.every((audience) => audience.freeze_ready), 'frozen registry contains non-ready Audience');
-	  check(typeof consumerMatrix.all_contract_bundle_scope_fixed_remote_sha === 'boolean'
-	    && consumerMatrix.all_contract_bundle_scope_fixed_remote_sha
-	    === consumerMatrix.consumers.filter((c) => c.contract_bundle_scope).every((c) => c.fixed_remote_sha),
-	  'frozen Bundle scope: all_contract_bundle_scope_fixed_remote_sha contradicts consumer entries');
+  check(consumerMatrix.all_contract_bundle_scope_fixed_remote_sha, 'frozen Bundle scope has unfixed remote SHAs');
   check(typeof freezeState.reviewed_source_git_commit === 'string'
     && /^[0-9a-f]{40}$/.test(freezeState.reviewed_source_git_commit), 'frozen Bundle requires reviewed source Git SHA');
 } else {
@@ -382,7 +379,7 @@ for (const gate of freezeGates.gates) {
 }
 const firstWaveConsumers = consumerMatrix.consumers.filter((consumer) => consumer.contract_bundle_scope);
 check(firstWaveConsumers.length === consumerMatrix.contract_bundle_scope.length, 'consumer matrix: first-wave entry count mismatch');
-  check(firstWaveConsumers.every((consumer) => consumer.fixed_remote_sha || consumer.id === 'svc-forum'), 'consumer matrix: first-wave remote SHA is not fixed');
+check(firstWaveConsumers.every((consumer) => consumer.fixed_remote_sha), 'consumer matrix: first-wave remote SHA is not fixed');
 check(firstWaveConsumers.every((consumer) => consumerMatrix.contract_bundle_scope.includes(consumer.id)), 'consumer matrix: undeclared first-wave consumer');
 check(consumerMatrix.consumers.filter((consumer) => !consumer.contract_bundle_scope)
   .every((consumer) => consumer.migration_status === 'legacy_out_of_scope'), 'consumer matrix: out-of-scope consumer is not Legacy');
@@ -390,8 +387,8 @@ check(consumerMatrix.consumers.filter((consumer) => !consumer.contract_bundle_sc
 const audienceIds = registry.audiences.map((audience) => audience.audience_id);
 const audienceById = new Map(registry.audiences.map((audience) => [audience.audience_id, audience]));
 check(new Set(audienceIds).size === audienceIds.length, 'registry: duplicate Audience ID');
-  check([...audienceIds].sort(asciiCompare).join('\0')
-    === ['adc-v2', 'svc-auth', 'svc-forum', 'svc-okr', 'svc-workflow'].sort(asciiCompare).join('\0'), 'registry: first-wave Audience set changed');
+check([...audienceIds].sort(asciiCompare).join('\0')
+  === ['adc-v2', 'svc-auth', 'svc-forum', 'svc-okr', 'svc-workflow'].sort(asciiCompare).join('\0'), 'registry: first-wave Audience set changed');
 check(!audienceIds.includes('agent-forum'), 'registry: repository name agent-forum cannot be a Wire Audience');
 check(!audienceIds.includes('workflow-todo'), 'registry: workflow-todo is a Client, not a resource Audience');
 for (const audience of registry.audiences) {
