@@ -2,7 +2,7 @@
   "contract_version": "1.2.0",
   "inventory_date": "2026-07-18",
   "contract_bundle_scope": ["auth-service", "svc-workflow", "svc-okr", "adc-v2", "svc-forum"],
-  "all_contract_bundle_scope_fixed_remote_sha": false,
+  "all_contract_bundle_scope_fixed_remote_sha": true,
   "all_first_wave_migrations_ready": false,
   "consumers": [
     {
@@ -41,13 +41,13 @@
     {
       "id": "svc-forum",
       "kind": "machine-resource-consumer",
-      "git_sha": null,
-      "git_tree": null,
-      "remote_ref": null,
-      "fixed_remote_sha": false,
+      "git_sha": "cb7ca300a2c337dd6e8aafc09c3a73f878565cfa",
+      "git_tree": "ec66215a1f3a114ba81ad8ba7ad85cb762e7ac19",
+      "remote_ref": "feat/svc-forum-standard-oauth",
+      "fixed_remote_sha": true,
       "contract_bundle_scope": true,
       "migration_status": "not_started",
-      "v1_ready": false
+      "v1_ready": true
     },
     {
       "id": "llm-todo",
