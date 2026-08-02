@@ -1,7 +1,7 @@
 # Minimal Auth Foundation V1 — JWKS 部署证据
 
 > 调查日期：2026-07-18（Asia/Shanghai）
-> 调查对象：`8.163.44.127` 当前 Nginx 与 auth-service live container
+> 调查对象：`<SERVER_IP>` 当前 Nginx 与 auth-service live container
 > 结论：`GATE-EXACT-JWKS-URL=open`
 
 ## 1. 结论
@@ -29,7 +29,7 @@ EXACT_JWKS_URL_FREEZE_READY=false
 ```text
 listen 443 ssl default_server
 listen [::]:443 ssl default_server
-server_name _ 8.163.44.127
+server_name _ <SERVER_IP>
 ssl_certificate /etc/nginx/ssl/server.crt
 ssl_certificate_key /etc/nginx/ssl/server.key
 ```
@@ -41,8 +41,8 @@ ssl_certificate_key /etc/nginx/ssl/server.key
 对公开 443 返回证书的只读检查：
 
 ```text
-subject = CN=8.163.44.127, O=Agent Dev Center, C=CN
-issuer  = CN=8.163.44.127, O=Agent Dev Center, C=CN
+subject = CN=<SERVER_IP>, O=Agent Dev Center, C=CN
+issuer  = CN=<SERVER_IP>, O=Agent Dev Center, C=CN
 subjectAltName = absent
 notBefore = 2026-05-21T01:16:23Z
 notAfter  = 2027-05-21T01:16:23Z
@@ -50,7 +50,7 @@ sha256 = 9C:01:E3:C6:3B:4A:C3:4E:36:2D:AD:27:7E:18:A4:23:
          2F:1C:B4:42:1B:00:FF:3C:B3:49:D8:8A:2D:64:BB:02
 ```
 
-标准 `curl https://8.163.44.127/...` 证书验证结果：
+标准 `curl https://<SERVER_IP>/...` 证书验证结果：
 
 ```text
 curl: (60) SSL certificate problem: self signed certificate
@@ -64,8 +64,8 @@ curl: (60) SSL certificate problem: self signed certificate
 
 | 请求 | 状态 | 观察 |
 |---|---:|---|
-| `https://8.163.44.127/.well-known/jwks.json`（跳过 TLS 验证） | 200 | `text/html`，命中默认前端，不是 JWKS |
-| `https://8.163.44.127/auth/.well-known/jwks.json`（跳过 TLS 验证） | 404 | Nginx/auth 路径未发布 JWKS |
+| `https://<SERVER_IP>/.well-known/jwks.json`（跳过 TLS 验证） | 200 | `text/html`，命中默认前端，不是 JWKS |
+| `https://<SERVER_IP>/auth/.well-known/jwks.json`（跳过 TLS 验证） | 404 | Nginx/auth 路径未发布 JWKS |
 | `http://127.0.0.1:4001/.well-known/jwks.json`（服务器本机） | 404 | 当前 live auth-service image 未提供该路由 |
 
 仓库候选代码已有 JWKS route，但当前 live image 与合同分支不是同一已审计部署对象；不能用源码存在替代 live route 证据。
