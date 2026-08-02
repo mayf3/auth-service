@@ -27,8 +27,8 @@ INDEPENDENT_REVIEWER_PASS=false
 ## 2. 固定审阅对象
 
 ```text
-repository=/Users/yanfenma/workspace/project/auth-service
-remote=ssh://root@8.163.44.127/opt/git/auth-service.git
+repository=auth-service
+remote=ssh://root@<SERVER_IP>/opt/git/auth-service.git
 remote_ref=origin/codex/minimal-auth-v1-contract
 audited_sha=89d1d3afa1dfad8bf6328d225e1e90a5ede16022
 audited_tree=000e91c3f77bb36e3e6ef44200a26ce4c3363ffa

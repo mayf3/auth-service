@@ -6,7 +6,7 @@
 ## Reviewed object
 
 ```text
-REMOTE=ssh://root@8.163.44.127/opt/git/auth-service.git
+REMOTE=ssh://root@<SERVER_IP>/opt/git/auth-service.git
 HEAD_SHA=62ad3ec89c52e0fc4936279c23d2346706b948fa
 TREE_SHA=9347e9297fefaad7bcd0347637336df0c39bc03c
 REMOTE_OBJECT_VERIFIED=true

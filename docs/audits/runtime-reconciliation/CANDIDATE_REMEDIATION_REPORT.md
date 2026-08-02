@@ -86,18 +86,18 @@ WORKFLOW_TOKEN_SUB_MATCH_PASS=true
 | Token aud = svc-okr | ✅ PASS |
 | Token scope = okr.read | ✅ PASS |
 | Token agent_id = ceo-agent | ✅ PASS |
-| Remote OKR service reachable | ✅ (8.163.44.127:3459, `/api/health` → 200) |
+| Remote OKR service reachable | ✅ (<SERVER_IP>:3459, `/api/health` → 200) |
 | Remote OKR API with canary token | ❌ BLOCKED (svc-okr JWKS configured for port 4001, not canary port 63118) |
 
 The canary successfully issues valid V1 tokens for `svc-okr`. The end-to-end OKR API test is blocked because the remote svc-okr's `AUTH_JWKS_URL` points to `localhost:4001` (production auth-service), not to the canary at `localhost:63118`. This is expected infrastructure configuration — when the canary replaces the production 4001 instance, OKR tokens will work automatically.
 
 ```
-OKR_ENDPOINT_SOURCE=8.163.44.127:3459
+OKR_ENDPOINT_SOURCE=<SERVER_IP>:3459
 OKR_AUTH_SOURCE=candidate_canary
 OKR_REAL_API_CANARY_PASS=BLOCKED
 OKR_BLOCK_REASON=Remote svc-okr AUTH_JWKS_URL points to port 4001, not canary port 63118. Canary token issuance for svc-okr is proven correct (token format, claims, sub, scope all verified).
 OKR_TOKEN_SUB_MATCH_PASS=true
-SEARCHED_CONFIG_SOURCES=local port scan, svc-okr .env files, remote SSH via 8.163.44.127
+SEARCHED_CONFIG_SOURCES=local port scan, svc-okr .env files, remote SSH via <SERVER_IP>
 ```
 
 ---

@@ -13,9 +13,9 @@
 
 | 仓库 | 路径 | SHA | 分支 |
 |------|------|-----|------|
-| **auth-service** | `/Users/yanfenma/workspace/project/auth-service` | `8ca5fcb48a40bbb4d6909d0499372959d26d0440` | `main` (= `feat/openclaw-agent-auth-token-get-v0`) |
-| **svc-workflow** | `/Users/yanfenma/workspace/project/svc-workflow` | `f3306a5d387aa4159a995b7477e4c9da1a7193b7` | `main` |
-| **ADC (agent-dev-center)** | `/Users/yanfenma/workspace/project/agent-dev-center` | `939a93edfa88d06ba234709284c78070212f7137` | `develop` |
+| **auth-service** | `auth-service` | `8ca5fcb48a40bbb4d6909d0499372959d26d0440` | `main` (= `feat/openclaw-agent-auth-token-get-v0`) |
+| **svc-workflow** | `svc-workflow` | `f3306a5d387aa4159a995b7477e4c9da1a7193b7` | `main` |
+| **ADC (agent-dev-center)** | `agent-dev-center` | `939a93edfa88d06ba234709284c78070212f7137` | `develop` |
 
 **前置合同:**
 

@@ -36,7 +36,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Repository** | `auth-service` — `/Users/yanfenma/workspace/project/auth-service` |
+| **Repository** | `auth-service` — `auth-service` |
 | **Current HEAD** | `8ca5fcb48a40bbb4d6909d0499372959d26d0440` |
 | **Branch** | `feat/openclaw-agent-auth-token-get-v0` (merged to `main`) |
 | **Working tree** | Modified `package.json`; untracked report/contract files only; no staged source changes |

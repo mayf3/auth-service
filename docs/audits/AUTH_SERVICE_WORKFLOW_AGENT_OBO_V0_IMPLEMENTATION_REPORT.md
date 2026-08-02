@@ -11,7 +11,7 @@
 |---|---|
 | AGENT_ROLE | `implementer` |
 | BASE_SHA | `c935528019c29480ac9a2eb1d7e5dfb81bd8a469` |
-| WORKTREE | `/Users/yanfenma/workspace/project/auth-service-workflow-obo` |
+| WORKTREE | `auth-service-workflow-obo` |
 | BRANCH | `feat/workflow-agent-obo-token-exchange-v0` |
 | FINAL_HEAD_SHA | `d23717f5033ac4db7d6e7c844a21d91b50351773` |
 | FINAL_TREE_SHA | `6eeb6dcb867e14d175eda1ffc7ab233df0671093` |

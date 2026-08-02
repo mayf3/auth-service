@@ -6,12 +6,12 @@ Implementer (ZCode, direct implementation). Originally delegated to hy3 via the
 killed. Implemented directly against the frozen plan.
 
 ## ORIGINAL_WORKTREE_STATUS
-Main worktree `/Users/yanfenma/workspace/project/auth-service` left UNTOUCHED
+Main worktree `auth-service` left UNTOUCHED
 (branch `feat/openclaw-agent-auth-token-get-v0`, dirty working tree with
 pre-existing untracked docs/reports). All work was done in a NEW isolated worktree.
 
 ## CLEAN_WORKTREE_PATH
-`/Users/yanfenma/workspace/project/auth-service-workflow-jwks`
+`auth-service-workflow-jwks`
 
 ## BRANCH
 `feat/workflow-jwks-signer-v0`

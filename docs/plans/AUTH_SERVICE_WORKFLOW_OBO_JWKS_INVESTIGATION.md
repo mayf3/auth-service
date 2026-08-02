@@ -10,7 +10,7 @@
 
 | Field | Value |
 |-------|-------|
-| Repository | `/Users/yanfenma/workspace/project/auth-service` |
+| Repository | `auth-service` |
 | Current Branch | `feat/openclaw-agent-auth-token-get-v0` |
 | HEAD | `8ca5fcb48a40bbb4d6909d0499372959d26d0440` |
 | main | `8ca5fcb48a40bbb4d6909d0499372959d26d0440` (fast-forward) |

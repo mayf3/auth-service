@@ -100,7 +100,7 @@ SVC_WORKFLOW_CONSUMER_SWITCH_ALLOWED=no
 
 | Field | Value |
 |-------|-------|
-| Repository | `/Users/yanfenma/workspace/project/auth-service-workflow-jwks` (a git **worktree** sharing the main repo's object DB at `/Users/yanfenma/workspace/project/auth-service/.git`) |
+| Repository | `auth-service-workflow-jwks` (a git **worktree** sharing the main repo's object DB at `auth-service/.git`) |
 | Branch | `feat/workflow-jwks-signer-v0` |
 | Base | `8ca5fcb48a40bbb4d6909d0499372959d26d0440` (= main = HEAD of the primary worktree `feat/openclaw-agent-auth-token-get-v0`) |
 | Implementation commits | `ebe9c8c` (feat), `1bec951` (test+contract) |
@@ -132,7 +132,7 @@ COMMIT_BOUNDARY_VERIFIED = true
 Verified:
 
 1. **Primary worktree untouched.** `git worktree list` shows the primary
-   worktree `/Users/yanfenma/workspace/project/auth-service` still on
+   worktree `auth-service` still on
    `8ca5fcb` / `feat/openclaw-agent-auth-token-get-v0` with its pre-existing
    dirty untracked docs. PR-A's commits are reachable only through the
    `auth-service-workflow-jwks` worktree; they are NOT checked out in the

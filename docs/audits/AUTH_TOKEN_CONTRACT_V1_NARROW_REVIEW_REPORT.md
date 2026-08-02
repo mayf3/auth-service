@@ -15,7 +15,7 @@ MAINLINE_EFFECTIVE=false
 ## Audited Object
 
 ```text
-repository=/Users/yanfenma/workspace/project/auth-service
+repository=auth-service
 branch=codex/minimal-auth-v1-contract
 remote_ref=refs/heads/codex/minimal-auth-v1-contract
 commit=afef176eb5014b4bcccbbb70ec67df8f9a774b8b

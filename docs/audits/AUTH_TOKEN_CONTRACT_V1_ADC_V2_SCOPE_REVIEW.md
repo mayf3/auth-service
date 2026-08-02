@@ -23,7 +23,7 @@ IMPLEMENTATION_AUTHORIZED=false
 ## 2. 固定证据对象
 
 ```text
-repository=/Users/yanfenma/workspace/project/adc-v2
+repository=adc-v2
 remote_refs=server/main,canary/main
 git_sha=ddeeab2ff394af64b78d9820c9e64d5bf0952ebd
 git_tree=6b7e69217cac99b381876e85750dea588ae501fd

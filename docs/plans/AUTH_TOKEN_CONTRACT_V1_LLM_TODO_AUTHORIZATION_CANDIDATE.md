@@ -20,7 +20,7 @@ CONTRACT_BUNDLE_FROZEN=false
 ## 2. 固定调查对象
 
 ```text
-repository=/Users/yanfenma/workspace/project/llm-todo
+repository=llm-todo
 git_sha=7cc746240ba15161a5350bbe4c6d8fb88f41f5c6
 git_tree=b45dc35aa7b3148a314c9d856efdb17b94387650
 remote_ref_for_current_sha=none
