@@ -2,7 +2,7 @@
 
 ```text
 SPEC_ID = AUTH_SERVICE_LEGACY_SURFACE_SHUTDOWN_V1
-SPEC_STATUS = CANDIDATE_PROVISIONING_RESOLUTION_REVIEW_AMENDED
+SPEC_STATUS = CANDIDATE_ROUTE_LOCAL_WIRE_FINAL_AMENDED
 SPEC_MERGE_READY = NO
 IMPLEMENTATION_AUTHORIZED = NO
 AUTH_SERVICE_V1_ONLY_RUNTIME_V1_START_AUTHORIZED = NO
@@ -11,7 +11,7 @@ READY_FOR_INDEPENDENT_REVIEW = YES
 OWNER_DECISIONS_FROZEN = YES
 
 AUDIT_BASE_SHA = 84890120bd385b39287cb81890236b0e73e96c8d
-PREVIOUS_SPEC_HEAD = 56636da99f5f8332677a3c405293a76d4578f221
+PREVIOUS_SPEC_HEAD = 0539432e530987227c48fdf51a22b53464151797
 DATE = 2026-08-19
 
 AUTH_SERVICE_READ_ONLY_RESOLUTION_CONTRACT =
@@ -37,24 +37,35 @@ SECRET_FIELDS_RETURNED = NONE
 RESOLUTION_RESPONSE_CACHE_CONTROL = no-store
 RESOLUTION_RESPONSE_PRAGMA = no-cache
 RESOLUTION_ETAG = NONE
+RESOLUTION_LAST_MODIFIED = NONE
 RESOLUTION_304_RESPONSE = FORBIDDEN
 CALLER_RESOLUTION_CACHE = FORBIDDEN
 FRESH_RESOLUTION_PER_PROVISIONING_OPERATION = REQUIRED
+
+RESOLUTION_EXACT_PATH = GET /api/v1/clients/:client_id
+ROUTE_LOCAL_POLICY = EXACT_PATH_ONLY
+OTHER_ENDPOINT_BEHAVIOR_CHANGED = NO
+GLOBAL_LIMITER_REMAINS_ENABLED = YES
+RESOLUTION_RATE_LIMIT_BYPASS = NO
+OTHER_ENDPOINT_RATE_LIMIT_POLICY_CHANGED = NO
+OTHER_ENDPOINT_429_WIRE_CHANGED = NO
+OTHER_ENDPOINT_ERROR_WIRE_CHANGED = NO
 
 CLIENT_EXTERNAL_REF_NULL_SEMANTICS =
   RETURN_200_AS_READ_ONLY_FACT
 ```
 
 本次 amendment 只修订同一 governing Spec。它保留已经接受的 read-only
-provisioning resolution 方向，并关闭独立复审指出的四个 Spec 缺口：
+provisioning resolution 方向与全部既有冻结边界，不重新设计 endpoint，只
+关闭 focused 复审（REVISE）剩下的两个 Spec 缺口：
 
-1. auth-service 只宣布 Auth 侧 prerequisite 已冻结，不越权宣布 Agent Core
-   State F 端到端已经关闭；
-2. resolution response 与 caller 结果缓存全部禁止，每次 provisioning operation
-   必须进行新的 Auth 读取；
-3. management resolution 的成功与错误 Wire Contract 完整冻结；
-4. `client_external_ref=null` 作为数据库当前事实以 HTTP 200 返回，由 caller
-   判定为 unbound/mismatch，不在只读路径中 claim、repair 或升级为通用 5xx。
+1. exact resolution path 的 pre-limiter no-store、global-limiter 429、
+   authentication/error Wire 与 cache-validator suppression，现在在 §10.10
+   与 §18 中被精确分配到 exact source 文件；其他 endpoint 的 limiter 与
+   error Wire 被显式冻结为不受影响；
+2. AC-R12 现在显式检查 Last-Modified absent，并对每个错误状态完整绑定
+   全部 sensitive-field absence assertions；同时新增 AC-R15 与 AC-R16，
+   验证 route-local limiter Wire 与 error non-impact。
 
 本 amendment 不自行宣布 Spec accepted，不授权实现，不修改 auth-service
 产品代码、Prisma、数据库、Route、Principal、Client、Grant、部署或
@@ -743,6 +754,9 @@ Cache-Control: no-store
 Pragma: no-cache
 ```
 
+该安装的 exact 执行位置、组件顺序、global-limiter 429 Wire 与其他
+endpoint 的非影响边界冻结于 §10.10。
+
 `NO_STORE_APPLIES_TO`：
 
 ```text
@@ -880,6 +894,103 @@ DelegationGrant query
 ```
 
 不能以“只走 fast path”为理由复用 mutating function。
+
+### 10.10 Route-local exact-path enforcement and non-impact boundary
+
+本节冻结 resolution Wire 的执行位置与影响边界。
+
+```text
+RESOLUTION_EXACT_PATH = GET /api/v1/clients/:client_id
+ROUTE_LOCAL_POLICY = EXACT_PATH_ONLY
+OTHER_ENDPOINT_BEHAVIOR_CHANGED = NO
+```
+
+#### 10.10.1 Pre-limiter exact-path policy 安装
+
+`src/server.ts` 必须在以下组件之前识别 exact resolution path
+（method 与 path 的 exact 匹配）并安装 endpoint-specific policy：
+
+```text
+global rate limiter
+v1ManagementAuth
+request validation
+idempotentRouter
+global error handler response emission
+```
+
+对 exact resolution path 的所有响应，预先设置：
+
+```text
+Cache-Control: no-store
+Pragma: no-cache
+```
+
+并保证：
+
+```text
+ETag = absent
+Last-Modified = absent
+304 = forbidden
+```
+
+本小节是 §10.5 freshness contract 的执行位置；no-store/no-cache、
+ETag/Last-Modified/304 规则本身见 §10.5，此处只冻结落点与顺序。
+
+#### 10.10.2 Global limiter 的 exact-path 429 Wire
+
+global rate limiter 继续保护该 endpoint，不得绕过：
+
+```text
+GLOBAL_LIMITER_REMAINS_ENABLED = YES
+RESOLUTION_RATE_LIMIT_BYPASS = NO
+OTHER_ENDPOINT_RATE_LIMIT_POLICY_CHANGED = NO
+OTHER_ENDPOINT_429_WIRE_CHANGED = NO
+```
+
+global limiter 对 exact resolution path 产生 429 时必须返回：
+
+```text
+HTTP 429
+Content-Type: application/json
+{"error":"temporarily_unavailable"}
+Cache-Control: no-store
+Pragma: no-cache
+ETag absent
+Last-Modified absent
+status != 304
+```
+
+不得通过跳过全局限流来解决 Wire 问题。
+
+#### 10.10.3 Exact-path error normalization 范围
+
+对 exact resolution path 的以下失败：
+
+```text
+authentication failure（invalid/expired Token、wrong issuer/audience/
+kid/signature、inactive actor Principal/Client）
+scope 缺失
+caller principal_type 非 service
+validation failure（malformed client_id）
+target missing
+integrity invalid
+transient DB/dependency failure
+handler failure
+global limiter 429
+```
+
+必须统一使用 §10.6 exact JSON Wire，不得进入普通
+`{"message":"..."}` 响应形态。
+
+#### 10.10.4 其他 endpoint 的非影响边界
+
+- `/oauth/*` 的现有 OAuth error Wire 不因本 amendment 改变；
+- POST `/api/v1/principals` 与 POST `/api/v1/clients` 的既有 Wire 不因本
+  amendment 被全局重写；
+- 其他 `/api/*` endpoint 的 limiter/error envelope 不在本 amendment 改变；
+- 本 amendment 不是全服务错误格式迁移。
+
+任何把 resolution Wire 推广为全服务 envelope 的实现都越权。
 
 ## 11. Caller Comparison and Cross-repository Closure
 
@@ -1227,15 +1338,51 @@ KEEP_TEST_ONLY
 KEEP_OUT_OF_RUNTIME_SCOPE
 ```
 
+Resolution seam 的文件授权是封闭集合：
+
+```text
+CANONICAL_NEW_FILES =
+  src/lib/oauth/v1/resolution.ts
+  tests/v1-management-resolution.test.ts
+
+CANONICAL_EXISTING_ROUTE_FILE =
+  src/routes/idempotent.ts
+
+EXISTING_FILES_ALLOWED_TO_CHANGE =
+  src/server.ts
+  src/utils/http-error.ts
+  src/middleware/v1-management-auth.ts
+  src/lib/oauth/v1/errors.ts
+  src/routes/idempotent.ts
+```
+
+除 `CANONICAL_NEW_FILES` 与 `EXISTING_FILES_ALLOWED_TO_CHANGE` 之外，
+任何文件不得因 resolution seam 被修改。§18 其余条目的 disposition 服务于
+Legacy shutdown 的其他职责，不构成 resolution seam 的额外授权。不存在
+“必要时修改其他文件”、"including but not limited to"、“可选择 server.ts
+或 middleware”或“implementation Agent 自行决定”的开放授权。
+
+不得创建：
+
+```text
+第二个 resolution Route
+第二个 resolution service
+新 generic error middleware
+新 generic IAM package
+新 introspection module
+```
+
+每个文件的 resolution 职责精确分配见 §18.11。
+
 ### 18.1 Entry, config, database and utilities
 
 | Path | Disposition | Required result |
 |---|---|---|
-| `src/server.ts` | KEEP_MODIFY | 只 mount V1 Routes；无条件初始化 pinned V1；在任何 rate limiter/auth/router 之前为 exact resolution path 安装 no-store/no-cache headers |
+| `src/server.ts` | KEEP_MODIFY | 只 mount V1 Routes；无条件初始化 pinned V1；resolution 职责见 §18.11：exact path detection、pre-limiter no-store/no-cache、exact-path 429 与 final error normalization、suppress ETag/Last-Modified/304；保持其他 endpoint 的 limiter/error 行为不变 |
 | `src/config/env.ts` | KEEP_MODIFY | 删除 Legacy secret/mode/register authority；V1 key config fail fast |
 | `src/lib/prisma.ts` | KEEP | 单一 Prisma client seam |
 | `src/utils/async-handler.ts` | KEEP | async error forwarding |
-| `src/utils/http-error.ts` | KEEP_MODIFY | 保留通用错误；增加 exact resolution JSON error mapping，不允许 `{message:...}` 泄漏进 resolution path |
+| `src/utils/http-error.ts` | KEEP_MODIFY | 保留普通 HttpError 在其他 endpoint 的语义；增加封闭的 resolution error classification/representation；不允许 resolution error 泄露 message、stack 或 raw exception（§18.11） |
 
 ### 18.2 Routes
 
@@ -1247,7 +1394,7 @@ KEEP_OUT_OF_RUNTIME_SCOPE
 | `src/routes/service-registrations.ts` | DELETE | 删除 Legacy SSO Gateway 与 verify-token |
 | `src/routes/oauth.ts` | KEEP_MODIFY | 只 dispatch V1 direct/exchange；删除 V0/shadow branches |
 | `src/routes/oauth-human.ts` | KEEP_MODIFY | 保留 V1 authorization_code/refresh/logout；live status 对齐 |
-| `src/routes/idempotent.ts` | KEEP_MODIFY | 保留 POST provisioning；新增且仅新增 `GET /v1/clients/:client_id`；route 限制 Service principal；success/error exact Wire；不得输出 cache validator |
+| `src/routes/idempotent.ts` | KEEP_MODIFY | 保留 POST provisioning；新增且仅新增 `GET /v1/clients/:client_id`；route 限制 Service principal；success/error exact Wire；不得输出 cache validator；不承担 global-limiter 429（§18.11） |
 | `src/routes/well-known.ts` | KEEP_MODIFY | 只发布 pinned V1 public JWKS；JWKS cache policy 对齐独立 Contract |
 
 不创建第二个 provisioning resolution Route 文件。
@@ -1258,7 +1405,7 @@ KEEP_OUT_OF_RUNTIME_SCOPE
 |---|---|---|
 | `src/middleware/auth.ts` | DELETE | 删除 HS256/shared-secret verifier |
 | `src/middleware/token-rotation.ts` | DELETE | 删除 Legacy in-memory refresh state |
-| `src/middleware/v1-management-auth.ts` | KEEP_MODIFY | exact `svc-auth` audience/scope；live-check actor Principal/Client；resolution auth errors映射 exact Wire |
+| `src/middleware/v1-management-auth.ts` | KEEP_MODIFY | exact `svc-auth` audience/scope；live-check actor Principal/Client；resolution path 上 401 invalid_client / 403 insufficient_scope exact Wire；不把内部 Principal ID、Client ID、Token claims 或异常文本写入 response；不改变其他 management endpoint 既有 Wire（§18.11） |
 | `src/schemas/auth.ts` | DELETE | 删除 Legacy auth request schemas |
 | `src/schemas/oauth.ts` | KEEP_MODIFY | 只保留 V1 OAuth schemas 与 strict validation |
 
@@ -1283,7 +1430,7 @@ KEEP_OUT_OF_RUNTIME_SCOPE
 | `src/lib/oauth/v1/contract.ts` | KEEP_MODIFY | 只接受 exact pinned 1.2.0 runtime object |
 | `src/lib/oauth/v1/credentials.ts` | KEEP_MODIFY | V1 opaque credential only |
 | `src/lib/oauth/v1/direct.ts` | KEEP_MODIFY | live status + per-audience Grant；导入 `audience-state.ts` |
-| `src/lib/oauth/v1/errors.ts` | KEEP_MODIFY | exact resolution codes/status classification；500 integrity 与 503 transient 分离 |
+| `src/lib/oauth/v1/errors.ts` | KEEP_MODIFY | exact resolution codes/status classification；terminal 与 transient category 必须可区分（500 machine_identity_state_invalid ≠ 503 temporarily_unavailable）；不把 resolution error 变成 generic OAuth redesign（§18.11） |
 | `src/lib/oauth/v1/exchange.ts` | KEEP_MODIFY | live boundary + persistent audit；导入 `audience-state.ts` |
 | `src/lib/oauth/v1/grant-migration.ts` | DELETE | 删除 flat-field migration planner |
 | `src/lib/oauth/v1/human-login.ts` | KEEP_MODIFY | active User/Client/Grant；无 public registration |
@@ -1373,10 +1520,66 @@ helper，不是 identity reconciliation client。
 | `tests/oauth/v1-readiness-readonly.test.ts` | CREATE | readiness 无 write/Grant derivation |
 | `tests/oauth/v1-source-disposition.test.ts` | CREATE | deleted Legacy modules/scripts/exports absent |
 | `tests/oauth/v1-runtime-fingerprint.test.ts` | CREATE | exact pinned 1.2 objects/digest |
-| `tests/v1-management-resolution.test.ts` | CREATE | AC-R1..AC-R13；auth、projection、nullable refs、exact Wire、freshness、zero writes、secret absence、mutating isolation |
+| `tests/v1-management-resolution.test.ts` | CREATE | AC-R1..AC-R13、AC-R15、AC-R16；auth、projection、nullable refs、exact Wire、freshness、route-local limiter Wire、error non-impact、zero writes、secret absence、mutating isolation |
 
 Cross-repository `AC-R14` evidence 不放进 auth-service unit test 假装闭环；它由
 Production Activation 的 exact Agent Core fixed-SHA E2E receipt 提供。
+
+### 18.11 Resolution file responsibility assignment
+
+本小节是 resolution seam 在每个授权文件中的精确职责分配。一个没有聊天
+历史的 Implementation Agent 必须能从本节唯一恢复：哪些文件新建、哪些现有
+文件允许修改、每个文件负责什么、哪些其他 endpoint 不能被改变。
+
+`src/server.ts`
+
+- exact resolution path detection（method + path exact 匹配）；
+- pre-limiter no-store/no-cache 安装（§10.5、§10.10.1）；
+- exact-path global-limiter 429 normalization（§10.10.2）；
+- exact-path final error response normalization（§10.10.3）；
+- suppress ETag / Last-Modified / 304（§10.5）；
+- 保持其他所有 endpoint 的 limiter 与 error 行为不变（§10.10.4）。
+
+`src/utils/http-error.ts`
+
+- 增加封闭的 resolution error classification / representation；
+- 不改变普通 HttpError 在其他 endpoint 的语义；
+- 不允许 resolution error 泄露 message、stack 或 raw exception。
+
+`src/middleware/v1-management-auth.ts`
+
+- 继续复用现有 V1 RS256 verification；
+- exact resolution path 上：
+  - invalid Token / wrong issuer/audience/kid/signature / expired Token /
+    inactive actor → `401 invalid_client`；
+  - missing `auth.identity.provision` → `403 insufficient_scope`；
+- 不把内部 Principal ID、Client ID、Token claims 或异常文本写入 response；
+- 不改变其他 management endpoint 的既有 Wire，除非本 Spec 在本 amendment
+  之前已另有授权。
+
+`src/routes/idempotent.ts`
+
+- canonical GET Route（唯一 resolution Route）；
+- malformed `client_id` → `400 invalid_request`；
+- caller principal_type != service → `403 insufficient_scope`；
+- success 使用 §10.3 exact projection；
+- 不承担 global-limiter 429（由 `src/server.ts` exact-path policy 处理）；
+- 不调用 mutating function（§10.9）。
+
+`src/lib/oauth/v1/errors.ts`
+
+- 定义 resolution exact codes 与 terminal/transient category；
+- `500 machine_identity_state_invalid` 与 `503 temporarily_unavailable`
+  必须可区分；
+- 不把 resolution error 变成 generic OAuth redesign。
+
+`src/lib/oauth/v1/resolution.ts`（CREATE）
+
+- §10.2 的纯 read service；职责不变，本 amendment 不扩展。
+
+`tests/v1-management-resolution.test.ts`（CREATE）
+
+- §18.10 所列 AC-R1..AC-R13、AC-R15、AC-R16 的全部断言。
 
 ## 19. Deployment Gates
 
@@ -1434,7 +1637,7 @@ v0_compatibility.supersedes_v0 = false
 - Resolution external-ref null：200 如实返回，零写入。
 - Resolution integrity invalid：exact 500，零写入，不修复。
 - Resolution dependency unavailable：exact 503，零写入。
-- 任何 resolution response：no-store/no-cache，无 ETag/304。
+- 任何 resolution response：no-store/no-cache，无 ETag/Last-Modified/304。
 - Human/OBO/Lifecycle mutation required audit 无法落库：mutation fail closed。
 - Legacy Endpoint：404。
 - Legacy Token：401 / OAuth error，不尝试 shared-secret fallback。
@@ -1481,7 +1684,8 @@ Operator 与恢复计划。
 - `lifecycle.ts` 不 export Token issuance/sign/verify/exchange。
 - `resolution.ts` 不 import mutating identity function、Grant access 或 Prisma
   write method。
-- Resolution path 不存在 response cache、ETag 或 304 implementation。
+- Resolution path 不存在 response cache、ETag、Last-Modified validator 或 304
+  implementation。
 - Production credential/ID/JTI generation 不使用 `Math.random()`。
 
 ### 22.2 Legacy Route gates
@@ -1687,17 +1891,50 @@ Grant read/write
 503 temporarily_unavailable
 ```
 
-每项必须：
+每项必须验证：
 
 ```text
+HTTP status = exact
 Content-Type media type = application/json
-body = exact {"error":"..."}
-message/error_description/raw exception absent
+body = exact {"error":"<exact_code>"}
+
 Cache-Control = no-store
 Pragma = no-cache
 ETag absent
+Last-Modified absent
 status != 304
 ```
+
+并验证以下字段在每项错误状态中全部缺失：
+
+```text
+message
+error_description
+detail
+stack
+raw exception
+raw Prisma error
+target internal row ID
+Principal internal diagnostic ID
+Client internal diagnostic ID
+Authorization header
+Access Token
+Token fragment
+client secret
+secretHash
+verifier
+Refresh Credential
+allowedResources
+allowedScopes
+MachineAccessGrant
+DelegationGrant
+User password material
+audit-internal sensitive payload
+```
+
+AC-R12 COMPOSES AC-R8：AC-R12 对每个错误状态执行全部 AC-R8
+sensitive-field assertions 与上表全部 absence assertions，而不是仅在另一个
+独立测试中抽样一次。
 
 #### AC-R13 — nullable Client external ref
 
@@ -1708,6 +1945,33 @@ existing Client with externalRef=null
 → no create/claim/backfill/repair
 → Auth writes = 0
 → caller contract classifies terminal State F
+```
+
+#### AC-R15 — route-local limiter Wire
+
+exact resolution endpoint 被 global limiter 限流时：
+
+```text
+→ 429 exact error Wire（{"error":"temporarily_unavailable"}）
+→ no-store/no-cache
+→ ETag absent
+→ Last-Modified absent
+→ no 304
+```
+
+同一测试必须证明：
+
+```text
+global limiter 没有被绕过（请求确实被 global limiter 拒绝）
+其他 endpoint 的既有 limiter response 不因本 amendment 改变
+```
+
+#### AC-R16 — route-local error non-impact
+
+```text
+resolution path 的普通 HttpError 不输出 {"message":...}
+非 resolution endpoint 仍保持其 governing Wire
+本 amendment 没有把整个 auth-service 改成统一 resolution error envelope
 ```
 
 ### 22.10 Cross-repository State F E2E
@@ -1768,7 +2032,7 @@ npm run verify
 7. State-boundary tests。
 8. Operator lifecycle tests。
 9. Idempotent tests。
-10. Resolution AC-R1..R13。
+10. Resolution AC-R1..R13、R15、R16。
 11. Readiness read-only tests。
 12. Negative conformance。
 13. Machine Token Provider tests。
