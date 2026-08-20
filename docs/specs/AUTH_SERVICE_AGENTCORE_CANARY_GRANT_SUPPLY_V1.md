@@ -1,9 +1,9 @@
 ---
 spec_id: AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 scope:
   - mayf3/auth-service
 governed_by:
@@ -145,14 +145,11 @@ evidence grammar but grants no product behavior authority. Agent Core receipts
 are operational prerequisites, not external authority adopted by this Spec.
 
 ```text
-SPEC_STATUS = proposed
-IMPLEMENTATION_AUTHORITY = none
-
-AMENDMENT_SCOPE = EXACT_STAGE_W_ARTIFACT_BOUNDARY_ONLY
-AMENDMENT_SEMANTIC_DELTA_TO_ACCEPTED_STAGE_W_BEHAVIOR = NONE
+SPEC_STATUS = accepted
+IMPLEMENTATION_AUTHORITY = contracts
 
 STAGE_W_IMPLEMENTATION_AUTHORIZED =
-  NO_UNTIL_THIS_EXACT_AMENDMENT_IS_ACCEPTED_AND_MERGED_TO_MAIN
+  YES_AFTER_ACCEPTED_SPEC_MERGED_TO_MAIN
 STAGE_F_IMPLEMENTATION_AUTHORIZED = NO
 
 STAGE_F_BLOCKED_BY =
@@ -555,75 +552,6 @@ FORUM_CCR_REQUIRED = YES
 - Reason: `revoke`/null after denotes removal of the entire governed grant set,
   which partial rollback does not do.
 
-### DEC-CGS-008 — Freeze the Stage W implementation artifact boundary
-
-- Decision owner: same as `DEC-CGS-001`.
-- Decision: the Stage W repository-versioned offline migration executable MUST
-  exist at exactly:
-
-  ```text
-  scripts/supply-agentcore-canary-workflow-grants-v1.ts
-  ```
-
-  The complete and exclusive Stage W implementation file set is:
-
-  ```text
-  scripts/supply-agentcore-canary-workflow-grants-v1.ts
-  tests/oauth/supply-agentcore-canary-workflow-grants-v1.test.ts
-  scripts/run-agentcore-canary-workflow-grants-v1-conformance.sh
-  ```
-
-  The test file MUST exercise the real migration executable, and the conformance
-  harness MUST create, migrate, use, and drop an isolated temporary PostgreSQL
-  database. It MUST apply the repository's production Prisma migrations rather
-  than use `prisma db push`, because the raw-SQL audit constraints and immutable
-  audit triggers are part of conformance. The migration and test are invoked
-  directly with `tsx`; no `package.json`, Prisma schema, Prisma DDL migration,
-  Contract Bundle, production configuration, application route, reusable
-  library, receipt, or documentation file is part of the implementation change.
-- Rejected: hidden chat-only path selection; a generic Grant library or online
-  surface; extending an existing broad/Legacy migration; a Prisma DDL migration
-  for this data-only supply; `prisma db push` as conformance setup; simulated
-  in-memory persistence tests; and any implementation file outside the three
-  exact paths above.
-- Reason: close the implementation review surface without changing any accepted
-  Stage W identity, Grant, transaction, audit, failure, or operational meaning.
-
-### DEC-CGS-009 — Freeze the closed Stage W apply-evidence input
-
-- Decision owner: same as `DEC-CGS-001`.
-- Decision: read-only plan requires no operational evidence file. Explicit
-  `--apply` MUST additionally require `--evidence-file <path>` naming a UTF-8
-  JSON object with `additionalProperties: false` and exactly:
-
-  ```text
-  schema_version = 1
-  phase_a_merge_ref = non-empty string
-  identity_receipts = exactly two objects, each with only:
-    client_external_ref
-    principal_external_ref
-    receipt_ref
-  readiness = READY
-  readiness_ref = non-empty string
-  migration_review = object with only:
-    verdict = PASS
-    reviewed_source_git_commit = exact 40-hex migration HEAD
-    review_ref = non-empty string
-  ```
-
-  The two identity receipt objects MUST match `DEC-CGS-001` exactly and no other
-  identity may appear. The executor MUST also require a clean Git worktree,
-  resolve `HEAD`, and prove it equals both audit `source_git_commit` and
-  `migration_review.reviewed_source_git_commit` before any database write.
-  `approval_ref`, `operator_id`, `migration_id`, and `reason` remain mandatory
-  audit metadata under `CTR-CGS-008`; the evidence file does not add audit
-  fields and is never persisted into the 13-field audit JSON.
-- Rejected: truthy environment flags as evidence; unstructured prose evidence;
-  optional readiness or review coordinates; accepting a different reviewed SHA;
-  or adding evidence convenience properties to the audit envelope.
-- Reason: make `CTR-CGS-010` executable without inventing hidden operator state
-  or changing the closed audit schema.
-
 ## 9. Contracts
 
 ### CTR-CGS-001 — Closed target identities
@@ -818,29 +746,6 @@ against the current `contract-bundles/minimal-auth-v1/schemas/grants.schema.json
 (`grantChangeAudit`, with before/after as `clientGrants`), with the schema
 itself remaining unmodified.
 
-### CTR-CGS-015 — Exact Stage W path and exclusive implementation file set
-
-Stage W implementation MUST use exactly the migration path and three-file set in
-`DEC-CGS-008`. An implementation diff that adds, removes, or modifies any other
-file is outside this authority. The authorized test MUST execute the real
-migration, and the authorized conformance harness MUST execute that test against
-a fresh temporary PostgreSQL database after applying the repository's production
-Prisma migrations. An in-memory model, mocked transaction, `prisma db push`, or
-static-only test does not satisfy the database acceptance requirements. Direct
-invocation with `tsx` MUST remain possible without adding a package script or
-dependency.
-
-### CTR-CGS-016 — Apply evidence is closed, exact, and SHA-bound
-
-Stage W plan MUST remain read-only by default. Explicit apply MUST refuse before
-database writes unless the exact evidence object in `DEC-CGS-009` and all audit
-metadata in `CTR-CGS-008` validate. The two receipt identities, readiness value,
-review verdict, reviewed SHA, current clean `HEAD`, and audit
-`source_git_commit` MUST match exactly. Missing, additional, malformed,
-misbound, dirty-worktree, or SHA-drifted evidence fails loudly with Grant writes
-`0` and audit writes `0`. Evidence parsing MUST NOT read production data, mutate
-receipts, or add any property to the closed audit envelope.
-
 ## 10. Acceptance
 
 ### ACC-CGS-001 — Exact identity selection
@@ -928,34 +833,6 @@ receipts, or add any property to the closed audit envelope.
   others unchanged; conflict variants write `0`.
 - Failure: reversal/manual SQL/legacy/OpenClaw/non-target change/null-after
   partial removal.
-
-### ACC-CGS-013 — Stage W implementation stays inside the exact artifact boundary
-
-- Contracts: `CTR-CGS-015`.
-- Method: compare the implementation diff against `DEC-CGS-008`; run
-  `scripts/run-agentcore-canary-workflow-grants-v1-conformance.sh` and prove it
-  applies production migrations to a fresh temporary PostgreSQL database, runs
-  `tests/oauth/supply-agentcore-canary-workflow-grants-v1.test.ts`, and invokes
-  the real executable at
-  `scripts/supply-agentcore-canary-workflow-grants-v1.ts`.
-- Expected: exactly those three files change; temporary PostgreSQL covers the
-  positive, missing-identity, forbidden-Scope, exact-rerun, conflict, legacy
-  non-access, non-target-invariance, transaction, and closed-audit cases.
-- Failure: any fourth changed file, a different migration path, `prisma db push`,
-  simulated or mocked persistence, or no execution of the real migration.
-
-### ACC-CGS-014 — Apply evidence gates every write
-
-- Contracts: `CTR-CGS-008`, `CTR-CGS-010`, `CTR-CGS-016`.
-- Method: invoke plan without evidence; invoke apply with each required field
-  missing, additional, malformed, identity-mismatched, readiness-not-READY,
-  review-not-PASS, reviewed-SHA-mismatched, source-SHA-mismatched, and dirty-tree
-  variant; then invoke with one exact valid temporary evidence file.
-- Expected: plan remains read-only; every invalid apply variant fails before
-  writes; the exact valid fixture passes the evidence gate and proceeds to the
-  database plan/apply state machine.
-- Failure: any invalid evidence reaches a write, plan requires apply evidence,
-  or evidence properties enter `grant_change_audits`.
 
 ### Stage and audit-model acceptance (owner-frozen IDs)
 
@@ -1188,27 +1065,3 @@ rollback, no legacy flat fields, exact rerun no-op, and single transaction per
 Stage — are preserved unchanged. Implementation authority vests only when this
 exact accepted revision merges to `main`, Stage W only; Stage F stays blocked
 per §3.
-
-## 16. Additive amendment record — exact Stage W artifact boundary
-
-```text
-AMENDMENT_KIND = STRICTLY_ADDITIVE
-AMENDMENT_BASE = cb0b3d37dfb105c763c9c83ebd65483270b21b81
-AMENDED_ACCEPTED_SPEC_BLOB = d89bf08c8714f55571ee7d75da017b7cf7237096
-ADDED_DECISIONS = DEC-CGS-008 | DEC-CGS-009
-ADDED_CONTRACTS = CTR-CGS-015 | CTR-CGS-016
-ADDED_ACCEPTANCE = ACC-CGS-013 | ACC-CGS-014
-OPEN_OWNER_DECISIONS = NONE
-NORMATIVE_TBD = NONE
-READY_FOR_INDEPENDENT_REVIEW = YES
-```
-
-This amendment closes three implementation coordinates that the accepted
-revision left implicit: the exact Stage W executable path, its exclusive
-implementation file set, and the closed evidence input required to make the
-existing operational apply gate executable. It does not change any existing
-stable ID or any accepted Stage W
-identity, Grant, Scope, revision, transaction, audit, idempotency, conflict,
-operational prerequisite, production-apply, Stage F, rollback, or non-target
-meaning. Until this exact amendment is independently reviewed, accepted, and
-merged to `main`, it authorizes no implementation.
