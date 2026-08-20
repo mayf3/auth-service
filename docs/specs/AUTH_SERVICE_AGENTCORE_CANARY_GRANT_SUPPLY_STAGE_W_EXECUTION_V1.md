@@ -77,7 +77,7 @@ At source `mayf3/auth-service@cb0b3d37dfb105c763c9c83ebd65483270b21b81`
 in the authoring checkout on `2026-08-20`, the accepted parent fully freezes
 Stage W behavior but names no exact executable path, file set, disposable-DB
 lifecycle, or machine-readable durable-evidence transport. Basis:
-`OBS-SWX-001`, `CLM-SWX-001`, `EVD-SWX-001`.
+`OBS-SWX-001`, `CLM-SWX-001`, `EVD-SWX-001A`, `EVD-SWX-001B`.
 
 ### STATE-SWX-002 — Checked-in migrations are not an empty-database baseline
 
@@ -86,7 +86,7 @@ migrations alter pre-existing `OkrRole` and reference a pre-existing `users`
 table; the last historical migration additionally requires fixed data rows.
 Therefore neither plain fresh `prisma migrate deploy` nor lexical SQL replay is
 a viable isolated-test baseline. Basis: `OBS-SWX-002`, `CLM-SWX-002`,
-`EVD-SWX-002`.
+`EVD-SWX-002A`, `EVD-SWX-002B`.
 
 ### STATE-SWX-003 — Current schema plus explicit safety DDL is testable locally
 
@@ -95,10 +95,11 @@ W tables while the additive production SQL records the exact Grant-audit check
 constraints and immutable trigger omitted by `prisma db push`. A self-owned local
 cluster can create current schema, install those exact existing controls as
 test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
-`CLM-SWX-003`, `EVD-SWX-003`.
+`CLM-SWX-003`, `EVD-SWX-003A`, `EVD-SWX-003C`.
 
 ### OBS-SWX-001 — Execution surface inventory
 
+- Subject: Stage W repository execution and test surfaces.
 - Repository/source: `mayf3/auth-service`.
 - Revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`.
 - Environment: local read-only source inspection; observed at `2026-08-20`.
@@ -110,6 +111,7 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
 
 ### OBS-SWX-002 — Migration-chain baseline gaps
 
+- Subject: empty-database replayability of checked-in auth-service migrations.
 - Repository/source: `mayf3/auth-service/prisma/migrations/`.
 - Revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`.
 - Environment: local read-only SQL inspection; observed at `2026-08-20`.
@@ -122,6 +124,7 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
 
 ### OBS-SWX-003 — Current schema and audit controls
 
+- Subject: current Stage W persistence schema and Grant-audit safety controls.
 - Repository/source: `prisma/schema.prisma`,
   `prisma/migrations/20260718000100_minimal_auth_v1_additive/migration.sql`, and
   `contract-bundles/minimal-auth-v1/schemas/grants.schema.json`.
@@ -144,14 +147,14 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
 - Support state: SUPPORTED.
 - Claim: one executable, one real-DB test, and one self-owned cluster harness can
   implement and verify Stage W without changing an existing artifact.
-- Supported by: `EVD-SWX-001`, `EVD-SWX-003`; contradicted by: none known.
+- Supported by: `EVD-SWX-001B`, `EVD-SWX-003B`; contradicted by: none known.
 
 ### CLM-SWX-002 — Production migration replay is the wrong isolated baseline
 
 - Support state: SUPPORTED.
 - Claim: fresh replay would require inventing a pre-chain schema and historical
   product fixtures outside Stage W authority.
-- Supported by: `EVD-SWX-002`; contradicted by: none known.
+- Supported by: `EVD-SWX-002B`; contradicted by: none known.
 
 ### CLM-SWX-003 — Current schema plus exact safety DDL preserves test relevance
 
@@ -159,12 +162,14 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
 - Claim: `prisma db push` may establish only the current disposable schema if the
   harness then installs and behaviorally verifies the exact existing Grant-audit
   safety controls before Stage W tests.
-- Supported by: `EVD-SWX-003`; contradicted by: none known.
+- Supported by: `EVD-SWX-003C`; contradicted by: none known.
 
-### EVD-SWX-001
+### EVD-SWX-001A
 
 - Source observations: `OBS-SWX-001`.
-- Target: `STATE-SWX-001`, `CLM-SWX-001`; relation: SUPPORTS.
+- Target type: State.
+- Target ID: `STATE-SWX-001`.
+- Relation: SUPPORTS.
 - Bound coordinates: repository `mayf3/auth-service`, revision
   `cb0b3d37dfb105c763c9c83ebd65483270b21b81`, local source environment,
   observed `2026-08-20`.
@@ -172,27 +177,67 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
 - Limitations: source feasibility is not executed conformance.
 - Provenance: `OBS-SWX-001` named files.
 
-### EVD-SWX-002
+### EVD-SWX-001B
+
+- Source observations: `OBS-SWX-001`.
+- Target type: Claim.
+- Target ID: `CLM-SWX-001`.
+- Relation: SUPPORTS.
+- Bound coordinates, strength, limitations, and provenance: identical to
+  `EVD-SWX-001A`.
+
+### EVD-SWX-002A
 
 - Source observations: `OBS-SWX-002`.
-- Target: `STATE-SWX-002`, `CLM-SWX-002`; relation: SUPPORTS.
+- Target type: State.
+- Target ID: `STATE-SWX-002`.
+- Relation: SUPPORTS.
 - Bound coordinates: repository `mayf3/auth-service`, revision
   `cb0b3d37dfb105c763c9c83ebd65483270b21b81`, local SQL inspection,
   observed `2026-08-20`.
 - Strength/sufficiency: direct unresolved DDL and data dependencies.
 - Limitations: says nothing about deployed migration history.
-- Provenance: every checked-in migration SQL file.
+- Provenance: every checked-in migration SQL file named by `OBS-SWX-002`.
 
-### EVD-SWX-003
+### EVD-SWX-002B
+
+- Source observations: `OBS-SWX-002`.
+- Target type: Claim.
+- Target ID: `CLM-SWX-002`.
+- Relation: SUPPORTS.
+- Bound coordinates, strength, limitations, and provenance: identical to
+  `EVD-SWX-002A`.
+
+### EVD-SWX-003A
 
 - Source observations: `OBS-SWX-003`.
-- Target: `STATE-SWX-003`, `CLM-SWX-001`, `CLM-SWX-003`; relation: SUPPORTS.
+- Target type: State.
+- Target ID: `STATE-SWX-003`.
+- Relation: SUPPORTS.
 - Bound coordinates: repository `mayf3/auth-service`, revision
   `cb0b3d37dfb105c763c9c83ebd65483270b21b81`, local schema inspection,
   observed `2026-08-20`.
 - Strength/sufficiency: exact model, DDL, and JSON-schema definitions.
 - Limitations: runtime behavior remains to be executed in Acceptance.
 - Provenance: `OBS-SWX-003` named files.
+
+### EVD-SWX-003B
+
+- Source observations: `OBS-SWX-003`.
+- Target type: Claim.
+- Target ID: `CLM-SWX-001`.
+- Relation: SUPPORTS.
+- Bound coordinates, strength, limitations, and provenance: identical to
+  `EVD-SWX-003A`.
+
+### EVD-SWX-003C
+
+- Source observations: `OBS-SWX-003`.
+- Target type: Claim.
+- Target ID: `CLM-SWX-003`.
+- Relation: SUPPORTS.
+- Bound coordinates, strength, limitations, and provenance: identical to
+  `EVD-SWX-003A`.
 
 ## 5. Decisions
 
@@ -243,25 +288,33 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
 - Reason: the checked-in chain is not a baseline; this procedure is exact,
   disposable, and exercises the current schema plus existing security controls.
 
-### DEC-SWX-003 — Immutable Git-object evidence and exact apply interface
+### DEC-SWX-003 — Remote-main-anchored evidence and exact apply interface
 
 - Decision owner: same as `DEC-SWX-001`.
 - Decision: plan is default and read-only. Apply interface is exactly:
 
   ```text
   --apply
-  --evidence-repository <absolute local path>
+  --evidence-repository <absolute local Git object-cache path>
   --evidence-commit <lowercase 40-hex>
   --evidence-path <safe relative POSIX path>
   ```
 
-  The evidence repository MUST be a Git checkout whose `origin` URL is exactly
-  `https://github.com/mayf3/dsh-agent-core.git`. The executor reads only Git
-  objects: it verifies the commit exists, then reads the manifest and every
-  receipt with `git show <commit>:<path>`. Paths are non-empty relative POSIX
-  paths without `..`, leading slash, backslash, empty segment, or NUL. Every
-  referenced receipt blob must exist, be non-empty, and match its lowercase
-  64-hex SHA-256.
+  The configured local `origin` is not trusted. Before parsing evidence, the
+  executor MUST fetch literal
+  `https://github.com/mayf3/dsh-agent-core.git` branch `main` into a dedicated
+  temporary ref, verify `evidence_commit` is an ancestor of that fetched remote
+  main, and read the manifest and receipts only with
+  `git show <evidence_commit>:<path>`. It MUST verify `phase_a.merge_commit`
+  exists as a commit, is an ancestor of `evidence_commit`, and is also reachable
+  from fetched remote main. A fabricated local repository or editable remote
+  configuration therefore cannot satisfy apply.
+
+  Paths are non-empty relative POSIX paths without `..`, leading slash,
+  backslash, empty segment, or NUL. Every receipt blob MUST exist at the same
+  remote-main-reachable evidence commit, be non-empty UTF-8 JSON, match its
+  lowercase 64-hex SHA-256, satisfy its closed receipt schema below, and
+  cross-bind exactly to the corresponding manifest fields.
 
   Manifest is UTF-8 JSON, `additionalProperties: false`, exactly:
 
@@ -288,26 +341,59 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
     repository: string exactly mayf3/auth-service
     verdict: string exactly PASS
     reviewed_source_git_commit: lowercase 40-hex equal clean auth-service HEAD
-    review_ref: string matching exact immutable GitHub PR review/comment URL grammar
+    review_ref: immutable GitHub review/comment URL
+    receipt: { path: safe path, sha256: lowercase 64-hex }
   audit_metadata: object, additionalProperties=false:
-    migration_id: non-empty string, maximum 128 bytes
+    migration_id: non-empty string, maximum 128 UTF-8 bytes
     source_git_commit: lowercase 40-hex equal clean HEAD and reviewed commit
-    operator_id: non-empty string, maximum 256 bytes
-    approval_ref: immutable GitHub PR/issue review/comment URL under mayf3/auth-service
-    reason: non-empty string, maximum 512 bytes
+    operator_id: non-empty string, maximum 256 UTF-8 bytes
+    approval_ref: immutable GitHub review/comment URL under mayf3/auth-service
+    reason: non-empty string, maximum 512 UTF-8 bytes
+  ```
+
+  Every receipt object is also `additionalProperties: false` and has
+  `schema_version=1`, `repository="mayf3/dsh-agent-core"`, and an RFC3339 UTC
+  `recorded_at`. Receipt-specific fields are exactly:
+
+  ```text
+  Phase A receipt:
+    receipt_type = agentcore_clean_bootstrap_phase_a
+    status = MERGED
+    merge_commit = manifest phase_a.merge_commit
+
+  Identity receipt (one per manifest identity):
+    receipt_type = auth_service_machine_identity
+    agent_id, client_external_ref, principal_external_ref,
+    client_id, principal_id, client_active, principal_active, principal_type
+      = exact corresponding manifest values
+    created = true
+
+  Readiness receipt:
+    receipt_type = agentcore_auth_canary_readiness
+    status = READY
+    client_ids = exactly the two manifest client_id values in unsigned-ASCII order
+
+  Migration review receipt:
+    receipt_type = auth_service_stage_w_migration_review
+    auth_repository = mayf3/auth-service
+    verdict, reviewed_source_git_commit, review_ref
+      = exact manifest migration_review values
+    reviewer_id = non-empty string
   ```
 
   Immutable URL grammar is
   `https://github.com/mayf3/auth-service/(pull|issues)/<positive integer>#(pullrequestreview|issuecomment)-<positive integer>`.
   The auth-service worktree MUST be clean under
-  `git status --porcelain --untracked-files=all`. Evidence data is validation
-  input only; only the five `audit_metadata` values map to existing audit
-  columns, and no evidence-only property enters audit JSON.
-- Rejected: environment booleans, mutable branch URLs, arbitrary strings,
-  worktree-file reads, empty/untyped refs, alternate identities, dirty tree,
-  SHA mismatch, or audit-envelope extension.
-- Reason: exact local dereference of immutable Git objects satisfies the parent's
-  durable evidence gate without claiming external normative authority.
+  `git status --porcelain --untracked-files=all`. Evidence is validation input;
+  only the five `audit_metadata` values map to existing audit columns, and no
+  evidence-only property enters audit JSON.
+- Rejected: trusting configured remotes, local-only commits, branch URLs,
+  arbitrary receipt bytes, self-asserted uncross-bound facts, environment
+  booleans, worktree-file reads, alternate identities, dirty tree, SHA mismatch,
+  or audit-envelope extension.
+- Reason: literal HTTPS fetch, remote-main reachability, closed receipt schemas,
+  and cross-field binding make the operational evidence durable and
+  non-local-forgeable without treating it as normative authority.
 
 ## 6. Contracts
 
@@ -361,13 +447,23 @@ replaced or weakened.
 
 - Contracts: `CTR-SWX-003`; parent `CTR-CGS-008`, `CTR-CGS-010`.
 - Method: test every field missing/extra; wrong type; empty and over-byte-limit
-  metadata; unsafe path; absent/empty/digest-mismatched blob; wrong remote;
-  missing commit; alternate/duplicate identity; inactive flags; wrong type or
-  Agent ID; non-READY; non-PASS; mutable/malformed URL; lowercase/length/SHA
-  variants; dirty tracked/untracked tree; and one exact valid Git-object fixture.
-- Expected: each invalid apply fails before any Prisma connection; valid evidence
-  reaches DB planning; plan needs no evidence and writes nothing.
-- Failure: invalid input reaches DB access or evidence-only field enters audit.
+  metadata; unsafe path; absent/empty/digest-mismatched or schema-invalid receipt;
+  cross-field mismatch; configured-remote spoof; literal-fetch failure;
+  evidence/Phase-A commit absent or not reachable from fetched main; alternate or
+  duplicate identity; inactive flags; wrong type/Agent ID; non-READY; non-PASS;
+  mutable/malformed URL; lowercase/length/SHA variants; and dirty tracked or
+  untracked auth-service tree. Parser tests use closed synthetic JSON only and
+  MUST NOT claim positive provenance.
+- Expected: each invalid apply fails before any Prisma connection; plan needs no
+  evidence and writes nothing. Positive provenance is a required runtime/manual
+  Acceptance item after real Phase-A, identity, readiness, and review receipts
+  exist: run the exact CLI against an evidence commit reachable from literal
+  GitHub `main`, prove all closed receipt bindings, and stop at read-only plan.
+- Failure: invalid input reaches DB access; synthetic/local-only evidence is
+  reported valid; evidence-only fields enter audit; or production apply occurs.
+- Current implementation-PR evidence qualification: `INCONCLUSIVE` for positive
+  provenance by design because the parent prerequisites do not yet exist;
+  sufficient negative enforcement and parser coverage are still mandatory.
 
 ### ACC-SWX-004 — Identity and selection matrix
 
@@ -441,12 +537,27 @@ CTR-CGS-011 -> ACC-SWX-004 | ACC-SWX-008
 CTR-CGS-012 -> NOT_APPLICABLE (rollback not implemented)
 CTR-CGS-013 -> ACC-SWX-002 | ACC-SWX-007
 CTR-CGS-014 -> ACC-SWX-002 | ACC-SWX-007
-ACC-CGS-001..011 -> ACC-SWX-003..008 collectively
+ACC-CGS-001 -> ACC-SWX-004 (exact deterministic identity selection)
+ACC-CGS-002 -> ACC-SWX-004 (missing/mismatched identity all-or-nothing)
+ACC-CGS-003 -> ACC-SWX-005 (Audience failures write zero)
+ACC-CGS-004 -> ACC-SWX-005 (unknown/forbidden Scope rejection)
+ACC-CGS-005 -> ACC-SWX-006 | ACC-SWX-007 (two Grants + two audits atomically)
+ACC-CGS-006 -> ACC-SWX-006 (exact rerun writes zero)
+ACC-CGS-007 -> ACC-SWX-006 | ACC-SWX-007 (state/concurrency conflict rollback)
+ACC-CGS-008 -> ACC-SWX-005 (forbidden privilege rejection)
+ACC-CGS-009 -> ACC-SWX-008 (Legacy reads/writes zero)
+ACC-CGS-010 -> ACC-SWX-002 | ACC-SWX-003 | ACC-SWX-007 (metadata, audit, atomicity)
+ACC-CGS-011 -> ACC-SWX-004 | ACC-SWX-008 (only two canaries change)
 ACC-CGS-012 -> NOT_APPLICABLE (rollback not implemented)
-AC-AUTHORITY-1..2 -> ACC-SWX-005 static Stage-F absence assertions
-AC-AUDIT-1, AC-AUDIT-3..4 -> ACC-SWX-007
+AC-AUTHORITY-1 -> ACC-SWX-005 (Stage F absent and forum writes zero)
+AC-AUTHORITY-2 -> ACC-SWX-005 (registry presence cannot unblock Stage F)
+AC-AUDIT-1 -> ACC-SWX-007 (Stage W create audit schema-valid)
 AC-AUDIT-2 -> NOT_APPLICABLE (Stage F not implemented)
-AC-ROLLBACK-1..3 -> NOT_APPLICABLE (rollback not implemented)
+AC-AUDIT-3 -> ACC-SWX-007 (exact 13 fields, no additions)
+AC-AUDIT-4 -> ACC-SWX-007 (complete nine-field snapshots)
+AC-ROLLBACK-1 -> NOT_APPLICABLE (rollback not implemented)
+AC-ROLLBACK-2 -> NOT_APPLICABLE (rollback not implemented)
+AC-ROLLBACK-3 -> NOT_APPLICABLE (rollback not implemented)
 AC-NOOP -> ACC-SWX-006
 ```
 
@@ -483,10 +594,10 @@ The exact accepted revision must merge to `main` before implementation.
 ```text
 AUTHORING_BASE = cb0b3d37dfb105c763c9c83ebd65483270b21b81
 PARENT_SPEC_BLOB = d89bf08c8714f55571ee7d75da017b7cf7237096
-ROUND = 3
-PRIOR_REVIEWED_COMMIT = 00e8d560a0b5586df4ae0c8cdd1ee0e9fe3e512f
+ROUND = 4
+PRIOR_REVIEWED_COMMIT = 598d444047a7c3a8a47cd80ea11a65d520a509e7
 PRIOR_REVIEW = REVISE
-PRIOR_BLOCKERS_RESOLVED = 4
+PRIOR_BLOCKERS_RESOLVED = 3
 OPEN_OWNER_DECISIONS = NONE
 NORMATIVE_TBD = NONE
 READY_FOR_INDEPENDENT_REVIEW = YES
