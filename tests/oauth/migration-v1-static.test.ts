@@ -13,6 +13,16 @@ const migrationFile = path.resolve(
 );
 const schema = fs.readFileSync(schemaFile, 'utf8');
 const migration = fs.readFileSync(migrationFile, 'utf8');
+const ownerlessMigration = fs.readFileSync(
+  path.resolve(
+    process.cwd(),
+    'prisma',
+    'migrations',
+    '20260820000100_allow_ownerless_agent_principal',
+    'migration.sql',
+  ),
+  'utf8',
+);
 const legacyExchange = fs.readFileSync(
   path.resolve(process.cwd(), 'src', 'lib', 'oauth', 'token-exchange.ts'),
   'utf8',
@@ -22,11 +32,51 @@ const legacyExchangeTest = fs.readFileSync(
   'utf8',
 );
 
+// Physical line count = newline count, plus one only when the file does not
+// end with a newline. `split('\n').length` over-counts by one for any file
+// with a trailing newline because the final empty element is not a line.
+function physicalLineCount(text: string): number {
+  if (text.length === 0) return 0;
+  const newlines = text.match(/\n/g)?.length ?? 0;
+  return newlines + (text.endsWith('\n') ? 0 : 1);
+}
+
 test('V1 Prisma and migration files stay within the repository line limit', () => {
-  assert.ok(schema.split('\n').length <= 500, 'prisma/schema.prisma exceeds 500 lines');
-  assert.ok(migration.split('\n').length <= 500, 'V1 migration exceeds 500 lines');
-  assert.ok(legacyExchange.split('\n').length <= 500, 'Legacy OBO module exceeds 500 lines');
-  assert.ok(legacyExchangeTest.split('\n').length <= 500, 'Legacy OBO test exceeds 500 lines');
+  assert.ok(physicalLineCount(schema) <= 500, 'prisma/schema.prisma exceeds 500 lines');
+  assert.ok(physicalLineCount(migration) <= 500, 'V1 migration exceeds 500 lines');
+  assert.ok(physicalLineCount(legacyExchange) <= 500, 'Legacy OBO module exceeds 500 lines');
+  assert.ok(physicalLineCount(legacyExchangeTest) <= 500, 'Legacy OBO test exceeds 500 lines');
+});
+
+test('ownerless principal migration only replaces the profile shape check in one transaction', () => {
+  assert.ok(
+    physicalLineCount(ownerlessMigration) <= 500,
+    'ownerless principal migration exceeds 500 lines',
+  );
+  assert.match(ownerlessMigration, /^BEGIN;/);
+  assert.match(ownerlessMigration, /COMMIT;\s*$/);
+  assert.equal(
+    (ownerlessMigration.match(/DROP CONSTRAINT "machine_principal_type_shape_check"/g) ?? []).length,
+    1,
+    'exactly one drop of the named constraint',
+  );
+  assert.equal(
+    (ownerlessMigration.match(/ADD CONSTRAINT "machine_principal_type_shape_check" CHECK \(/g) ?? []).length,
+    1,
+    'exactly one re-add of the same-named constraint',
+  );
+  assert.match(ownerlessMigration, /"principal_type"::text = 'agent'[\s\S]*?"agent_id" IS NOT NULL/);
+  assert.match(ownerlessMigration, /"principal_type"::text = 'service'[\s\S]*?"agent_id" IS NULL/);
+  assert.doesNotMatch(
+    ownerlessMigration,
+    /owner_user_id/,
+    'the new constraint must not constrain owner_user_id',
+  );
+  assert.doesNotMatch(
+    ownerlessMigration,
+    /\b(INSERT|UPDATE|DELETE|TRUNCATE|ALTER\s+COLUMN|ALTER\s+TYPE|CREATE\s+TABLE|CREATE\s+INDEX|DROP\s+TABLE|DROP\s+COLUMN)\b/i,
+    'no data rewrite and no schema change beyond the constraint swap',
+  );
 });
 
 test('V1 migration is additive and preserves Legacy authority carriers', () => {
