@@ -1,5 +1,5 @@
 ---
-spec_id: AUTH_SERVICE_SVC_FORUM_V1_AUDIENCE_CCR
+spec_id: AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1
 status: proposed
 spec_kind: implementation
 authority_level: governing_spec
@@ -17,7 +17,7 @@ owners:
   - mayf3
 ---
 
-# AUTH_SERVICE_SVC_FORUM_V1_AUDIENCE_CCR
+# AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1
 
 ## 1. Goal
 
@@ -117,21 +117,27 @@ CONSUMER_REPOSITORY = mayf3/agent-forum
   Spec review 记录 = persistent PR review / repository report；
   conformance 证据 = implementation PR Contract matrix / `docs/audits/`。
 
-Syntax deviation 记录（诚实声明，不静默）：
+Syntax deviation 记录（历史，已在 rename round 解决）：
 
 ```text
-SPEC_ID_PATTERN_DEVIATION = RECORDED
+SPEC_ID_PATTERN_DEVIATION = RESOLVED_BY_MECHANICAL_RENAME
 ```
+
+本 Spec 的前身 SPEC_ID
+`AUTH_SERVICE_SVC_FORUM_V1_AUDIENCE_CCR` 不符合 vendored frontmatter
+schema（见下）；独立 review 判定 REVISE（唯一 blocker），已通过纯机械
+重命名（rename-only commit）解决：ID、文件名与全部 self-reference 同步
+替换，semantic change = NONE。历史记录保留如下。
 
 vendored frontmatter schema
 （`.agents/schemas/spec-frontmatter.schema.json`）要求 `spec_id` 匹配
-`^[A-Z][A-Z0-9_]*_V[0-9]+$`（以 `_V<n>` 结尾）。本 SPEC_ID
-`AUTH_SERVICE_SVC_FORUM_V1_AUDIENCE_CCR` 由 owner 指令冻结（`V1` 为
-authority 版本号居中，`AUDIENCE_CCR` 为 artifact 类别后缀），不匹配该
-pattern。当前 enforcement 为 `MANUAL_POLICY`（`.agents/local/README.md`
-§8），无 CI syntax gate 会被此偏离阻断；该偏离本身作为 owner decision
-记录于 §13 OQ-FR-001，由 acceptance round 裁决（修订 schema pattern 或
-重命名 SPEC_ID），不得静默忽略。
+`^[A-Z][A-Z0-9_]*_V[0-9]+$`（以 `_V<n>` 结尾）。前身 SPEC_ID
+`AUTH_SERVICE_SVC_FORUM_V1_AUDIENCE_CCR`（`V1` 为 authority 版本号居中，
+`AUDIENCE_CCR` 为 artifact 类别后缀）不匹配该 pattern。当时 enforcement 为
+`MANUAL_POLICY`（`.agents/local/README.md`
+§8），无 CI syntax gate 会被此偏离阻断；该偏离作为 owner decision
+记录于 §13 OQ-FR-001，最终由独立 review 的 REVISE 结论触发机械重命名
+解决，未修订 vendored schema。
 
 ## 4. Current State
 
@@ -552,7 +558,7 @@ svc-forum entry MUST 与以下内容逐字段一致（JSON 类型同样冻结）
   "registered_scopes": ["forum.read", "forum.write"],
   "status": "active",
   "freeze_ready": true,
-  "notes": "Registered by AUTH_SERVICE_SVC_FORUM_V1_AUDIENCE_CCR; machine-only agent access via standard OAuth2 client_credentials."
+  "notes": "Registered by AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1; machine-only agent access via standard OAuth2 client_credentials."
 }
 ```
 
@@ -856,11 +862,11 @@ owner 任务冻结编号，与 ACC-FR 稳定 ID 一一对应。
 
 ## 13. Open questions
 
-- `OQ-FR-001`（owner decision，acceptance 前裁决）：SPEC_ID pattern 与
-  vendored frontmatter schema 的偏离（§3 记录）。选项：a) acceptance 时
-  以 owner decision 修订 `.agents/schemas/spec-frontmatter.schema.json`
-  pattern 以容纳 `*_V<n>_<SUFFIX>` 形态；b) 重命名 SPEC_ID。裁决前本
-  偏离不阻塞 semantic review。
+- `OQ-FR-001`（RESOLVED — rename round 2026-08-20）：SPEC_ID pattern 与
+  vendored frontmatter schema 的偏离（§3 历史记录）。独立 review 判定
+  REVISE（唯一 blocker），已通过机械重命名解决：SPEC_ID →
+  `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1`（选项 b），vendored schema
+  未修改。semantic change = NONE。
 - `OQ-FR-002`（非 normative，acceptance/docs round 处理）：
   `docs/specs/README.md` 的 Current index 未在本轮新增本 Spec 行
   （本轮交付冻结为单文件新增）。acceptance round 应补齐 index 行
@@ -876,8 +882,8 @@ owner 任务冻结编号，与 ACC-FR 稳定 ID 一一对应。
 ## 14. Frozen summary（owner 任务冻结值回显）
 
 ```text
-SPEC_ID = AUTH_SERVICE_SVC_FORUM_V1_AUDIENCE_CCR
-SPEC_FILE = docs/specs/AUTH_SERVICE_SVC_FORUM_V1_AUDIENCE_CCR.md
+SPEC_ID = AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1
+SPEC_FILE = docs/specs/AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1.md
 SPEC_STATUS = proposed
 IMPLEMENTATION_AUTHORITY = none
 
