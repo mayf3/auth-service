@@ -31,6 +31,7 @@ Program 或 governance adoption Spec 使用 `implementation_authority: none` 时
 | Spec ID | Kind | Status | Implementation authority | Purpose |
 |---|---|---|---|---|
 | `AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1` | invariant | proposed | none | 精确 vendoring 并采用共享开发治理；不改变产品行为 |
+| `AUTH_SERVICE_LEGACY_SURFACE_SHUTDOWN_V1` | program | proposed | none | Legacy 鉴权面硬切、Minimal Auth V1 唯一运行时、provisioning read-only resolution 与生产激活 gate 体系；Program Spec，不直接授权实现，每个 implementation Child 需独立 accepted Child Spec |
 
 ## Existing authorities outside this directory
 
@@ -46,7 +47,7 @@ Program 或 governance adoption Spec 使用 `implementation_authority: none` 时
 
 `.agents/specs/` 不是 governing location。治理采用生效前已经创建但尚未合并的候选，应 rebase 到包含 accepted governance 的 base、迁移到本目录、补齐 frontmatter 与 stable IDs，并在新 exact head 上重新独立评审。
 
-截至 adoption candidate authoring 时，auth-service PR #2 保持独立 Draft；本 index 不将其视为 accepted 或 active authority。
+截至 adoption candidate authoring 时，auth-service PR #2 保持独立 Draft；本 index 不将其视为 accepted 或 active authority。该候选已完成治理迁移（rebase 到 accepted governance base、移入本目录、补齐 frontmatter 与 stable IDs），其迁移前全部历史 review coordinates 仅为 `HISTORICAL_REVIEW_EVIDENCE_ONLY`，迁移后的 exact Head 仍需新的独立 semantic review 与 Owner acceptance。
 
 ## Records
 
