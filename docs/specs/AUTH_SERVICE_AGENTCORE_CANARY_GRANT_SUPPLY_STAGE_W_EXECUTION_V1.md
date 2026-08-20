@@ -53,8 +53,9 @@ PRODUCTION_DB_WRITE_AUTHORIZED = NO
   no path to an existing database.
 - Current Prisma-schema creation plus exact test-only installation and runtime
   verification of the existing Grant-audit checks and immutability trigger.
-- A strict manifest read from immutable Git objects in an exact Agent Core
-  evidence commit; the manifest carries all operational and audit metadata.
+- A strict manifest read through GitHub REST from an Agent Core commit proven
+  reachable from remote `main`; the manifest carries all operational and audit
+  metadata.
 
 ### Out of scope
 
@@ -157,15 +158,55 @@ Basis: `OBS-SWX-004`, `CLM-SWX-004`, `EVD-SWX-004A`, `EVD-SWX-004B`.
 - Revision: `45b63e23e2db46f14436233385e9eed180d4c4be` worktree context;
   parent source remains `cb0b3d37dfb105c763c9c83ebd65483270b21b81`.
 - Environment: macOS local authoring host; observed at `2026-08-21`.
-- Method: create disposable host `initdb` clusters with neutral locale and mmap
-  settings; then create a `--rm`, tmpfs-backed, loopback-only Docker PostgreSQL
-  container and run `prisma db push --skip-generate` against its generated port.
-- Result: three host-cluster attempts failed before schema creation with
-  `shmget ... Cannot allocate memory`; container image
-  `postgres@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777`
-  succeeded and produced 20 public tables; cleanup removed the container.
-- Provenance: executed command output in the authoring session; no repository or
-  production database was used.
+- Method and durable transcript: executed from repository root; this exact Spec
+  section is the persistent provenance location.
+
+  ```text
+  HOST_PROBE_1:
+    LANG=C LC_ALL=C initdb -D "$TMP/data" -A trust -U postgres
+    pg_ctl -D "$TMP/data" -o "-h 127.0.0.1 -p <generated>" -w start
+  HOST_PROBE_2:
+    same, with server shared_memory_type=mmap and dynamic_shared_memory_type=mmap
+  HOST_PROBE_3:
+    initdb --no-locale -c shared_memory_type=mmap
+           -c dynamic_shared_memory_type=mmap; then pg_ctl start
+  HOST_RESULT_EACH:
+    FATAL: could not create shared memory segment: Cannot allocate memory
+    DETAIL: Failed system call was shmget(..., size=56, 03600).
+  HOST_SYSCTL:
+    kern.sysv.shmmax=4194304 kern.sysv.shmall=1024 kern.sysv.shmseg=8
+
+  CONTAINER_IMAGE_INSPECT:
+    docker image inspect postgres:16-alpine --format '{{json .RepoDigests}}'
+  IMAGE_RESULT:
+    postgres@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+  CONTAINER_PROBE:
+    docker run -d --name auth-stage-w-preflight-<pid> --rm
+      --tmpfs /var/lib/postgresql/data:rw,noexec,nosuid,size=512m
+      -e POSTGRES_HOST_AUTH_METHOD=trust
+      -e POSTGRES_DB=auth_stage_w_conformance
+      -p 127.0.0.1::5432 postgres:16-alpine
+    docker exec <name> pg_isready -U postgres -d auth_stage_w_conformance
+    DATABASE_URL=postgresql://postgres@127.0.0.1:<assigned>/auth_stage_w_conformance
+      npx prisma db push --skip-generate
+    psql ... -Atc "SELECT count(*) FROM information_schema.tables
+                    WHERE table_schema='public'"
+    docker rm -f <name>  # EXIT trap
+  CONTAINER_RESULT:
+    OWNED_DOCKER_POSTGRES=true
+    LOOPBACK_ONLY=true
+    CURRENT_SCHEMA_TABLE_COUNT=20
+    cleanup: container absent
+  PINNED_DIGEST_EXECUTION:
+    docker run --rm postgres@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
+      postgres --version
+    => postgres (PostgreSQL) 16.14
+  ```
+
+- Result: host clusters were unavailable under the observed kernel limit; the
+  exact digest container succeeded with no host volume or external database.
+- Provenance: transcript above, bound to authoring commit and environment; no
+  repository file or production database was modified.
 
 ## 4. Claims and evidence
 
@@ -365,22 +406,26 @@ Basis: `OBS-SWX-004`, `CLM-SWX-004`, `EVD-SWX-004A`, `EVD-SWX-004B`.
   before Prisma construction. `--apply` performs that identical validation
   first, then and only then constructs Prisma and enters the Stage W engine.
 
-  The executor MUST create its own `mktemp` directory and fresh bare Git
-  repository. For every Git subprocess it sets `GIT_CONFIG_NOSYSTEM=1`,
-  `GIT_CONFIG_GLOBAL=/dev/null`, `HOME` and `XDG_CONFIG_HOME` to fresh empty
-  directories, `GIT_TERMINAL_PROMPT=0`, clears all `GIT_CONFIG_*` count/key/value
-  injection variables, `GIT_PROXY_COMMAND`, `GIT_SSH`, `GIT_SSH_COMMAND`, and
-  upper/lowercase `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, and `NO_PROXY`, and
-  passes no caller repository or local config. It enables HTTPS only and disables
-  file, ext, SSH, and helper
-  transports. In that repository it fetches literal
-  `https://github.com/mayf3/dsh-agent-core.git` branch `main`, verifies
-  `evidence_commit` is an ancestor of fetched remote main, and reads manifest
-  and receipts only with `git show <evidence_commit>:<path>`. It verifies
-  `phase_a.merge_commit` exists, is an ancestor of `evidence_commit`, and is
-  reachable from fetched main. Cleanup removes the entire fetch directory.
-  Caller-controlled local/global/system Git configuration, URL rewrite,
-  repository objects, and editable remotes therefore cannot satisfy apply.
+  Evidence provenance MUST use Node's built-in `node:https` directly, not Git,
+  `fetch`, curl, a proxy library, or a caller repository. Before any request the
+  executable rejects non-empty `NODE_OPTIONS`, `NODE_PATH`,
+  `NODE_EXTRA_CA_CERTS`, `SSL_CERT_FILE`, or `SSL_CERT_DIR`. Requests use fixed
+  hostname `api.github.com`, port `443`, method `GET`, redirects disabled, the
+  platform trust store, and no caller proxy/agent. Any non-200, redirect,
+  timeout, TLS authorization failure, wrong content type, or oversized body
+  fails closed.
+
+  The executor queries repository `mayf3/dsh-agent-core` through immutable GitHub
+  REST coordinates only. It resolves `commits/main`, resolves both
+  `evidence_commit` and `phase_a.merge_commit`, and uses GitHub Compare responses
+  to require: evidence commit is equal to or an ancestor of current remote main;
+  Phase-A commit is equal to or an ancestor of evidence commit; each compare
+  response has the exact expected base/head SHA and merge-base SHA. It reads the
+  manifest and every receipt from the Contents API at
+  `contents/<encoded-safe-path>?ref=<evidence_commit>`, requiring response
+  `type=file`, exact requested path/ref, bounded size, base64 encoding, and no
+  truncation. No local Git object, config, executable, PATH, remote, or transport
+  participates in provenance.
 
   Paths are non-empty relative POSIX paths without `..`, leading slash,
   backslash, empty segment, or NUL. Every receipt blob MUST exist at the same
@@ -478,55 +523,75 @@ Basis: `OBS-SWX-004`, `CLM-SWX-004`, `EVD-SWX-004A`, `EVD-SWX-004B`.
   cross-pairs such as `issues/...#pullrequestreview-...` are invalid. For both
   `review_ref` and `approval_ref`, the executor MUST derive the corresponding
   `api.github.com/repos/mayf3/auth-service/...` immutable-ID endpoint, perform an
-  HTTPS request with redirects disabled, require HTTP 200, and require returned
-  repository, numeric object ID, and canonical `html_url` to match the manifest
-  URL exactly. Missing, deleted, redirected, rate-limited, or mismatched objects
-  fail closed before DB access. Receipt content supplies the reviewed/approved
+  HTTPS request with redirects disabled, and require HTTP 200. A pull-review
+  response MUST have exact numeric `id`, exact canonical `html_url`, and exact
+  `pull_request_url=https://api.github.com/repos/mayf3/auth-service/pulls/<PR>`.
+  An issue/PR-comment response MUST have exact numeric `id`, exact canonical
+  `html_url`, and exact
+  `issue_url=https://api.github.com/repos/mayf3/auth-service/issues/<number>`.
+  Missing, deleted, redirected, rate-limited, or mismatched objects fail closed
+  before DB access. Receipt content supplies the reviewed/approved
   semantics; live API dereference proves the cited durable object exists.
   The auth-service worktree MUST be clean under
   `git status --porcelain --untracked-files=all`. Evidence is validation input;
   only the five `audit_metadata` values map to existing audit columns, and no
   evidence-only property enters audit JSON.
-- Rejected: trusting configured remotes, local-only commits, branch URLs,
-  arbitrary receipt bytes, self-asserted uncross-bound facts, environment
-  booleans, worktree-file reads, alternate identities, dirty tree, SHA mismatch,
-  or audit-envelope extension.
-- Reason: sanitized literal HTTPS fetch, remote-main reachability, closed receipt
-  schemas, approval binding, duplicate-key rejection, and cross-field binding
-  make operational evidence durable and non-local-forgeable without treating it
-  as normative authority.
+- Rejected: Git-based evidence transport, caller repositories/configuration,
+  local-only commits, branch URLs as evidence, arbitrary receipt bytes,
+  self-asserted uncross-bound facts, environment booleans, worktree-file evidence,
+  alternate identities, dirty source tree, SHA mismatch, or audit-envelope
+  extension.
+- Reason: fixed GitHub REST coordinates, remote-main reachability, closed receipt
+  schemas, live review/approval object checks, duplicate-key rejection, and
+  cross-field binding make operational evidence durable and non-local-forgeable
+  without treating it as normative authority.
 
-### DEC-SWX-004 — Separate operational gate from DB integration seam
+### DEC-SWX-004 — Production-ineligible container conformance mode
 
 - Decision owner: same as `DEC-SWX-001`.
-- Decision: the executable file owns one internal planner/Serializable transaction
-  engine used by both CLI and integration tests. Operational CLI `--apply` MUST
-  validate `DEC-SWX-003` before constructing Prisma and is the only deployable
-  apply entrypoint. For temporary-DB tests only, the module may export exactly one
-  named `stageWConformanceOnly` seam that:
+- Decision: the executable contains one private planner/Serializable transaction
+  engine. No engine function or test closure is exported. Operational `--apply`
+  validates `DEC-SWX-003` before Prisma construction. DB integration uses an
+  explicit `--conformance-apply --descriptor-fd <integer>` CLI mode that refuses
+  `DATABASE_URL` and reads one duplicate-key-free JSON descriptor from an
+  inherited anonymous pipe (FIFO), then closes it. Regular files, argv/env JSON,
+  stdin fallback, named paths, sockets, and repeated reads are rejected.
 
-  - is never dispatched by CLI flags or environment variables;
-  - requires an already constructed Prisma client;
-  - queries `current_database()` and refuses unless it equals
-    `auth_stage_w_conformance`;
-  - requires `AUTH_STAGE_W_CONFORMANCE=1` and a caller capability symbol created
-    and retained inside the same module, exposed only as a method closure on the
-    exported test seam;
-  - accepts strict synthetic audit metadata but no evidence-valid flag;
-  - calls the same private planner/transaction engine used after operational
-    evidence validation.
+  Descriptor is `additionalProperties:false` with exactly:
 
-  Static import scanning MUST prove only the exact authorized test file imports
-  this seam and no application, script CLI dispatch, route, reusable library, or
-  other test does. Results through this seam qualify only DB behavior Contracts;
-  they never satisfy positive provenance or operational readiness. Positive
-  provenance remains runtime/manual and uses `--validate-evidence` after real
-  receipts exist; it performs no DB access. No production apply is authorized.
-- Rejected: hidden CLI flag, evidence-bypass environment variable, exported raw
-  apply function, alternate executable, local-only evidence override, or claiming
-  conformance-seam results as operational evidence.
-- Reason: Stage W transaction behavior must be testable before bootstrap receipts
-  exist without creating any operational path around provenance validation.
+  ```text
+  schema_version = 1
+  container_id = lowercase 64-hex
+  nonce = lowercase 64-hex
+  host_port = integer 1..65535
+  database = auth_stage_w_conformance
+  audit_metadata = strict five-field parent metadata using synthetic test values
+  ```
+
+  The harness generates the 256-bit nonce, starts the exact `DEC-SWX-002` image
+  with label
+  `com.mayf3.auth.stage-w-conformance=sha256:<SHA256(nonce)>` and PostgreSQL custom
+  setting `stage_w.conformance_nonce=<nonce>`, and transfers the descriptor only
+  by pipe to the test process. Conformance mode invokes fixed
+  `/usr/local/bin/docker inspect <container_id>` with a minimal allowlisted child
+  environment and verifies: exact image digest, running state, exact label,
+  tmpfs data directory, zero host mounts, exact loopback host-port binding, and
+  no unexpected network/privileged settings. It constructs the URL internally,
+  connects, and requires exact `current_database()`, server port/address, and
+  `current_setting('stage_w.conformance_nonce')` before calling the private engine.
+
+  An external caller may reproduce a conformance container, but the mode is
+  structurally incapable of addressing an existing/production DB: it accepts no
+  connection input and only constructs a URL after Docker inspection plus the
+  server nonce checks. Results qualify DB behavior Contracts only, never positive
+  provenance/readiness. Positive provenance remains runtime/manual through
+  DB-free `--validate-evidence`. No production apply is authorized.
+- Rejected: importable engine/seam, hidden flag, env/file descriptor contents
+  other than the anonymous pipe, external URL, non-pinned container, host volume,
+  alternate DB, local evidence override, or conformance result claimed as
+  operational evidence.
+- Reason: real transaction behavior is testable before receipts exist while the
+  only evidence-free mode is cryptographically bound to the disposable container.
 
 ## 6. Contracts
 
@@ -560,10 +625,11 @@ replaced or weakened.
 
 ### CTR-SWX-005 — Test seam cannot become an operational bypass
 
-The only non-CLI integration seam is exactly `DEC-SWX-004`; its database-name,
-environment, capability-closure, import, and no-dispatch guards are mandatory.
-Operational `--apply` always performs full provenance validation first. No test
-result from the seam qualifies `CTR-CGS-010`; positive provenance remains a
+The only evidence-free integration mode is exactly `DEC-SWX-004`; its pipe,
+descriptor, Docker inspection, image/label/tmpfs/network, nonce, database, and
+no-external-URL guards are mandatory. No engine function is exported.
+Operational `--apply` always performs full provenance validation first. No
+conformance result qualifies `CTR-CGS-010`; positive provenance remains a
 separate runtime/manual result from `--validate-evidence` with real receipts.
 
 ## 7. Acceptance and parent mapping
@@ -595,10 +661,11 @@ separate runtime/manual result from `--validate-evidence` with real receipts.
   path; absent/empty/digest-mismatched/schema-invalid receipt; manifest/receipt
   mismatch; missing or mismatched approval receipt/operator; impossible URL
   cross-pair; GitHub API missing/deleted/redirected/rate-limited/mismatched object;
-  caller local/global/system `insteadOf` injection; Git config/env, helper, proxy,
-  SSH, file, and ext transport injection; literal-fetch failure;
-  evidence/Phase-A commit absent or not reachable from fetched main; alternate or
-  duplicate identity; inactive flags; wrong type/Agent ID; non-READY/non-PASS;
+  non-empty Node/TLS override variables; attempted proxy/agent injection; wrong
+  host/port/content-type, oversized/truncated/non-base64 Contents response;
+  malformed Commit/Compare base/head/merge-base/status; evidence or Phase-A commit
+  absent/not reachable from remote main; alternate/duplicate identity; inactive
+  flags; wrong type/Agent ID; non-READY/non-PASS;
   lowercase/length/SHA variants; and dirty tracked/untracked auth-service tree.
   Parser tests use synthetic JSON only and MUST NOT claim positive provenance.
 - Expected: each invalid `--apply` and `--validate-evidence` fails before Prisma;
@@ -716,16 +783,18 @@ negative-test literals.
 
 - Contracts: `CTR-SWX-005`; parent DB Contracts exercised by `ACC-SWX-004`
   through `ACC-SWX-008`.
-- Method: run the exact test import in the owned container; reject wrong database
-  name, missing conformance environment, and direct capability construction;
-  scan every repository import and CLI branch; invoke every documented and
-  unknown CLI flag/environment combination.
-- Expected: only the authorized test imports `stageWConformanceOnly`; it reaches
-  the same private engine only in `auth_stage_w_conformance`; CLI cannot dispatch
-  it; operational `--apply` reaches no Prisma construction/query before complete
-  provenance validation; `--validate-evidence` always has DB access `0`.
-- Failure: raw apply export, second importer/entrypoint, flag/env provenance
-  bypass, seam on another DB, or DB test reported as positive provenance.
+- Method: invoke conformance mode with descriptor FD missing, regular-file,
+  socket, stdin, closed, reused, duplicate-key, and malformed variants; wrong
+  nonce/label/image/mount/network/port/database/GUC; caller `DATABASE_URL`;
+  stopped or removed container; Docker-inspect failure; and every unknown CLI
+  flag/environment combination. Scan exports/imports and CLI branches.
+- Expected: no engine function is exported; only anonymous-pipe descriptor plus
+  exact live disposable container reaches the private engine; URL is internally
+  constructed; operational `--apply` reaches no Prisma construction/query before
+  provenance validation; `--validate-evidence` has DB access `0`.
+- Failure: import/dynamic-import raw apply, external connection input, descriptor
+  replay, nonconforming/production DB access, flag/env provenance bypass, or DB
+  test reported as positive provenance.
 
 ## 8. Compatibility and lifecycle
 
@@ -756,8 +825,8 @@ The exact accepted revision must merge to `main` before implementation.
 ```text
 AUTHORING_BASE = cb0b3d37dfb105c763c9c83ebd65483270b21b81
 PARENT_SPEC_BLOB = d89bf08c8714f55571ee7d75da017b7cf7237096
-ROUND = 5
-PRIOR_REVIEWED_COMMIT = 45b63e23e2db46f14436233385e9eed180d4c4be
+ROUND = 6
+PRIOR_REVIEWED_COMMIT = 3b9ad642e5ebfd335a3e186d84c5c2c91f88ae42
 PRIOR_REVIEW = REVISE
 PRIOR_BLOCKERS_RESOLVED = 4
 OPEN_OWNER_DECISIONS = NONE
