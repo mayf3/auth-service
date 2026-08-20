@@ -23,426 +23,601 @@ AUTHORITY_ID = MINIMAL_AUTH_FOUNDATION_V2
 AUTHORITY_KIND = architecture
 AUTHORITY_STATUS = proposed
 SUPERSEDES = MINIMAL_AUTH_FOUNDATION_V1 (whole authority)
-SUPERSEDED_BY = null (until a future whole-authority successor)
-PROPOSED_AT_BASE = 1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9
+SUPERSEDED_BY = null
+PROPOSED_AT_BASE = e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09
+PREVIOUS_REVIEWED_BASE = 1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9
 DATE = 2026-08-20
-
-AUTHORITY_DELTA_SCOPE =
-  migration / hard-cut / sequencing authority only
-
-UNTOUCHED_ARCHITECTURE_SEMANTICS = PRESERVED_AT_EXACT_IDENTITY
-PRODUCTION_EFFECTIVE = false
-MAINLINE_EFFECTIVENESS_GATES = PRESERVED_FROM_V1
-IMPLEMENTATION_AUTHORITY = contracts
-IMPLEMENTATION_AUTHORITY_SCOPE =
-  incorporated frozen contract modules and bundle only;
-  amended sequencing module authorizes no product change by itself
+AUTHORITY_DELTA_SCOPE = migration / hard-cut / sequencing only
+WHOLE_AUTHORITY_SUCCESSOR = MINIMAL_AUTH_FOUNDATION_V2
+UNCHANGED_V1_CLAIMS_PROFILES_GRANTS_DELEGATION_HUMAN_SESSION_CONFORMANCE = EXACT_IDENTITY_PRESERVED
+V0_FROZEN_CONTRACTS_GOVERN_PRODUCTION_UNTIL_GATES = YES
+THIS_PROPOSED_PR_AUTHORIZES_IMPLEMENTATION = NO
+PRODUCT_IMPLEMENTATION_STARTED = NO
+READY_TO_MARK_ACCEPTED = NO
 ```
 
 ## 1. Goal
 
-建立 `MINIMAL_AUTH_FOUNDATION_V1` 的 whole-authority successor：
-完整保留全部未改变的 Minimal Auth V1 架构、claims、profiles、grants、
-delegation、human session、conformance 与 Wire requirements，并在单一
-docs-only authority change 中原子替换 migration / hard-cut / sequencing
-authority，使 Owner 已接受的 Legacy 硬切方向获得合法的 authority 通路，
-解除 `AUTH_SERVICE_LEGACY_SURFACE_SHUTDOWN_V1`（PR #2）acceptance 的
-治理阻塞。
-
-本 authority 不改变任何产品架构语义，不宣布 production effective，
-不授权实现，不部署。
+建立 `MINIMAL_AUTH_FOUNDATION_V1` 的 whole-authority successor。V2 精确保留
+V1 的 claims、profiles、grants、delegation、human session、conformance 与
+1.2.0 executable bundle，只替换 migration / hard-cut / sequencing meaning。
+本 proposed PR 只形成可独立评审的 authority 候选；不接受、不实现、不部署、不合并。
 
 ## 2. Scope and non-goals
 
 ### 2.1 Scope
 
-- `MINIMAL_AUTH_FOUNDATION_V1` 的 whole-authority supersession；
-- V0→V1 migration / hard-cut / sequencing authority 的原子替换；
-- supersession 生效时的原子 backlink 义务。
+- whole-authority supersession；
+- 可执行且原子的 V2 accepted / V1 superseded lifecycle transition；
+- PRE_CUT source artifact 与 V1-only Cut Artifact 的无歧义顺序；
+- successor effectiveness field、九门、bounded implementation authority；
+- downstream authority inventory 与 compatibility review。
 
 ### 2.2 Non-goals
 
-- 不重新设计 Minimal Auth V1 架构（DEC-AUTH-SHUTDOWN-004 同向）；
-- 不修改任何已接受 authority 的原有 normative meaning——V1 文件在 V2
-  被接受并合入 main 前保持原样且仍是唯一活动 architecture authority；
-- 不新增、删除或改写任何 wire claim、profile、grant、delegation、
-  human session 或 conformance requirement；
-- 不宣布 `MINIMAL_AUTH_MAINLINE_EFFECTIVE` 或任何 production-effective
-  状态；
-- 不接受、不修改、不实现 PR #2；PR #2 的 alignment 是其自己的后续
-  amendment；
-- 不实现、不部署、不 merge。
+- 不改变 V1 claims/profile/grant/delegation/human-session/conformance/bundle 语义；
+- 不把 PR #2 的 proposed Decision 当作活动 authority；硬切方向只由本 V2 的
+  `DEC-MAFV2-*` 在本 V2 被接受后拥有；
+- 不修改 accepted `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1`；
+- 不宣布 production effective；不授权 sequencing 实现；
+- 不修改产品代码、schema、migration、runtime config、deployment 或 bundle；
+- 不接受、不修改、不合并 PR #2。
 
 ## 3. Authority and dependencies
 
-### 3.1 Authority kind 与 precedence
+### 3.1 Precedence
+
+V2 是本仓库 precedence 第 2 层 architecture 候选。激活前 V1 仍是唯一活动的
+Minimal Auth architecture authority。激活后 V2 whole 地取代 V1；governing Specs
+只能在自己的独立 amendment 中对齐，不能反向覆盖 architecture authority。
+
+### 3.2 Explicit V1 lifecycle root
 
 ```text
-authority_kind = architecture
+V1_LIFECYCLE_ROOT = docs/contracts/minimal-auth-v1/README.md
+V1_COMPATIBILITY_ENTRY = docs/contracts/MINIMAL_AUTH_FOUNDATION_V1.md
 ```
 
-V2 位于本地 precedence 第 2 层（`.agents/local/README.md` §2）：
-Product Direction（当前 NONE_DECLARED）→ 本 architecture authority →
-`docs/specs/` accepted governing Specs → code/tests/runtime。
+V1 lifecycle root 是可变 lifecycle wrapper，不属于 CTR-MAFV2-001 的 immutable
+exact-incorporation 集合。其 base blob
+`fbaf7c8986aa367e0f8f43de1872e6d7e6c5ca5f` 仅作为 source provenance。
+CTR-MAFV2-005 冻结 acceptance-only lifecycle delta；除明确列出的 lifecycle/backlink
+字段外，V1 normative meaning 不得变化。
 
-governing Specs 不得覆盖本 authority；本 authority 不得越权改写其他
-仓库的 accepted authority。
-
-`governed_by: []` 仅表达“本仓库内无更高本地 authority”；该 top-level
-角色由 `SPEC_ACCEPTANCE_ACTORS` 接受本 authority 时显式确认。
-
-### 3.2 Whole-authority supersession 机制
-
-依据 `SPEC_FORMAT_V0` §2.7（whole-Spec ID only；fragment 禁止）与
-`.agents/local/README.md` §5（修改既有 normative meaning 必须走
-whole-authority `SUPERSEDE`）：
+### 3.3 Accepted transition result
 
 ```text
-V2 (proposed) ──accept + merge──▶ V1 (superseded)
+V2:
+  status = accepted
+  supersedes = [MINIMAL_AUTH_FOUNDATION_V1]
+V1 lifecycle root:
+  status = superseded
+  superseded_by = MINIMAL_AUTH_FOUNDATION_V2
+V1 compatibility entry:
+  status = superseded
+  superseded_by = MINIMAL_AUTH_FOUNDATION_V2
+  current_architecture_authority = MINIMAL_AUTH_FOUNDATION_V2
 ```
 
-- 在 V2 被独立 semantic review、Owner accept 并合入 main 之前：V1 保持
-  唯一活动 architecture authority；本文件只是 proposed 候选；
-- V2 接受并合入时，同一 docs-only change 原子完成（CTR-MAFV2-005）：
-  - `.agents/local/README.md` §2 将 `MINIMAL_AUTH_FOUNDATION_V1` 标记为
-    superseded、`superseded_by: MINIMAL_AUTH_FOUNDATION_V2`；
-  - `docs/specs/README.md` authority 清单同步；
-  - `docs/contracts/minimal-auth-v1/README.md` 状态块追加非 normative
-    指针：`SUPERSEDED_BY=MINIMAL_AUTH_FOUNDATION_V2`（不改动其 normative
-    内容任何字节之外的语义）；
-- backlink 禁止提前出现在本 proposed 阶段。
+这些值是 future acceptance change 的原子结果，不描述本 proposed Head 的当前状态。
+兼容入口在激活后 MUST NOT 再把 V1 表达为当前活动、可直接实施的 architecture authority。
 
-### 3.3 对 governing Specs 的关系
+### 3.4 Accepted downstream Spec on the new base
 
-`AUTH_SERVICE_LEGACY_SURFACE_SHUTDOWN_V1` 及其他 governing Specs 在 V2
-接受后应将 `governed_by` 指向 `MINIMAL_AUTH_FOUNDATION_V2` 并删除任何
-prose-only partial supersession 表述。该 alignment 属于各 Spec 自己的
-amendment，不由本 authority 代替完成。
+`AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1` 在新 Base 上是 accepted implementation
+Spec，`implementation_authority=contracts`，并通过 `external_authorities` 以
+`constrained_by` 关系绑定 `MINIMAL_AUTH_FOUNDATION_V1@1da40d4...`。它的封闭产品
+范围不拥有 architecture supersession。本 PR 不静默改写它；CTR-MAFV2-006 要求将此类
+external-authority reference 纳入 inventory，后续是否 successor/alignment 由独立评审
+和该 Spec 自己的 amendment 决定。
 
 ## 4. Current State
 
-- `STATE-MAFV2-001` — `MINIMAL_AUTH_FOUNDATION_V1` 是活动 frozen
-  architecture authority：normative modules 位于
-  `docs/contracts/minimal-auth-v1/`，executable bundle 位于
-  `contract-bundles/minimal-auth-v1/`（1.2.0，frozen，
-  implementation_authorized=true）。观察基线 commit
-  `1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9`，observed 2026-08-20。
-  Basis: `OBS-MAFV2-001`。
-- `STATE-MAFV2-002` — 共享开发治理已在该基线 accepted 并合入 main
-  （`AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1` status=accepted；
-  lock adoption.status=accepted）。Basis: `OBS-MAFV2-004`。
-- `STATE-MAFV2-003` — PR #2（head `fb8d55e785d6f99c9e57a602543609953e8f5410`）
-  为 proposed governing program，声明
-  `governed_by: [MINIMAL_AUTH_FOUNDATION_V1]` 且 `supersedes: []`，但其
-  §12.2 以 prose 表格选择性 supersede 父级 migration sequencing 条款，
-  其 §3.1 将自身 Owner 决策置于父级 authority 之上。独立 Review
-  （REVISE，5 blockers，2026-08-19/20）已认定该形态为 Governance V0
-  禁止的 prose-only partial supersession。Basis: `OBS-MAFV2-003`。
-- `STATE-MAFV2-004` — Owner 已接受的硬切产品方向（无迁移窗口、无双协议
-  artifact、无兼容开关）目前缺乏合法的 authority transition 机制承载，
-  造成父级 sequencing 与 governing program 之间的治理冲突。Basis:
-  `OBS-MAFV2-002`、`OBS-MAFV2-003`。
+### STATE-MAFV2-001 — V1 remains the active architecture at the evaluated base
+
+- Subject: `MINIMAL_AUTH_FOUNDATION_V1` lifecycle and frozen contract set
+- As-of commit / artifact revision: `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- Environment: `mayf3/auth-service` source repository, `github/main`
+- Observed at: `2026-08-20T13:54:41Z`
+- Basis: `OBS-MAFV2-001`, `CLM-MAFV2-001`, `EVD-MAFV2-001`
+
+### STATE-MAFV2-002 — Governance is accepted but manually enforced
+
+- Subject: local Development Governance adoption and enforcement state
+- As-of commit / artifact revision: `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- Environment: repository source and local governance verifier
+- Observed at: `2026-08-20T13:54:41Z`
+- Basis: `OBS-MAFV2-002`, `EVD-MAFV2-002`
+
+### STATE-MAFV2-003 — Prior review is historical evidence only
+
+- Subject: PR #7 independent semantic review of the previous exact Head
+- As-of commit / artifact revision: base `1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9`, Head `758f21e79de1bb602da05936832b713746d27c0b`
+- Environment: persistent GitHub PR #7 review record
+- Observed at: `2026-08-20T13:07:13Z`
+- Basis: `OBS-MAFV2-003`, `CLM-MAFV2-002`, `EVD-MAFV2-003`
+
+### STATE-MAFV2-004 — New base contains one relevant accepted downstream Spec
+
+- Subject: `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1`
+- As-of commit / artifact revision: `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- Environment: `mayf3/auth-service` source repository, `github/main`
+- Observed at: `2026-08-20T13:54:41Z`
+- Basis: `OBS-MAFV2-004`, `OBS-MAFV2-005`, `CLM-MAFV2-003`, `EVD-MAFV2-004`
+
+### STATE-MAFV2-005 — Pinned V1 assets have no main-drift delta
+
+- Subject: V1 normative modules and `contract-bundles/minimal-auth-v1`
+- As-of commit / artifact revision: comparison `1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9..e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- Environment: clean task worktree, Git object database
+- Observed at: `2026-08-20T13:54:41Z`
+- Basis: `OBS-MAFV2-005`, `CLM-MAFV2-004`, `EVD-MAFV2-005`
 
 ## 5. Observations
 
-### OBS-MAFV2-001 — V1 authority 模块清单（exact identity）
+### OBS-MAFV2-001 — V1 lifecycle and object identities
 
-- Subject: `MINIMAL_AUTH_FOUNDATION_V1` normative modules 与 bundle
-- Source revision: `1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9`
-- Method: `git rev-parse <commit>:<path>`（blob identity）
-- Observed at: 2026-08-20
-- Result: 见 CTR-MAFV2-001 incorporation 表。
+- Subject: V1 lifecycle root, normative modules, migration module, and bundle
+- Source revision: `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- Environment: clean task worktree, Git object database
+- Observed at: `2026-08-20T13:54:41Z`
+- Method: executed `git rev-parse <base>:<path>` for every item listed in CTR-MAFV2-001 and the lifecycle/migration provenance objects
+- Result: all object identities equal their identities at `1da40d4...`; V1 lifecycle root still advertises frozen/current implementation-authorized state
+- Provenance: this PR authoring execution record and CTR-MAFV2-001 table
 
-### OBS-MAFV2-002 — V1 migration 模块冻结的 sequencing 条款
+### OBS-MAFV2-002 — Governance verifier result
 
-- Subject: `docs/contracts/minimal-auth-v1/v0-to-v1-migration.md`
-- Source revision: blob `954b661e84697a7b78566fadd09383dd5298b5d4`
-- Observed at: 2026-08-20
-- Result: §7 Phase 3 要求“不静默删除 Legacy”；§7 Phase 5 要求 Legacy
-  流量为零并持续满足冻结窗口后受控删除；§8 允许迁移窗口内受控双协议
-  （显式模式选择、独立遥测、固定截止日期）；§9 冻结九项 mainline
-  生效门。
+- Subject: vendored governance bytes and accepted adoption metadata
+- Source revision: `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- Environment: clean task worktree, local Python 3 verifier
+- Observed at: `2026-08-20T13:54:41Z`
+- Method: executed `python3 .agents/tools/verify_governance.py --target . --require-accepted`
+- Result: `vendored governance bytes match governance.lock.json and adoption is accepted`
+- Provenance: this PR authoring execution record; `.agents/governance.lock.json`
 
-### OBS-MAFV2-003 — PR #2 的 prose-only partial supersession
+### OBS-MAFV2-003 — Previous independent review
 
-- Subject: PR #2 head `fb8d55e785d6f99c9e57a602543609953e8f5410`
-  `docs/specs/AUTH_SERVICE_LEGACY_SURFACE_SHUTDOWN_V1.md`
-- Observed at: 2026-08-20（依据该 head 上的独立 review record）
-- Result: frontmatter `supersedes: []` 与 §12.2 选择性 supersession 表、
-  §3.1 precedence 排序互相矛盾；Governance V0 禁止该形态。
+- Subject: PR #7 review bound to previous proposed authority Head
+- Source revision: `758f21e79de1bb602da05936832b713746d27c0b`
+- Environment: GitHub PR #7 persistent review record
+- Observed at: `2026-08-20T13:07:13Z`
+- Method: read the submitted exact-Head review through GitHub PR metadata
+- Result: `REVISE`, five blockers; whole-authority direction and 9/9 prior identities accepted, amended Head requires new review
+- Provenance: `https://github.com/mayf3/auth-service/pull/7` review by `OpenAI GPT-5.6 Pro`; historical review evidence only
 
-### OBS-MAFV2-004 — 治理已激活
+### OBS-MAFV2-004 — Ownerless Spec lifecycle and authority reference
 
-- Subject: governance adoption 状态
-- Source revision: `1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9`
-- Observed at: 2026-08-20
-- Result: adoption spec 与 lock 均 accepted；enforcement level 为
-  MANUAL_POLICY（不构成流程障碍，docs-only authority change 可执行）。
+- Subject: `docs/specs/AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1.md`
+- Source revision: `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- Environment: repository source, `github/main`
+- Observed at: `2026-08-20T13:54:41Z`
+- Method: direct source inspection of frontmatter and bounded authorization section
+- Result: `status=accepted`; `implementation_authority=contracts`; external `authority_id=MINIMAL_AUTH_FOUNDATION_V1`, revision `1da40d4...`, relation `constrained_by`; implementation scope is a closed five-file product delta
+- Provenance: accepted Spec at the source path above, lines 1–18 and §5
 
-### OBS-MAFV2-005 — 未改变内容的可精确保持性
+### OBS-MAFV2-005 — Exact main drift and pinned-scope non-drift
 
-- Subject: V1 non-sequencing 模块
-- Observed at: 2026-08-20
-- Result: architecture/claims/profiles/grants/delegation/human-session/
-  conformance/wire 内容与 migration sequencing 相互独立，可按 exact blob
-  identity 原样并入 successor，无需重写任何字节。
+- Subject: source changes from old evaluated base to new evaluated base
+- Source revision: `1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9..e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- Environment: clean task worktree, Git object database
+- Observed at: `2026-08-20T13:54:41Z`
+- Method: executed `git diff --name-only` plus scoped `git diff --exit-code` for V1 modules, bundle, and vendored governance
+- Result: only `docs/specs/AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1.md` and `docs/specs/README.md` changed; pinned V1 assets and vendored governance bytes did not change
+- Provenance: this PR authoring execution record
+
+### OBS-MAFV2-006 — Downstream reference inventory surface
+
+- Subject: in-repository textual authority references to `MINIMAL_AUTH_FOUNDATION_V1`
+- Source revision: `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- Environment: repository documentation tree
+- Observed at: `2026-08-20T13:54:41Z`
+- Method: repository content search for exact authority ID, followed by frontmatter classification
+- Result: references include lifecycle/compatibility sources and the accepted ownerless Spec external-authority constraint; inventory cannot be limited to `governed_by`
+- Provenance: this PR authoring execution record and matching repository paths
 
 ## 6. Claims and assumptions
 
-- `CLM-MAFV2-001` — Owner 硬切方向（DEC-AUTH-SHUTDOWN-001/005 等同向）
-  与 V1 sequencing 的冲突只能通过 whole-authority supersession 合法解除；
-  对齐回 V1 sequencing 等于否决已接受 Owner 决策。Assumption：Owner
-  不推翻该方向。
-- `CLM-MAFV2-002` — 全部 non-sequencing normative 内容可以且必须按
-  exact identity 保留；任何字节级改写都会把 authority delta 扩大到
-  migration/sequencing 之外。Assumption：V1 模块在 V2 接受前不被其他
-  change 修改（CTR-MAFV2-008 保护）。
-- `CLM-MAFV2-003` — PR #2 的 five blockers 中，Blocker 1（authority）
-  是其余修正（rebase、governed_by、precedence、CTR-025、ACC 坐标、
-  ALT→DEC、index）的前置条件；父级 successor 合入前对 PR #2 的任何
-  acceptance 都是非法的。
+### CLM-MAFV2-001 — Whole-authority transition is required
+
+- Support state: SUPPORTED
+- Supported by evidence: `EVD-MAFV2-001`, `EVD-MAFV2-003`
+- Contradicted by evidence: none known
+- Uncertainty: sufficiency is bounded to Governance V0 and the reviewed V1/V2 authority graph; future governance versions may define other mechanisms
+
+### CLM-MAFV2-002 — Prior review does not approve this amendment
+
+- Support state: SUPPORTED
+- Supported by evidence: `EVD-MAFV2-003`
+- Contradicted by evidence: none known
+- Uncertainty: none for the exact reviewed/amended revision distinction; a future persistent review may change readiness
+
+### CLM-MAFV2-003 — Ownerless Spec is compatible with the preserved semantics
+
+- Support state: SUPPORTED
+- Supported by evidence: `EVD-MAFV2-004`, `EVD-MAFV2-005`
+- Contradicted by evidence: none known
+- Uncertainty: compatibility is bounded to architecture semantics preserved by CTR-MAFV2-001 and the accepted Spec's closed scope; successor-reference alignment remains for independent review
+
+### CLM-MAFV2-004 — New base preserves pinned V1 identities
+
+- Support state: SUPPORTED
+- Supported by evidence: `EVD-MAFV2-005`
+- Contradicted by evidence: none known
+- Uncertainty: result applies only through evaluated base `e9b6dbc...`; later main movement requires re-evaluation
+
+### CLM-MAFV2-005 — PRE_CUT migration is compatible with a hard Cut Artifact
+
+- Support state: INFERRED
+- Supported by evidence: `EVD-MAFV2-006`
+- Contradicted by evidence: none known
+- Uncertainty: this establishes authority-sequence consistency, not executed consumer migration or runtime readiness
+
+### CLM-MAFV2-006 — Inventory must include external authority constraints
+
+- Support state: SUPPORTED
+- Supported by evidence: `EVD-MAFV2-004`, `EVD-MAFV2-006`
+- Contradicted by evidence: none known
+- Uncertainty: repository content search establishes the current source inventory only; later Specs require a refreshed inventory
 
 ## 7. Evidence relations
 
-- `EVD-MAFV2-001` — `OBS-MAFV2-001`、`OBS-MAFV2-005` 支持
-  `CLM-MAFV2-002`（模块可按 identity 保留）。
-- `EVD-MAFV2-002` — `OBS-MAFV2-002`、`OBS-MAFV2-003` 支持
-  `CLM-MAFV2-001`（冲突真实存在且不可由 governing spec 自行消除）。
-- `EVD-MAFV2-003` — `OBS-MAFV2-003`（review record REVISE/5 blockers）
-  支持 `CLM-MAFV2-003`（acceptance 被阻塞）。
+### EVD-MAFV2-001 — Lifecycle source supports the transition requirement
+
+- Source observations: `OBS-MAFV2-001`
+- Target: `CLM-MAFV2-001`
+- Relation: SUPPORTS
+- Bound coordinates: `mayf3/auth-service@e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`, source repository, observed `2026-08-20T13:54:41Z`
+- Strength / sufficiency: strong for the current V1 lifecycle representation and exact source identities
+- Limitations: does not itself accept the successor
+- Provenance: Git object results and V1 lifecycle source
+
+### EVD-MAFV2-002 — Executed verifier supports governance state
+
+- Source observations: `OBS-MAFV2-002`
+- Target: `STATE-MAFV2-002`
+- Relation: SUPPORTS
+- Bound coordinates: `mayf3/auth-service@e9b6dbc...`, clean local worktree, observed `2026-08-20T13:54:41Z`
+- Strength / sufficiency: sufficient for vendored-byte identity and accepted lock status
+- Limitations: verifier does not prove semantic correctness, acceptance, implementation, deployment, or branch protection
+- Provenance: executed verifier output in this PR authoring record
+
+### EVD-MAFV2-003 — Exact prior review supports revision distinction and lifecycle defect
+
+- Source observations: `OBS-MAFV2-003`
+- Target: `CLM-MAFV2-001`, `CLM-MAFV2-002`
+- Relation: SUPPORTS
+- Bound coordinates: PR #7 base `1da40d4...`, reviewed Head `758f21e...`, GitHub review submitted `2026-08-20T13:07:13Z`
+- Strength / sufficiency: strong historical evidence for the five diagnosed blockers and need for a new review
+- Limitations: not authority, not Evidence of this amended Head passing, and not acceptance
+- Provenance: persistent PR #7 review receipt
+
+### EVD-MAFV2-004 — Accepted ownerless source supports bounded compatibility
+
+- Source observations: `OBS-MAFV2-004`
+- Target: `CLM-MAFV2-003`, `CLM-MAFV2-006`
+- Relation: SUPPORTS
+- Bound coordinates: `mayf3/auth-service@e9b6dbc...`, repository source, observed `2026-08-20T13:54:41Z`
+- Strength / sufficiency: sufficient to establish accepted lifecycle, exact V1 constraint, and closed product scope
+- Limitations: does not decide whether a future reference-alignment amendment is required
+- Provenance: accepted ownerless Spec frontmatter and §5
+
+### EVD-MAFV2-005 — Object comparison supports identity and compatibility
+
+- Source observations: `OBS-MAFV2-005`
+- Target: `CLM-MAFV2-003`, `CLM-MAFV2-004`
+- Relation: SUPPORTS
+- Bound coordinates: old base `1da40d4...`, new base `e9b6dbc...`, Git object database, observed `2026-08-20T13:54:41Z`
+- Strength / sufficiency: exact for the compared tracked bytes and objects
+- Limitations: no claim about runtime deployment or future revisions
+- Provenance: executed scoped Git diff and object-identity output
+
+### EVD-MAFV2-006 — Source inventory supports phase and inventory Claims
+
+- Source observations: `OBS-MAFV2-001`, `OBS-MAFV2-006`
+- Target: `CLM-MAFV2-005`, `CLM-MAFV2-006`
+- Relation: SUPPORTS
+- Bound coordinates: `mayf3/auth-service@e9b6dbc...`, source repository, observed `2026-08-20T13:54:41Z`
+- Strength / sufficiency: sufficient for an internally complete normative sequence and current reference classes
+- Limitations: not executed migration evidence and not proof that all external consumers are inventoried
+- Provenance: V1 source modules and repository authority-reference inventory
 
 ## 8. Decisions
 
-- `DEC-MAFV2-001` — 采用 whole-authority supersession：V2 whole 地取代
-  V1；禁止 module-level 或 prose-level partial supersession。
-- `DEC-MAFV2-002` — 全部 non-sequencing normative 内容按 CTR-MAFV2-001
-  的 exact identity 表保留，不复制改写。
-- `DEC-MAFV2-003` — authority delta 原子限定于 migration / hard-cut /
-  sequencing（CTR-MAFV2-002）；除此之外 V2 与 V1 语义等价。
-- `DEC-MAFV2-004` — 硬切取代受控双协议窗口：Cut Artifact 直接删除
-  Legacy runtime，不存在迁移窗口、mode switch、per-request fallback 或
-  遥测窗口期。
-- `DEC-MAFV2-005` — 零 Legacy 依赖证据在 PRE_CUT 阶段、于旧
-  legacy-carrying artifact 上采集；删除门不再要求在携带 Legacy 代码的
-  新 artifact 中观察零流量。
-- `DEC-MAFV2-006` — 消费者迁移范围与分类 authority = 当前 1.2.0
-  Consumer Matrix 与 Production Activation fixed-SHA evidence；历史
-  inventory 只是迁移证据。
-- `DEC-MAFV2-007` — V1 §9 九项 mainline 生效门原义保留；生效声明仍需
-  全部门禁为真。
-- `DEC-MAFV2-008` — V0 frozen contracts 在生效门完成前继续治理当前
-  生产路径（V1 §2 原义）。
-- `DEC-MAFV2-009` — 回滚 = whole-release rollback 到上一个 immutable
-  artifact（break-glass，须记录）；不存在模式切换式回滚。
+- `DEC-MAFV2-001` — V2 whole 地取代 V1；拒绝 module/prose partial supersession。
+- `DEC-MAFV2-002` — lifecycle root 是可变 wrapper；其余 unchanged modules/bundle
+  exact pin，lifecycle root base blob 仅记录 source provenance。
+- `DEC-MAFV2-003` — authority delta 仅为 migration / hard-cut / sequencing。
+- `DEC-MAFV2-004` — Phase 3 build/verify Cut Artifact but do not deploy；Phase 4 在
+  existing PRE_CUT legacy-carrying artifact 的 V1 surfaces 上迁移；Phase 5 证明九门后部署。
+- `DEC-MAFV2-005` — 禁止创建新的 dual-protocol artifact；Cut Artifact 只含 V1，
+  无 `AUTH_CONTRACT_MODE`、per-request fallback 或 Legacy runtime。
+- `DEC-MAFV2-006` — V2 拥有硬切方向；不从 proposed PR #2 导入 authority。
+- `DEC-MAFV2-007` — successor lifecycle field 是
+  `MINIMAL_AUTH_FOUNDATION_V2_MAINLINE_EFFECTIVE`；V1 field 只保留历史含义。
+- `DEC-MAFV2-008` — accepted V2 的 contract implementation authority 只覆盖
+  incorporated frozen contracts；migration sequencing 无直接实现 authority，必须另有 child Spec。
+- `DEC-MAFV2-009` — downstream inventory 同时覆盖 `governed_by` 与同仓库
+  `external_authorities.authority_id` references；本 PR 不静默改写 accepted downstream Spec。
+- `DEC-MAFV2-010` — rollback 仅为 whole-release rollback，不存在 mode-switch rollback。
 
 ## 9. Contracts
 
-### CTR-MAFV2-001 — Unchanged modules incorporation（exact identity）
+### CTR-MAFV2-001 — Immutable incorporation and lifecycle provenance
 
-以下内容按 `1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9` 的 blob identity
-并入 V2，语义逐字节不变，构成 V2 的 normative 组成部分：
+以下对象按新 Base 重验且 MUST 保持 exact identity；它们构成 V2 unchanged normative
+内容。V1 lifecycle root 不在 immutable 集合中。
 
-| Content | Blob SHA-1 @1da40d4 |
+| Content | Object SHA-1 @ `e9b6dbc...` |
 |---|---|
-| `docs/contracts/minimal-auth-v1/README.md` | `fbaf7c8986aa367e0f8f43de1872e6d7e6c5ca5f` |
 | `docs/contracts/minimal-auth-v1/claims-and-profiles.md` | `a51186adacc6b61131dcf7ad0227e372b67e8092` |
 | `docs/contracts/minimal-auth-v1/conformance.md` | `d56c45c514d308e65e698f6b2e78799d079a65ea` |
 | `docs/contracts/minimal-auth-v1/delegation.md` | `f64448ed860143f6e5d566e5dbd729aa4d68b20e` |
 | `docs/contracts/minimal-auth-v1/grants-and-audiences.md` | `277ea7f9cdb26558e196ec9e382430b324ddee32` |
 | `docs/contracts/minimal-auth-v1/human-session-refresh.md` | `f9949637b40e1023d917393148d692df26b624af` |
-| `contract-bundles/minimal-auth-v1/`（tree） | `796a8b670f8617ab5f45c7b8734e124e07934f09` |
+| `contract-bundles/minimal-auth-v1/` tree | `796a8b670f8617ab5f45c7b8734e124e07934f09` |
 | `contract-bundles/minimal-auth-v1/contract-manifest.json` | `8557b36de241e39570f478e21a95ff375d11759a` |
 | `contract-bundles/minimal-auth-v1/audience-registry.json` | `8ddf67afc2494dddc3c087d19f2f93c71db13d70` |
 
-上述模块中涉及迁移 sequencing 的语句（仅存在于被替换模块）以
-CTR-MAFV2-002 为准；其余语句的 normative meaning 不变。
-
-### CTR-MAFV2-002 — Amended migration / hard-cut / sequencing module
-
-本 Contract whole 地替换
-`docs/contracts/minimal-auth-v1/v0-to-v1-migration.md`
-（blob `954b661e84697a7b78566fadd09383dd5298b5d4`）的 normative
-sequencing meaning；其余模块不受影响。
-
-#### 9.2.1 保留部分（原义并入）
-
 ```text
-V1 §1/§2 生效前后权威关系（V0 继续治理直至生效门完成）
-V1 §3 不做的 Wire 变化（全部保留决定）
-V1 §4 Wire 兼容矩阵（Direct/Service/OBO/Human）
-V1 §5 CCR-V1-001..005
-V1 §6 消费者盘点 per-consumer 必填字段
-V1 §9 九项 mainline 生效门（NARROW_CONTRACT_REVIEW_PASS …
-     MAINLINE_RECONFORMANCE_PASS，全部原义）
+V1_LIFECYCLE_ROOT_BASE_BLOB_PROVENANCE = fbaf7c8986aa367e0f8f43de1872e6d7e6c5ca5f
+V1_MIGRATION_MODULE_REPLACED_BLOB_PROVENANCE = 954b661e84697a7b78566fadd09383dd5298b5d4
 ```
 
-#### 9.2.2 替换部分一 — 阶段模型（替换 V1 §7）
+Lifecycle-only mutation is allowed exclusively by CTR-MAFV2-005 at acceptance. Claims,
+profiles, grants, delegation, human-session, conformance and bundle meaning MUST NOT change.
+
+### CTR-MAFV2-002 — PRE_CUT and Cut Artifact sequencing
 
 ```text
-Phase 0  合同审阅            （原义）
-Phase 1  实现与消费者盘点    （原义；固定 SHA 审计）
-Phase 2  Contract Bundle Freeze（原义；已于 1.2.0 完成）
-Phase 3  发行方实现 = V1-only runtime hard cut
-         - 首个 accepted Runtime Child 产出的 Cut Artifact 直接删除
-           Legacy 路由、HS256 签发/验签、Legacy refresh、flat-field
-           backfill apply 与 Legacy 权限 authority；
-         - “不静默删除 Legacy”条款废止：删除动作由 accepted governing
-           Spec + Consumer Gate + Release Gate 显式授权；
-         - 数据库 Legacy 结构可作 dead data 保留以维持 whole-release
-           rollback（处置由 governing Spec 冻结）。
-Phase 4  消费者迁移
-         - 逐消费者对已部署的 V1 surface 迁移：获取 V1 token、本地
-           offline JWKS 验签、固定 audience/profile/scope、删除 HS256
-           secret、verify-token 与 live status lookup；
-         - Cut Artifact 本身不携带 Legacy 面，因此不存在双协议部署期。
-Phase 5  切换与生效
-         - PRE_CUT：部署 Cut Artifact 之前，在旧的 legacy-carrying
-           artifact 上以 telemetry、consumer inventory 与 fixed-SHA
-           evidence 证明零 Legacy 依赖，并满足冻结证据窗口；
-         - 部署 Cut Artifact（单一 V1-only runtime，无 mode switch）；
-         - MAINLINE_RECONFORMANCE 通过后按 V1 §9 九门声明生效。
-```
-
-#### 9.2.3 替换部分二 — 双协议与回滚（替换 V1 §8）
-
-```text
-MIGRATION_WINDOW = NONE
-DUAL_PROTOCOL_ARTIFACT = NONE
+PHASE_3 = BUILD_AND_VERIFY_CUT_ARTIFACT_DO_NOT_DEPLOY
+PRE_CUT_SOURCE_ARTIFACT = EXISTING_DEPLOYED_LEGACY_CARRYING_ARTIFACT
+PRE_CUT_CONSUMER_MIGRATION_PERIOD = REQUIRED
+PRE_CUT_LEGACY_TRAFFIC_EVIDENCE_WINDOW = REQUIRED
+NEW_DUAL_PROTOCOL_ARTIFACT = FORBIDDEN
+CUT_ARTIFACT = V1_ONLY
+POST_CUT_COMPATIBILITY_WINDOW = NONE
+PHASE_4 = MIGRATE_CONSUMERS_AGAINST_PRE_CUT_SOURCE_ARTIFACT_V1_SURFACES
+PHASE_5 = PROVE_ALL_GATES_THEN_DEPLOY_CUT_ARTIFACT
+NEW_OR_POST_CUT_COMPATIBILITY_WINDOW = NONE
 AUTH_CONTRACT_MODE = NONE
 PER_REQUEST_FALLBACK = NONE
-MODE_TELEMETRY_WINDOW = NONE
-ROLLBACK = WHOLE_RELEASE_ONLY（break-glass，记录原因/时间/artifact
-          digest/Operator/恢复计划；不得自动降级算法、Audience 或
-          Claim 要求）
+LEGACY_RUNTIME = NONE
+ROLLBACK = WHOLE_RELEASE_ONLY
 ```
 
-#### 9.2.4 替换部分三 — 消费者范围 authority（替换 V1 §6 首批清单条款）
+`MIGRATION_WINDOW = NONE` MAY only be used as shorthand for
+`NEW_OR_POST_CUT_COMPATIBILITY_WINDOW = NONE`; it MUST NOT deny the required pre-cut
+consumer migration period or legacy-traffic evidence window. A new dual-protocol artifact
+MUST NOT be built. The existing deployed source artifact may carry Legacy while exposing V1
+surfaces; the Cut Artifact MUST contain V1 only.
+
+### CTR-MAFV2-003 — Successor lifecycle field and nine gates
 
 ```text
-CONSUMER_SCOPE_AUTHORITY =
-  contract-bundles/minimal-auth-v1 metadata Consumer Matrix
-  + Production Activation fixed-SHA evidence
-HISTORICAL_FIRST_WAVE_LIST = migration evidence only
+SUCCESSOR_MAINLINE_EFFECTIVE_FIELD = MINIMAL_AUTH_FOUNDATION_V2_MAINLINE_EFFECTIVE
+HISTORICAL_V1_FIELD = MINIMAL_AUTH_FOUNDATION_V1_MAINLINE_EFFECTIVE
+MINIMAL_AUTH_FOUNDATION_V2_MAINLINE_EFFECTIVE = false
 ```
 
-### CTR-MAFV2-003 — Production-effective 状态不变
+The V2 field MUST remain false until every gate below passes at qualified coordinates:
 
-本 authority 不宣布、不隐含 `MINIMAL_AUTH_MAINLINE_EFFECTIVE`、
-`auth_token_contract_v1_production_effective` 或任何 production
-deployment readiness；九门语义与声明条件原义保留（CTR-MAFV2-002
-§9.2.1）。
+1. `NARROW_CONTRACT_REVIEW_PASS`
+2. `CONTRACT_BUNDLE_FROZEN`
+3. `ALL_CONSUMERS_INVENTORIED`
+4. `ALL_REQUIRED_MIGRATIONS_COMPLETE`
+5. `REAL_PROCESS_CONFORMANCE_PASS`
+6. `DOMAIN_AUTHORIZATION_NEGATIVE_PASS`
+7. `LEGACY_TRAFFIC_ZERO_GATE_PASS`
+8. `REMOTE_EXACT_SHA_AUDIT_PASS`
+9. `MAINLINE_RECONFORMANCE_PASS`
 
-### CTR-MAFV2-004 — Implementation authority 精确范围
+The historical V1 field MUST NOT be updated to represent V2 effectiveness. V0 frozen contracts
+continue governing production until all gates pass. This proposed PR declares no production readiness.
+
+### CTR-MAFV2-004 — Bounded implementation authority
 
 ```text
-implementation_authority = contracts
-授权对象 = CTR-MAFV2-001 并入的 frozen contract modules 与 1.2.0
-           executable bundle（与 V1 相同范围）
-不授权对象 = CTR-MAFV2-002 sequencing module 本身
+THIS_PROPOSED_PR_AUTHORIZES_IMPLEMENTATION = NO
+ON_ACCEPTED_V2:
+  INCORPORATED_FROZEN_CONTRACT_IMPLEMENTATION_AUTHORITY = contracts
+  MIGRATION_SEQUENCING_IMPLEMENTATION_AUTHORITY = none
+  CHILD_IMPLEMENTATION_SPEC_REQUIRED = YES
 ```
 
-sequencing 变更的 product 实现仍需相应 accepted governing Spec
-（如 shutdown program 及其 children）按治理规则授权；本 authority
-接受不等于任何 child implementation 启动许可。
+Accepted V2 preserves the same bounded implementation authority for CTR-MAFV2-001 frozen
+contracts and bundle. CTR-MAFV2-002 sequencing does not itself authorize product changes.
+No proposed PR #2 Decision ID is active authority; the V2 hard-cut direction is owned by
+`DEC-MAFV2-004` through `DEC-MAFV2-006` only if this V2 is accepted and merged.
 
-### CTR-MAFV2-005 — Supersession activation 与原子 backlink
+### CTR-MAFV2-005 — Atomic supersession lifecycle
 
-V2 仅在以下条件同时成立时成为活动 authority：
+Activation requires independent review PASS of the exact final revision, authorized Owner
+acceptance, and merge into `main`. One acceptance-only docs change MUST atomically apply only:
+
+| File | Exact allowed lifecycle/backlink delta |
+|---|---|
+| `docs/contracts/minimal-auth-v2/MINIMAL_AUTH_FOUNDATION_V2.md` | frontmatter/text `status: proposed → accepted`; keep `supersedes: [MINIMAL_AUTH_FOUNDATION_V1]`; bind final accepted Head and acceptance receipt |
+| `docs/contracts/minimal-auth-v1/README.md` | lifecycle wrapper `STATUS=SUPERSEDED`; add `SUPERSEDED_BY=MINIMAL_AUTH_FOUNDATION_V2`; set current V1 architecture implementation advertisement to `IMPLEMENTATION_AUTHORIZED=false`; preserve historical `MINIMAL_AUTH_FOUNDATION_V1_MAINLINE_EFFECTIVE` meaning/value |
+| `docs/contracts/MINIMAL_AUTH_FOUNDATION_V1.md` | `STATUS=SUPERSEDED`; add `SUPERSEDED_BY=MINIMAL_AUTH_FOUNDATION_V2` and `CURRENT_ARCHITECTURE_AUTHORITY=MINIMAL_AUTH_FOUNDATION_V2`; set `IMPLEMENTATION_AUTHORIZED=false`; replace current-authority prose only with a backlink to V2 |
+| `.agents/local/README.md` | mark V2 accepted/current and V1 superseded with backlink |
+| `docs/specs/README.md` | mark V2 accepted/current and V1 superseded with backlink; preserve all unrelated accepted rows |
+
+No other V1 field, module, Contract, bundle byte, or semantic statement may change. Before this
+atomic transition, V2 remains proposed and V1 remains active. After it, neither V1 lifecycle root
+nor the compatibility entry may present V1 as current or directly implementable authority.
+
+### CTR-MAFV2-006 — Complete downstream inventory without silent rewrite
+
+Before effectiveness, inventory MUST include both:
+
+1. all governing Specs with `governed_by` containing `MINIMAL_AUTH_FOUNDATION_V1`; and
+2. all same-repository `external_authorities` entries whose `authority_id` is
+   `MINIMAL_AUTH_FOUNDATION_V1`.
+
+The evaluated base includes accepted `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1` in class 2.
+This PR MUST NOT modify it. Each inventory entry records status, exact revision, relationship,
+compatibility result, owner, and whether an independently reviewed successor/alignment amendment
+is required. Historical PR #2 remains proposed/unmodified and cannot serve as authority.
+
+### CTR-MAFV2-007 — Precedence and ownerless compatibility boundary
+
+Accepted downstream Specs cannot own architecture supersession. V2 MUST preserve the
+claims/profile/bundle semantics on which the ownerless Spec is constrained. At the evaluated base:
 
 ```text
-independent semantic review PASS（绑定本 exact revision）
-Owner acceptance by SPEC_ACCEPTANCE_ACTORS
-accepted exact content merged into main
+OWNERLESS_SPEC_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+OWNERLESS_SPEC_PRESERVED = YES
 ```
 
-接受合入的同一 docs-only change 必须原子完成 §3.2 所列 backlink 更新。
-在激活前，V1 与 V2 并存期间以 V1 为准。
+This result is bounded to the exact identities in CTR-MAFV2-001 and the ownerless Spec's existing
+closed scope. It does not silently rewrite the Spec's external reference or decide its future
+alignment; independent review must determine whether a separate amendment is required.
 
-### CTR-MAFV2-006 — Governing spec alignment 义务（非本 authority 执行）
+### CTR-MAFV2-008 — No silent divergence and acceptance coverage
 
-V2 激活后，声明 `governed_by: [MINIMAL_AUTH_FOUNDATION_V1]` 的
-governing Specs 必须在各自 amendment 中：
+Any pre-acceptance change to a CTR-MAFV2-001 immutable object, the evaluated authority graph, or
+an unlisted lifecycle file invalidates the proposal and requires re-evaluation. CTR-MAFV2-005's
+listed lifecycle-only delta is the sole exception to exact lifecycle-root identity. Mechanical
+coverage validation MUST establish:
 
 ```text
-governed_by → MINIMAL_AUTH_FOUNDATION_V2
-删除全部 prose-only partial supersession 表述
-precedence 修正为：本 architecture authority > 该 Spec 自身决策
+CONTRACT_COUNT = 8
+CONTRACTS_WITH_ACCEPTANCE = 8
+CONTRACT_COVERAGE = PASS
+ACCEPTANCE_REFERENCES_VALID = PASS
 ```
-
-### CTR-MAFV2-007 — Precedence 边界
-
-governing Specs 及其 children 不得覆盖本 authority；本 authority 不得
-改写其他仓库 accepted authority；external reference 不授予本地
-supersession 权限。
-
-### CTR-MAFV2-008 — No silent divergence
-
-若 V2 接受前，CTR-MAFV2-001 表中任一 blob 在 main 上发生变化，本
-supersession 失效，必须基于新基线重新提出 whole-authority successor；
-不得静默沿用过期 identity。
 
 ## 10. Acceptance
 
-- `ACC-MAFV2-001` — incorporation identity 校验。
-  - Method: 在 acceptance base commit 上运行
-    `git rev-parse <base>:<path>` 并与 CTR-MAFV2-001 表逐项比对。
-  - Environment: `mayf3/auth-service` repository @ acceptance base。
-  - Expected: 全部 blob/tree SHA 一致。
-  - Failure: 任一不一致 → 拒绝接受（CTR-MAFV2-008）。
-  - Evidence: review record 于本 PR，含比对输出。
-- `ACC-MAFV2-002` — delta 原子性校验。
-  - Method: 对照 V1 权威内容审查 V2 全文，语义差异仅允许出现在
-    migration/hard-cut/sequencing 范围（CTR-MAFV2-002 所列替换点）。
-  - Environment: 独立 semantic review（reviewer 不得是 author）。
-  - Expected: 无 architecture/claims/profiles/grants/delegation/
-    human-session/conformance/wire 语义差异。
-  - Failure: 任一范围外差异 → REVISE。
-  - Evidence: review record 明确列出 diff 分类结论。
-- `ACC-MAFV2-003` — 生产状态与门禁保留校验。
-  - Method: 静态审查 CTR-MAFV2-002 §9.2.1 与 CTR-MAFV2-003。
-  - Expected: 九门原义保留；无 production-effective 声明。
-  - Evidence: review record。
-- `ACC-MAFV2-004` — backlink 原子性计划校验。
-  - Method: 审查 acceptance merge 内容与 §3.2/CTR-MAFV2-005 清单。
-  - Expected: 同一 docs-only change 内完成全部 backlink。
-  - Evidence: acceptance merge commit。
-- `ACC-MAFV2-005` — 独立评审与 Owner 接受。
-  - Reviewer: 独立 semantic reviewer（指定延续评审人：OpenAI GPT-5.6
-    Pro，或 Owner 委任的等效独立 reviewer）。
-  - Acceptance actor: `mayf3 | explicitly delegated auth-service
-    maintainer`。
-  - Expected: REVIEW PASS 后由 acceptance actor 接受并合入。
-  - Evidence: PR review record + acceptance 记录。
-  - observed_at: 以实际执行时间为准，逐项写入 evidence。
+Every Required evidence tuple below MUST bind: authority revision, evaluated base, evaluated final
+Head, reviewer/acceptance actor, execution timestamp, and persistent PR review or receipt.
+
+### ACC-MAFV2-001 — Immutable identity and lifecycle-provenance check
+
+- Contracts: `CTR-MAFV2-001`
+- Method: execute `git rev-parse <evaluated-base>:<path>` for every table object and compare with the frozen SHA; separately verify lifecycle/migration provenance blobs
+- Environment: clean `mayf3/auth-service` worktree at evaluated base `e9b6dbc...`
+- Required evidence: full common tuple plus command output for every object
+- Expected result: all immutable objects match; lifecycle root is excluded only as explicitly stated
+- Failure condition: any mismatch, missing coordinate, or extra semantic exclusion
+
+### ACC-MAFV2-002 — Phase-order and artifact-separation review
+
+- Contracts: `CTR-MAFV2-002`
+- Method: independent semantic review of each frozen phase/artifact/window invariant and contradiction search
+- Environment: exact proposed authority Head and V1 migration provenance blob
+- Required evidence: full common tuple plus reviewer matrix for every invariant
+- Expected result: required PRE_CUT migration/evidence precedes deployment; new dual protocol is forbidden; Cut Artifact is V1-only
+- Failure condition: any text denies pre-cut periods, permits a new dual artifact, or leaves Cut Artifact Legacy/mode/fallback behavior
+
+### ACC-MAFV2-003 — Lifecycle-field and nine-gate review
+
+- Contracts: `CTR-MAFV2-003`
+- Method: exact-name comparison against all nine frozen V1 gates and static search for conflicting effectiveness declarations
+- Environment: exact proposed authority Head plus V1 migration provenance source
+- Required evidence: full common tuple plus nine-row gate comparison
+- Expected result: V2 field remains false until all nine gates pass; V1 field remains historical
+- Failure condition: missing/renamed gate, early effectiveness, or reuse of V1 field for V2 state
+
+### ACC-MAFV2-004 — Implementation-authority boundary review
+
+- Contracts: `CTR-MAFV2-004`
+- Method: independent authority-flow review from frontmatter through Contracts and Decisions
+- Environment: exact proposed authority Head and current repository authority graph
+- Required evidence: full common tuple plus bounded authority matrix
+- Expected result: proposed PR authorizes none; accepted frozen contracts retain `contracts`; sequencing remains `none` and requires child Spec
+- Failure condition: sequencing directly authorizes product work or proposed PR #2 is treated as active authority
+
+### ACC-MAFV2-005 — Atomic lifecycle transition review
+
+- Contracts: `CTR-MAFV2-005`
+- Method: compare final acceptance change to the five-file exact delta allowlist and verify both V1 representations no longer advertise current/direct implementation authority
+- Environment: final accepted candidate Head and its evaluated base before merge
+- Required evidence: full common tuple plus final diff, actor receipt, lifecycle field matrix, and persistent review
+- Expected result: V2 accepted and V1 superseded atomically; only listed lifecycle/backlink deltas occur
+- Failure condition: partial transition, premature backlink, extra V1 semantic delta, stale active compatibility entry, or missing persistent receipt
+
+### ACC-MAFV2-006 — Downstream inventory coverage
+
+- Contracts: `CTR-MAFV2-006`
+- Method: machine search and human classification of both `governed_by` and same-repository `external_authorities.authority_id` references
+- Environment: evaluated base and exact proposed authority Head
+- Required evidence: full common tuple plus complete path/Spec/status/revision/relation/owner/alignment table
+- Expected result: both reference classes are inventoried; accepted Specs including ownerless remain unmodified
+- Failure condition: missing class, silent downstream rewrite, or unowned alignment decision
+
+### ACC-MAFV2-007 — Ownerless compatibility review
+
+- Contracts: `CTR-MAFV2-007`
+- Method: compare ownerless bounded scope and V1 dependency semantics with CTR-MAFV2-001 identities and V2 delta scope
+- Environment: accepted ownerless Spec at `e9b6dbc...` and exact proposed V2 Head
+- Required evidence: full common tuple plus source-object comparison and independent compatibility finding
+- Expected result: `COMPATIBLE_NO_SEMANTIC_DELTA`, ownerless Spec preserved byte-for-byte in this PR
+- Failure condition: architecture conflict, changed relied-on semantics, ownerless file delta, or unreviewed alignment conclusion
+
+### ACC-MAFV2-008 — Mechanical coverage and no-divergence gate
+
+- Contracts: `CTR-MAFV2-008`
+- Method: parse all `CTR-MAFV2-*` and `ACC-MAFV2-*` IDs, validate every reference both directions, verify allowed file scope and remote coordinates
+- Environment: clean task worktree at evaluated final Head; GitHub remote immediately before push/acceptance
+- Required evidence: full common tuple plus counts, reference validation, docs-only diff, object checks, and remote SHA receipt
+- Expected result: 8 Contracts, 8 covered Contracts, valid references, no silent identity drift
+- Failure condition: count/coverage/reference failure, disallowed file, object drift, or remote coordinate drift
+
+### 10.1 Bidirectional coverage table
+
+| Contract | Acceptance |
+|---|---|
+| `CTR-MAFV2-001` | `ACC-MAFV2-001` |
+| `CTR-MAFV2-002` | `ACC-MAFV2-002` |
+| `CTR-MAFV2-003` | `ACC-MAFV2-003` |
+| `CTR-MAFV2-004` | `ACC-MAFV2-004` |
+| `CTR-MAFV2-005` | `ACC-MAFV2-005` |
+| `CTR-MAFV2-006` | `ACC-MAFV2-006` |
+| `CTR-MAFV2-007` | `ACC-MAFV2-007` |
+| `CTR-MAFV2-008` | `ACC-MAFV2-008` |
+
+| Acceptance | Contracts |
+|---|---|
+| `ACC-MAFV2-001` | `CTR-MAFV2-001` |
+| `ACC-MAFV2-002` | `CTR-MAFV2-002` |
+| `ACC-MAFV2-003` | `CTR-MAFV2-003` |
+| `ACC-MAFV2-004` | `CTR-MAFV2-004` |
+| `ACC-MAFV2-005` | `CTR-MAFV2-005` |
+| `ACC-MAFV2-006` | `CTR-MAFV2-006` |
+| `ACC-MAFV2-007` | `CTR-MAFV2-007` |
+| `ACC-MAFV2-008` | `CTR-MAFV2-008` |
 
 ## 11. Alternatives and disposition
 
-- `ALT-MAFV2-001` — 将 shutdown program 对齐回 V1 sequencing（受控双协
-  议窗口 + 携带 Legacy 的 Phase 3/5）。
-  Rejected：等于否决 Owner 已接受的硬切方向。Related decision:
-  `DEC-MAFV2-004`。
-- `ALT-MAFV2-002` — 原地 AMEND `v0-to-v1-migration.md` 模块。
-  Rejected：对已接受 authority 的 module-level 改写即 partial
-  supersession，Governance V0 禁止。Related decision: `DEC-MAFV2-001`。
-- `ALT-MAFV2-003` — 等待治理自动化 gate（CI/branch protection）落地后
-  处理。
-  Rejected：docs-only authority change 不依赖自动化；MANUAL_POLICY 下
-  流程完整可执行。Related decision: `DEC-MAFV2-001`。
-- `ALT-MAFV2-004` — 不处理冲突，冻结 PR #2。
-  Rejected：遗留 governance conflict 且阻塞已接受方向的落地。
-  Related decision: `DEC-MAFV2-003`。
+- `ALT-MAFV2-001` — prose-only partial supersession。Rejected by `DEC-MAFV2-001`。
+- `ALT-MAFV2-002` — exact-pin lifecycle root while also mutating it。Rejected by
+  `DEC-MAFV2-002`; mutable wrapper is excluded and provenance-pinned。
+- `ALT-MAFV2-003` — build a new dual-protocol artifact。Rejected by `DEC-MAFV2-005`。
+- `ALT-MAFV2-004` — import proposed PR #2 Decisions as authority。Rejected by
+  `DEC-MAFV2-006`。
+- `ALT-MAFV2-005` — silently rewrite accepted ownerless Spec。Rejected by
+  `DEC-MAFV2-009`。
 
 ## 12. Migration, compatibility, and rollback
 
-- 本 authority change 是 docs-only：新增本文件 + authority map/index
-  的 proposed 状态记录；不触碰任何产品代码、schema、bundle bytes。
-- 兼容性：V1 在 V2 激活前保持完全活动；并入内容按 identity 冻结，
-  不产生双重 normative 来源。
-- 回滚：V2 被拒绝 → 删除本 proposed 文件即可，V1 无损；V2 已接受后
-  需回退 → 通过新的 whole-authority supersession 或 revert 接受
-  merge（docs-only，break-glass 记录）。
+This amendment is docs-only. It does not alter product source, Prisma, migrations, runtime,
+deployment, contract bundle, vendored governance, or PR #2. V1 remains active before atomic
+activation. The existing PRE_CUT artifact supplies the required migration/evidence period; the new
+Cut Artifact is V1-only. Runtime rollback, if later authorized by an implementation Spec, is
+whole-release only. Authority rollback after acceptance requires a new whole-authority transition
+or an explicitly recorded docs-only revert; it cannot be inferred from runtime state.
 
 ## 13. Open questions
 
-无。`OWNER_DECISION_REQUIRED = NONE`；Owner 决策全部已冻结于本文件
-所引用的已接受方向，未被本 authority 重开。
+```text
+OPEN_OWNER_DECISIONS = NONE
+NORMATIVE_TBD = NONE
+UNRESOLVED_AUTHORITY_CONFLICT = NONE
+PARTIAL_SUPERSESSION = NONE
+READY_TO_MARK_ACCEPTED = NO
+OWNERLESS_SPEC_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+```
+
+The amended exact Head still requires a new independent semantic review. The previous PR #7 review
+is historical evidence only and does not authorize acceptance, implementation, deployment, or merge.

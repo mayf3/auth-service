@@ -59,7 +59,7 @@ MINIMAL_AUTH_FOUNDATION_V2
   authority delta scope: migration / hard-cut / sequencing only
 ```
 
-在 `MINIMAL_AUTH_FOUNDATION_V2` 通过独立 semantic review、Owner accept 并合入 `main` 之前，`MINIMAL_AUTH_FOUNDATION_V1` 仍是该层唯一活动 authority。激活时，同一 docs-only change 原子更新本文件与 `docs/specs/README.md` 的 backlink。
+在 `MINIMAL_AUTH_FOUNDATION_V2` 通过独立 semantic review、Owner accept 并合入 `main` 之前，`MINIMAL_AUTH_FOUNDATION_V1` 仍是该层唯一活动 authority。V1 的明确 lifecycle root 是 `docs/contracts/minimal-auth-v1/README.md`，旧路径 `docs/contracts/MINIMAL_AUTH_FOUNDATION_V1.md` 是 compatibility entry。激活时，同一 acceptance-only docs change 必须按 V2 `CTR-MAFV2-005` 原子更新 V2、V1 lifecycle root、compatibility entry、本文件与 `docs/specs/README.md`：V2 为 `accepted`，V1 为 `superseded` 且 backlink 指向 V2；旧入口不得继续表达 V1 为当前或可直接实施的 architecture authority。除该 Contract 精确列出的 lifecycle/backlink delta 外，不得改写 V1 normative meaning。
 
 以下文档不是自动 governing authority：
 
