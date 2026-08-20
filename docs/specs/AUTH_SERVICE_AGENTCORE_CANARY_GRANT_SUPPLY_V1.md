@@ -1,9 +1,9 @@
 ---
 spec_id: AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 scope:
   - mayf3/auth-service
 governed_by:
@@ -59,7 +59,10 @@ CONDITIONAL_FUTURE_ROWS =
 FULL_FOUR_ROWS_READY = NO_UNTIL_FORUM_CCR
 ```
 
-This proposed Spec does not authorize implementation or any database write.
+This accepted Spec authorizes only Stage W implementation through its
+Contracts after this exact revision merges to `main`; Stage F remains blocked
+per §3, and acceptance alone authorizes no production migration apply or
+database write.
 
 ## 2. Scope and non-goals
 
@@ -142,14 +145,39 @@ evidence grammar but grants no product behavior authority. Agent Core receipts
 are operational prerequisites, not external authority adopted by this Spec.
 
 ```text
-SPEC_STATUS = proposed
-IMPLEMENTATION_AUTHORITY = none
-IMPLEMENTATION_AUTHORIZED = NO
-DATABASE_WRITES_AUTHORIZED = NO
+SPEC_STATUS = accepted
+IMPLEMENTATION_AUTHORITY = contracts
+
+STAGE_W_IMPLEMENTATION_AUTHORIZED =
+  YES_AFTER_ACCEPTED_SPEC_MERGED_TO_MAIN
+STAGE_F_IMPLEMENTATION_AUTHORIZED = NO
+
+STAGE_F_BLOCKED_BY =
+  SVC_FORUM_AUDIENCE_CCR_ACCEPTED_AND_MERGED
+  +
+  SVC_FORUM_CONSUMER_MIGRATION_REVIEW_PASS
+  +
+  CONTRACT_BUNDLE_UPDATED_AND_VALIDATED
+
+PRODUCTION_MIGRATION_APPLY_AUTHORIZED = NO
+PRODUCTION_DB_WRITE_AUTHORIZED = NO
 ```
 
+Only the two workflow Grants below may be implemented in the future; every
+other object remains unauthorized:
+
+```text
+agt_stock_agent × svc-workflow[workflow.read]
+agt_cto-agent  × svc-workflow[workflow.read]
+```
+
+`svc-forum` Grants, `workflow.execute`, `forum.admin`, `forum.moderate`, any
+other Client/Audience/Scope, production migration apply, and production DB
+writes are not authorized by this acceptance.
+
 Changing `implementation_authority` or accepting this Spec is a semantic delta
-that requires independent review of the exact resulting head.
+that requires independent review of the exact resulting head; that review is
+recorded in §15.
 
 ## 4. Current State
 
@@ -1004,3 +1032,36 @@ authority, deployment readiness, or proof that prerequisites hold.
 - This round changes only this Spec file: no product code, no Contract Bundle,
   no audit schema, no migration, no Grant creation, no database write, no
   merge, and PR #5 remains a draft awaiting focused re-review.
+
+## 15. Acceptance record
+
+```text
+ACCEPTANCE_REVIEW =
+  授权审计（二轮）
+
+REVIEWED_BASE =
+  1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9
+
+REVIEWED_SPEC_HEAD =
+  67a1e80fae2700bf0efe3a587b4c7a00807c274d
+
+REVIEW_VERDICT = PASS
+REQUIRED_FIXES = NONE
+READY_FOR_ACCEPTANCE_FINALIZE = YES
+
+ACCEPTED_AT = 2026-08-20
+ACCEPTANCE_FINALIZE_SEMANTIC_CHANGE = NONE
+```
+
+Acceptance finalize is text-only: frontmatter
+`status: proposed -> accepted` and
+`implementation_authority: none -> contracts`, the stage-split implementation
+authority of §3, this record, and the lifecycle mirror in `docs/specs/README.md`.
+All reviewed semantics of head `67a1e80` — the two-stage model, forum authority
+blocker, 13-field closed audit envelope, full `clientGrants` snapshots,
+per-client revision model, Stage W create audit, Stage F replace audit, forum
+rollback `2→3`, workflow rollback `3→4`, replace/full-snapshot partial
+rollback, no legacy flat fields, exact rerun no-op, and single transaction per
+Stage — are preserved unchanged. Implementation authority vests only when this
+exact accepted revision merges to `main`, Stage W only; Stage F stays blocked
+per §3.
