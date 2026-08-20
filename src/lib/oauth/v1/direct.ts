@@ -70,7 +70,7 @@ function invalidClient(category: string): never {
 }
 
 function assertPrincipalProfile(principal: DirectPrincipal): void {
-  if (principal.principalType === 'agent' && (!principal.agentId || !principal.ownerUserId)) {
+  if (principal.principalType === 'agent' && !principal.agentId) {
     invalidClient('agent_profile_invalid');
   }
   if (principal.principalType === 'service' && principal.agentId !== null) {
