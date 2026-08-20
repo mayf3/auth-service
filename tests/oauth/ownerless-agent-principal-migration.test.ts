@@ -1,7 +1,6 @@
 import assert from 'node:assert/strict';
 import { execFileSync } from 'node:child_process';
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
 
@@ -13,12 +12,17 @@ import test from 'node:test';
  * only (`listen_addresses=` empty, no TCP listener), `trust` auth (no
  * password exists), random port/socket dir. The cluster is created and
  * destroyed entirely by this file — no production database is ever
- * contacted and no DATABASE_URL is read.
+ * contacted and no inherited DATABASE_URL is read by PostgreSQL or Prisma.
  *
  * Baseline note: the committed migration chain does not create the "users"
- * table or the "OkrRole" enum (both predate the migration history), so the
- * harness creates the minimal baseline objects the chain expects before
- * applying the real migrations in order.
+ * table or the "OkrRole" enum (both predate the migration history), and one
+ * historical migration targets rows that also predate the committed chain.
+ * The harness creates those minimum baseline objects/rows and incrementally
+ * stages byte-for-byte migration copies in a temporary Prisma workspace so
+ * every committed migration is applied by `prisma migrate deploy`. The
+ * ownerless migration itself is likewise applied only by deploy, so
+ * DB-AC8 is proved by the real `_prisma_migrations` ledger rather than by
+ * directly executing the ownerless SQL a second time.
  *
  * Run: tsx --test tests/oauth/ownerless-agent-principal-migration.test.ts
  */
@@ -33,81 +37,271 @@ const BASELINE_MIGRATIONS = [
   '20260721000100_add_external_ref_idempotent',
   '20260721000300_add_request_digest',
 ];
-// 20260722000100_ceo_client_okr_write_grant is applied after the CEO seed
-// interlude below: it binds the svc-okr grant to a fixed principal/client
-// pair that the authoritative production database already had before that
-// migration ran, so the harness materializes the same rows first.
 const FINAL_BASELINE_MIGRATION = '20260722000100_ceo_client_okr_write_grant';
 const CEO_PRINCIPAL_ID = 'b6b033c4-90ba-40aa-a338-304da442cab7';
 const CEO_CLIENT_ID = 'mc_HLxfspbjzHEdXmiiX3Gk7D27';
 const CEO_OWNER_USER_ID = '10000000-0000-4000-8000-00000000cea0';
+const TEMP_PREFIX = 'ownerless-migration-test-';
+
+const FAULT_POINTS = [
+  'INITDB_FAILURE',
+  'PG_CTL_START_FAILURE',
+  'CREATE_DATABASE_FAILURE',
+] as const;
+type FaultPoint = typeof FAULT_POINTS[number];
+type CommandRunner = (file: string, args: string[], options: Record<string, unknown>) => unknown;
+const REAL_COMMAND_RUNNER = execFileSync as unknown as CommandRunner;
+
+interface ResourceState {
+  readonly runIdentifier: string;
+  readonly workDir: string;
+  readonly dataDir: string;
+  readonly socketDir: string;
+  workDirCreated: boolean;
+  dataDirCreated: boolean;
+  socketDirCreated: boolean;
+  postgresStarted: boolean;
+  databaseCreated: boolean;
+}
 
 interface PgHandle {
+  readonly runIdentifier: string;
+  readonly socketDir: string;
+  readonly port: number;
+  readonly database: string;
   readonly coordinates: string;
   run(sql: string): string;
   runFile(file: string): void;
   tryRun(sql: string): { ok: boolean; output: string };
+  prisma(args: string[]): string;
+  stageMigration(migration: string): void;
+  stagePrehistoryBaseline(): void;
 }
 
-function createThrowawayCluster(): { pg: PgHandle; destroy: () => void } {
-  const workDir = fs.mkdtempSync(path.join(os.tmpdir(), 'ownerless-migration-test-'));
-  const socketDir = path.join(workDir, 'socket');
-  const dataDir = path.join(workDir, 'data');
-  const logFile = path.join(workDir, 'postgres.log');
-  fs.mkdirSync(socketDir);
-  const port = 49152 + Math.floor(Math.random() * 10000);
-  const database = 'ownerless_migration_test';
+interface CreateOptions {
+  execFile?: CommandRunner;
+  onState?: (state: Readonly<ResourceState>) => void;
+}
 
-  execFileSync('initdb', ['-D', dataDir, '-U', 'postgres', '-A', 'trust', '--no-sync'], {
-    stdio: 'ignore',
-  });
-  execFileSync(
-    'pg_ctl',
-    [
-      '-D', dataDir,
-      '-o', `-p ${port} -k ${socketDir} -c listen_addresses=`,
-      '-l', logFile,
-      'start',
-    ],
-    { stdio: 'ignore' },
-  );
+function controlledEnv(extra: NodeJS.ProcessEnv = {}): NodeJS.ProcessEnv {
+  const env = { ...process.env, LC_ALL: 'C', LANG: 'C', ...extra };
+  delete env.DATABASE_URL;
+  if (extra.DATABASE_URL !== undefined) env.DATABASE_URL = extra.DATABASE_URL;
+  return env;
+}
 
-  const baseArgs = (db: string) => [
-    '-h', socketDir, '-p', String(port), '-U', 'postgres',
-    '-v', 'ON_ERROR_STOP=1', '-tA', '-d', db,
-  ];
-  const sql = (statement: string): string =>
-    execFileSync('psql', [...baseArgs(database), '-c', statement], { encoding: 'utf8' });
-  const file = (script: string): void => {
-    execFileSync('psql', [...baseArgs(database), '-f', script], { encoding: 'utf8', stdio: ['ignore', 'ignore', 'pipe'] });
+function errorSummary(error: unknown): string {
+  if (error instanceof Error) return `${error.name}: ${error.message}`;
+  return String(error);
+}
+
+function attachCleanupDiagnostics(error: unknown, diagnostics: string[]): void {
+  if (diagnostics.length === 0 || (typeof error !== 'object' && typeof error !== 'function') || error === null) return;
+  try {
+    Object.defineProperty(error, 'cleanupDiagnostics', {
+      configurable: true,
+      enumerable: false,
+      value: diagnostics.map((item) => item.replace(/postgresql:\/\/[^\s]+/gi, '[redacted-database-coordinate]')),
+    });
+  } catch {
+    // Cleanup diagnostics are best-effort and must never replace the setup error.
+  }
+}
+
+function createThrowawayCluster(options: CreateOptions = {}): { pg: PgHandle; destroy: () => void; state: Readonly<ResourceState> } {
+  const runIdentifier = `${process.pid}-${Date.now()}-${Math.random().toString(16).slice(2, 10)}`;
+  const state: ResourceState = {
+    runIdentifier,
+    // Keep the Unix-socket pathname below PostgreSQL's platform limit. macOS
+    // TMPDIR paths are too long once the socket filename is appended.
+    workDir: path.join('/tmp', `${TEMP_PREFIX}${runIdentifier}`),
+    dataDir: '',
+    socketDir: '',
+    workDirCreated: false,
+    dataDirCreated: false,
+    socketDirCreated: false,
+    postgresStarted: false,
+    databaseCreated: false,
   };
-
-  execFileSync('psql', [...baseArgs('postgres'), '-c', `CREATE DATABASE "${database}"`], {
-    encoding: 'utf8',
+  Object.assign(state, {
+    dataDir: path.join(state.workDir, 'data'),
+    socketDir: path.join(state.workDir, 'socket'),
   });
+  const logFile = path.join(state.workDir, 'postgres.log');
+  const prismaWorkspace = path.join(state.workDir, 'prisma');
+  const stagedMigrations = path.join(prismaWorkspace, 'migrations');
+  const stagedSchema = path.join(prismaWorkspace, 'schema.prisma');
+  const repositoryPrisma = path.resolve(process.cwd(), 'prisma');
+  const port = 49152 + Math.floor(Math.random() * 10000);
+  const database = `ownerless_migration_${process.pid}_${Date.now()}`;
+  const env = controlledEnv();
+  const runCommand = options.execFile ?? REAL_COMMAND_RUNNER;
+  let cleanupComplete = false;
 
-  const pg: PgHandle = {
-    coordinates: `unix socket ${socketDir} port ${port} database ${database} (throwaway cluster, trust auth on a private socket)`,
-    run: sql,
-    runFile: file,
-    tryRun(statement: string) {
+  const publishState = () => options.onState?.({ ...state });
+  const cleanup = (): string[] => {
+    if (cleanupComplete) return [];
+    const diagnostics: string[] = [];
+    if (state.postgresStarted && state.dataDirCreated) {
       try {
-        return { ok: true, output: sql(statement) };
-      } catch (error) {
-        const err = error as { stderr?: string; message?: string };
-        return { ok: false, output: String(err.stderr ?? err.message ?? error) };
+        runCommand('pg_ctl', ['-D', state.dataDir, '-m', 'immediate', '-w', '-t', '10', 'stop'], {
+          env,
+          stdio: 'ignore',
+        });
+      } catch (stopError) {
+        try {
+          runCommand('pg_ctl', ['-D', state.dataDir, 'status'], { env, stdio: 'ignore' });
+          diagnostics.push(`postgres stop failed while server still reports running: ${errorSummary(stopError)}`);
+        } catch {
+          // A failed status command means the server is no longer running.
+        }
       }
-    },
+      state.postgresStarted = false;
+    }
+    if (state.socketDirCreated) {
+      try {
+        fs.rmSync(state.socketDir, { recursive: true, force: true });
+        state.socketDirCreated = false;
+      } catch (socketError) {
+        diagnostics.push(`socket cleanup failed: ${errorSummary(socketError)}`);
+      }
+    }
+    if (state.workDirCreated) {
+      try {
+        fs.rmSync(state.workDir, { recursive: true, force: true });
+        state.workDirCreated = false;
+        state.dataDirCreated = false;
+        state.databaseCreated = false;
+      } catch (workDirError) {
+        diagnostics.push(`work directory cleanup failed: ${errorSummary(workDirError)}`);
+      }
+    }
+    cleanupComplete = !fs.existsSync(state.workDir);
+    publishState();
+    return diagnostics;
   };
   const destroy = () => {
-    try {
-      execFileSync('pg_ctl', ['-D', dataDir, '-m', 'immediate', 'stop'], { stdio: 'ignore' });
-    } catch {
-      // cluster already down — nothing to preserve, the whole directory is removed below
-    }
-    fs.rmSync(workDir, { recursive: true, force: true });
+    const diagnostics = cleanup();
+    if (diagnostics.length > 0) throw new Error(`throwaway PostgreSQL cleanup failed: ${diagnostics.join('; ')}`);
   };
-  return { pg, destroy };
+
+  try {
+    fs.mkdirSync(state.workDir, { mode: 0o700 });
+    state.workDirCreated = true;
+    fs.mkdirSync(state.dataDir, { mode: 0o700 });
+    state.dataDirCreated = true;
+    fs.mkdirSync(state.socketDir, { mode: 0o700 });
+    state.socketDirCreated = true;
+    fs.mkdirSync(stagedMigrations, { recursive: true, mode: 0o700 });
+    fs.copyFileSync(path.join(repositoryPrisma, 'schema.prisma'), stagedSchema);
+    fs.copyFileSync(
+      path.join(repositoryPrisma, 'migrations', 'migration_lock.toml'),
+      path.join(stagedMigrations, 'migration_lock.toml'),
+    );
+    publishState();
+
+    runCommand(
+      'initdb',
+      ['-D', state.dataDir, '-U', 'postgres', '-A', 'trust', '--no-sync', '--no-locale', '--encoding=UTF8'],
+      { env, stdio: 'ignore' },
+    );
+
+    // Mark the start as owned before invoking pg_ctl. If pg_ctl throws after
+    // launching the postmaster, construction cleanup must still attempt stop.
+    state.postgresStarted = true;
+    runCommand(
+      'pg_ctl',
+      [
+        '-D', state.dataDir,
+        '-o', `-p ${port} -k ${state.socketDir} -c listen_addresses=`,
+        '-l', logFile,
+        '-w', '-t', '10', 'start',
+      ],
+      { env, stdio: 'ignore' },
+    );
+    publishState();
+
+    const baseArgs = (db: string) => [
+      '-h', state.socketDir, '-p', String(port), '-U', 'postgres',
+      '-v', 'ON_ERROR_STOP=1', '-tA', '-d', db,
+    ];
+    const sql = (statement: string): string => String(
+      runCommand('psql', [...baseArgs(database), '-c', statement], { env, encoding: 'utf8' }),
+    );
+    const file = (script: string): void => {
+      runCommand('psql', [...baseArgs(database), '-f', script], {
+        env,
+        encoding: 'utf8',
+        stdio: ['ignore', 'ignore', 'pipe'],
+      });
+    };
+
+    runCommand('psql', [...baseArgs('postgres'), '-c', `CREATE DATABASE "${database}"`], {
+      env,
+      encoding: 'utf8',
+    });
+    state.databaseCreated = true;
+    publishState();
+
+    const databaseUrl = `postgresql://postgres@localhost:${port}/${database}?host=${encodeURIComponent(state.socketDir)}`;
+    const prisma = (args: string[]): string => execFileSync(
+      path.resolve(process.cwd(), 'node_modules', '.bin', 'prisma'),
+      [...args, '--schema', stagedSchema],
+      {
+        cwd: process.cwd(),
+        env: controlledEnv({ DATABASE_URL: databaseUrl }),
+        encoding: 'utf8',
+        stdio: ['ignore', 'pipe', 'pipe'],
+      },
+    );
+    const stageMigration = (migration: string): void => {
+      fs.cpSync(
+        path.join(repositoryPrisma, 'migrations', migration),
+        path.join(stagedMigrations, migration),
+        { recursive: true, errorOnExist: true },
+      );
+    };
+    const stagePrehistoryBaseline = (): void => {
+      const baselineDir = path.join(stagedMigrations, '00000000000000_test_pre_history_baseline');
+      fs.mkdirSync(baselineDir);
+      fs.writeFileSync(
+        path.join(baselineDir, 'migration.sql'),
+        'CREATE TYPE "OkrRole" AS ENUM (\'okr_admin\', \'okr_reviewer\', \'okr_member\', \'okr_owner\');\n'
+          + 'CREATE TABLE "users" ("id" UUID NOT NULL, CONSTRAINT "users_pkey" PRIMARY KEY ("id"));\n',
+        'utf8',
+      );
+    };
+    const pg: PgHandle = {
+      runIdentifier,
+      socketDir: state.socketDir,
+      port,
+      database,
+      coordinates: `socket=${state.socketDir} port=${port} database=${database} run=${runIdentifier}`,
+      run: sql,
+      runFile: file,
+      tryRun(statement: string) {
+        try {
+          return { ok: true, output: sql(statement) };
+        } catch (error) {
+          const err = error as { stderr?: string | Buffer; message?: string };
+          return { ok: false, output: String(err.stderr ?? err.message ?? error) };
+        }
+      },
+      prisma,
+      stageMigration,
+      stagePrehistoryBaseline,
+    };
+    return { pg, destroy, state };
+  } catch (error) {
+    let diagnostics: string[];
+    try {
+      diagnostics = cleanup();
+    } catch (cleanupError) {
+      diagnostics = [`unexpected cleanup failure: ${errorSummary(cleanupError)}`];
+    }
+    attachCleanupDiagnostics(error, diagnostics);
+    throw error;
+  }
 }
 
 function insertPrincipal(
@@ -127,19 +321,32 @@ const CONSTRAINT_QUERY = `SELECT c.conname || ' => ' || pg_get_constraintdef(c.o
   FROM pg_constraint c WHERE c.conrelid = 'machine_principals'::regclass ORDER BY c.conname;`;
 const ROWS_QUERY = `SELECT coalesce(json_agg(row_to_json(m) ORDER BY m.id), '[]'::json)
   FROM "machine_principals" m;`;
+const OWNERLESS_LEDGER_QUERY = `SELECT coalesce(json_agg(row_to_json(receipt) ORDER BY receipt.started_at), '[]'::json)
+  FROM (
+    SELECT migration_name, checksum, started_at, finished_at, rolled_back_at, logs, applied_steps_count
+    FROM "_prisma_migrations" WHERE migration_name = '${OWNERLESS_MIGRATION}'
+  ) receipt;`;
+
+function processesContaining(fragment: string): string[] {
+  const output = execFileSync('ps', ['-ax', '-o', 'command='], { env: controlledEnv(), encoding: 'utf8' });
+  return output.split('\n').filter((line) => line.includes(fragment));
+}
+
+function socketsBelow(directory: string): string[] {
+  if (!fs.existsSync(directory)) return [];
+  const entries = fs.readdirSync(directory, { recursive: true, withFileTypes: true });
+  return entries.filter((entry) => entry.isSocket()).map((entry) => entry.name);
+}
 
 test('ownerless principal migration DB-AC1..DB-AC8 on a real temporary PostgreSQL', async (t) => {
-  const { pg, destroy } = createThrowawayCluster();
+  const { pg, destroy, state } = createThrowawayCluster();
+  t.diagnostic(`PG_COORDINATES ${pg.coordinates}`);
   try {
-    // Minimal pre-migration-history baseline the committed chain expects.
-    pg.run('CREATE TYPE "OkrRole" AS ENUM (\'okr_admin\', \'okr_reviewer\', \'okr_member\', \'okr_owner\');');
-    pg.run('CREATE TABLE "users" ("id" UUID NOT NULL, CONSTRAINT "users_pkey" PRIMARY KEY ("id"));');
-    for (const migration of BASELINE_MIGRATIONS) {
-      pg.runFile(path.resolve(process.cwd(), 'prisma', 'migrations', migration, 'migration.sql'));
-    }
-    // CEO seed interlude (authoritative production shape targeted by the
-    // final baseline migration): the fixed principal and its client existed
-    // in production before 20260722000100 ran.
+    pg.stagePrehistoryBaseline();
+    for (const migration of BASELINE_MIGRATIONS) pg.stageMigration(migration);
+    const historicalDeployOutput = pg.prisma(['migrate', 'deploy']);
+    t.diagnostic(`PRISMA_HISTORICAL_CHAIN_DEPLOY=${historicalDeployOutput.trim()}`);
+
     pg.run(`INSERT INTO "users" ("id","updated_at") VALUES ('${CEO_OWNER_USER_ID}', now());`);
     pg.run(
       `INSERT INTO "machine_principals" ("id","principal_type","agent_id","owner_user_id","display_name","status","updated_at")`
@@ -149,9 +356,6 @@ test('ownerless principal migration DB-AC1..DB-AC8 on a real temporary PostgreSQ
       `INSERT INTO "machine_clients" ("id","client_id","machine_principal_id","secret_hash","status","updated_at")`
         + ` VALUES (gen_random_uuid(),'${CEO_CLIENT_ID}','${CEO_PRINCIPAL_ID}','baseline-only-non-functional-hash','active',now());`,
     );
-    // Authoritative production state also carried the svc-workflow audience
-    // and the CEO client's svc-workflow grant, which the final baseline
-    // migration's post-verification block requires to be preserved.
     pg.run(
       `INSERT INTO "auth_audiences" ("audience_id","resource_service","scope_namespace","accepted_principal_types","registered_scopes","human_access_enabled","machine_access_enabled","delegated_access_enabled","status","freeze_ready","version","updated_at")`
         + ` VALUES ('svc-workflow','svc-workflow','workflow',ARRAY['agent'],ARRAY['workflow.read','workflow.execute'],false,true,true,'active',true,1,now());`,
@@ -161,11 +365,13 @@ test('ownerless principal migration DB-AC1..DB-AC8 on a real temporary PostgreSQ
         + ` SELECT mc.id,'svc-workflow',ARRAY['workflow.read','workflow.execute'],1,now()`
         + ` FROM "machine_clients" mc WHERE mc."client_id" = '${CEO_CLIENT_ID}';`,
     );
-    pg.runFile(path.resolve(process.cwd(), 'prisma', 'migrations', FINAL_BASELINE_MIGRATION, 'migration.sql'));
+    pg.stageMigration(FINAL_BASELINE_MIGRATION);
+    const finalHistoricalDeployOutput = pg.prisma(['migrate', 'deploy']);
+    t.diagnostic(`PRISMA_FINAL_HISTORICAL_DEPLOY=${finalHistoricalDeployOutput.trim()}`);
+
     const ownerlessMigrationPath = path.resolve(
       process.cwd(), 'prisma', 'migrations', OWNERLESS_MIGRATION, 'migration.sql',
     );
-
     const seed = {
       userId: '10000000-0000-4000-8000-00000000db00',
       ownerfulAgentId: '20000000-0000-4000-8000-00000000db01',
@@ -176,8 +382,10 @@ test('ownerless principal migration DB-AC1..DB-AC8 on a real temporary PostgreSQ
     pg.run(insertPrincipal(seed.servicePrincipalId, 'service', null, null));
 
     const constraintsBefore = pg.run(CONSTRAINT_QUERY);
-    const rowsBefore = pg.run(ROWS_QUERY);
+    const existingRowsBefore = JSON.parse(pg.run(ROWS_QUERY)) as Array<Record<string, unknown> & { id: string }>;
+    const existingPrincipalIds = existingRowsBefore.map((row) => row.id);
     const usersBefore = pg.run('SELECT count(*)::text FROM "users";');
+    assert.ok(existingPrincipalIds.includes(CEO_PRINCIPAL_ID), 'historical CEO principal is part of DB-AC6');
 
     await t.test('DB-AC1: ownerless agent insert is rejected by the old CHECK before the migration', () => {
       const result = pg.tryRun(
@@ -187,8 +395,49 @@ test('ownerless principal migration DB-AC1..DB-AC8 on a real temporary PostgreSQ
       assert.match(result.output, /machine_principal_type_shape_check/);
     });
 
-    await t.test('apply the ownerless migration on the real database', () => {
-      pg.runFile(ownerlessMigrationPath);
+    let firstDeployOutput = '';
+    await t.test('first Prisma migrate deploy applies the ownerless migration exactly once', (st) => {
+      pg.stageMigration(OWNERLESS_MIGRATION);
+      firstDeployOutput = pg.prisma(['migrate', 'deploy']);
+      st.diagnostic(`DB_AC8_FIRST_DEPLOY=APPLIED_ONCE\n${firstDeployOutput.trim()}`);
+      assert.match(firstDeployOutput, new RegExp(`Applying migration .${OWNERLESS_MIGRATION}.`));
+      const receipts = JSON.parse(pg.run(OWNERLESS_LEDGER_QUERY)) as Array<{
+        migration_name: string;
+        checksum: string;
+        finished_at: string | null;
+        rolled_back_at: string | null;
+        logs: string | null;
+        applied_steps_count: number;
+      }>;
+      st.diagnostic(`PRISMA_LEDGER_AFTER_FIRST_DEPLOY=${JSON.stringify(receipts)}`);
+      assert.equal(receipts.length, 1);
+      assert.equal(receipts[0].migration_name, OWNERLESS_MIGRATION);
+      assert.ok(receipts[0].finished_at);
+      assert.equal(receipts[0].rolled_back_at, null);
+      assert.ok(receipts[0].logs === null || !/fail|error/i.test(receipts[0].logs));
+      assert.equal(receipts[0].applied_steps_count, 1);
+      assert.match(receipts[0].checksum, /^[a-f0-9]{64}$/);
+    });
+
+    await t.test('DB-AC6: every existing principal row is unchanged with no backfill or User creation', (st) => {
+      const idList = existingPrincipalIds.map((id) => `'${id}'`).join(',');
+      const existingRowsAfter = JSON.parse(pg.run(
+        `SELECT coalesce(json_agg(row_to_json(m) ORDER BY m.id), '[]'::json)
+           FROM "machine_principals" m WHERE m.id IN (${idList});`,
+      )) as Array<Record<string, unknown> & { id: string }>;
+      const totalAfter = Number(pg.run('SELECT count(*)::text FROM "machine_principals";').trim());
+
+      assert.equal(existingRowsAfter.length, existingRowsBefore.length, 'same existing-row batch is re-read');
+      assert.equal(totalAfter, existingRowsBefore.length, 'migration adds or removes no principal rows');
+      assert.deepEqual(existingRowsAfter, existingRowsBefore, 'all persisted fields remain row-equivalent');
+      assert.ok(existingRowsAfter.some((row) => row.id === CEO_PRINCIPAL_ID), 'CEO principal remains in comparison');
+      assert.equal(pg.run('SELECT count(*)::text FROM "users";').trim(), usersBefore.trim());
+      assert.doesNotMatch(
+        fs.readFileSync(ownerlessMigrationPath, 'utf8'),
+        /\b(INSERT|UPDATE|DELETE)\b/i,
+        'migration itself contains no data rewrite',
+      );
+      st.diagnostic(`DB_AC6_EXISTING_ROWS=${existingRowsAfter.length} CEO_PRINCIPAL_INCLUDED=YES ALL_FIELDS_DEEP_EQUAL=YES`);
     });
 
     await t.test('DB-AC2: ownerless agent insert succeeds after the migration', () => {
@@ -227,22 +476,6 @@ test('ownerless principal migration DB-AC1..DB-AC8 on a real temporary PostgreSQ
       assert.match(result.output, /machine_principal_type_shape_check/);
     });
 
-    await t.test('DB-AC6: existing principal rows are row-equivalent, no backfill, no User creation', () => {
-      const rowsAfterSeedAndMigration = pg.run(
-        `SELECT coalesce(json_agg(row_to_json(m) ORDER BY m.id), '[]'::json) FROM "machine_principals" m
-           WHERE "id" IN ('${seed.ownerfulAgentId}', '${seed.servicePrincipalId}');`,
-      );
-      const rowsBeforeSameSet = JSON.parse(rowsBefore)
-        .filter((row: { id: string }) => row.id === seed.ownerfulAgentId || row.id === seed.servicePrincipalId);
-      assert.deepEqual(JSON.parse(rowsAfterSeedAndMigration), rowsBeforeSameSet);
-      assert.equal(pg.run('SELECT count(*)::text FROM "users";').trim(), usersBefore.trim());
-      assert.doesNotMatch(
-        fs.readFileSync(ownerlessMigrationPath, 'utf8'),
-        /\b(INSERT|UPDATE|DELETE)\b/i,
-        'migration itself contains no data rewrite',
-      );
-    });
-
     await t.test('DB-AC7: constraint name stays exactly machine_principal_type_shape_check', () => {
       const checkRows = pg.run(
         `SELECT count(*)::text FROM pg_constraint
@@ -254,8 +487,6 @@ test('ownerless principal migration DB-AC1..DB-AC8 on a real temporary PostgreSQ
         `SELECT pg_get_constraintdef(oid) FROM pg_constraint
            WHERE conrelid = 'machine_principals'::regclass AND conname = 'machine_principal_type_shape_check';`,
       );
-      // pg_get_constraintdef prints the normalized form (lowercase identifiers,
-      // (principal_type)::text = 'agent'::text), not the migration's literal text.
       assert.match(definition, /\(principal_type\)::text = 'agent'::text\)/);
       assert.match(definition, /AND \(agent_id IS NOT NULL\)/);
       assert.match(definition, /\(principal_type\)::text = 'service'::text\)/);
@@ -266,40 +497,104 @@ test('ownerless principal migration DB-AC1..DB-AC8 on a real temporary PostgreSQ
       assert.deepEqual(names(constraintsAfter), names(constraintsBefore), 'no constraint added or removed');
     });
 
-    await t.test('DB-AC8: re-applying the migration cannot stack a second constraint', () => {
+    await t.test('DB-AC8: second Prisma deploy recognizes the ledger receipt and performs no mutation', (st) => {
+      const ledgerBefore = JSON.parse(pg.run(OWNERLESS_LEDGER_QUERY));
       const definitionBefore = pg.run(
-        `SELECT pg_get_constraintdef(oid) FROM pg_constraint
+        `SELECT oid::text || ' => ' || pg_get_constraintdef(oid) FROM pg_constraint
            WHERE conrelid = 'machine_principals'::regclass AND conname = 'machine_principal_type_shape_check';`,
       );
-      pg.runFile(ownerlessMigrationPath);
-      const count = pg.run(
-        `SELECT count(*)::text FROM pg_constraint
-           WHERE conrelid = 'machine_principals'::regclass AND conname = 'machine_principal_type_shape_check';`,
-      );
-      assert.equal(count.trim(), '1', 'no silent second constraint with the same name');
+      const rowsBeforeSecondDeploy = pg.run(ROWS_QUERY);
+      const secondDeployOutput = pg.prisma(['migrate', 'deploy']);
+      st.diagnostic(`DB_AC8_SECOND_DEPLOY=RECOGNIZED_ALREADY_APPLIED\n${secondDeployOutput.trim()}`);
+      assert.match(secondDeployOutput, /No pending migrations to apply\./);
+
+      const ledgerAfter = JSON.parse(pg.run(OWNERLESS_LEDGER_QUERY));
       const definitionAfter = pg.run(
-        `SELECT pg_get_constraintdef(oid) FROM pg_constraint
+        `SELECT oid::text || ' => ' || pg_get_constraintdef(oid) FROM pg_constraint
            WHERE conrelid = 'machine_principals'::regclass AND conname = 'machine_principal_type_shape_check';`,
       );
-      assert.equal(definitionAfter, definitionBefore, 'constraint definition is unchanged by re-application');
-      // In production, re-application is additionally rejected by the Prisma
-      // migration ledger (_prisma_migrations), which never re-runs an applied
-      // migration; this raw re-run proves the SQL itself cannot stack duplicates.
+      assert.deepEqual(ledgerAfter, ledgerBefore, 'checksum and the sole migration receipt stay unchanged');
+      assert.equal(ledgerAfter.length, 1, 'PRISMA_LEDGER_ROWS_FOR_OWNERLESS_MIGRATION=1');
+      assert.equal(definitionAfter, definitionBefore, 'constraint OID and definition prove no second schema mutation');
+      assert.equal(pg.run(ROWS_QUERY), rowsBeforeSecondDeploy, 'second deploy does not rewrite existing rows');
+      assert.equal(
+        pg.run(`SELECT count(*)::text FROM "_prisma_migrations" WHERE migration_name = '${OWNERLESS_MIGRATION}';`).trim(),
+        '1',
+      );
+      st.diagnostic(`PRISMA_LEDGER_AFTER_SECOND_DEPLOY=${JSON.stringify(ledgerAfter)}`);
+      st.diagnostic('PRISMA_LEDGER_ROWS_FOR_OWNERLESS_MIGRATION=1');
+      st.diagnostic('SECOND_SCHEMA_MUTATION=0');
+      st.diagnostic('DIRECT_SECOND_SQL_EXECUTION_AS_DB_AC8=FORBIDDEN');
     });
   } finally {
+    // Prove destroy is also safe when PostgreSQL exited before the caller's
+    // cleanup path, then prove a second destroy is a no-op.
+    try {
+      execFileSync('pg_ctl', ['-D', state.dataDir, '-m', 'immediate', '-w', '-t', '10', 'stop'], {
+        env: controlledEnv(),
+        stdio: 'ignore',
+      });
+    } catch {
+      // If a preceding assertion coincided with server exit, destroy handles it.
+    }
     destroy();
+    destroy();
+    assert.equal(fs.existsSync(state.workDir), false);
+    t.diagnostic('POSTGRES_DESTROY_SAFE_AFTER_POSTGRES_EXITED=YES');
+    t.diagnostic('POSTGRES_DESTROY_IDEMPOTENT=YES');
   }
 });
 
-test('throwaway cluster coordinates are reported without any password material', () => {
-  // The harness uses trust auth on a private unix socket; there is no password
-  // to leak. This test exists so the report can cite DB coordinates explicitly.
-  const { pg, destroy } = createThrowawayCluster();
-  try {
-    assert.match(pg.coordinates, /unix socket/);
-    assert.doesNotMatch(pg.coordinates, /password|PASS|pwd/i);
-    assert.equal(pg.run('SELECT 1;').trim(), '1');
-  } finally {
-    destroy();
+function faultInjectingRunner(faultAt: FaultPoint): CommandRunner {
+  let injected = false;
+  return (file, args, options) => {
+    if (file === 'initdb' || file === 'pg_ctl' || file === 'psql') {
+      const childEnv = options.env as NodeJS.ProcessEnv;
+      assert.equal(childEnv.LC_ALL, 'C', `${file} LC_ALL`);
+      assert.equal(childEnv.LANG, 'C', `${file} LANG`);
+    }
+    const isTarget = faultAt === 'INITDB_FAILURE'
+      ? file === 'initdb'
+      : faultAt === 'PG_CTL_START_FAILURE'
+        ? file === 'pg_ctl' && args.at(-1) === 'start'
+        : file === 'psql' && args.some((arg) => arg.startsWith('CREATE DATABASE '));
+    if (!injected && isTarget) {
+      injected = true;
+      if (faultAt === 'PG_CTL_START_FAILURE') {
+        // Model pg_ctl reporting failure after the postmaster partially starts.
+        // Constructor cleanup must still own and stop that process.
+        REAL_COMMAND_RUNNER(file, args, options);
+      }
+      throw new Error(`controlled command failure: ${faultAt}`);
+    }
+    return REAL_COMMAND_RUNNER(file, args, options);
+  };
+}
+
+test('throwaway PostgreSQL construction failure cleanup is fault-injection safe', async (t) => {
+  for (const faultAt of FAULT_POINTS) {
+    await t.test(faultAt, (st) => {
+      let observedState: Readonly<ResourceState> | undefined;
+      assert.throws(
+        () => createThrowawayCluster({
+          execFile: faultInjectingRunner(faultAt),
+          onState: (state) => { observedState = state; },
+        }),
+        new RegExp(faultAt),
+        'the original setup command error must escape cleanup unchanged',
+      );
+      assert.ok(observedState, 'resource state must be observable before the injected failure');
+      const snapshot = observedState as Readonly<ResourceState>;
+      assert.equal(snapshot.workDirCreated, false, 'cleanup removes the work directory before rethrow');
+      assert.equal(snapshot.dataDirCreated, false, 'cleanup removes the data directory before rethrow');
+      assert.equal(snapshot.socketDirCreated, false, 'cleanup removes the socket directory before rethrow');
+      assert.equal(snapshot.postgresStarted, false, 'cleanup stops PostgreSQL before rethrow');
+      assert.equal(fs.existsSync(snapshot.workDir), false);
+      assert.deepEqual(socketsBelow(snapshot.workDir), []);
+      assert.deepEqual(processesContaining(snapshot.workDir), []);
+      st.diagnostic(`${faultAt} LEFTOVER_POSTGRES_PROCESSES=0 LEFTOVER_TEMP_DIRECTORIES=0 LEFTOVER_SOCKET_FILES=0`);
+    });
   }
+  t.diagnostic('SETUP_FAILURE_CLEANUP=PASS');
+  t.diagnostic('POSTGRES_CHILD_LOCALE=LC_ALL=C LANG=C');
 });
