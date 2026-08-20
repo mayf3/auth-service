@@ -1,9 +1,9 @@
 ---
 spec_id: AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 scope:
   - auth-service
 governed_by: []
@@ -22,18 +22,19 @@ owners:
 
 ```text
 SPEC_ID=AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1
-SPEC_STATUS=proposed
+SPEC_STATUS=accepted
 BASE_HEAD=1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9 (main, mayf3/auth-service，含已 accepted 的 Agent Development Governance V0)
 PREVIOUS_BASE_HEAD=84890120bd385b39287cb81890236b0e73e96c8d（原 authoring base）
 PREVIOUS_SPEC_HEAD=bf723fbbed86e71f0f2996d1ae38e18d71458510（迁移前 PR #4 head，provenance anchor）
 AUTHORED=2026-08-20
 MIGRATED=2026-08-20（AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1_GOVERNANCE_REBASE：.agents/specs/ → docs/specs/；除路径/frontmatter/治理引用/base SHA 外语义零变化）
-ROUND=FOCUSED_REVIEW_BLOCKER_AMENDMENT_SPEC_ONLY（仅修正数据库 CHECK 与 AC8 baseline；不实现、不部署、不 merge）
-IMPLEMENTATION_AUTHORITY=none（frontmatter：本 Spec 的 acceptance 本身不授权产品代码）
-IMPLEMENTATION_AUTHORIZED=NO（governing Spec 尚未 accepted；implementation 未授权）
-INDEPENDENT_REVIEW_RESULT=REVISE（reviewed head 351412b9047b5993089c81cc21fc285d3d987716；已确认数据库 CHECK 与 AC8 baseline 两个 blocker）
-INDEPENDENT_REVIEW_REQUIRED=YES（本 amendment 后 exact head 须 focused re-review；旧评审不自动继承）
-POST_ACCEPTANCE_IMPLEMENTATION_SCOPE=src/lib/oauth/v1/direct.ts + tests/oauth/v1-direct.test.ts + prisma/migrations/20260820000100_allow_ownerless_agent_principal/migration.sql + tests/oauth/migration-v1-static.test.ts + tests/oauth/ownerless-agent-principal-migration.test.ts（见 §5 FILES_AUTHORIZED；仅在本 Spec 被 accept 并由 Owner 明确授权进入实现后才生效）
+ROUND=ACCEPTANCE_FINALIZE（机械性 acceptance finalize：仅 lifecycle / implementation authority / Acceptance Record / accepted index；不实现、不部署、不 merge）
+IMPLEMENTATION_AUTHORITY=contracts（仅覆盖 §5 FILES_AUTHORIZED 冻结的精确五文件实现范围；不授权生产部署、生产 migration apply 或 OBO ownerless）
+IMPLEMENTATION_AUTHORIZED=YES_AFTER_ACCEPTED_SPEC_MERGED_TO_MAIN（仅限 §5 冻结五文件；PRODUCTION_DEPLOYMENT_AUTHORIZED=NO、PRODUCTION_MIGRATION_APPLY_AUTHORIZED=NO、OBO_OWNERLESS_IMPLEMENTATION_AUTHORIZED=NO）
+INDEPENDENT_REVIEW_RESULT=PASS（无主审计（二轮）；reviewed head 9e165a838ec81569727dcee0a174bc66a44acdd6；REQUIRED_FIXES=NONE；完整坐标见 §9 Acceptance Record）
+INDEPENDENT_REVIEW_REQUIRED=FULFILLED（无主审计（二轮）已 PASS 于 reviewed head 9e165a838ec81569727dcee0a174bc66a44acdd6；本轮为纯机械 acceptance finalize，SEMANTIC_CHANGE=NONE）
+ACCEPTANCE_FINALIZED=2026-08-20（无主审计（二轮）= PASS、REQUIRED_FIXES=NONE；Acceptance Record 见 §9）
+POST_ACCEPTANCE_IMPLEMENTATION_SCOPE=src/lib/oauth/v1/direct.ts + tests/oauth/v1-direct.test.ts + prisma/migrations/20260820000100_allow_ownerless_agent_principal/migration.sql + tests/oauth/migration-v1-static.test.ts + tests/oauth/ownerless-agent-principal-migration.test.ts（见 §5 FILES_AUTHORIZED；仅在本 accepted Spec 合入 main 后按 implementation_authority=contracts 生效，且仅覆盖该五文件封闭范围）
 GOVERNANCE=Agent Development Governance V0（development-governance-v0；lock adoption.status=accepted，于 main@1da40d4 生效；docs/specs/ 为唯一 governing Spec 目录）
 GOVERNING_AUTHORITY=docs/contracts/MINIMAL_AUTH_FOUNDATION_V1.md + docs/contracts/minimal-auth-v1/*（frozen V1 契约，本 Spec 不修改任何 frozen 契约文本）
 ```
@@ -350,7 +351,7 @@ PRODUCT_CONTRACT_FAILURE = NO
 ## 8. 交付边界
 
 ```text
-PRODUCT_CODE_CHANGE = NONE（本文件为唯一交付物）
+PRODUCT_CODE_CHANGE = NONE（本轮交付物 = 本文件 + docs/specs/README.md accepted index 行）
 DEPENDENCY_CHANGE = NONE
 SCHEMA_PRISMA_CHANGE = NONE
 SOURCE_FACTS_CORRECTED = YES
@@ -364,6 +365,34 @@ CONTRACT_V1_BASELINE = 37/38
 AC8_CORRECTED = YES（Spec 已冻结真实 baseline 与唯一允许的 test correction）
 PRODUCTION_DEPLOYMENT = NONE
 MERGE_PERFORMED = NO
-IMPLEMENTATION_AUTHORIZED = NO（governing Spec 尚未 accepted、implementation 未授权；implementation_authority=none——accepted 后 §5 的封闭文件集也只能在 Owner 明确授权后实现）
-READY_FOR_FOCUSED_RE_REVIEW = YES
+IMPLEMENTATION_AUTHORIZED = YES_AFTER_ACCEPTED_SPEC_MERGED_TO_MAIN（仅限 §5 冻结五文件；PRODUCTION_DEPLOYMENT_AUTHORIZED = NO、PRODUCTION_MIGRATION_APPLY_AUTHORIZED = NO、OBO_OWNERLESS_IMPLEMENTATION_AUTHORIZED = NO）
+ACCEPTANCE_FINALIZE_PERFORMED = YES（2026-08-20；无主审计（二轮）= PASS、REQUIRED_FIXES=NONE；Acceptance Record 见 §9）
 ```
+
+## 9. Acceptance Record（ACCEPTANCE_RECORD）
+
+```text
+ACCEPTANCE_REVIEW = 无主审计（二轮）
+REVIEWED_BASE = 1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9 (github/main)
+REVIEWED_SPEC_HEAD = 9e165a838ec81569727dcee0a174bc66a44acdd6
+REVIEW_VERDICT = PASS
+REQUIRED_FIXES = NONE
+ACCEPTED_AT = 2026-08-20
+ACCEPTANCE_FINALIZE_SEMANTIC_CHANGE = NONE
+
+AUTHORIZED_IMPLEMENTATION_FILES =
+  src/lib/oauth/v1/direct.ts
+  tests/oauth/v1-direct.test.ts
+  prisma/migrations/20260820000100_allow_ownerless_agent_principal/migration.sql
+  tests/oauth/migration-v1-static.test.ts
+  tests/oauth/ownerless-agent-principal-migration.test.ts
+OWNERLESS_DIRECT_IMPLEMENTATION_AUTHORIZED = YES_AFTER_ACCEPTED_SPEC_MERGED_TO_MAIN
+PRODUCTION_DEPLOYMENT_AUTHORIZED = NO
+PRODUCTION_MIGRATION_APPLY_AUTHORIZED = NO
+OBO_OWNERLESS_IMPLEMENTATION_AUTHORIZED = NO
+```
+
+本 acceptance finalize 为纯机械轮：仅 frontmatter lifecycle（status / implementation_authority）、
+header 与 §8 的 lifecycle 行、本 Acceptance Record、以及 docs/specs/README.md 的 accepted index 行。
+§1–§7（含 §3 FROZEN_PROFILE、§4 TOKEN_CLAIM_RULE、§5 FILES_AUTHORIZED 与唯一 migration 路径、
+§6 DB-AC1–DB-AC8 / AC1–AC8 / 37/38 baseline、§7 出界清单）零改动。
