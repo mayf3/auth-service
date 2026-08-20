@@ -49,7 +49,8 @@ PRODUCTION_DB_WRITE_AUTHORIZED = NO
 
 - One exact repository-versioned offline Stage W executable.
 - One exclusive three-file implementation and conformance surface.
-- A local `initdb`-owned PostgreSQL cluster that cannot address an existing DB.
+- One digest-pinned disposable PostgreSQL container with no host data volume and
+  no path to an existing database.
 - Current Prisma-schema creation plus exact test-only installation and runtime
   verification of the existing Grant-audit checks and immutability trigger.
 - A strict manifest read from immutable Git objects in an exact Agent Core
@@ -97,6 +98,14 @@ cluster can create current schema, install those exact existing controls as
 test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
 `CLM-SWX-003`, `EVD-SWX-003A`, `EVD-SWX-003C`.
 
+### STATE-SWX-004 — Digest-pinned container baseline is executable here
+
+At the authoring environment on `2026-08-21`, host `initdb` failed because the
+kernel System V shared-memory segment limit was exhausted, while a loopback-only,
+tmpfs-backed PostgreSQL container from the locally present immutable image digest
+successfully accepted `prisma db push` and created all 20 current public tables.
+Basis: `OBS-SWX-004`, `CLM-SWX-004`, `EVD-SWX-004A`, `EVD-SWX-004B`.
+
 ### OBS-SWX-001 — Execution surface inventory
 
 - Subject: Stage W repository execution and test surfaces.
@@ -140,6 +149,24 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
   `grant_change_audits_immutable` are exact frozen read-only dependencies.
 - Provenance: named files at the bound revision.
 
+### OBS-SWX-004 — Disposable PostgreSQL mechanism probe
+
+- Subject: executable isolated PostgreSQL baseline in the authoring environment.
+- Repository/source: `mayf3/auth-service` authoring checkout plus local Docker
+  Engine `29.6.1` and PostgreSQL client/server `16` tooling.
+- Revision: `45b63e23e2db46f14436233385e9eed180d4c4be` worktree context;
+  parent source remains `cb0b3d37dfb105c763c9c83ebd65483270b21b81`.
+- Environment: macOS local authoring host; observed at `2026-08-21`.
+- Method: create disposable host `initdb` clusters with neutral locale and mmap
+  settings; then create a `--rm`, tmpfs-backed, loopback-only Docker PostgreSQL
+  container and run `prisma db push --skip-generate` against its generated port.
+- Result: three host-cluster attempts failed before schema creation with
+  `shmget ... Cannot allocate memory`; container image
+  `postgres@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777`
+  succeeded and produced 20 public tables; cleanup removed the container.
+- Provenance: executed command output in the authoring session; no repository or
+  production database was used.
+
 ## 4. Claims and evidence
 
 ### CLM-SWX-001 — Three new files are sufficient
@@ -163,6 +190,13 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
   harness then installs and behaviorally verifies the exact existing Grant-audit
   safety controls before Stage W tests.
 - Supported by: `EVD-SWX-003C`; contradicted by: none known.
+
+### CLM-SWX-004 — Digest-pinned container is the viable owned baseline
+
+- Support state: SUPPORTED.
+- Claim: the exact tmpfs-backed, loopback-only container mechanism can create the
+  current disposable schema without host shared-memory or existing-DB coupling.
+- Supported by: `EVD-SWX-004B`; contradicted by: none known.
 
 ### EVD-SWX-001A
 
@@ -239,6 +273,29 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
 - Bound coordinates, strength, limitations, and provenance: identical to
   `EVD-SWX-003A`.
 
+### EVD-SWX-004A
+
+- Source observations: `OBS-SWX-004`.
+- Target type: State.
+- Target ID: `STATE-SWX-004`.
+- Relation: SUPPORTS.
+- Bound coordinates: auth-service authoring worktree at
+  `45b63e23e2db46f14436233385e9eed180d4c4be`, local macOS/Docker environment,
+  observed `2026-08-21`.
+- Strength/sufficiency: direct failed host-cluster probes and successful
+  digest-pinned container schema creation.
+- Limitations: authoring-host feasibility is not permanent conformance evidence.
+- Provenance: executed commands and results recorded in `OBS-SWX-004`.
+
+### EVD-SWX-004B
+
+- Source observations: `OBS-SWX-004`.
+- Target type: Claim.
+- Target ID: `CLM-SWX-004`.
+- Relation: SUPPORTS.
+- Bound coordinates, strength, limitations, and provenance: identical to
+  `EVD-SWX-004A`.
+
 ## 5. Decisions
 
 ### DEC-SWX-001 — Exact executable and exclusive file set
@@ -262,19 +319,21 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
   script/dependency, online route/command, or any fourth file.
 - Reason: smallest reviewable surface consistent with parent obligations.
 
-### DEC-SWX-002 — Self-owned local PostgreSQL baseline
+### DEC-SWX-002 — Digest-pinned disposable PostgreSQL baseline
 
 - Decision owner: same as `DEC-SWX-001`.
-- Decision: the shell MUST create a new `mktemp` data directory, run `initdb`,
-  start that exact cluster with `pg_ctl` on loopback using a generated unused
-  high port, create a generated database named with prefix
-  `auth_stage_w_conformance_`, and construct `DATABASE_URL` internally. It MUST
-  accept no external `DATABASE_URL`, host, port, cluster, or database name.
-  Cleanup trap MUST stop the exact server and remove the complete temp directory
-  on success, failure, or interruption.
+- Decision: the shell MUST start exactly
+  `postgres@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777`
+  with Docker `--rm`, a generated container name prefixed
+  `auth-stage-w-conformance-`, a tmpfs at `/var/lib/postgresql/data`, no host
+  volume, trust authentication, generated database
+  `auth_stage_w_conformance`, and a Docker-assigned port published only on
+  `127.0.0.1`. It constructs `DATABASE_URL` internally and accepts no external
+  URL, host, port, container, volume, or database name. Cleanup trap MUST remove
+  the exact container on success, failure, or interruption and prove it absent.
 
   The shell then runs `prisma db push --skip-generate` only against that owned
-  database, installs in one SQL transaction the exact five named Grant-audit
+  container, installs in one SQL transaction the exact five named Grant-audit
   check constraints plus exact immutable function/trigger recorded in
   `20260718000100_minimal_auth_v1_additive/migration.sql`, and proves before tests:
 
@@ -282,39 +341,55 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
   - the trigger exists and rejects UPDATE and DELETE of a valid audit row;
   - the canonical source migration still contains every exact named control.
 
-- Rejected: external or existing DB, production migration replay, historical
-  fixture invention, retained cluster, `db push` without safety DDL, or skipping
-  runtime control verification.
-- Reason: the checked-in chain is not a baseline; this procedure is exact,
-  disposable, and exercises the current schema plus existing security controls.
+- Rejected: host `initdb`, external/existing DB, mutable image tag, production
+  migration replay, historical fixture invention, host data volume, retained
+  container, `db push` without safety DDL, or skipped runtime verification.
+- Reason: the checked-in chain is not a baseline and host `initdb` was observed
+  blocked by host shared-memory limits; the digest-pinned tmpfs container is
+  executable, disposable, loopback-only, and exercises current schema plus the
+  existing security controls.
 
 ### DEC-SWX-003 — Remote-main-anchored evidence and exact apply interface
 
 - Decision owner: same as `DEC-SWX-001`.
-- Decision: plan is default and read-only. Apply interface is exactly:
+- Decision: plan is default and read-only. Operational interfaces are exactly:
 
   ```text
-  --apply
-  --evidence-repository <absolute local Git object-cache path>
-  --evidence-commit <lowercase 40-hex>
-  --evidence-path <safe relative POSIX path>
+  --validate-evidence --evidence-commit <lowercase 40-hex>
+                      --evidence-path <safe relative POSIX path>
+  --apply             --evidence-commit <lowercase 40-hex>
+                      --evidence-path <safe relative POSIX path>
   ```
 
-  The configured local `origin` is not trusted. Before parsing evidence, the
-  executor MUST fetch literal
-  `https://github.com/mayf3/dsh-agent-core.git` branch `main` into a dedicated
-  temporary ref, verify `evidence_commit` is an ancestor of that fetched remote
-  main, and read the manifest and receipts only with
-  `git show <evidence_commit>:<path>`. It MUST verify `phase_a.merge_commit`
-  exists as a commit, is an ancestor of `evidence_commit`, and is also reachable
-  from fetched remote main. A fabricated local repository or editable remote
-  configuration therefore cannot satisfy apply.
+  `--validate-evidence` performs full provenance/receipt validation and exits
+  before Prisma construction. `--apply` performs that identical validation
+  first, then and only then constructs Prisma and enters the Stage W engine.
+
+  The executor MUST create its own `mktemp` directory and fresh bare Git
+  repository. For every Git subprocess it sets `GIT_CONFIG_NOSYSTEM=1`,
+  `GIT_CONFIG_GLOBAL=/dev/null`, `HOME` and `XDG_CONFIG_HOME` to fresh empty
+  directories, `GIT_TERMINAL_PROMPT=0`, clears all `GIT_CONFIG_*` count/key/value
+  injection variables, `GIT_PROXY_COMMAND`, `GIT_SSH`, `GIT_SSH_COMMAND`, and
+  upper/lowercase `HTTP_PROXY`, `HTTPS_PROXY`, `ALL_PROXY`, and `NO_PROXY`, and
+  passes no caller repository or local config. It enables HTTPS only and disables
+  file, ext, SSH, and helper
+  transports. In that repository it fetches literal
+  `https://github.com/mayf3/dsh-agent-core.git` branch `main`, verifies
+  `evidence_commit` is an ancestor of fetched remote main, and reads manifest
+  and receipts only with `git show <evidence_commit>:<path>`. It verifies
+  `phase_a.merge_commit` exists, is an ancestor of `evidence_commit`, and is
+  reachable from fetched main. Cleanup removes the entire fetch directory.
+  Caller-controlled local/global/system Git configuration, URL rewrite,
+  repository objects, and editable remotes therefore cannot satisfy apply.
 
   Paths are non-empty relative POSIX paths without `..`, leading slash,
   backslash, empty segment, or NUL. Every receipt blob MUST exist at the same
   remote-main-reachable evidence commit, be non-empty UTF-8 JSON, match its
   lowercase 64-hex SHA-256, satisfy its closed receipt schema below, and
-  cross-bind exactly to the corresponding manifest fields.
+  cross-bind exactly to the corresponding manifest fields. Before ordinary JSON
+  parsing or schema validation, a duplicate-aware parser MUST reject any repeated
+  object member name at any nesting depth in the manifest or any receipt;
+  Unicode escape-equivalent member names count as duplicates.
 
   Manifest is UTF-8 JSON, `additionalProperties: false`, exactly:
 
@@ -343,11 +418,16 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
     reviewed_source_git_commit: lowercase 40-hex equal clean auth-service HEAD
     review_ref: immutable GitHub review/comment URL
     receipt: { path: safe path, sha256: lowercase 64-hex }
+  approval: object, additionalProperties=false:
+    status: string exactly APPROVED
+    operator_id: non-empty string, maximum 256 UTF-8 bytes
+    approval_ref: immutable GitHub review/comment URL under mayf3/auth-service
+    receipt: { path: safe path, sha256: lowercase 64-hex }
   audit_metadata: object, additionalProperties=false:
     migration_id: non-empty string, maximum 128 UTF-8 bytes
     source_git_commit: lowercase 40-hex equal clean HEAD and reviewed commit
-    operator_id: non-empty string, maximum 256 UTF-8 bytes
-    approval_ref: immutable GitHub review/comment URL under mayf3/auth-service
+    operator_id: exact manifest approval.operator_id
+    approval_ref: exact manifest approval.approval_ref
     reason: non-empty string, maximum 512 UTF-8 bytes
   ```
 
@@ -379,10 +459,30 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
     verdict, reviewed_source_git_commit, review_ref
       = exact manifest migration_review values
     reviewer_id = non-empty string
+
+  Operator approval receipt:
+    receipt_type = auth_service_stage_w_operator_approval
+    auth_repository = mayf3/auth-service
+    status, operator_id, approval_ref = exact manifest approval values
+    reviewed_source_git_commit = manifest migration_review.reviewed_source_git_commit
+    authorized_stage = STAGE_W
+    authorized_client_ids = exact two manifest client_id values in ASCII order
+    audience = svc-workflow
+    scopes = exactly [workflow.read]
   ```
 
-  Immutable URL grammar is
-  `https://github.com/mayf3/auth-service/(pull|issues)/<positive integer>#(pullrequestreview|issuecomment)-<positive integer>`.
+  Immutable URL grammar is exactly either
+  `https://github.com/mayf3/auth-service/pull/<positive>#pullrequestreview-<positive>`
+  or
+  `https://github.com/mayf3/auth-service/(pull|issues)/<positive>#issuecomment-<positive>`;
+  cross-pairs such as `issues/...#pullrequestreview-...` are invalid. For both
+  `review_ref` and `approval_ref`, the executor MUST derive the corresponding
+  `api.github.com/repos/mayf3/auth-service/...` immutable-ID endpoint, perform an
+  HTTPS request with redirects disabled, require HTTP 200, and require returned
+  repository, numeric object ID, and canonical `html_url` to match the manifest
+  URL exactly. Missing, deleted, redirected, rate-limited, or mismatched objects
+  fail closed before DB access. Receipt content supplies the reviewed/approved
+  semantics; live API dereference proves the cited durable object exists.
   The auth-service worktree MUST be clean under
   `git status --porcelain --untracked-files=all`. Evidence is validation input;
   only the five `audit_metadata` values map to existing audit columns, and no
@@ -391,9 +491,42 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
   arbitrary receipt bytes, self-asserted uncross-bound facts, environment
   booleans, worktree-file reads, alternate identities, dirty tree, SHA mismatch,
   or audit-envelope extension.
-- Reason: literal HTTPS fetch, remote-main reachability, closed receipt schemas,
-  and cross-field binding make the operational evidence durable and
-  non-local-forgeable without treating it as normative authority.
+- Reason: sanitized literal HTTPS fetch, remote-main reachability, closed receipt
+  schemas, approval binding, duplicate-key rejection, and cross-field binding
+  make operational evidence durable and non-local-forgeable without treating it
+  as normative authority.
+
+### DEC-SWX-004 — Separate operational gate from DB integration seam
+
+- Decision owner: same as `DEC-SWX-001`.
+- Decision: the executable file owns one internal planner/Serializable transaction
+  engine used by both CLI and integration tests. Operational CLI `--apply` MUST
+  validate `DEC-SWX-003` before constructing Prisma and is the only deployable
+  apply entrypoint. For temporary-DB tests only, the module may export exactly one
+  named `stageWConformanceOnly` seam that:
+
+  - is never dispatched by CLI flags or environment variables;
+  - requires an already constructed Prisma client;
+  - queries `current_database()` and refuses unless it equals
+    `auth_stage_w_conformance`;
+  - requires `AUTH_STAGE_W_CONFORMANCE=1` and a caller capability symbol created
+    and retained inside the same module, exposed only as a method closure on the
+    exported test seam;
+  - accepts strict synthetic audit metadata but no evidence-valid flag;
+  - calls the same private planner/transaction engine used after operational
+    evidence validation.
+
+  Static import scanning MUST prove only the exact authorized test file imports
+  this seam and no application, script CLI dispatch, route, reusable library, or
+  other test does. Results through this seam qualify only DB behavior Contracts;
+  they never satisfy positive provenance or operational readiness. Positive
+  provenance remains runtime/manual and uses `--validate-evidence` after real
+  receipts exist; it performs no DB access. No production apply is authorized.
+- Rejected: hidden CLI flag, evidence-bypass environment variable, exported raw
+  apply function, alternate executable, local-only evidence override, or claiming
+  conformance-seam results as operational evidence.
+- Reason: Stage W transaction behavior must be testable before bootstrap receipts
+  exist without creating any operational path around provenance validation.
 
 ## 6. Contracts
 
@@ -410,10 +543,12 @@ owned cluster. No externally supplied connection is read or used.
 
 ### CTR-SWX-003 — Evidence and metadata fail before DB access
 
-Every type, cardinality, exact value, URL, path, blob, digest, identity binding,
+Every sanitized-fetch, reachability, duplicate-key, type, cardinality, exact
+value, URL, path, receipt schema, cross-binding, blob, digest, identity, approval,
 cleanliness, and SHA rule in `DEC-SWX-003` is mandatory. Invalid evidence fails
-before the executable opens Prisma or performs any database query or write. Plan
-opens the target DB read-only in behavior but does not require evidence.
+before the executable constructs Prisma or performs any database query/write.
+Plan opens the target DB read-only in behavior but does not require evidence;
+`--validate-evidence` performs no DB access.
 
 ### CTR-SWX-004 — Parent Stage W obligations remain mandatory
 
@@ -422,6 +557,14 @@ The implementation MUST satisfy all applicable parent Contracts
 Parent `CTR-CGS-012` is NOT_APPLICABLE because rollback implementation is outside
 this Spec and remains separately reviewed future work. No parent obligation is
 replaced or weakened.
+
+### CTR-SWX-005 — Test seam cannot become an operational bypass
+
+The only non-CLI integration seam is exactly `DEC-SWX-004`; its database-name,
+environment, capability-closure, import, and no-dispatch guards are mandatory.
+Operational `--apply` always performs full provenance validation first. No test
+result from the seam qualifies `CTR-CGS-010`; positive provenance remains a
+separate runtime/manual result from `--validate-evidence` with real receipts.
 
 ## 7. Acceptance and parent mapping
 
@@ -437,28 +580,32 @@ replaced or weakened.
 - Contracts: `CTR-SWX-002`; parent `CTR-CGS-007`, `CTR-CGS-013`,
   `CTR-CGS-014`.
 - Method: run shell from clean commit; inject setup, test, and cleanup failures.
-- Expected: owned cluster only; schema and exact controls installed; constraint
-  invalid-row checks pass; immutable UPDATE/DELETE checks pass; real test runs;
-  process and temp directory absent after every exit.
-- Failure: external connection read, retained process/files, missing/bypassed
-  control, or Stage W execution before setup passes.
+- Expected: exact image digest, tmpfs/no-volume, loopback Docker-assigned port,
+  internally built URL, schema and controls installed, invalid-row checks pass,
+  immutable UPDATE/DELETE checks pass, real test runs, and container is absent
+  after every exit.
+- Failure: mutable tag, external connection/input, host volume, retained
+  container, missing/bypassed control, or Stage W execution before setup passes.
 
 ### ACC-SWX-003 — Closed evidence and metadata
 
 - Contracts: `CTR-SWX-003`; parent `CTR-CGS-008`, `CTR-CGS-010`.
-- Method: test every field missing/extra; wrong type; empty and over-byte-limit
-  metadata; unsafe path; absent/empty/digest-mismatched or schema-invalid receipt;
-  cross-field mismatch; configured-remote spoof; literal-fetch failure;
+- Method: test every field missing/extra/duplicated (including Unicode-escaped
+  duplicate member names); wrong type; empty/over-byte-limit metadata; unsafe
+  path; absent/empty/digest-mismatched/schema-invalid receipt; manifest/receipt
+  mismatch; missing or mismatched approval receipt/operator; impossible URL
+  cross-pair; GitHub API missing/deleted/redirected/rate-limited/mismatched object;
+  caller local/global/system `insteadOf` injection; Git config/env, helper, proxy,
+  SSH, file, and ext transport injection; literal-fetch failure;
   evidence/Phase-A commit absent or not reachable from fetched main; alternate or
-  duplicate identity; inactive flags; wrong type/Agent ID; non-READY; non-PASS;
-  mutable/malformed URL; lowercase/length/SHA variants; and dirty tracked or
-  untracked auth-service tree. Parser tests use closed synthetic JSON only and
-  MUST NOT claim positive provenance.
-- Expected: each invalid apply fails before any Prisma connection; plan needs no
-  evidence and writes nothing. Positive provenance is a required runtime/manual
-  Acceptance item after real Phase-A, identity, readiness, and review receipts
-  exist: run the exact CLI against an evidence commit reachable from literal
-  GitHub `main`, prove all closed receipt bindings, and stop at read-only plan.
+  duplicate identity; inactive flags; wrong type/Agent ID; non-READY/non-PASS;
+  lowercase/length/SHA variants; and dirty tracked/untracked auth-service tree.
+  Parser tests use synthetic JSON only and MUST NOT claim positive provenance.
+- Expected: each invalid `--apply` and `--validate-evidence` fails before Prisma;
+  plan needs no evidence and writes nothing. Positive provenance is a required
+  runtime/manual Acceptance item after real Phase-A, identity, readiness, review,
+  and approval receipts exist: run `--validate-evidence` against a remote-main-
+  reachable evidence commit, prove all bindings, and exit with DB access `0`.
 - Failure: invalid input reaches DB access; synthetic/local-only evidence is
   reported valid; evidence-only fields enter audit; or production apply occurs.
 - Current implementation-PR evidence qualification: `INCONCLUSIVE` for positive
@@ -532,7 +679,7 @@ CTR-CGS-006 -> ACC-SWX-006 | ACC-SWX-007
 CTR-CGS-007 -> ACC-SWX-002 | ACC-SWX-007
 CTR-CGS-008 -> ACC-SWX-003
 CTR-CGS-009 -> ACC-SWX-008
-CTR-CGS-010 -> ACC-SWX-003
+CTR-CGS-010 -> ACC-SWX-003 | ACC-SWX-010
 CTR-CGS-011 -> ACC-SWX-004 | ACC-SWX-008
 CTR-CGS-012 -> NOT_APPLICABLE (rollback not implemented)
 CTR-CGS-013 -> ACC-SWX-002 | ACC-SWX-007
@@ -565,6 +712,21 @@ A static test MUST also prove the three implementation files contain no
 `svc-forum`, `forum.`, rollback apply path, or forbidden Scope constant except
 negative-test literals.
 
+### ACC-SWX-010 — Integration seam is DB-only and non-operational
+
+- Contracts: `CTR-SWX-005`; parent DB Contracts exercised by `ACC-SWX-004`
+  through `ACC-SWX-008`.
+- Method: run the exact test import in the owned container; reject wrong database
+  name, missing conformance environment, and direct capability construction;
+  scan every repository import and CLI branch; invoke every documented and
+  unknown CLI flag/environment combination.
+- Expected: only the authorized test imports `stageWConformanceOnly`; it reaches
+  the same private engine only in `auth_stage_w_conformance`; CLI cannot dispatch
+  it; operational `--apply` reaches no Prisma construction/query before complete
+  provenance validation; `--validate-evidence` always has DB access `0`.
+- Failure: raw apply export, second importer/entrypoint, flag/env provenance
+  bypass, seam on another DB, or DB test reported as positive provenance.
+
 ## 8. Compatibility and lifecycle
 
 ```text
@@ -594,10 +756,10 @@ The exact accepted revision must merge to `main` before implementation.
 ```text
 AUTHORING_BASE = cb0b3d37dfb105c763c9c83ebd65483270b21b81
 PARENT_SPEC_BLOB = d89bf08c8714f55571ee7d75da017b7cf7237096
-ROUND = 4
-PRIOR_REVIEWED_COMMIT = 598d444047a7c3a8a47cd80ea11a65d520a509e7
+ROUND = 5
+PRIOR_REVIEWED_COMMIT = 45b63e23e2db46f14436233385e9eed180d4c4be
 PRIOR_REVIEW = REVISE
-PRIOR_BLOCKERS_RESOLVED = 3
+PRIOR_BLOCKERS_RESOLVED = 4
 OPEN_OWNER_DECISIONS = NONE
 NORMATIVE_TBD = NONE
 READY_FOR_INDEPENDENT_REVIEW = YES
