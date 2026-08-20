@@ -48,7 +48,7 @@ Program 或 governance adoption Spec 使用 `implementation_authority: none` 时
 
 Pending whole-authority successor（proposed，未激活）：
 
-- `MINIMAL_AUTH_FOUNDATION_V2`（`docs/contracts/minimal-auth-v2/MINIMAL_AUTH_FOUNDATION_V2.md`）— `MINIMAL_AUTH_FOUNDATION_V1` 的 whole-authority successor 候选，authority delta 仅限 migration / hard-cut / sequencing。在通过独立 review、Owner accept 并合入 `main` 之前，它不改变任何现有 authority 的状态；激活时 backlink 原子更新本 index 与 `.agents/local/README.md`。
+- `MINIMAL_AUTH_FOUNDATION_V2`（`docs/contracts/minimal-auth-v2/MINIMAL_AUTH_FOUNDATION_V2.md`）— `MINIMAL_AUTH_FOUNDATION_V1` 的 whole-authority successor 候选，status=`proposed` / inactive，authority delta 仅限 migration / hard-cut / sequencing。在通过新 exact Head 的独立 review、Owner accept 并合入 `main` 之前，它不改变任何现有 authority 的状态。V1 lifecycle root 为 `docs/contracts/minimal-auth-v1/README.md`，旧路径 `docs/contracts/MINIMAL_AUTH_FOUNDATION_V1.md` 为 compatibility entry；激活时必须按 `CTR-MAFV2-005` 在同一 acceptance-only docs change 中把 V2 标记 accepted、V1 root/entry 标记 superseded 并更新本 index 与 `.agents/local/README.md`，不得只写 index prose 模拟 supersession。
 
 它们的 precedence 与 transition 见 `.agents/local/README.md`。未来修改既有 normative meaning 时，应通过明确的 `AMEND`、`NEW` 或 whole-authority `SUPERSEDE` 处理，不得静默重写。
 
