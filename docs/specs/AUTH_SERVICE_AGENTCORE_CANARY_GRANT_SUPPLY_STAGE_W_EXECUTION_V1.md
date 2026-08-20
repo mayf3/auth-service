@@ -99,14 +99,6 @@ cluster can create current schema, install those exact existing controls as
 test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
 `CLM-SWX-003`, `EVD-SWX-003A`, `EVD-SWX-003C`.
 
-### STATE-SWX-004 — Digest-pinned container baseline is executable here
-
-At the authoring environment on `2026-08-21`, host `initdb` failed because the
-kernel System V shared-memory segment limit was exhausted, while a loopback-only,
-tmpfs-backed PostgreSQL container from the locally present immutable image digest
-successfully accepted `prisma db push` and created all 20 current public tables.
-Basis: `OBS-SWX-004`, `CLM-SWX-004`, `EVD-SWX-004A`, `EVD-SWX-004B`.
-
 ### OBS-SWX-001 — Execution surface inventory
 
 - Subject: Stage W repository execution and test surfaces.
@@ -150,64 +142,6 @@ Basis: `OBS-SWX-004`, `CLM-SWX-004`, `EVD-SWX-004A`, `EVD-SWX-004B`.
   `grant_change_audits_immutable` are exact frozen read-only dependencies.
 - Provenance: named files at the bound revision.
 
-### OBS-SWX-004 — Disposable PostgreSQL mechanism probe
-
-- Subject: executable isolated PostgreSQL baseline in the authoring environment.
-- Repository/source: `mayf3/auth-service` authoring checkout plus local Docker
-  Engine `29.6.1` and PostgreSQL client/server `16` tooling.
-- Revision: `45b63e23e2db46f14436233385e9eed180d4c4be` worktree context;
-  parent source remains `cb0b3d37dfb105c763c9c83ebd65483270b21b81`.
-- Environment: macOS local authoring host; observed at `2026-08-21`.
-- Method and durable transcript: executed from repository root; this exact Spec
-  section is the persistent provenance location.
-
-  ```text
-  HOST_PROBE_1:
-    LANG=C LC_ALL=C initdb -D "$TMP/data" -A trust -U postgres
-    pg_ctl -D "$TMP/data" -o "-h 127.0.0.1 -p <generated>" -w start
-  HOST_PROBE_2:
-    same, with server shared_memory_type=mmap and dynamic_shared_memory_type=mmap
-  HOST_PROBE_3:
-    initdb --no-locale -c shared_memory_type=mmap
-           -c dynamic_shared_memory_type=mmap; then pg_ctl start
-  HOST_RESULT_EACH:
-    FATAL: could not create shared memory segment: Cannot allocate memory
-    DETAIL: Failed system call was shmget(..., size=56, 03600).
-  HOST_SYSCTL:
-    kern.sysv.shmmax=4194304 kern.sysv.shmall=1024 kern.sysv.shmseg=8
-
-  CONTAINER_IMAGE_INSPECT:
-    docker image inspect postgres:16-alpine --format '{{json .RepoDigests}}'
-  IMAGE_RESULT:
-    postgres@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
-  CONTAINER_PROBE:
-    docker run -d --name auth-stage-w-preflight-<pid> --rm
-      --tmpfs /var/lib/postgresql/data:rw,noexec,nosuid,size=512m
-      -e POSTGRES_HOST_AUTH_METHOD=trust
-      -e POSTGRES_DB=auth_stage_w_conformance
-      -p 127.0.0.1::5432 postgres:16-alpine
-    docker exec <name> pg_isready -U postgres -d auth_stage_w_conformance
-    DATABASE_URL=postgresql://postgres@127.0.0.1:<assigned>/auth_stage_w_conformance
-      npx prisma db push --skip-generate
-    psql ... -Atc "SELECT count(*) FROM information_schema.tables
-                    WHERE table_schema='public'"
-    docker rm -f <name>  # EXIT trap
-  CONTAINER_RESULT:
-    OWNED_DOCKER_POSTGRES=true
-    LOOPBACK_ONLY=true
-    CURRENT_SCHEMA_TABLE_COUNT=20
-    cleanup: container absent
-  PINNED_DIGEST_EXECUTION:
-    docker run --rm postgres@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777
-      postgres --version
-    => postgres (PostgreSQL) 16.14
-  ```
-
-- Result: host clusters were unavailable under the observed kernel limit; the
-  exact digest container succeeded with no host volume or external database.
-- Provenance: transcript above, bound to authoring commit and environment; no
-  repository file or production database was modified.
-
 ## 4. Claims and evidence
 
 ### CLM-SWX-001 — Three new files are sufficient
@@ -231,13 +165,6 @@ Basis: `OBS-SWX-004`, `CLM-SWX-004`, `EVD-SWX-004A`, `EVD-SWX-004B`.
   harness then installs and behaviorally verifies the exact existing Grant-audit
   safety controls before Stage W tests.
 - Supported by: `EVD-SWX-003C`; contradicted by: none known.
-
-### CLM-SWX-004 — Digest-pinned container is the viable owned baseline
-
-- Support state: SUPPORTED.
-- Claim: the exact tmpfs-backed, loopback-only container mechanism can create the
-  current disposable schema without host shared-memory or existing-DB coupling.
-- Supported by: `EVD-SWX-004B`; contradicted by: none known.
 
 ### EVD-SWX-001A
 
@@ -314,29 +241,6 @@ Basis: `OBS-SWX-004`, `CLM-SWX-004`, `EVD-SWX-004A`, `EVD-SWX-004B`.
 - Bound coordinates, strength, limitations, and provenance: identical to
   `EVD-SWX-003A`.
 
-### EVD-SWX-004A
-
-- Source observations: `OBS-SWX-004`.
-- Target type: State.
-- Target ID: `STATE-SWX-004`.
-- Relation: SUPPORTS.
-- Bound coordinates: auth-service authoring worktree at
-  `45b63e23e2db46f14436233385e9eed180d4c4be`, local macOS/Docker environment,
-  observed `2026-08-21`.
-- Strength/sufficiency: direct failed host-cluster probes and successful
-  digest-pinned container schema creation.
-- Limitations: authoring-host feasibility is not permanent conformance evidence.
-- Provenance: executed commands and results recorded in `OBS-SWX-004`.
-
-### EVD-SWX-004B
-
-- Source observations: `OBS-SWX-004`.
-- Target type: Claim.
-- Target ID: `CLM-SWX-004`.
-- Relation: SUPPORTS.
-- Bound coordinates, strength, limitations, and provenance: identical to
-  `EVD-SWX-004A`.
-
 ## 5. Decisions
 
 ### DEC-SWX-001 — Exact executable and exclusive file set
@@ -385,10 +289,9 @@ Basis: `OBS-SWX-004`, `CLM-SWX-004`, `EVD-SWX-004A`, `EVD-SWX-004B`.
 - Rejected: host `initdb`, external/existing DB, mutable image tag, production
   migration replay, historical fixture invention, host data volume, retained
   container, `db push` without safety DDL, or skipped runtime verification.
-- Reason: the checked-in chain is not a baseline and host `initdb` was observed
-  blocked by host shared-memory limits; the digest-pinned tmpfs container is
-  executable, disposable, loopback-only, and exercises current schema plus the
-  existing security controls.
+- Reason: the checked-in chain is not a baseline; a digest-pinned tmpfs container
+  normatively minimizes host coupling, is disposable and loopback-only, and
+  exercises current schema plus existing security controls.
 
 ### DEC-SWX-003 — Remote-main-anchored evidence and exact apply interface
 
@@ -407,25 +310,46 @@ Basis: `OBS-SWX-004`, `CLM-SWX-004`, `EVD-SWX-004A`, `EVD-SWX-004B`.
   first, then and only then constructs Prisma and enters the Stage W engine.
 
   Evidence provenance MUST use Node's built-in `node:https` directly, not Git,
-  `fetch`, curl, a proxy library, or a caller repository. Before any request the
-  executable rejects non-empty `NODE_OPTIONS`, `NODE_PATH`,
-  `NODE_EXTRA_CA_CERTS`, `SSL_CERT_FILE`, or `SSL_CERT_DIR`. Requests use fixed
-  hostname `api.github.com`, port `443`, method `GET`, redirects disabled, the
-  platform trust store, and no caller proxy/agent. Any non-200, redirect,
-  timeout, TLS authorization failure, wrong content type, or oversized body
-  fails closed.
+  `fetch`, curl, proxy library, or caller repository. Before any request it
+  rejects any defined/non-empty `NODE_OPTIONS`, `NODE_PATH`,
+  `NODE_EXTRA_CA_CERTS`, `NODE_TLS_REJECT_UNAUTHORIZED`, `SSL_CERT_FILE`, or
+  `SSL_CERT_DIR`. Every request uses fixed hostname `api.github.com`, port `443`,
+  method `GET`, platform trust store, no custom agent/proxy, redirects disabled,
+  idle/connect/TLS timeout `10_000 ms`, and total request-to-end deadline
+  `30_000 ms`. Required headers are exactly:
 
-  The executor queries repository `mayf3/dsh-agent-core` through immutable GitHub
-  REST coordinates only. It resolves `commits/main`, resolves both
-  `evidence_commit` and `phase_a.merge_commit`, and uses GitHub Compare responses
-  to require: evidence commit is equal to or an ancestor of current remote main;
-  Phase-A commit is equal to or an ancestor of evidence commit; each compare
-  response has the exact expected base/head SHA and merge-base SHA. It reads the
-  manifest and every receipt from the Contents API at
-  `contents/<encoded-safe-path>?ref=<evidence_commit>`, requiring response
-  `type=file`, exact requested path/ref, bounded size, base64 encoding, and no
-  truncation. No local Git object, config, executable, PATH, remote, or transport
-  participates in provenance.
+  ```text
+  User-Agent: mayf3-auth-service-stage-w-v1
+  Accept: application/vnd.github+json
+  X-GitHub-Api-Version: 2022-11-28
+  ```
+
+  Response media type, case-insensitive and ignoring parameter order, MUST be
+  `application/json` with no parameter other than optional `charset=utf-8`.
+  Maximum received JSON bytes are: Commit `2 MiB`, Compare `16 MiB`,
+  review/comment `2 MiB`, manifest Contents response `2 MiB`, each receipt
+  Contents response `512 KiB`. Any extra byte aborts the stream. Any non-200,
+  3xx, timeout, TLS authorization/hostname failure, wrong media type, premature
+  close, invalid content-length, or limit violation fails closed.
+
+  The executor queries `mayf3/dsh-agent-core` through immutable GitHub REST
+  coordinates. It resolves `commits/main`, `evidence_commit`, and
+  `phase_a.merge_commit`. For each ancestor check it requests exact
+  `/compare/<base40>...<head40>` and requires response `url` equal that canonical
+  API URL, `base_commit.sha=<base40>`, `merge_base_commit.sha=<base40>`,
+  `behind_by=0`, and status `ahead` or `identical`; the head SHA is independently
+  fixed by the resolved Commit response and request URL because Compare exposes
+  no standalone head field. Evidence must be ancestor/equal remote main; Phase A
+  must be ancestor/equal evidence.
+
+  Manifest and receipts use exact
+  `/contents/<encoded-safe-path>?ref=<evidence_commit>` requests. Each response
+  MUST have `type=file`, exact `path`, exact canonical `url` including the
+  requested `ref` query (Contents exposes no standalone ref field), bounded
+  integer `size`, `encoding=base64`, complete nonempty `content`, and no
+  truncation. Manifest decoded bytes are at most `1 MiB`; each decoded receipt is
+  at most `256 KiB`. No local Git object/config/executable/PATH/remote participates
+  in provenance.
 
   Paths are non-empty relative POSIX paths without `..`, leading slash,
   backslash, empty segment, or NUL. Every receipt blob MUST exist at the same
@@ -553,9 +477,13 @@ Basis: `OBS-SWX-004`, `CLM-SWX-004`, `EVD-SWX-004A`, `EVD-SWX-004B`.
   engine. No engine function or test closure is exported. Operational `--apply`
   validates `DEC-SWX-003` before Prisma construction. DB integration uses an
   explicit `--conformance-apply --descriptor-fd <integer>` CLI mode that refuses
-  `DATABASE_URL` and reads one duplicate-key-free JSON descriptor from an
-  inherited anonymous pipe (FIFO), then closes it. Regular files, argv/env JSON,
-  stdin fallback, named paths, sockets, and repeated reads are rejected.
+  `DATABASE_URL` and reads one duplicate-key-free JSON descriptor to EOF from an
+  inherited descriptor whose `fstat` type is FIFO, then closes it. Anonymous and
+  named FIFOs are both permitted because Node cannot distinguish them reliably;
+  regular files, argv/env JSON, stdin fallback, and sockets are rejected. The
+  same descriptor content MAY be supplied through a new FIFO while the exact
+  container lives; this is required to test parent exact-rerun/no-op behavior and
+  carries no operational authority.
 
   Descriptor is `additionalProperties:false` with exactly:
 
@@ -586,12 +514,53 @@ Basis: `OBS-SWX-004`, `CLM-SWX-004`, `EVD-SWX-004A`, `EVD-SWX-004B`.
   server nonce checks. Results qualify DB behavior Contracts only, never positive
   provenance/readiness. Positive provenance remains runtime/manual through
   DB-free `--validate-evidence`. No production apply is authorized.
-- Rejected: importable engine/seam, hidden flag, env/file descriptor contents
-  other than the anonymous pipe, external URL, non-pinned container, host volume,
+- Rejected: importable engine/seam, hidden flag, descriptor transported by
+  regular file/argv/env/socket, external URL, non-pinned container, host volume,
   alternate DB, local evidence override, or conformance result claimed as
   operational evidence.
 - Reason: real transaction behavior is testable before receipts exist while the
-  only evidence-free mode is cryptographically bound to the disposable container.
+  only evidence-free DB mode is cryptographically bound to the disposable
+  container.
+
+### DEC-SWX-005 — DB-free deterministic HTTPS state conformance mode
+
+- Decision owner: same as `DEC-SWX-001`.
+- Decision: executable may expose
+  `--conformance-http --fixture-fd <integer>` only. It refuses every DB/evidence/
+  apply argument and `DATABASE_URL`, never constructs Prisma, never calls the
+  Stage W engine, and never reports operational evidence success. It reads one
+  duplicate-key-free fixture from a FIFO and feeds it to the same private request
+  construction, byte-limit, stream-terminal, header, envelope, and JSON validators
+  used by `DEC-SWX-003`, but replaces only the actual socket with deterministic
+  events.
+
+  Fixture is `additionalProperties:false` with exactly:
+
+  ```text
+  schema_version = 1
+  kind = commit | compare | contents-manifest | contents-receipt | review | comment
+  request_path = expected fixed API path
+  tls_authorized = boolean
+  elapsed_ms = nonnegative integer
+  status_code = integer 100..599
+  headers = object of lowercase header name -> exact string value
+  chunks_base64 = ordered array of base64 strings
+  terminal = end | timeout | tls_error | premature_close | socket_error
+  error_code = null or non-empty string
+  ```
+
+  The test suite covers wrong host/port/path through private request-construction
+  assertions; response 3xx/4xx/5xx, media-type variants, content-length mismatch,
+  every byte limit boundary plus one, chunked overflow, timeout boundaries
+  `9_999/10_000/29_999/30_000 ms`, TLS unauthorized, premature close, malformed
+  Commit/Compare/Contents/review/comment envelopes, duplicate JSON keys, and valid
+  envelopes. Static source assertions bind the fixed headers, host, port, limits,
+  environment rejection list, and absence of any alternate socket/agent/proxy.
+- Rejected: exported transport function, caller network endpoint, test CA/proxy,
+  fixture mode reaching evidence-valid/apply/DB code, or conformance output used
+  as positive provenance.
+- Reason: network failure behavior becomes deterministic without adding an
+  operational transport override or apply bypass.
 
 ## 6. Contracts
 
@@ -631,6 +600,13 @@ no-external-URL guards are mandatory. No engine function is exported.
 Operational `--apply` always performs full provenance validation first. No
 conformance result qualifies `CTR-CGS-010`; positive provenance remains a
 separate runtime/manual result from `--validate-evidence` with real receipts.
+
+### CTR-SWX-006 — HTTP conformance cannot become transport or apply override
+
+`--conformance-http` is exactly `DEC-SWX-005`: FIFO fixture events enter only the
+private deterministic HTTP validation state machine. The mode has no Prisma,
+Stage W engine, operational evidence success, caller endpoint, CA, proxy, agent,
+or socket path. Operational modes cannot read its fixture interface.
 
 ## 7. Acceptance and parent mapping
 
@@ -746,7 +722,7 @@ CTR-CGS-006 -> ACC-SWX-006 | ACC-SWX-007
 CTR-CGS-007 -> ACC-SWX-002 | ACC-SWX-007
 CTR-CGS-008 -> ACC-SWX-003
 CTR-CGS-009 -> ACC-SWX-008
-CTR-CGS-010 -> ACC-SWX-003 | ACC-SWX-010
+CTR-CGS-010 -> ACC-SWX-003 | ACC-SWX-010 | ACC-SWX-011
 CTR-CGS-011 -> ACC-SWX-004 | ACC-SWX-008
 CTR-CGS-012 -> NOT_APPLICABLE (rollback not implemented)
 CTR-CGS-013 -> ACC-SWX-002 | ACC-SWX-007
@@ -784,17 +760,33 @@ negative-test literals.
 - Contracts: `CTR-SWX-005`; parent DB Contracts exercised by `ACC-SWX-004`
   through `ACC-SWX-008`.
 - Method: invoke conformance mode with descriptor FD missing, regular-file,
-  socket, stdin, closed, reused, duplicate-key, and malformed variants; wrong
+  socket, stdin, closed, duplicate-key, and malformed variants; wrong
   nonce/label/image/mount/network/port/database/GUC; caller `DATABASE_URL`;
-  stopped or removed container; Docker-inspect failure; and every unknown CLI
-  flag/environment combination. Scan exports/imports and CLI branches.
-- Expected: no engine function is exported; only anonymous-pipe descriptor plus
-  exact live disposable container reaches the private engine; URL is internally
-  constructed; operational `--apply` reaches no Prisma construction/query before
-  provenance validation; `--validate-evidence` has DB access `0`.
-- Failure: import/dynamic-import raw apply, external connection input, descriptor
-  replay, nonconforming/production DB access, flag/env provenance bypass, or DB
-  test reported as positive provenance.
+  stopped/removed container; Docker-inspect failure; every unknown CLI flag/env;
+  then supply identical content through a new anonymous FIFO and a named FIFO
+  while the exact container lives. Scan exports/imports and CLI branches.
+- Expected: no engine function is exported; either FIFO form plus the exact live
+  disposable container reaches the private engine; repeated exact descriptor
+  permits the engine's exact-rerun no-op; URL is internally constructed;
+  operational `--apply` reaches no Prisma before provenance validation;
+  `--validate-evidence` has DB access `0`.
+- Failure: import/dynamic-import raw apply, external connection input,
+  non-FIFO descriptor, nonconforming/production DB access, flag/env provenance
+  bypass, exact-rerun mutation, or DB test reported as positive provenance.
+
+### ACC-SWX-011 — Deterministic HTTPS validator without operational override
+
+- Contracts: `CTR-SWX-006`; supports `CTR-SWX-003` and parent `CTR-CGS-010`.
+- Method: run every boundary/event/envelope case in `DEC-SWX-005`; test fixture FD
+  wrong type and malformed/duplicate JSON; invoke fixture mode with every DB,
+  evidence, apply, endpoint, CA, proxy, and agent argument/env; scan imports,
+  exports, dispatch, and private call graph.
+- Expected: deterministic valid/invalid results match fixed constants; fixture
+  mode has network `0`, Prisma construction/query `0`, engine calls `0`, and can
+  never report positive provenance. Operational request path has no fixture hook.
+- Failure: nondeterministic ambient GitHub dependency, hidden transport override,
+  operational mode reading fixture data, DB/engine access, or conformance result
+  accepted as evidence.
 
 ## 8. Compatibility and lifecycle
 
@@ -825,8 +817,8 @@ The exact accepted revision must merge to `main` before implementation.
 ```text
 AUTHORING_BASE = cb0b3d37dfb105c763c9c83ebd65483270b21b81
 PARENT_SPEC_BLOB = d89bf08c8714f55571ee7d75da017b7cf7237096
-ROUND = 6
-PRIOR_REVIEWED_COMMIT = 3b9ad642e5ebfd335a3e186d84c5c2c91f88ae42
+ROUND = 7
+PRIOR_REVIEWED_COMMIT = 0e43cb953ad3b958a069f0d4dc28c10e2a0f8dd0
 PRIOR_REVIEW = REVISE
 PRIOR_BLOCKERS_RESOLVED = 4
 OPEN_OWNER_DECISIONS = NONE
