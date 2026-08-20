@@ -24,7 +24,8 @@ AUTHORITY_KIND = architecture
 AUTHORITY_STATUS = proposed
 SUPERSEDES = MINIMAL_AUTH_FOUNDATION_V1 (whole authority)
 SUPERSEDED_BY = null
-PROPOSED_AT_BASE = e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09
+PROPOSED_AT_BASE = cb0b3d37dfb105c763c9c83ebd65483270b21b81
+PREVIOUS_EVALUATED_BASE = e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09
 PREVIOUS_REVIEWED_BASE = 1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9
 DATE = 2026-08-20
 AUTHORITY_DELTA_SCOPE = migration / hard-cut / sequencing only
@@ -58,7 +59,8 @@ V1 的 claims、profiles、grants、delegation、human session、conformance 与
 - 不改变 V1 claims/profile/grant/delegation/human-session/conformance/bundle 语义；
 - 不把 PR #2 的 proposed Decision 当作活动 authority；硬切方向只由本 V2 的
   `DEC-MAFV2-*` 在本 V2 被接受后拥有；
-- 不修改 accepted `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1`；
+- 不修改 accepted `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1` 或
+  `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1`；
 - 不宣布 production effective；不授权 sequencing 实现；
 - 不修改产品代码、schema、migration、runtime config、deployment 或 bundle；
 - 不接受、不修改、不合并 PR #2。
@@ -102,31 +104,51 @@ V1 compatibility entry:
 这些值是 future acceptance change 的原子结果，不描述本 proposed Head 的当前状态。
 兼容入口在激活后 MUST NOT 再把 V1 表达为当前活动、可直接实施的 architecture authority。
 
-### 3.4 Accepted downstream Spec on the new base
+### 3.4 Accepted downstream Specs on the new base
 
-`AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1` 在新 Base 上是 accepted implementation
-Spec，`implementation_authority=contracts`，并通过 `external_authorities` 以
-`constrained_by` 关系绑定 `MINIMAL_AUTH_FOUNDATION_V1@1da40d4...`。它的封闭产品
-范围不拥有 architecture supersession。本 PR 不静默改写它；CTR-MAFV2-006 要求将此类
-external-authority reference 纳入 inventory，后续是否 successor/alignment 由独立评审
-和该 Spec 自己的 amendment 决定。
+`AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1` 是 accepted implementation Spec，
+`implementation_authority=contracts`，并通过 `external_authorities` 的
+`constrained_by` 关系绑定 `MINIMAL_AUTH_FOUNDATION_V1@1da40d4...`。它的封闭
+五文件产品范围不拥有 architecture supersession。本 PR 不修改它；其 compatibility
+结论仍为 `COMPATIBLE_NO_SEMANTIC_DELTA`，未来 alignment 由独立 amendment 决定。
+
+`AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1` 也是 accepted implementation Spec，
+accepted finalize revision `1f7fa6378fa44042f3001b4a5813210c0a8313e8`（新 Base
+中 blob `d89bf08c8714f55571ee7d75da017b7cf7237096`），
+`implementation_authority=contracts`，并通过 `governed_by` 直接依赖
+`MINIMAL_AUTH_FOUNDATION_V1`。其 bounded scope 是两个 Agent Core canary Client 的
+Stage W 两条 `svc-workflow[workflow.read]` MachineAccessGrant；Stage F 的两条
+`svc-forum` Grant 继续被独立 CCR、consumer migration review 与 bundle update 阻塞。
+
+V2 exact-incorporates Canary Grant 所依赖的 `grants-and-audiences.md` 与 bundle：
+MachineAccessGrant、Audience/Scope 严格拒绝、same-transaction audit、
+`expected_grant_version` optimistic concurrency 和 forward-only migration/rollback
+语义均不改变。因此 V2 现在作出明确 disposition，而非留给未来 review prose：
+
+```text
+CANARY_GRANT_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+CANARY_GRANT_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
+CANARY_GRANT_ALIGNMENT_AMENDMENT_REQUIRED = NO
+CANARY_GRANT_PRODUCT_SEMANTIC_DELTA = NONE
+FUTURE_CANARY_GRANT_SEMANTIC_AMENDMENT_PARENT = MINIMAL_AUTH_FOUNDATION_V2
+```
 
 ## 4. Current State
 
 ### STATE-MAFV2-001 — V1 remains the active architecture at the evaluated base
 
 - Subject: `MINIMAL_AUTH_FOUNDATION_V1` lifecycle and frozen contract set
-- As-of commit / artifact revision: `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- As-of commit / artifact revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
 - Environment: `mayf3/auth-service` source repository, `github/main`
-- Observed at: `2026-08-20T13:54:41Z`
+- Observed at: `2026-08-20T22:56:05Z`
 - Basis: `OBS-MAFV2-001`, `CLM-MAFV2-001`, `EVD-MAFV2-001`
 
 ### STATE-MAFV2-002 — Governance is accepted but manually enforced
 
 - Subject: local Development Governance adoption and enforcement state
-- As-of commit / artifact revision: `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- As-of commit / artifact revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
 - Environment: repository source and local governance verifier
-- Observed at: `2026-08-20T13:54:41Z`
+- Observed at: `2026-08-20T22:56:05Z`
 - Basis: `OBS-MAFV2-002`, `EVD-MAFV2-002`
 
 ### STATE-MAFV2-003 — Prior review is historical evidence only
@@ -137,30 +159,38 @@ external-authority reference 纳入 inventory，后续是否 successor/alignment
 - Observed at: `2026-08-20T13:07:13Z`
 - Basis: `OBS-MAFV2-003`, `CLM-MAFV2-002`, `EVD-MAFV2-003`
 
-### STATE-MAFV2-004 — New base contains one relevant accepted downstream Spec
+### STATE-MAFV2-004 — New base preserves the accepted ownerless downstream Spec
 
 - Subject: `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1`
-- As-of commit / artifact revision: `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- As-of commit / artifact revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
 - Environment: `mayf3/auth-service` source repository, `github/main`
-- Observed at: `2026-08-20T13:54:41Z`
+- Observed at: `2026-08-20T22:56:05Z`
 - Basis: `OBS-MAFV2-004`, `OBS-MAFV2-005`, `CLM-MAFV2-003`, `EVD-MAFV2-004`
 
 ### STATE-MAFV2-005 — Pinned V1 assets have no main-drift delta
 
 - Subject: V1 normative modules and `contract-bundles/minimal-auth-v1`
-- As-of commit / artifact revision: comparison `1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9..e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- As-of commit / artifact revision: comparison `1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9..cb0b3d37dfb105c763c9c83ebd65483270b21b81`
 - Environment: clean task worktree, Git object database
-- Observed at: `2026-08-20T13:54:41Z`
+- Observed at: `2026-08-20T22:56:05Z`
 - Basis: `OBS-MAFV2-005`, `CLM-MAFV2-004`, `EVD-MAFV2-005`
+
+### STATE-MAFV2-006 — New base contains accepted Canary Grant authority
+
+- Subject: `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1` lifecycle, parent relation, and bounded scope
+- As-of commit / artifact revision: accepted finalize `1f7fa6378fa44042f3001b4a5813210c0a8313e8`, present in `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
+- Environment: `mayf3/auth-service` source repository, `github/main`
+- Observed at: `2026-08-20T22:56:05Z`
+- Basis: `OBS-MAFV2-007`, `CLM-MAFV2-007`, `EVD-MAFV2-007`
 
 ## 5. Observations
 
 ### OBS-MAFV2-001 — V1 lifecycle and object identities
 
 - Subject: V1 lifecycle root, normative modules, migration module, and bundle
-- Source revision: `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- Source revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
 - Environment: clean task worktree, Git object database
-- Observed at: `2026-08-20T13:54:41Z`
+- Observed at: `2026-08-20T22:56:05Z`
 - Method: executed `git rev-parse <base>:<path>` for every item listed in CTR-MAFV2-001 and the lifecycle/migration provenance objects
 - Result: all object identities equal their identities at `1da40d4...`; V1 lifecycle root still advertises frozen/current implementation-authorized state
 - Provenance: this PR authoring execution record and CTR-MAFV2-001 table
@@ -168,9 +198,9 @@ external-authority reference 纳入 inventory，后续是否 successor/alignment
 ### OBS-MAFV2-002 — Governance verifier result
 
 - Subject: vendored governance bytes and accepted adoption metadata
-- Source revision: `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- Source revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
 - Environment: clean task worktree, local Python 3 verifier
-- Observed at: `2026-08-20T13:54:41Z`
+- Observed at: `2026-08-20T22:56:05Z`
 - Method: executed `python3 .agents/tools/verify_governance.py --target . --require-accepted`
 - Result: `vendored governance bytes match governance.lock.json and adoption is accepted`
 - Provenance: this PR authoring execution record; `.agents/governance.lock.json`
@@ -188,32 +218,42 @@ external-authority reference 纳入 inventory，后续是否 successor/alignment
 ### OBS-MAFV2-004 — Ownerless Spec lifecycle and authority reference
 
 - Subject: `docs/specs/AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1.md`
-- Source revision: `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- Source revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
 - Environment: repository source, `github/main`
-- Observed at: `2026-08-20T13:54:41Z`
+- Observed at: `2026-08-20T22:56:05Z`
 - Method: direct source inspection of frontmatter and bounded authorization section
 - Result: `status=accepted`; `implementation_authority=contracts`; external `authority_id=MINIMAL_AUTH_FOUNDATION_V1`, revision `1da40d4...`, relation `constrained_by`; implementation scope is a closed five-file product delta
 - Provenance: accepted Spec at the source path above, lines 1–18 and §5
 
 ### OBS-MAFV2-005 — Exact main drift and pinned-scope non-drift
 
-- Subject: source changes from old evaluated base to new evaluated base
-- Source revision: `1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9..e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- Subject: source changes from previous evaluated base to current evaluated base
+- Source revision: `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09..cb0b3d37dfb105c763c9c83ebd65483270b21b81`
 - Environment: clean task worktree, Git object database
-- Observed at: `2026-08-20T13:54:41Z`
-- Method: executed `git diff --name-only` plus scoped `git diff --exit-code` for V1 modules, bundle, and vendored governance
-- Result: only `docs/specs/AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1.md` and `docs/specs/README.md` changed; pinned V1 assets and vendored governance bytes did not change
+- Observed at: `2026-08-20T22:56:05Z`
+- Method: executed `git diff --name-only` plus scoped `git diff --exit-code` for V1 modules, bundle, ownerless Spec, and vendored governance
+- Result: only `docs/specs/AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1.md` and `docs/specs/README.md` changed; pinned V1 assets, ownerless Spec, and vendored governance bytes did not change
 - Provenance: this PR authoring execution record
 
 ### OBS-MAFV2-006 — Downstream reference inventory surface
 
 - Subject: in-repository textual authority references to `MINIMAL_AUTH_FOUNDATION_V1`
-- Source revision: `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`
+- Source revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
 - Environment: repository documentation tree
-- Observed at: `2026-08-20T13:54:41Z`
+- Observed at: `2026-08-20T22:56:05Z`
 - Method: repository content search for exact authority ID, followed by frontmatter classification
-- Result: references include lifecycle/compatibility sources and the accepted ownerless Spec external-authority constraint; inventory cannot be limited to `governed_by`
+- Result: references include the accepted ownerless Spec's external-authority constraint and accepted Canary Grant Spec's `governed_by` parent; inventory must cover both reference classes
 - Provenance: this PR authoring execution record and matching repository paths
+
+### OBS-MAFV2-007 — Accepted Canary Grant dependency semantics
+
+- Subject: `docs/specs/AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1.md` and its V1 Grant dependencies
+- Source revision: accepted finalize `1f7fa6378fa44042f3001b4a5813210c0a8313e8`; source blob `d89bf08c8714f55571ee7d75da017b7cf7237096`; evaluated base `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
+- Environment: repository source and Git object database
+- Observed at: `2026-08-20T22:56:05Z`
+- Method: inspect frontmatter, §1–§3, Decisions/Contracts, Acceptance record; compare `grants-and-audiences.md`, bundle tree, audience registry, and grants schema objects across `e9b6dbc...cb0b3d3`
+- Result: accepted `implementation_authority=contracts`, `governed_by` includes V1; Stage W is two exact workflow Grants, Stage F remains blocked; all depended-on Grant/Audience/Scope/audit/concurrency/forward-only objects and semantics are unchanged by V2
+- Provenance: accepted Canary Grant Spec; Git history/object output in this PR authoring record
 
 ## 6. Claims and assumptions
 
@@ -243,7 +283,7 @@ external-authority reference 纳入 inventory，后续是否 successor/alignment
 - Support state: SUPPORTED
 - Supported by evidence: `EVD-MAFV2-005`
 - Contradicted by evidence: none known
-- Uncertainty: result applies only through evaluated base `e9b6dbc...`; later main movement requires re-evaluation
+- Uncertainty: result applies only through evaluated base `cb0b3d3...`; later main movement requires re-evaluation
 
 ### CLM-MAFV2-005 — PRE_CUT migration is compatible with a hard Cut Artifact
 
@@ -252,12 +292,19 @@ external-authority reference 纳入 inventory，后续是否 successor/alignment
 - Contradicted by evidence: none known
 - Uncertainty: this establishes authority-sequence consistency, not executed consumer migration or runtime readiness
 
-### CLM-MAFV2-006 — Inventory must include external authority constraints
+### CLM-MAFV2-006 — Inventory must include both downstream reference classes
 
 - Support state: SUPPORTED
-- Supported by evidence: `EVD-MAFV2-004`, `EVD-MAFV2-006`
+- Supported by evidence: `EVD-MAFV2-004`, `EVD-MAFV2-006`, `EVD-MAFV2-007`
 - Contradicted by evidence: none known
 - Uncertainty: repository content search establishes the current source inventory only; later Specs require a refreshed inventory
+
+### CLM-MAFV2-007 — Canary Grant authority is compatible and may retain its exact V1 constraint
+
+- Support state: SUPPORTED
+- Supported by evidence: `EVD-MAFV2-005`, `EVD-MAFV2-007`
+- Contradicted by evidence: none known
+- Uncertainty: compatibility is bounded to accepted revision `1f7fa637...`, the exact incorporated V1 Grant/bundle identities, and its frozen Stage W/blocked Stage F scope; any future semantic amendment must use V2 as parent
 
 ## 7. Evidence relations
 
@@ -266,7 +313,7 @@ external-authority reference 纳入 inventory，后续是否 successor/alignment
 - Source observations: `OBS-MAFV2-001`
 - Target: `CLM-MAFV2-001`
 - Relation: SUPPORTS
-- Bound coordinates: `mayf3/auth-service@e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`, source repository, observed `2026-08-20T13:54:41Z`
+- Bound coordinates: `mayf3/auth-service@cb0b3d37dfb105c763c9c83ebd65483270b21b81`, source repository, observed `2026-08-20T22:56:05Z`
 - Strength / sufficiency: strong for the current V1 lifecycle representation and exact source identities
 - Limitations: does not itself accept the successor
 - Provenance: Git object results and V1 lifecycle source
@@ -276,7 +323,7 @@ external-authority reference 纳入 inventory，后续是否 successor/alignment
 - Source observations: `OBS-MAFV2-002`
 - Target: `STATE-MAFV2-002`
 - Relation: SUPPORTS
-- Bound coordinates: `mayf3/auth-service@e9b6dbc...`, clean local worktree, observed `2026-08-20T13:54:41Z`
+- Bound coordinates: `mayf3/auth-service@cb0b3d3...`, clean local worktree, observed `2026-08-20T22:56:05Z`
 - Strength / sufficiency: sufficient for vendored-byte identity and accepted lock status
 - Limitations: verifier does not prove semantic correctness, acceptance, implementation, deployment, or branch protection
 - Provenance: executed verifier output in this PR authoring record
@@ -296,7 +343,7 @@ external-authority reference 纳入 inventory，后续是否 successor/alignment
 - Source observations: `OBS-MAFV2-004`
 - Target: `CLM-MAFV2-003`, `CLM-MAFV2-006`
 - Relation: SUPPORTS
-- Bound coordinates: `mayf3/auth-service@e9b6dbc...`, repository source, observed `2026-08-20T13:54:41Z`
+- Bound coordinates: `mayf3/auth-service@cb0b3d3...`, repository source, observed `2026-08-20T22:56:05Z`
 - Strength / sufficiency: sufficient to establish accepted lifecycle, exact V1 constraint, and closed product scope
 - Limitations: does not decide whether a future reference-alignment amendment is required
 - Provenance: accepted ownerless Spec frontmatter and §5
@@ -306,7 +353,7 @@ external-authority reference 纳入 inventory，后续是否 successor/alignment
 - Source observations: `OBS-MAFV2-005`
 - Target: `CLM-MAFV2-003`, `CLM-MAFV2-004`
 - Relation: SUPPORTS
-- Bound coordinates: old base `1da40d4...`, new base `e9b6dbc...`, Git object database, observed `2026-08-20T13:54:41Z`
+- Bound coordinates: previous evaluated base `e9b6dbc...`, new base `cb0b3d3...`, Git object database, observed `2026-08-20T22:56:05Z`
 - Strength / sufficiency: exact for the compared tracked bytes and objects
 - Limitations: no claim about runtime deployment or future revisions
 - Provenance: executed scoped Git diff and object-identity output
@@ -316,10 +363,20 @@ external-authority reference 纳入 inventory，后续是否 successor/alignment
 - Source observations: `OBS-MAFV2-001`, `OBS-MAFV2-006`
 - Target: `CLM-MAFV2-005`, `CLM-MAFV2-006`
 - Relation: SUPPORTS
-- Bound coordinates: `mayf3/auth-service@e9b6dbc...`, source repository, observed `2026-08-20T13:54:41Z`
-- Strength / sufficiency: sufficient for an internally complete normative sequence and current reference classes
-- Limitations: not executed migration evidence and not proof that all external consumers are inventoried
+- Bound coordinates: `mayf3/auth-service@cb0b3d3...`, source repository, observed `2026-08-20T22:56:05Z`
+- Strength / sufficiency: sufficient for an internally complete normative sequence and both current downstream reference classes
+- Limitations: not executed migration evidence and not proof of out-of-repository consumers
 - Provenance: V1 source modules and repository authority-reference inventory
+
+### EVD-MAFV2-007 — Exact Grant objects support Canary compatibility and disposition
+
+- Source observations: `OBS-MAFV2-005`, `OBS-MAFV2-007`
+- Target: `CLM-MAFV2-006`, `CLM-MAFV2-007`, `STATE-MAFV2-006`
+- Relation: SUPPORTS
+- Bound coordinates: Canary accepted finalize `1f7fa637...`, evaluated base `cb0b3d3...`, V1 Grant blob `277ea7f9...`, bundle tree `796a8b67...`, observed `2026-08-20T22:56:05Z`
+- Strength / sufficiency: exact for accepted lifecycle, parent relation, bounded scope, and object identity; strong semantic match for MachineAccessGrant, Audience/Scope, audit, optimistic concurrency, and forward-only migration/rollback
+- Limitations: does not prove Stage W implementation/conformance or unblock Stage F
+- Provenance: accepted Canary Grant Spec, V1 Grant source, bundle objects, and executed Git object comparison
 
 ## 8. Decisions
 
@@ -339,6 +396,9 @@ external-authority reference 纳入 inventory，后续是否 successor/alignment
 - `DEC-MAFV2-009` — downstream inventory 同时覆盖 `governed_by` 与同仓库
   `external_authorities.authority_id` references；本 PR 不静默改写 accepted downstream Spec。
 - `DEC-MAFV2-010` — rollback 仅为 whole-release rollback，不存在 mode-switch rollback。
+- `DEC-MAFV2-011` — accepted Canary Grant Spec 的 exact V1 parent reference 按
+  `GRANDFATHERED_EXACT_V1_CONSTRAINT` 保留，无 alignment amendment；其产品语义无
+  delta，任何未来 semantic amendment 必须以 V2 为 parent。
 
 ## 9. Contracts
 
@@ -347,7 +407,7 @@ external-authority reference 纳入 inventory，后续是否 successor/alignment
 以下对象按新 Base 重验且 MUST 保持 exact identity；它们构成 V2 unchanged normative
 内容。V1 lifecycle root 不在 immutable 集合中。
 
-| Content | Object SHA-1 @ `e9b6dbc...` |
+| Content | Object SHA-1 @ `cb0b3d3...` |
 |---|---|
 | `docs/contracts/minimal-auth-v1/claims-and-profiles.md` | `a51186adacc6b61131dcf7ad0227e372b67e8092` |
 | `docs/contracts/minimal-auth-v1/conformance.md` | `d56c45c514d308e65e698f6b2e78799d079a65ea` |
@@ -357,6 +417,7 @@ external-authority reference 纳入 inventory，后续是否 successor/alignment
 | `contract-bundles/minimal-auth-v1/` tree | `796a8b670f8617ab5f45c7b8734e124e07934f09` |
 | `contract-bundles/minimal-auth-v1/contract-manifest.json` | `8557b36de241e39570f478e21a95ff375d11759a` |
 | `contract-bundles/minimal-auth-v1/audience-registry.json` | `8ddf67afc2494dddc3c087d19f2f93c71db13d70` |
+| `contract-bundles/minimal-auth-v1/schemas/grants.schema.json` | `f60cd9faf18acfc643bf0330401e9af7364ce2d8` |
 
 ```text
 V1_LIFECYCLE_ROOT_BASE_BLOB_PROVENANCE = fbaf7c8986aa367e0f8f43de1872e6d7e6c5ca5f
@@ -454,10 +515,16 @@ Before effectiveness, inventory MUST include both:
 2. all same-repository `external_authorities` entries whose `authority_id` is
    `MINIMAL_AUTH_FOUNDATION_V1`.
 
-The evaluated base includes accepted `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1` in class 2.
-This PR MUST NOT modify it. Each inventory entry records status, exact revision, relationship,
-compatibility result, owner, and whether an independently reviewed successor/alignment amendment
-is required. Historical PR #2 remains proposed/unmodified and cannot serve as authority.
+The evaluated inventory is frozen as:
+
+| Downstream Spec | Status / exact accepted revision | Relationship | Bounded scope | Compatibility | Disposition |
+|---|---|---|---|---|---|
+| `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1` | accepted / `d9dacf6e87dc3f23d8649047a9445e28908e7e6e` (blob `e51f5dc1a1e92469ec773c7f50959a6f356f4355`) | same-repository `external_authorities`: `MINIMAL_AUTH_FOUNDATION_V1@1da40d4...`, `constrained_by` | closed five-file ownerless direct-token/database repair | `COMPATIBLE_NO_SEMANTIC_DELTA` | preserve exact accepted Spec; any alignment is separate and independently reviewed |
+| `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1` | accepted / `1f7fa6378fa44042f3001b4a5813210c0a8313e8` (blob `d89bf08c8714f55571ee7d75da017b7cf7237096`) | `governed_by: [MINIMAL_AUTH_FOUNDATION_V1, AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1]` | Stage W: two exact `svc-workflow[workflow.read]` MachineAccessGrant rows; Stage F remains blocked | `COMPATIBLE_NO_SEMANTIC_DELTA` for MachineAccessGrant, Audience/Scope, audit, optimistic concurrency, and forward-only migration/rollback | `GRANDFATHERED_EXACT_V1_CONSTRAINT`; alignment amendment `NO`; future semantic amendment parent `MINIMAL_AUTH_FOUNDATION_V2` |
+
+Both accepted Specs MUST remain byte-identical in this PR. The Canary disposition is a V2
+Decision (`DEC-MAFV2-011`), not deferred review prose. Historical PR #2 remains
+proposed/unmodified and cannot serve as authority.
 
 ### CTR-MAFV2-007 — Precedence and ownerless compatibility boundary
 
@@ -496,7 +563,7 @@ Head, reviewer/acceptance actor, execution timestamp, and persistent PR review o
 
 - Contracts: `CTR-MAFV2-001`
 - Method: execute `git rev-parse <evaluated-base>:<path>` for every table object and compare with the frozen SHA; separately verify lifecycle/migration provenance blobs
-- Environment: clean `mayf3/auth-service` worktree at evaluated base `e9b6dbc...`
+- Environment: clean `mayf3/auth-service` worktree at evaluated base `cb0b3d3...`
 - Required evidence: full common tuple plus command output for every object
 - Expected result: all immutable objects match; lifecycle root is excluded only as explicitly stated
 - Failure condition: any mismatch, missing coordinate, or extra semantic exclusion
@@ -542,15 +609,15 @@ Head, reviewer/acceptance actor, execution timestamp, and persistent PR review o
 - Contracts: `CTR-MAFV2-006`
 - Method: machine search and human classification of both `governed_by` and same-repository `external_authorities.authority_id` references
 - Environment: evaluated base and exact proposed authority Head
-- Required evidence: full common tuple plus complete path/Spec/status/revision/relation/owner/alignment table
-- Expected result: both reference classes are inventoried; accepted Specs including ownerless remain unmodified
-- Failure condition: missing class, silent downstream rewrite, or unowned alignment decision
+- Required evidence: full common tuple plus complete path/Spec/status/exact accepted revision/relation/owner/scope/compatibility/disposition table and object comparison for every relied-on V1 Grant/bundle object
+- Expected result: both reference classes are inventoried; ownerless and Canary Specs remain byte-identical; Canary records `GRANDFATHERED_EXACT_V1_CONSTRAINT`, alignment amendment `NO`, product semantic delta `NONE`, and future semantic parent V2
+- Failure condition: missing class/revision/scope, silent downstream rewrite, changed Grant dependency, unresolved Canary disposition, or any authority conflict
 
 ### ACC-MAFV2-007 — Ownerless compatibility review
 
 - Contracts: `CTR-MAFV2-007`
 - Method: compare ownerless bounded scope and V1 dependency semantics with CTR-MAFV2-001 identities and V2 delta scope
-- Environment: accepted ownerless Spec at `e9b6dbc...` and exact proposed V2 Head
+- Environment: accepted ownerless Spec at `cb0b3d3...` and exact proposed V2 Head
 - Required evidence: full common tuple plus source-object comparison and independent compatibility finding
 - Expected result: `COMPATIBLE_NO_SEMANTIC_DELTA`, ownerless Spec preserved byte-for-byte in this PR
 - Failure condition: architecture conflict, changed relied-on semantics, ownerless file delta, or unreviewed alignment conclusion
@@ -596,13 +663,16 @@ Head, reviewer/acceptance actor, execution timestamp, and persistent PR review o
 - `ALT-MAFV2-003` — build a new dual-protocol artifact。Rejected by `DEC-MAFV2-005`。
 - `ALT-MAFV2-004` — import proposed PR #2 Decisions as authority。Rejected by
   `DEC-MAFV2-006`。
-- `ALT-MAFV2-005` — silently rewrite accepted ownerless Spec。Rejected by
+- `ALT-MAFV2-005` — silently rewrite accepted ownerless or Canary Grant Spec。Rejected by
   `DEC-MAFV2-009`。
+- `ALT-MAFV2-006` — force an alignment amendment despite exact preservation of all Canary
+  dependencies。Rejected by `DEC-MAFV2-011`; preserve the exact V1 constraint and require V2 only
+  for a future Canary semantic amendment。
 
 ## 12. Migration, compatibility, and rollback
 
 This amendment is docs-only. It does not alter product source, Prisma, migrations, runtime,
-deployment, contract bundle, vendored governance, or PR #2. V1 remains active before atomic
+deployment, contract bundle, vendored governance, ownerless/Canary accepted Specs, or PR #2. V1 remains active before atomic
 activation. The existing PRE_CUT artifact supplies the required migration/evidence period; the new
 Cut Artifact is V1-only. Runtime rollback, if later authorized by an implementation Spec, is
 whole-release only. Authority rollback after acceptance requires a new whole-authority transition
@@ -617,6 +687,11 @@ UNRESOLVED_AUTHORITY_CONFLICT = NONE
 PARTIAL_SUPERSESSION = NONE
 READY_TO_MARK_ACCEPTED = NO
 OWNERLESS_SPEC_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+CANARY_GRANT_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+CANARY_GRANT_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
+CANARY_GRANT_ALIGNMENT_AMENDMENT_REQUIRED = NO
+CANARY_GRANT_PRODUCT_SEMANTIC_DELTA = NONE
+FUTURE_CANARY_GRANT_SEMANTIC_AMENDMENT_PARENT = MINIMAL_AUTH_FOUNDATION_V2
 ```
 
 The amended exact Head still requires a new independent semantic review. The previous PR #7 review
