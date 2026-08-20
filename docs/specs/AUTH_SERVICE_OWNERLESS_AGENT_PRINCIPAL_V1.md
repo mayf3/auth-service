@@ -28,11 +28,12 @@ PREVIOUS_BASE_HEAD=84890120bd385b39287cb81890236b0e73e96c8d（原 authoring base
 PREVIOUS_SPEC_HEAD=bf723fbbed86e71f0f2996d1ae38e18d71458510（迁移前 PR #4 head，provenance anchor）
 AUTHORED=2026-08-20
 MIGRATED=2026-08-20（AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1_GOVERNANCE_REBASE：.agents/specs/ → docs/specs/；除路径/frontmatter/治理引用/base SHA 外语义零变化）
-ROUND=GOVERNANCE_REBASE_SPEC_ONLY（governance/path/rebase 迁移轮；不实现、不部署、不 merge）
+ROUND=FOCUSED_REVIEW_BLOCKER_AMENDMENT_SPEC_ONLY（仅修正数据库 CHECK 与 AC8 baseline；不实现、不部署、不 merge）
 IMPLEMENTATION_AUTHORITY=none（frontmatter：本 Spec 的 acceptance 本身不授权产品代码）
 IMPLEMENTATION_AUTHORIZED=NO（governing Spec 尚未 accepted；implementation 未授权）
-INDEPENDENT_REVIEW_REQUIRED=YES（independent review 尚未开始；须在本迁移后的 exact head 上重新执行独立 semantic review，旧坐标材料不自动视为新坐标的评审或 acceptance）
-POST_ACCEPTANCE_IMPLEMENTATION_SCOPE=src/lib/oauth/v1/direct.ts + tests/oauth/v1-direct.test.ts（见 §5 FILES_AUTHORIZED；仅在本 Spec 被 accept 并由 Owner 明确授权进入实现后才生效）
+INDEPENDENT_REVIEW_RESULT=REVISE（reviewed head 351412b9047b5993089c81cc21fc285d3d987716；已确认数据库 CHECK 与 AC8 baseline 两个 blocker）
+INDEPENDENT_REVIEW_REQUIRED=YES（本 amendment 后 exact head 须 focused re-review；旧评审不自动继承）
+POST_ACCEPTANCE_IMPLEMENTATION_SCOPE=src/lib/oauth/v1/direct.ts + tests/oauth/v1-direct.test.ts + prisma/migrations/20260820000100_allow_ownerless_agent_principal/migration.sql + tests/oauth/migration-v1-static.test.ts + tests/oauth/ownerless-agent-principal-migration.test.ts（见 §5 FILES_AUTHORIZED；仅在本 Spec 被 accept 并由 Owner 明确授权进入实现后才生效）
 GOVERNANCE=Agent Development Governance V0（development-governance-v0；lock adoption.status=accepted，于 main@1da40d4 生效；docs/specs/ 为唯一 governing Spec 目录）
 GOVERNING_AUTHORITY=docs/contracts/MINIMAL_AUTH_FOUNDATION_V1.md + docs/contracts/minimal-auth-v1/*（frozen V1 契约，本 Spec 不修改任何 frozen 契约文本）
 ```
@@ -49,9 +50,10 @@ Profile 要求 `agentId && ownerUserId`，ownerless Agent 在 **secret 验证之
 该 owner 要求是 **运行时源码层的附加断言**，不是 frozen 契约的要求：
 `docs/contracts/minimal-auth-v1/claims-and-profiles.md` 冻结的 Direct Machine Token
 Profile 对 agent 只要求 `agent_id`（`claims-and-profiles.md:101,128,140`），任何 token
-profile 均不包含、也不要求 `owner_user_id`。数据层与下游均已兼容 ownerless（见 §2）。
-本 Spec 将 V1 direct 授权路径的 agent Profile 校正为与 frozen 契约一致：
-owner 不再是必需字段。
+profile 均不包含、也不要求 `owner_user_id`。但应用层 nullable 不等于数据库可持久：
+reviewed base 的 `machine_principal_type_shape_check` 仍要求 Agent 的
+`owner_user_id IS NOT NULL`。因此 ownerless Agent 同时被数据库 CHECK 与 direct Profile
+断言阻断；本 Spec 冻结 additive forward migration 与 direct 路径的联合修复。
 
 ## 2. 已核实的源码事实（SOURCE_FACTS）
 
@@ -62,24 +64,39 @@ owner 不再是必需字段。
 src/tests/prisma/registry/docs/contracts/contract-bundles 零变化——
 全部行号与事实在新 BASE_HEAD 下逐条保持成立：
 
-- **F1（唯一阻塞点）** `src/lib/oauth/v1/direct.ts:72-79`：
+- **F1（应用层阻塞点）** `src/lib/oauth/v1/direct.ts:72-79`：
   `assertPrincipalProfile` 对 `principalType==='agent'` 要求
   `!principal.agentId || !principal.ownerUserId → invalidClient('agent_profile_invalid')`
   （`V1OAuthError('invalid_client', …)`，401，`errors.ts:12-22`）。断言在
   `direct.ts:104` 执行，先于 `direct.ts:105` 的 `verifyClientSecret`。
   `agent_profile_invalid` 在 src 与 tests 中**仅此一处**出现。
-- **F2（DB 已可空）** `prisma/schema.prisma:109`：`ownerUserId String? @map("owner_user_id") @db.Uuid`
-  （`schema.prisma:118`：`owner User?`，`onDelete: Restrict`）。SCHEMA_CHANGE=NONE 有源码依据。
+- **F2（Prisma nullable，但数据库有效约束仍要求 owner）**
+  `prisma/schema.prisma:109` 是
+  `ownerUserId String? @map("owner_user_id") @db.Uuid`（`schema.prisma:118`：
+  `owner User?`，`onDelete: Restrict`），所以 `PRISMA_MODEL_OWNER_USER_ID=NULLABLE`。
+  但 `prisma/migrations/20260718000100_minimal_auth_v1_additive/migration.sql:17-20`
+  建立的 `machine_principal_type_shape_check` 对 agent 要求
+  `agent_id IS NOT NULL AND owner_user_id IS NOT NULL`。因此 reviewed base 上：
+  ```text
+  DATABASE_EFFECTIVE_PROFILE_CONSTRAINT = OWNER_REQUIRED_FOR_AGENT
+  S1_APPLICATION_LAYER_ACCEPTS_OWNERLESS = YES
+  S1_DATABASE_PERSISTENCE_ACCEPTS_OWNERLESS = NO
+  OWNERLESS_AGENT_END_TO_END_CURRENTLY_POSSIBLE = NO
+  DATABASE_MIGRATION_REQUIRED = YES
+  SCHEMA_PRISMA_CHANGE = NONE
+  ```
 - **F3（malformed type 结构性不可能）** `prisma/schema.prisma:90-93`：
   `enum PrincipalType { agent, service }`；`direct.ts:15` 的 TS 类型
   `'agent' | 'service'` 与之镜像。DB 枚举 + TS 联合类型共同排除 malformed
   principal type，无需新增运行时检查，且实现不得放宽该类型。
-- **F4（S1/S2 创建与 requestDigest 已兼容 ownerless）**
+- **F4（S1/S2 应用层与 requestDigest 已兼容 ownerless，但当前 DB 会拒绝持久化）**
   `src/lib/oauth/v1/idempotent.ts:279`：
   `effectiveOwnerUserId = effectiveType === 'agent' ? (ownerUserId ?? null) : null`
-  —— 幂等创建允许 `owner_user_id=NULL`；
+  —— 应用层会将 ownerless 表示为 `owner_user_id=NULL`；在 F2 的数据库 CHECK
+  修正前，该写入不能成功。
   `idempotent.ts:92-97`：`computePrincipalDigest` 仅在 `ownerUserId != null` 时
   拼入 `ownerUserId=` 分量 —— requestDigest 对缺失 owner 稳定。
+  Migration 修正后 `idempotent.ts` 无需修改。
 - **F5（audience registry 已接受 agent Profile）**
   已提交的 frozen registry `contract-bundles/minimal-auth-v1/audience-registry.json`
   （`status=frozen`）：`svc-forum` accepted `['agent']`、machine=true、delegated=false；
@@ -116,11 +133,18 @@ src/tests/prisma/registry/docs/contracts/contract-bundles 零变化——
   格式化，语义零变化）与 `src/cli/machine-admin.ts`（+4 行）。二者均属本 Spec 禁改
   清单，**不在本 Spec 的 commit 内**；实现轮必须基于 `BASE_HEAD` 干净检出作业，
   不得把这两处本地改动卷入实现 commit（若无法保证，回报 OWNER）。
+- **F13（contract-v1 审评基线）** 在 `BASE_HEAD=1da40d4` 上执行
+  `npm run test:contract-v1`：`38 total / 37 passed / 1 failed`。唯一失败为
+  `tests/oauth/migration-v1-static.test.ts` 的 `prisma/schema.prisma exceeds 500 lines`。
+  `prisma/schema.prisma` 是 500 个物理行且带尾随换行；测试使用
+  `schema.split('\n').length` 得到 501。这是
+  `TEST_LINE_COUNT_TRAILING_NEWLINE_OFF_BY_ONE`，不是产品 Contract 失败。
 
 ## 3. 冻结的 Profile 规则（FROZEN_PROFILE）
 
 ```text
 AGENT_PRINCIPAL_HUMAN_OWNER_REQUIRED = NO
+OWNERLESS_DATABASE_PROFILE_MIGRATION_APPLIED = REQUIRED_BEFORE_DIRECT_ACCEPTANCE
 
 V1_AGENT_PROFILE_REQUIRED_FIELDS:
   principal_type = 'agent'
@@ -175,32 +199,99 @@ TOKEN_OWNER_CLAIM_CANONICAL_FORM = ABSENT
 FILES_AUTHORIZED:
   1. src/lib/oauth/v1/direct.ts
   2. tests/oauth/v1-direct.test.ts
-FILES_AUTHORIZED_COUNT = 2
+  3. prisma/migrations/20260820000100_allow_ownerless_agent_principal/migration.sql
+  4. tests/oauth/migration-v1-static.test.ts
+  5. tests/oauth/ownerless-agent-principal-migration.test.ts
+FILES_AUTHORIZED_COUNT = 5
 ADDITIONAL_CLAIM_SCHEMA_WIRING_FILES = NONE（F7 已证明无接线需求）
-SCHEMA_CHANGE = NONE（F2/F4 已证明 schema 与创建链路兼容 ownerless）
+SCHEMA_PRISMA_CHANGE = NONE
+DATABASE_CHANGE = ADDITIVE_FORWARD_MIGRATION_REQUIRED
+DATA_BACKFILL = NONE
+FAKE_OWNER = FORBIDDEN
 ```
 
-- `src/lib/oauth/v1/direct.ts`：唯一产品改动 =
+- `src/lib/oauth/v1/direct.ts`：
   `assertPrincipalProfile` 的 agent 分支移除 `|| !principal.ownerUserId` 条件。
   `DirectPrincipal.ownerUserId` 字段本身保留（镜像 DB include 形状）；
   `V1DirectAuthorization` 不新增 ownerUserId 字段；audit log（`direct.ts:144-156`）
   不新增 owner 字段 —— AUDIT_LOG_CHANGE=NONE。
 - `tests/oauth/v1-direct.test.ts`：按 §6 增补 ownerless 用例；既有用例不删不改
   （ownerful fixture line 25 继续作为 AC2 的回归基线）。
+- `prisma/migrations/20260820000100_allow_ownerless_agent_principal/migration.sql`：
+  该路径是唯一授权的 migration 路径。若实现时已存在，必须停止并报告，
+  不得自行选取其他路径。Migration 必须在单一事务中仅替换同名 CHECK：
+  ```sql
+  BEGIN;
+  ALTER TABLE "machine_principals"
+    DROP CONSTRAINT "machine_principal_type_shape_check";
+  ALTER TABLE "machine_principals"
+    ADD CONSTRAINT "machine_principal_type_shape_check" CHECK (
+      (
+        "principal_type"::text = 'agent'
+        AND "agent_id" IS NOT NULL
+      )
+      OR
+      (
+        "principal_type"::text = 'service'
+        AND "agent_id" IS NULL
+      )
+    );
+  COMMIT;
+  ```
+  新约束仍要求 agent 有 `agent_id`，允许 agent 的 `owner_user_id` 为 null
+  或非 null，仍禁止 service 携带 `agent_id`。不修改现有行、不 backfill owner、
+  不创建 User、不绑定 fake/designated owner、不修改列类型、Prisma model、
+  `PrincipalType` enum、`requestDigest` 或其他约束。
+- `tests/oauth/migration-v1-static.test.ts`：只允许两项对应修正：纳入新 migration
+  的静态结构验证；以不把尾随空项计为物理行的方式修正行数计算。
+  500 行上限必须保持，不得提高、删除 gate、截断 schema 或直接放宽为 501+。
+- `tests/oauth/ownerless-agent-principal-migration.test.ts`：使用实际临时 PostgreSQL /
+  migration harness 执行 DB-AC1–DB-AC8；字符串 grep 不能替代数据库行为验证。
 
-**禁改清单**（实现轮同样适用）：S1/S2 幂等创建语义（`idempotent.ts`）、service
+**禁改清单**（实现轮同样适用）：`prisma/schema.prisma`、S1/S2 幂等创建语义
+（`idempotent.ts`，其现有 `ownerUserId ?? null` 在 migration 修正后已可持久化）、service
 profile 语义、audience registry（`contract-bundles/` 与 `generated/`）、
 MachineAccessGrant、JWKS、token issuer 算法（RS256）、Human OAuth
 （`human-*.ts`）、Legacy hard-cut（`service.ts` v0 路径）、State F resolution
 endpoint、lifecycle CLI（`src/cli/machine-admin.ts`）、token-exchange / OBO
-（`exchange.ts`、`token-exchange*.ts`）、路由层（`routes/oauth.ts`）、
-Prisma schema 与 migrations。任何越界 = 停止并回报 OWNER，不得自行扩大。
+（`exchange.ts`、`token-exchange*.ts`）、signer、路由层（`routes/oauth.ts`）以及除上述
+唯一新 migration 外的任何 migration。任何越界 = 停止并回报 OWNER，不得自行扩大。
 
 ## 6. Acceptance Criteria（ACCEPTANCE_CRITERIA）
 
-全部落在 `tests/oauth/v1-direct.test.ts`（in-memory DB 工厂模式，沿用现有
-`database()` 构造），审计口径与 `direct.ts` 的 `V1OAuthError`（code/category/status）
-对齐：
+数据库验收与 direct-token 验收是同一端到端链路的两个必要门。
+
+### 6.1 数据库验收
+
+DB-AC1–DB-AC8 必须使用实际临时 PostgreSQL / migration harness；只检查 SQL
+字符串不是数据库行为证据。
+
+- **DB-AC1 migration 前 ownerless 被拒绝**：`principal_type=agent`、
+  `agent_id=agt_test`、`owner_user_id=NULL` 的 insert 被
+  `machine_principal_type_shape_check` 拒绝。
+- **DB-AC2 migration 后 ownerless 成功**：相同 ownerless agent insert 成功。
+- **DB-AC3 ownerful 回归**：ownerful agent 在 migration 后仍成功。
+- **DB-AC4 agent_id 必填**：agent 缺 `agent_id` 在 migration 后仍被 CHECK 拒绝。
+- **DB-AC5 service 不得携带 agent_id**：service 携带 `agent_id` 在 migration 后仍被
+  CHECK 拒绝。
+- **DB-AC6 无数据 rewrite**：migration 前后所有 existing principal rows row-equivalent；
+  无 owner backfill，无数据 rewrite。
+- **DB-AC7 constraint 名稳定**：migration 后约束名仍精确为
+  `machine_principal_type_shape_check`。
+- **DB-AC8 重复应用失败关闭**：migration 重跑或重复应用必须由 migration
+  system 拒绝或识别，不得静默叠加第二条约束。
+
+### 6.2 Direct-token 验收
+
+Direct-token AC1–AC7 的共同前置为：
+
+```text
+OWNERLESS_DATABASE_PROFILE_MIGRATION_APPLIED = YES
+```
+
+单元层行为落在 `tests/oauth/v1-direct.test.ts`（in-memory DB 工厂模式，沿用现有
+`database()` 构造），审计口径与 `direct.ts` 的 `V1OAuthError`
+（code/category/status）对齐：
 
 - **AC1 ownerless 放行**：ownerless active agent（`ownerUserId: null`）+ 有效
   client secret + 该 audience 有效 MachineAccessGrant → `authorizeV1DirectToken`
@@ -224,9 +315,24 @@ Prisma schema 与 migrations。任何越界 = 停止并回报 OWNER，不得自�
   且 **`owner_user_id` 键缺席**（严格断言 `'owner_user_id' in claims === false`，
   同时断言无任何伪造 owner 形态）；token 可被 `verifyV1DirectMachineToken`
   在对应 audience 下验证通过。
-- **AC8 下游不变**：svc-forum / svc-workflow 契约零修改（F10 静态事实为证：
-  下游不读 owner；ownerful/ownerless token wire 形状逐键相同）；仓库现存
-  conformance / provider / signer / exchange 测试全部原样通过。
+
+完整链路必须是：ownerless principal 可持久化 → direct profile 不要求 owner →
+secret verification → grant validation → RS256 token。`TOKEN_OWNER_CLAIM_CANONICAL_FORM=ABSENT`；
+不得增加 owner claim。svc-forum / svc-workflow 契约与验证路径不变（F10）。
+
+### 6.3 AC8：contract-v1 baseline 修正与总门
+
+```text
+CONTRACT_V1_BASELINE_AT_REVIEW = 37/38
+BASELINE_FAILURE = TEST_LINE_COUNT_TRAILING_NEWLINE_OFF_BY_ONE
+PRODUCT_CONTRACT_FAILURE = NO
+```
+
+- **AC8 baseline correction**：`tests/oauth/migration-v1-static.test.ts` 必须把“物理行数”
+  按不计尾随空项的方式计算，但上限仍为 500；不得提高上限、删除 gate、
+  截断 schema，或将阈值直接放宽到 501 及以上。
+- **Implementation 总门**：新 ownerless 测试通过，`test:contract-v1=38/38`，
+  full tests 通过。不得把 reviewed baseline 写成“existing conformance tests all pass”。
 
 ## 7. 出界与 OWNER_DECISION 项
 
@@ -238,17 +344,26 @@ Prisma schema 与 migrations。任何越界 = 停止并回报 OWNER，不得自�
    `authorizeV1DirectToken`），无额外动作。
 3. **F12 的 primary worktree 先存未提交本地改动**：实现轮必须从 `BASE_HEAD`
    干净检出作业，不得将其卷入实现 commit；若无法保证，回报 OWNER。
-4. 若实现中发现本 Spec 未覆盖的 owner 依赖（预期不存在 —— `agent_profile_invalid`
-   全库唯一出现于 `direct.ts:74`），停止并回报，不自行扩大。
+4. 已确认的数据库 owner 依赖只能按 §5 的唯一 migration 修正。若实现中发现
+   本 Spec 未覆盖的其他 owner 依赖，停止并回报，不自行扩大。
 
 ## 8. 交付边界
 
 ```text
 PRODUCT_CODE_CHANGE = NONE（本文件为唯一交付物）
 DEPENDENCY_CHANGE = NONE
-SCHEMA_CHANGE = NONE
+SCHEMA_PRISMA_CHANGE = NONE
+SOURCE_FACTS_CORRECTED = YES
+DATABASE_EFFECTIVE_PROFILE_CONSTRAINT = OWNER_REQUIRED_FOR_AGENT_AT_REVIEW_BASE
+DATABASE_MIGRATION_REQUIRED = YES（只是后续实现合同；本轮未创建 migration）
+MIGRATION_PATH_FROZEN = prisma/migrations/20260820000100_allow_ownerless_agent_principal/migration.sql
+NEW_CONSTRAINT_SEMANTICS = agent_requires_agent_id_owner_optional;service_forbids_agent_id
+DATA_BACKFILL = NONE
+FAKE_OWNER = FORBIDDEN
+CONTRACT_V1_BASELINE = 37/38
+AC8_CORRECTED = YES（Spec 已冻结真实 baseline 与唯一允许的 test correction）
 PRODUCTION_DEPLOYMENT = NONE
 MERGE_PERFORMED = NO
-IMPLEMENTATION_AUTHORIZED = NO（governing Spec 尚未 accepted、implementation 未授权；implementation_authority=none——accepted 后实现范围才可能是 §5 FILES_AUTHORIZED 的 direct.ts + v1-direct.test.ts，进入实现前须由 Owner 明确授权）
-READY_FOR_INDEPENDENT_REVIEW = YES
+IMPLEMENTATION_AUTHORIZED = NO（governing Spec 尚未 accepted、implementation 未授权；implementation_authority=none——accepted 后 §5 的封闭文件集也只能在 Owner 明确授权后实现）
+READY_FOR_FOCUSED_RE_REVIEW = YES
 ```
