@@ -21,16 +21,16 @@ owners:
 
 ## 1. Goal and authority relationship
 
-Freeze the implementation-only coordinates that the accepted
-`AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1` intentionally did not select:
-the exact Stage W executable path, exclusive implementation file set, isolated
-PostgreSQL conformance procedure, and closed apply-evidence input.
+Freeze only the execution coordinates absent from accepted
+`AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1`: the exact Stage W executable,
+exclusive implementation files, self-owned temporary PostgreSQL test lifecycle,
+and closed durable-evidence input.
 
-This Spec is a new, subordinate authority. It does not amend, supersede, narrow,
-or reinterpret the accepted parent. The parent owns every Stage W identity,
-Grant, Scope, revision, transaction, audit, idempotency, conflict, operational,
-rollback, Stage F, and production-apply obligation. If this Spec conflicts with
-the parent, the parent wins and implementation stops.
+This is a new subordinate authority. It does not amend, supersede, narrow, or
+reinterpret the accepted parent. The parent owns all Stage W identity, Grant,
+Scope, revision, transaction, audit, idempotency, conflict, operational,
+rollback, Stage F, and production-apply meaning. Any conflict stops work and the
+parent wins.
 
 ```text
 PARENT_SPEC = AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1
@@ -47,130 +47,165 @@ PRODUCTION_DB_WRITE_AUTHORIZED = NO
 
 ### In scope
 
-- Select one exact repository-versioned offline Stage W executable path.
-- Freeze the exclusive implementation and conformance file set.
-- Define an isolated temporary PostgreSQL replay that exercises every existing
-  production migration SQL file, including raw-SQL constraints and immutable
-  audit triggers.
-- Close the structured evidence input used by the parent's existing Stage W
-  apply prerequisite without adding any audit field.
+- One exact repository-versioned offline Stage W executable.
+- One exclusive three-file implementation and conformance surface.
+- A local `initdb`-owned PostgreSQL cluster that cannot address an existing DB.
+- Current Prisma-schema creation plus exact test-only installation and runtime
+  verification of the existing Grant-audit checks and immutability trigger.
+- A strict manifest read from immutable Git objects in an exact Agent Core
+  evidence commit; the manifest carries all operational and audit metadata.
 
 ### Out of scope
 
-- Any change to the accepted parent Spec or its stable IDs.
+- Any edit to the accepted parent or reuse of its stable IDs.
 - Stage F, `svc-forum`, rollback implementation, `workflow.execute`,
   `forum.admin`, `forum.moderate`, wildcard, or any other identity, Audience,
   Scope, or Grant.
-- Prisma schema, Prisma production migration, Contract Bundle, audit schema,
-  package manifest, dependency, reusable library, route, CLI command,
+- Existing Prisma schema or migration files, Contract Bundle, audit schema,
+  package manifest, dependency, reusable library, route, online command,
   production configuration, receipt, deployment, production DB apply, or real
   Grant creation.
 - Reading or writing `allowedResources` or `allowedScopes`.
+- Treating Agent Core receipts as external normative authority; they are only
+  immutable operational evidence required by the accepted parent.
 
 ## 3. State and observations
 
-### STATE-SWX-001 — Parent behavior is complete but execution coordinates are absent
+### STATE-SWX-001 — Parent behavior is complete; execution coordinates are absent
 
-At `main@cb0b3d37dfb105c763c9c83ebd65483270b21b81`, the accepted parent
-fully freezes Stage W behavior but names no exact new executable path, exclusive
-implementation file set, temporary PostgreSQL lifecycle, or machine-readable
-shape for its durable apply evidence. Basis: `OBS-SWX-001` and `EVD-SWX-001`.
+At source `mayf3/auth-service@cb0b3d37dfb105c763c9c83ebd65483270b21b81`
+in the authoring checkout on `2026-08-20`, the accepted parent fully freezes
+Stage W behavior but names no exact executable path, file set, disposable-DB
+lifecycle, or machine-readable durable-evidence transport. Basis:
+`OBS-SWX-001`, `CLM-SWX-001`, `EVD-SWX-001`.
 
-### STATE-SWX-002 — Fresh migration replay has a historical data prerequisite
+### STATE-SWX-002 — Checked-in migrations are not an empty-database baseline
 
-At the same source coordinate, the final production migration in lexical order
-expects a fixed CEO Principal, Client, `svc-workflow` Audience, and workflow
-Grant that no earlier production migration creates. Plain fresh
-`prisma migrate deploy` therefore cannot reach the final schema. Basis:
-`OBS-SWX-002` and `EVD-SWX-002`.
+At the same source coordinate and date, static inspection shows that checked-in
+migrations alter pre-existing `OkrRole` and reference a pre-existing `users`
+table; the last historical migration additionally requires fixed data rows.
+Therefore neither plain fresh `prisma migrate deploy` nor lexical SQL replay is
+a viable isolated-test baseline. Basis: `OBS-SWX-002`, `CLM-SWX-002`,
+`EVD-SWX-002`.
 
-### OBS-SWX-001 — Repository execution surfaces
+### STATE-SWX-003 — Current schema plus explicit safety DDL is testable locally
 
-- Source: accepted parent; `scripts/backfill-minimal-auth-v1.ts`;
-  `scripts/run-obo-conformance.sh`; `package.json`.
-- Coordinate: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`.
-- Method: inspect exact paths, transaction patterns, test scripts, and existing
-  dependencies.
-- Result: `tsx`, Prisma, Ajv, and shell PostgreSQL tools are sufficient without
-  changing `package.json`; the broad backfill is forbidden because it reads
-  Legacy flat fields; a dedicated executable and disposable-DB harness are
-  required.
+At the same source coordinate and date, the Prisma datamodel describes all Stage
+W tables while the additive production SQL records the exact Grant-audit check
+constraints and immutable trigger omitted by `prisma db push`. A self-owned local
+cluster can create current schema, install those exact existing controls as
+test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
+`CLM-SWX-003`, `EVD-SWX-003`.
 
-### OBS-SWX-002 — Production migration-chain replay prerequisite
+### OBS-SWX-001 — Execution surface inventory
 
-- Source: all `prisma/migrations/*/migration.sql`, especially
-  `20260722000100_ceo_client_okr_write_grant/migration.sql`.
-- Coordinate: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`.
-- Method: inspect migration order and fail-loud predicates.
-- Result: after migrations through `20260721000300_add_request_digest`, the
-  final migration requires Principal
-  `b6b033c4-90ba-40aa-a338-304da442cab7`, Client
-  `mc_HLxfspbjzHEdXmiiX3Gk7D27`, and its exact `svc-workflow` Grant; absent
-  fixture rows cause an exception. The final migration also verifies that Grant.
+- Repository/source: `mayf3/auth-service`.
+- Revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`.
+- Environment: local read-only source inspection; observed at `2026-08-20`.
+- Method: inspect parent Spec, `scripts/backfill-minimal-auth-v1.ts`,
+  `scripts/run-obo-conformance.sh`, and `package.json`.
+- Result: `tsx`, Prisma, Ajv, Git, and PostgreSQL tools suffice without manifest
+  changes; the broad backfill is forbidden because it reads Legacy flat fields.
+- Provenance: named files at the bound revision.
 
-### OBS-SWX-003 — Audit and identity structures already exist
+### OBS-SWX-002 — Migration-chain baseline gaps
 
-- Source: `prisma/schema.prisma`,
+- Repository/source: `mayf3/auth-service/prisma/migrations/`.
+- Revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`.
+- Environment: local read-only SQL inspection; observed at `2026-08-20`.
+- Method: inspect every checked-in `migration.sql` in lexical order.
+- Result: `20260701000001` and `20260704000001` alter an enum not created by an
+  earlier checked-in migration; `20260714000001` references a `users` table not
+  created by the chain; `20260722000100` requires fixed Principal, Client,
+  Audience, and Grant data. Fresh replay is therefore not an available baseline.
+- Provenance: the checked-in migration SQL files at the bound revision.
+
+### OBS-SWX-003 — Current schema and audit controls
+
+- Repository/source: `prisma/schema.prisma`,
   `prisma/migrations/20260718000100_minimal_auth_v1_additive/migration.sql`, and
   `contract-bundles/minimal-auth-v1/schemas/grants.schema.json`.
-- Coordinate: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`.
-- Method: inspect unique external refs, composite Grant key, audit unique key,
-  immutable triggers, and JSON schemas.
-- Result: no schema or Contract Bundle change is required; the current bundle
-  supplies the closed 13-field audit envelope and nine-field `clientGrants`.
+- Revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`.
+- Environment: local read-only schema inspection; observed at `2026-08-20`.
+- Method: inspect model keys, Grant audit checks, trigger, and JSON schemas.
+- Result: current schema supplies identity/Grant/audit tables and keys; production
+  SQL lines defining `grant_change_audits_source_commit_check`,
+  `grant_change_audits_required_text_check`,
+  `grant_change_audits_reason_check`, `grant_change_audits_version_check`,
+  `grant_change_audits_value_shape_check`, function
+  `reject_auth_audit_mutation`, and trigger
+  `grant_change_audits_immutable` are exact frozen read-only dependencies.
+- Provenance: named files at the bound revision.
 
 ## 4. Claims and evidence
 
-### CLM-SWX-001 — Three files are sufficient
+### CLM-SWX-001 — Three new files are sufficient
 
 - Support state: SUPPORTED.
-- Supported by: `EVD-SWX-001`, `EVD-SWX-003`.
-- Claim: one executable, one real-DB test, and one disposable-DB harness can
-  implement and verify the parent without modifying any existing artifact.
+- Claim: one executable, one real-DB test, and one self-owned cluster harness can
+  implement and verify Stage W without changing an existing artifact.
+- Supported by: `EVD-SWX-001`, `EVD-SWX-003`; contradicted by: none known.
 
-### CLM-SWX-002 — Ordered SQL replay with a disposable compatibility fixture is viable
+### CLM-SWX-002 — Production migration replay is the wrong isolated baseline
 
 - Support state: SUPPORTED.
-- Supported by: `EVD-SWX-002`.
-- Claim: applying all production SQL files in order, pausing immediately before
-  the historical CEO migration to seed only its exact prerequisite fixture, then
-  applying that final SQL exercises the complete production DDL and raw-SQL
-  controls without changing production migration history.
+- Claim: fresh replay would require inventing a pre-chain schema and historical
+  product fixtures outside Stage W authority.
+- Supported by: `EVD-SWX-002`; contradicted by: none known.
+
+### CLM-SWX-003 — Current schema plus exact safety DDL preserves test relevance
+
+- Support state: SUPPORTED.
+- Claim: `prisma db push` may establish only the current disposable schema if the
+  harness then installs and behaviorally verifies the exact existing Grant-audit
+  safety controls before Stage W tests.
+- Supported by: `EVD-SWX-003`; contradicted by: none known.
 
 ### EVD-SWX-001
 
 - Source observations: `OBS-SWX-001`.
 - Target: `STATE-SWX-001`, `CLM-SWX-001`; relation: SUPPORTS.
-- Strength: direct source inventory at the pinned base.
-- Limitation: does not itself prove runtime conformance.
+- Bound coordinates: repository `mayf3/auth-service`, revision
+  `cb0b3d37dfb105c763c9c83ebd65483270b21b81`, local source environment,
+  observed `2026-08-20`.
+- Strength/sufficiency: direct complete inventory of relevant execution files.
+- Limitations: source feasibility is not executed conformance.
+- Provenance: `OBS-SWX-001` named files.
 
 ### EVD-SWX-002
 
 - Source observations: `OBS-SWX-002`.
 - Target: `STATE-SWX-002`, `CLM-SWX-002`; relation: SUPPORTS.
-- Strength: direct predicates in the production migration SQL.
-- Limitation: the compatibility fixture is test-only and has no production
-  authority.
+- Bound coordinates: repository `mayf3/auth-service`, revision
+  `cb0b3d37dfb105c763c9c83ebd65483270b21b81`, local SQL inspection,
+  observed `2026-08-20`.
+- Strength/sufficiency: direct unresolved DDL and data dependencies.
+- Limitations: says nothing about deployed migration history.
+- Provenance: every checked-in migration SQL file.
 
 ### EVD-SWX-003
 
 - Source observations: `OBS-SWX-003`.
-- Target: `CLM-SWX-001`; relation: SUPPORTS.
-- Strength: direct schema and bundle structure.
-- Limitation: conformance still requires executed temporary-DB evidence.
+- Target: `STATE-SWX-003`, `CLM-SWX-001`, `CLM-SWX-003`; relation: SUPPORTS.
+- Bound coordinates: repository `mayf3/auth-service`, revision
+  `cb0b3d37dfb105c763c9c83ebd65483270b21b81`, local schema inspection,
+  observed `2026-08-20`.
+- Strength/sufficiency: exact model, DDL, and JSON-schema definitions.
+- Limitations: runtime behavior remains to be executed in Acceptance.
+- Provenance: `OBS-SWX-003` named files.
 
 ## 5. Decisions
 
 ### DEC-SWX-001 — Exact executable and exclusive file set
 
 - Decision owner: `mayf3` or delegated auth-service maintainer.
-- Decision: the sole Stage W executable path is:
+- Decision: sole executable path:
 
   ```text
   scripts/supply-agentcore-canary-workflow-grants-v1.ts
   ```
 
-  The complete implementation diff is limited to exactly these three new files:
+  Complete implementation diff, exactly three new files:
 
   ```text
   scripts/supply-agentcore-canary-workflow-grants-v1.ts
@@ -178,140 +213,248 @@ Grant that no earlier production migration creates. Plain fresh
   scripts/run-agentcore-canary-workflow-grants-v1-conformance.sh
   ```
 
-- Rejected: Prisma data migration SQL, broad backfill reuse, generic Grant
-  library, package script, dependency, online route or command, and any fourth
-  file.
-- Reason: close the review surface while preserving all parent boundaries.
+- Rejected: Prisma migration SQL, broad backfill reuse, generic library, package
+  script/dependency, online route/command, or any fourth file.
+- Reason: smallest reviewable surface consistent with parent obligations.
 
-### DEC-SWX-002 — Exact temporary PostgreSQL replay
-
-- Decision owner: same as `DEC-SWX-001`.
-- Decision: the conformance shell creates a uniquely prefixed disposable
-  PostgreSQL database and always drops it by trap. It executes every checked-in
-  production `migration.sql` in lexical order with `psql -v ON_ERROR_STOP=1`.
-  Immediately before
-  `20260722000100_ceo_client_okr_write_grant/migration.sql`, it inserts a
-  test-only compatibility fixture containing exactly the fixed CEO Principal,
-  fixed CEO Client, exact active `svc-workflow` Audience, and exact
-  `svc-workflow=[workflow.read,workflow.execute]` Grant required and verified by
-  that historical migration. It then executes the final migration and verifies
-  that `grant_change_audits` constraints and immutable audit triggers exist.
-  Only after this full replay may it execute the authorized Stage W test.
-- Rejected: `prisma db push`, skipping the historical migration, modifying old
-  migration SQL, retaining the fixture database, or using any non-temporary DB.
-- Reason: exercise actual production DDL while accommodating a historical data
-  prerequisite that is descriptive, not reusable product authority.
-
-### DEC-SWX-003 — Closed SHA-bound apply-evidence input
+### DEC-SWX-002 — Self-owned local PostgreSQL baseline
 
 - Decision owner: same as `DEC-SWX-001`.
-- Decision: read-only plan requires no operational evidence file. Explicit
-  `--apply` additionally requires `--evidence-file <path>` naming UTF-8 JSON
-  with `additionalProperties: false` and exactly:
+- Decision: the shell MUST create a new `mktemp` data directory, run `initdb`,
+  start that exact cluster with `pg_ctl` on loopback using a generated unused
+  high port, create a generated database named with prefix
+  `auth_stage_w_conformance_`, and construct `DATABASE_URL` internally. It MUST
+  accept no external `DATABASE_URL`, host, port, cluster, or database name.
+  Cleanup trap MUST stop the exact server and remove the complete temp directory
+  on success, failure, or interruption.
+
+  The shell then runs `prisma db push --skip-generate` only against that owned
+  database, installs in one SQL transaction the exact five named Grant-audit
+  check constraints plus exact immutable function/trigger recorded in
+  `20260718000100_minimal_auth_v1_additive/migration.sql`, and proves before tests:
+
+  - each named constraint exists and rejects one invalid row shape;
+  - the trigger exists and rejects UPDATE and DELETE of a valid audit row;
+  - the canonical source migration still contains every exact named control.
+
+- Rejected: external or existing DB, production migration replay, historical
+  fixture invention, retained cluster, `db push` without safety DDL, or skipping
+  runtime control verification.
+- Reason: the checked-in chain is not a baseline; this procedure is exact,
+  disposable, and exercises the current schema plus existing security controls.
+
+### DEC-SWX-003 — Immutable Git-object evidence and exact apply interface
+
+- Decision owner: same as `DEC-SWX-001`.
+- Decision: plan is default and read-only. Apply interface is exactly:
+
+  ```text
+  --apply
+  --evidence-repository <absolute local path>
+  --evidence-commit <lowercase 40-hex>
+  --evidence-path <safe relative POSIX path>
+  ```
+
+  The evidence repository MUST be a Git checkout whose `origin` URL is exactly
+  `https://github.com/mayf3/dsh-agent-core.git`. The executor reads only Git
+  objects: it verifies the commit exists, then reads the manifest and every
+  receipt with `git show <commit>:<path>`. Paths are non-empty relative POSIX
+  paths without `..`, leading slash, backslash, empty segment, or NUL. Every
+  referenced receipt blob must exist, be non-empty, and match its lowercase
+  64-hex SHA-256.
+
+  Manifest is UTF-8 JSON, `additionalProperties: false`, exactly:
 
   ```text
   schema_version: integer exactly 1
-  phase_a_merge_ref: non-empty string
-  identity_receipts: array of exactly 2 objects, each additionalProperties=false:
-    client_external_ref: non-empty string
-    principal_external_ref: non-empty string
-    receipt_ref: non-empty string
-  readiness: string exactly READY
-  readiness_ref: non-empty string
+  phase_a: object, additionalProperties=false:
+    merged: boolean exactly true
+    merge_commit: lowercase 40-hex
+    receipt: { path: safe path, sha256: lowercase 64-hex }
+  identities: array exactly 2, unique by both refs, each additionalProperties=false:
+    client_external_ref: one exact parent Client ref
+    principal_external_ref: corresponding exact parent Principal ref
+    client_id: string matching ^mc_[A-Za-z0-9]{24}$
+    principal_id: lowercase UUID
+    client_active: boolean exactly true
+    principal_active: boolean exactly true
+    principal_type: string exactly agent
+    agent_id: corresponding exact parent Agent ID
+    receipt: { path: safe path, sha256: lowercase 64-hex }
+  readiness: object, additionalProperties=false:
+    status: string exactly READY
+    receipt: { path: safe path, sha256: lowercase 64-hex }
   migration_review: object, additionalProperties=false:
+    repository: string exactly mayf3/auth-service
     verdict: string exactly PASS
-    reviewed_source_git_commit: lowercase 40-hex string
-    review_ref: non-empty string
+    reviewed_source_git_commit: lowercase 40-hex equal clean auth-service HEAD
+    review_ref: string matching exact immutable GitHub PR review/comment URL grammar
+  audit_metadata: object, additionalProperties=false:
+    migration_id: non-empty string, maximum 128 bytes
+    source_git_commit: lowercase 40-hex equal clean HEAD and reviewed commit
+    operator_id: non-empty string, maximum 256 bytes
+    approval_ref: immutable GitHub PR/issue review/comment URL under mayf3/auth-service
+    reason: non-empty string, maximum 512 bytes
   ```
 
-  The two receipt identity pairs must equal the parent's two deterministic pairs
-  exactly, with no duplicate or extra pair. The executor also requires an empty
-  `git status --porcelain --untracked-files=all`, resolves `HEAD`, and proves it
-  equals both mandatory audit `source_git_commit` and the reviewed commit before
-  any DB write. Evidence coordinates never enter audit JSON.
-- Rejected: environment booleans as evidence, unknown properties, empty or
-  non-string references, alternate identities, dirty tree, SHA mismatch, or
-  extending the audit envelope.
-- Reason: make the parent's existing operational prerequisite deterministic
-  without changing its meaning or audit schema.
+  Immutable URL grammar is
+  `https://github.com/mayf3/auth-service/(pull|issues)/<positive integer>#(pullrequestreview|issuecomment)-<positive integer>`.
+  The auth-service worktree MUST be clean under
+  `git status --porcelain --untracked-files=all`. Evidence data is validation
+  input only; only the five `audit_metadata` values map to existing audit
+  columns, and no evidence-only property enters audit JSON.
+- Rejected: environment booleans, mutable branch URLs, arbitrary strings,
+  worktree-file reads, empty/untyped refs, alternate identities, dirty tree,
+  SHA mismatch, or audit-envelope extension.
+- Reason: exact local dereference of immutable Git objects satisfies the parent's
+  durable evidence gate without claiming external normative authority.
 
 ## 6. Contracts
 
 ### CTR-SWX-001 — Artifact boundary is exact
 
-Implementation changes exactly the three new files in `DEC-SWX-001`; any other
-changed path is unauthorized. The executable remains read-only unless explicit
-`--apply` and all parent and local gates pass.
+Only the three new files in `DEC-SWX-001` may differ from implementation base.
+The executable is plan-only unless exact apply gates pass.
 
-### CTR-SWX-002 — Temporary DB conformance is complete and disposable
+### CTR-SWX-002 — Temporary DB is owned, safe, and complete
 
-The harness implements `DEC-SWX-002`, rejects a non-generated database name,
-applies every production SQL migration exactly once in lexical order, verifies
-raw-SQL audit protections, runs the real executable through the real test, and
-drops the database on success, failure, or interruption. Fixture writes are
-strictly limited to the disposable database.
+The harness implements every lifecycle and control check in `DEC-SWX-002`.
+Failure at any step prevents Stage W test execution and still stops/removes the
+owned cluster. No externally supplied connection is read or used.
 
-### CTR-SWX-003 — Apply evidence is closed and fail-before-write
+### CTR-SWX-003 — Evidence and metadata fail before DB access
 
-Every type, cardinality, exact value, identity pair, cleanliness, and SHA rule in
-`DEC-SWX-003` is mandatory. Missing, extra, empty, null, numeric, malformed,
-duplicate, mismatched, dirty, or drifted evidence fails loudly before Grant or
-audit writes. Read-only plan does not require this evidence.
+Every type, cardinality, exact value, URL, path, blob, digest, identity binding,
+cleanliness, and SHA rule in `DEC-SWX-003` is mandatory. Invalid evidence fails
+before the executable opens Prisma or performs any database query or write. Plan
+opens the target DB read-only in behavior but does not require evidence.
 
-### CTR-SWX-004 — Parent conformance is mandatory and unchanged
+### CTR-SWX-004 — Parent Stage W obligations remain mandatory
 
-The implementation must satisfy every applicable parent Contract and Acceptance
-item for Stage W, including exact identities, only two
-`svc-workflow=[workflow.read]` rows, no Legacy data flow, serializable
-all-clients transaction, per-client audit-derived revision, closed 13-field
-create audits with complete snapshots, exact rerun no-op, conflict rollback, and
-non-target row equivalence. This Spec grants no exception or replacement.
+The implementation MUST satisfy all applicable parent Contracts
+`CTR-CGS-001` through `CTR-CGS-011`, `CTR-CGS-013`, and `CTR-CGS-014` exactly.
+Parent `CTR-CGS-012` is NOT_APPLICABLE because rollback implementation is outside
+this Spec and remains separately reviewed future work. No parent obligation is
+replaced or weakened.
 
-## 7. Acceptance
+## 7. Acceptance and parent mapping
 
 ### ACC-SWX-001 — Exact diff
 
 - Contracts: `CTR-SWX-001`.
-- Method: diff implementation base to implementation head.
-- Expected: exactly the three paths in `DEC-SWX-001`, all new.
-- Failure: any missing, renamed, modified-existing, or fourth file.
+- Method: diff implementation base to head.
+- Expected: exactly three new paths from `DEC-SWX-001`.
+- Failure: missing, renamed, modified-existing, or fourth file.
 
-### ACC-SWX-002 — Full temporary PostgreSQL replay
+### ACC-SWX-002 — Owned PostgreSQL lifecycle and audit controls
 
-- Contracts: `CTR-SWX-002`.
-- Method: run the conformance shell from a clean implementation commit against a
-  local PostgreSQL administrative connection.
-- Expected: generated prefixed DB; every production SQL migration executed in
-  order; compatibility fixture inserted only at the frozen seam; final migration
-  succeeds; audit constraints/triggers verified; Stage W real-DB tests pass; DB
-  absent after exit.
-- Failure: `db push`, skipped SQL, retained DB, non-temporary target, absent
-  trigger/constraint, or any production/external DB write.
+- Contracts: `CTR-SWX-002`; parent `CTR-CGS-007`, `CTR-CGS-013`,
+  `CTR-CGS-014`.
+- Method: run shell from clean commit; inject setup, test, and cleanup failures.
+- Expected: owned cluster only; schema and exact controls installed; constraint
+  invalid-row checks pass; immutable UPDATE/DELETE checks pass; real test runs;
+  process and temp directory absent after every exit.
+- Failure: external connection read, retained process/files, missing/bypassed
+  control, or Stage W execution before setup passes.
 
-### ACC-SWX-003 — Evidence rejects every malformed variant
+### ACC-SWX-003 — Closed evidence and metadata
 
-- Contracts: `CTR-SWX-003`.
-- Method: exercise missing/additional fields; empty, null, numeric, and wrong-type
-  refs including every `receipt_ref`; wrong array size; duplicate/alternate
-  identity; readiness other than `READY`; verdict other than `PASS`; malformed,
-  uppercase, or mismatched SHA; dirty/untracked tree; and one exact valid fixture.
-- Expected: every invalid apply fails before writes; valid evidence proceeds to
-  the parent state machine; plan remains read-only without evidence.
-- Failure: any invalid variant reaches DB mutation or any evidence property enters
-  `grant_change_audits`.
+- Contracts: `CTR-SWX-003`; parent `CTR-CGS-008`, `CTR-CGS-010`.
+- Method: test every field missing/extra; wrong type; empty and over-byte-limit
+  metadata; unsafe path; absent/empty/digest-mismatched blob; wrong remote;
+  missing commit; alternate/duplicate identity; inactive flags; wrong type or
+  Agent ID; non-READY; non-PASS; mutable/malformed URL; lowercase/length/SHA
+  variants; dirty tracked/untracked tree; and one exact valid Git-object fixture.
+- Expected: each invalid apply fails before any Prisma connection; valid evidence
+  reaches DB planning; plan needs no evidence and writes nothing.
+- Failure: invalid input reaches DB access or evidence-only field enters audit.
 
-### ACC-SWX-004 — Parent Stage W acceptance remains complete
+### ACC-SWX-004 — Identity and selection matrix
 
-- Contracts: `CTR-SWX-004` and all applicable parent Contracts.
-- Method: temporary PostgreSQL test covers two present Clients, either missing
-  Client, exact Scope, explicit `workflow.execute` rejection, exact rerun,
-  existing conflict, audit failure, concurrent conflict, Legacy-field access
-  counters/snapshots, and non-target row-equivalence.
-- Expected: success creates exactly two Grants and two valid audits; every failure
-  path writes zero; rerun writes zero; no forbidden or non-target delta.
-- Failure: any divergence from the accepted parent.
+- Contracts: parent `CTR-CGS-001`, `CTR-CGS-005`, `CTR-CGS-011`.
+- Method: temporary DB cases for both exact pairs plus misleading names,
+  OpenClaw/prefix rows; each Client missing; duplicate after controlled unique
+  constraint removal; inactive Client; inactive Principal; wrong binding;
+  service Principal; wrong/missing Agent ID; wrong Principal/Client external ref;
+  nullable owner; and non-target sentinels.
+- Expected: only exact active pairs plan; every invalid case fails loudly with
+  Grant writes `0`, audit writes `0`, and all sentinel rows byte-equivalent.
+- Failure: alternate selection, partial mutation, or non-target delta.
 
-## 8. Compatibility, operations, and review boundary
+### ACC-SWX-005 — Audience, Scope, and forbidden privilege matrix
+
+- Contracts: parent `CTR-CGS-002`, `CTR-CGS-003`, `CTR-CGS-005`.
+- Method: exact active `svc-workflow`; missing, duplicate after controlled key
+  removal, inactive, machine-disabled, Agent-not-accepted, missing requested
+  Scope; unregistered Scope, wrong namespace/case, wildcard; explicit
+  `workflow.execute`, forum/admin/moderate, other Audience/Client attempts.
+- Expected: only exactly `workflow.read` for two canaries is plan/apply capable;
+  every variant fails before writes without repair/downscope/union.
+- Failure: any forbidden privilege or mutation.
+
+### ACC-SWX-006 — State, revision, no-op, and conflict matrix
+
+- Contracts: parent `CTR-CGS-004`, `CTR-CGS-005`, `CTR-CGS-006`.
+- Method: pristine no-audit/no-Grant; exact completed revision-1 state; existing
+  wrong Scope/version; extra Grant; unrelated or drifted audit; latest audit
+  revision mismatch; concurrent Grant insert and concurrent audit revision.
+- Expected: pristine creates; exact rerun writes nothing and preserves
+  timestamps; every other or racing state conflicts and rolls back both Clients.
+- Failure: overwrite, repair, union, last-write-wins, or partial result.
+
+### ACC-SWX-007 — Audit schema and one-stage transaction
+
+- Contracts: parent `CTR-CGS-006`, `CTR-CGS-007`, `CTR-CGS-013`,
+  `CTR-CGS-014`.
+- Method: successful two-client apply; validate each audit field-by-field against
+  unmodified `grantChangeAudit`; assert exact 13 keys, public `mc_*` client ID,
+  null before/expected, revision 1, and complete nine-field after snapshot;
+  inject second Grant failure and second audit failure.
+- Expected: exactly two Grants plus two create audits in one Serializable
+  transaction; injected failure leaves all four writes at zero.
+- Failure: extra/missing field, external ref in audit, partial snapshot,
+  non-atomic result, or wrong isolation/revision.
+
+### ACC-SWX-008 — Legacy and non-target invariance
+
+- Contracts: parent `CTR-CGS-009`, `CTR-CGS-011`.
+- Method: static source dependency check plus instrumented DB privileges/counters
+  and before/after snapshots of Legacy columns, all other Grants, Principals,
+  Clients, Audiences, OpenClaw rows, and sentinels.
+- Expected: Legacy reads `0`, writes `0`; only target two Grants and audits differ.
+- Failure: Legacy data flow or any other row/column delta.
+
+### ACC-SWX-009 — Parent acceptance coverage ledger
+
+```text
+CTR-CGS-001 -> ACC-SWX-004
+CTR-CGS-002 -> ACC-SWX-005
+CTR-CGS-003 -> ACC-SWX-005
+CTR-CGS-004 -> ACC-SWX-006
+CTR-CGS-005 -> ACC-SWX-004 | ACC-SWX-005 | ACC-SWX-006
+CTR-CGS-006 -> ACC-SWX-006 | ACC-SWX-007
+CTR-CGS-007 -> ACC-SWX-002 | ACC-SWX-007
+CTR-CGS-008 -> ACC-SWX-003
+CTR-CGS-009 -> ACC-SWX-008
+CTR-CGS-010 -> ACC-SWX-003
+CTR-CGS-011 -> ACC-SWX-004 | ACC-SWX-008
+CTR-CGS-012 -> NOT_APPLICABLE (rollback not implemented)
+CTR-CGS-013 -> ACC-SWX-002 | ACC-SWX-007
+CTR-CGS-014 -> ACC-SWX-002 | ACC-SWX-007
+ACC-CGS-001..011 -> ACC-SWX-003..008 collectively
+ACC-CGS-012 -> NOT_APPLICABLE (rollback not implemented)
+AC-AUTHORITY-1..2 -> ACC-SWX-005 static Stage-F absence assertions
+AC-AUDIT-1, AC-AUDIT-3..4 -> ACC-SWX-007
+AC-AUDIT-2 -> NOT_APPLICABLE (Stage F not implemented)
+AC-ROLLBACK-1..3 -> NOT_APPLICABLE (rollback not implemented)
+AC-NOOP -> ACC-SWX-006
+```
+
+A static test MUST also prove the three implementation files contain no
+`svc-forum`, `forum.`, rollback apply path, or forbidden Scope constant except
+negative-test literals.
+
+## 8. Compatibility and lifecycle
 
 ```text
 LEGACY_FIELDS_TOUCHED = NO
@@ -333,17 +476,17 @@ status: proposed -> accepted
 implementation_authority: none -> contracts
 ```
 
-The exact accepted revision must merge to `main` before implementation starts.
+The exact accepted revision must merge to `main` before implementation.
 
 ## 9. Authoring record
 
 ```text
 AUTHORING_BASE = cb0b3d37dfb105c763c9c83ebd65483270b21b81
 PARENT_SPEC_BLOB = d89bf08c8714f55571ee7d75da017b7cf7237096
-ROUND = NEW_SPEC_AFTER_AMENDMENT_REVIEW_REVISE
-PRIOR_REVIEWED_COMMIT = 3c1182eaca503efb7118142d1f04b553f4a62bde
+ROUND = 3
+PRIOR_REVIEWED_COMMIT = 00e8d560a0b5586df4ae0c8cdd1ee0e9fe3e512f
 PRIOR_REVIEW = REVISE
-PRIOR_BLOCKERS_RESOLVED = 3
+PRIOR_BLOCKERS_RESOLVED = 4
 OPEN_OWNER_DECISIONS = NONE
 NORMATIVE_TBD = NONE
 READY_FOR_INDEPENDENT_REVIEW = YES
