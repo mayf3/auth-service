@@ -50,6 +50,17 @@ AUTH_SERVICE_WORKFLOW_AGENT_OBO_V0_FROZEN
 
 上述 authority 的相互关系由 `MINIMAL_AUTH_FOUNDATION_V1` 自己冻结的 lifecycle 与迁移规则决定：在 V1 production-effectiveness 和 supersession gates 完成前，相关 V0 contract 仍可能治理当前生产路径。不得通过本地 prose 推断 partial supersession。
 
+Pending whole-authority supersession（proposed，未激活）：
+
+```text
+MINIMAL_AUTH_FOUNDATION_V2
+  location: docs/contracts/minimal-auth-v2/MINIMAL_AUTH_FOUNDATION_V2.md
+  supersedes: MINIMAL_AUTH_FOUNDATION_V1 (whole authority)
+  authority delta scope: migration / hard-cut / sequencing only
+```
+
+在 `MINIMAL_AUTH_FOUNDATION_V2` 通过独立 semantic review、Owner accept 并合入 `main` 之前，`MINIMAL_AUTH_FOUNDATION_V1` 仍是该层唯一活动 authority。激活时，同一 docs-only change 原子更新本文件与 `docs/specs/README.md` 的 backlink。
+
 以下文档不是自动 governing authority：
 
 - `docs/DESIGN.md`：历史设计与现状来源；与后续 frozen contract 冲突时不得覆盖后者；
