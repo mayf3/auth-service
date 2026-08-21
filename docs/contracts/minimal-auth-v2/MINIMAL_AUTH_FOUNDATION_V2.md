@@ -25,7 +25,8 @@ AUTHORITY_STATUS = proposed
 SUPERSEDES = MINIMAL_AUTH_FOUNDATION_V1 (whole authority)
 SUPERSEDED_BY = null
 PROPOSED_AT_BASE = cb0b3d37dfb105c763c9c83ebd65483270b21b81
-PREVIOUS_EVALUATED_BASE = e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09
+EVALUATED_BASE = 450a0ecb286cbe5da6e790d3c572fa71218ca9c0
+PREVIOUS_EVALUATED_BASE = cb0b3d37dfb105c763c9c83ebd65483270b21b81
 PREVIOUS_REVIEWED_BASE = 1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9
 DATE = 2026-08-20
 AUTHORITY_DELTA_SCOPE = migration / hard-cut / sequencing only
@@ -159,6 +160,36 @@ CANARY_GRANT_PRODUCT_SEMANTIC_DELTA = NONE
 FUTURE_CANARY_GRANT_SEMANTIC_AMENDMENT_PARENT = MINIMAL_AUTH_FOUNDATION_V2
 ```
 
+Current main additionally contains the accepted Stage W execution authority and both authorized
+implementations. The implementation merges do not change any incorporated V1 object or the V2
+migration / hard-cut / sequencing delta:
+
+```text
+OWNERLESS_IMPLEMENTATION_MERGE = 87b3e54b1e8d332738663de38d9c6c599760c14a
+OWNERLESS_IMPLEMENTATION_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+STAGE_W_EXECUTION_ACCEPTED_REVISION = 4718d06cb31d2ecdf62afd8d03ddb138b47ec081
+STAGE_W_EXECUTION_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
+STAGE_W_IMPLEMENTATION_HEAD = d1b508c9bc42bda0171785f58f4ac13172bb78e2
+STAGE_W_IMPLEMENTATION_MERGE = 450a0ecb286cbe5da6e790d3c572fa71218ca9c0
+STAGE_W_IMPLEMENTATION_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+```
+
+Current main also contains accepted `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1`. Its semantic target
+is compatible with V2, but its exact V1 amendment mechanism is not executable after V2 acceptance:
+V1 bundle / manifest bytes remain historical immutable payload, and the active parent becomes V2.
+This V2 therefore freezes:
+
+```text
+SVC_FORUM_CCR_SEMANTIC_TARGET_COMPATIBILITY = COMPATIBLE
+SVC_FORUM_CCR_REFERENCE_DISPOSITION = ALIGNMENT_AMENDMENT_REQUIRED
+SVC_FORUM_CCR_IMPLEMENTATION_BEFORE_ALIGNMENT = FORBIDDEN_AFTER_V2_ACCEPTANCE
+SVC_FORUM_CCR_ALIGNMENT_TARGET = MINIMAL_AUTH_FOUNDATION_V2 + future V2 bundle / activation model
+```
+
+No Contract or Bundle implementation of this CCR exists at evaluated base
+`450a0ecb286cbe5da6e790d3c572fa71218ca9c0`. If such implementation appears before this proposal is
+reviewed or accepted, this disposition is invalidated and MUST be re-evaluated rather than applied.
+
 ### 3.5 V2 Activation Record model
 
 ```text
@@ -271,6 +302,30 @@ Record. This rule does not modify PR #2 in the present PR.
 - Environment: source authority graph; no production execution asserted
 - Observed at: `2026-08-20T23:45:10Z`
 - Basis: `OBS-MAFV2-010`, `CLM-MAFV2-010`, `EVD-MAFV2-010`
+
+### STATE-MAFV2-010 — Current main contains compatible bounded implementations
+
+- Subject: ownerless implementation merge `87b3e54...` and Stage W implementation merge `450a0ec...`
+- As-of commit / artifact revision: `450a0ecb286cbe5da6e790d3c572fa71218ca9c0`
+- Environment: `mayf3/auth-service` source repository, `github/main`
+- Observed at: `2026-08-21`
+- Basis: merge-parent file inventories and unchanged CTR-MAFV2-001 objects
+
+### STATE-MAFV2-011 — Current main contains accepted Stage W Execution authority
+
+- Subject: `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1`
+- As-of commit / artifact revision: accepted `4718d06cb31d2ecdf62afd8d03ddb138b47ec081`, blob `6de180cdd4aad509912dfc9d6864301731f7909f`, present in `450a0ec...`
+- Environment: `mayf3/auth-service` source repository, `github/main`
+- Observed at: `2026-08-21`
+- Basis: accepted frontmatter, parent references, and implemented exclusive three-file surface
+
+### STATE-MAFV2-012 — svc-forum CCR is accepted but has no Contract/Bundle implementation
+
+- Subject: `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1`
+- As-of commit / artifact revision: accepted `02e1162d6cd9583230df45d121b11df20a8ba034`, blob `78530b1fbfb13d477e65e002185128cf69843942`, present in `450a0ec...`
+- Environment: `mayf3/auth-service` source repository, `github/main`
+- Observed at: `2026-08-21`
+- Basis: accepted CCR and empty `cb0b3d3...450a0ec` path history for `docs/contracts/minimal-auth-v1/**` and `contract-bundles/minimal-auth-v1/**`
 
 ## 5. Observations
 
@@ -579,6 +634,17 @@ Record. This rule does not modify PR #2 in the present PR.
 - `DEC-MAFV2-014` — accepted ownerless Spec 的 exact V1 constraint 按
   `GRANDFATHERED_EXACT_V1_CONSTRAINT` 保留；alignment amendment 不需要，产品语义 delta
   为零，未来 semantic amendment parent 是 V2。
+- `DEC-MAFV2-015` — main 中 ownerless implementation merge `87b3e54...` 与 Stage W
+  implementation merge `450a0ec...` 均为 `COMPATIBLE_NO_SEMANTIC_DELTA`；它们不修改 V1
+  normative modules/bundle，也不取得 architecture supersession authority。
+- `DEC-MAFV2-016` — accepted Stage W Execution Spec 的 exact V1 parent reference 按
+  `GRANDFATHERED_EXACT_V1_CONSTRAINT` 保留；其封闭三文件实现已合入，但不改变 V2
+  migration / hard-cut / sequencing meaning。
+- `DEC-MAFV2-017` — accepted svc-forum CCR 的 semantic target 为 `COMPATIBLE`，但其要求
+  原位修改 V1 parent Contract/bundle 的 reference disposition 是
+  `ALIGNMENT_AMENDMENT_REQUIRED`。V2 acceptance 后、alignment 前禁止按当前 CCR 实现；未来
+  amendment 必须指向 `MINIMAL_AUTH_FOUNDATION_V2` 与 future V2 bundle / activation model，
+  不得修改 superseded V1 historical payload。
 
 ## 9. Contracts
 
@@ -710,12 +776,15 @@ The evaluated inventory is frozen as:
 
 | Downstream Spec | Status / exact accepted revision | Relationship | Bounded scope | Compatibility | Disposition |
 |---|---|---|---|---|---|
-| `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1` | accepted / `d9dacf6e87dc3f23d8649047a9445e28908e7e6e` (blob `e51f5dc1a1e92469ec773c7f50959a6f356f4355`) | same-repository `external_authorities`: `MINIMAL_AUTH_FOUNDATION_V1@1da40d4...`, `constrained_by` | closed five-file ownerless direct-token/database repair | `COMPATIBLE_NO_SEMANTIC_DELTA` | `GRANDFATHERED_EXACT_V1_CONSTRAINT`; alignment amendment `NO`; future semantic amendment parent `MINIMAL_AUTH_FOUNDATION_V2` |
+| `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1` | accepted / `d9dacf6e87dc3f23d8649047a9445e28908e7e6e` (blob `e51f5dc1a1e92469ec773c7f50959a6f356f4355`) | same-repository `external_authorities`: `MINIMAL_AUTH_FOUNDATION_V1@1da40d4...`, `constrained_by` | closed five-file ownerless direct-token/database repair | `COMPATIBLE_NO_SEMANTIC_DELTA`; implementation merge `87b3e54...` compatible with no semantic delta | `GRANDFATHERED_EXACT_V1_CONSTRAINT`; alignment amendment `NO`; future semantic amendment parent `MINIMAL_AUTH_FOUNDATION_V2` |
 | `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1` | accepted / `1f7fa6378fa44042f3001b4a5813210c0a8313e8` (blob `d89bf08c8714f55571ee7d75da017b7cf7237096`) | `governed_by: [MINIMAL_AUTH_FOUNDATION_V1, AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1]` | Stage W: two exact `svc-workflow[workflow.read]` MachineAccessGrant rows; Stage F remains blocked | `COMPATIBLE_NO_SEMANTIC_DELTA` for MachineAccessGrant, Audience/Scope, audit, optimistic concurrency, and forward-only migration/rollback | `GRANDFATHERED_EXACT_V1_CONSTRAINT`; alignment amendment `NO`; future semantic amendment parent `MINIMAL_AUTH_FOUNDATION_V2` |
+| `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1` | accepted / `4718d06cb31d2ecdf62afd8d03ddb138b47ec081` (blob `6de180cdd4aad509912dfc9d6864301731f7909f`) | `governed_by: [MINIMAL_AUTH_FOUNDATION_V1, AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1, AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1]` | exact Stage W executable and exclusive three-file conformance surface | `COMPATIBLE_NO_SEMANTIC_DELTA`; implementation Head `d1b508c...`, merge `450a0ec...` | `GRANDFATHERED_EXACT_V1_CONSTRAINT`; no current alignment amendment; future semantic amendment parent V2 |
+| `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1` | accepted / `02e1162d6cd9583230df45d121b11df20a8ba034` (blob `78530b1fbfb13d477e65e002185128cf69843942`) | `governed_by: [MINIMAL_AUTH_FOUNDATION_V1, AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1]` | register `svc-forum[forum.read,forum.write]`; current text requires parent Contract and bundle mutation | semantic target `COMPATIBLE`; no Contract/Bundle implementation exists at evaluated base | `ALIGNMENT_AMENDMENT_REQUIRED`; after V2 acceptance implementation forbidden before alignment to V2 + future V2 bundle/activation model |
 
-Both accepted Specs MUST remain byte-identical in this PR. The Canary disposition is a V2
-Decision (`DEC-MAFV2-011`), not deferred review prose. Historical PR #2 remains
-proposed/unmodified and cannot serve as authority.
+All four accepted Specs MUST remain byte-identical in this PR. Their dispositions are V2 Decisions,
+not deferred review prose. Historical PR #2 remains proposed/unmodified and cannot serve as
+authority. Any svc-forum CCR Contract/Bundle implementation appearing after the evaluated base
+invalidates the current CCR conclusion and requires re-evaluation.
 
 ### CTR-MAFV2-007 — Precedence and ownerless compatibility boundary
 
@@ -742,8 +811,8 @@ listed four-field root mask is the sole exception to exact root-byte identity. M
 coverage validation MUST establish:
 
 ```text
-CONTRACT_COUNT = 12
-CONTRACTS_WITH_ACCEPTANCE = 12
+CONTRACT_COUNT = 15
+CONTRACTS_WITH_ACCEPTANCE = 15
 CONTRACT_COVERAGE = PASS
 ACCEPTANCE_REFERENCES_VALID = PASS
 ```
@@ -844,6 +913,59 @@ This disposition is supported by CTR-MAFV2-001/009 complete V1 semantic incorpor
 without changing the accepted ownerless Spec. Any future ownerless semantic amendment MUST name V2
 as parent and receive its own review; no current alignment amendment or implementation gate exists.
 
+### CTR-MAFV2-013 — Current-main implementation compatibility
+
+At evaluated base `450a0ecb286cbe5da6e790d3c572fa71218ca9c0`:
+
+```text
+OWNERLESS_IMPLEMENTATION_MERGE = 87b3e54b1e8d332738663de38d9c6c599760c14a
+OWNERLESS_IMPLEMENTATION_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+STAGE_W_IMPLEMENTATION_HEAD = d1b508c9bc42bda0171785f58f4ac13172bb78e2
+STAGE_W_IMPLEMENTATION_MERGE = 450a0ecb286cbe5da6e790d3c572fa71218ca9c0
+STAGE_W_IMPLEMENTATION_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+```
+
+The ownerless five-file implementation and Stage W exclusive three-file implementation are bounded
+implementations of accepted Specs. Neither changes a CTR-MAFV2-001 V1 module or bundle object,
+changes V2's authority delta, or authorizes sequencing work under this PR. Any later semantic or
+frozen-object delta invalidates these compatibility findings.
+
+### CTR-MAFV2-014 — Stage W Execution exact-reference disposition
+
+For accepted
+`AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1@4718d06cb31d2ecdf62afd8d03ddb138b47ec081`:
+
+```text
+STAGE_W_EXECUTION_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
+STAGE_W_EXECUTION_ALIGNMENT_AMENDMENT_REQUIRED = NO
+STAGE_W_EXECUTION_PRODUCT_SEMANTIC_DELTA = NONE
+FUTURE_STAGE_W_EXECUTION_SEMANTIC_AMENDMENT_PARENT = MINIMAL_AUTH_FOUNDATION_V2
+```
+
+This disposition preserves the exact accepted execution boundary and its completed implementation.
+It does not grandfather any scope outside Stage W or grant the Spec architecture supersession
+power. Any future semantic amendment MUST name V2 and receive independent review.
+
+### CTR-MAFV2-015 — svc-forum CCR alignment boundary
+
+For accepted `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1@02e1162d6cd9583230df45d121b11df20a8ba034`:
+
+```text
+SVC_FORUM_CCR_SEMANTIC_TARGET_COMPATIBILITY = COMPATIBLE
+SVC_FORUM_CCR_REFERENCE_DISPOSITION = ALIGNMENT_AMENDMENT_REQUIRED
+SVC_FORUM_CCR_IMPLEMENTATION_BEFORE_ALIGNMENT = FORBIDDEN_AFTER_V2_ACCEPTANCE
+SVC_FORUM_CCR_ALIGNMENT_TARGET = MINIMAL_AUTH_FOUNDATION_V2 + future V2 bundle / activation model
+V1_BUNDLE_AND_MANIFEST = HISTORICAL_IMMUTABLE_PAYLOAD
+```
+
+Before V2 acceptance, V1 remains active and the CCR's current gates remain its authority. After V2
+acceptance, the current CCR MUST NOT authorize direct amendment of superseded V1 Contract, bundle,
+or manifest bytes. An independently reviewed alignment amendment MUST preserve the compatible
+`svc-forum[forum.read,forum.write]` semantic target while retargeting parent, executable bundle, and
+activation mechanics to V2. This Contract is valid only while no svc-forum CCR Contract/Bundle
+implementation exists on main at or after the evaluated coordinate; detecting one is a stop-and-
+re-evaluate condition.
+
 ## 10. Acceptance
 
 Every Required evidence tuple below MUST bind: authority revision, evaluated base, evaluated final
@@ -900,8 +1022,8 @@ Head, reviewer/acceptance actor, execution timestamp, and persistent PR review o
 - Method: machine search and human classification of both `governed_by` and same-repository `external_authorities.authority_id` references
 - Environment: evaluated base and exact proposed authority Head
 - Required evidence: full common tuple plus complete path/Spec/status/exact accepted revision/relation/owner/scope/compatibility/disposition table and object comparison for every relied-on V1 Grant/bundle object
-- Expected result: both reference classes are inventoried; ownerless and Canary Specs remain byte-identical; Canary records `GRANDFATHERED_EXACT_V1_CONSTRAINT`, alignment amendment `NO`, product semantic delta `NONE`, and future semantic parent V2
-- Failure condition: missing class/revision/scope, silent downstream rewrite, changed Grant dependency, unresolved Canary disposition, or any authority conflict
+- Expected result: both reference classes are inventoried; all four accepted downstream Specs remain byte-identical; ownerless, Canary, Stage W Execution, and svc-forum CCR dispositions match CTR-MAFV2-006 and CTR-MAFV2-013–015
+- Failure condition: missing class/revision/scope, silent downstream rewrite, changed dependency, unresolved disposition, missed CCR implementation, or any authority conflict
 
 ### ACC-MAFV2-007 — Ownerless compatibility review
 
@@ -918,7 +1040,7 @@ Head, reviewer/acceptance actor, execution timestamp, and persistent PR review o
 - Method: parse all `CTR-MAFV2-*` and `ACC-MAFV2-*` IDs, validate every reference both directions, verify allowed file scope and remote coordinates
 - Environment: clean task worktree at evaluated final Head; GitHub remote immediately before push/acceptance
 - Required evidence: full common tuple plus counts, reference validation, docs-only diff, object checks, and remote SHA receipt
-- Expected result: 12 Contracts, 12 covered Contracts, valid references, no silent identity drift
+- Expected result: 15 Contracts, 15 covered Contracts, valid references, no silent identity drift
 - Failure condition: count/coverage/reference failure, disallowed file, object drift, or remote coordinate drift
 
 ### ACC-MAFV2-009 — V1 root mask and digest proof
@@ -957,6 +1079,33 @@ Head, reviewer/acceptance actor, execution timestamp, and persistent PR review o
 - Expected result: `GRANDFATHERED_EXACT_V1_CONSTRAINT`, alignment amendment `NO`, product semantic delta `NONE`, future semantic parent V2
 - Failure condition: missing root semantic, ownerless byte change, semantic conflict, unresolved disposition, alignment required, or wrong future parent
 
+### ACC-MAFV2-013 — Current-main implementation compatibility
+
+- Contracts: `CTR-MAFV2-013`
+- Method: inspect both merge-parent diffs, compare every relied-on authority object, and classify product semantics against the accepted bounded Specs
+- Environment: ownerless merge `87b3e54...`, Stage W Head `d1b508c...`, merge/evaluated base `450a0ec...`, and exact proposed V2 Head
+- Required evidence: full common tuple plus two changed-file inventories, accepted Spec revisions, V1 module/bundle object comparison, and semantic compatibility matrix
+- Expected result: both `OWNERLESS_IMPLEMENTATION_COMPATIBILITY` and `STAGE_W_IMPLEMENTATION_COMPATIBILITY` equal `COMPATIBLE_NO_SEMANTIC_DELTA`
+- Failure condition: changed frozen object, implementation outside accepted scope, V2 sequencing delta, unresolved semantic difference, or missing exact merge coordinate
+
+### ACC-MAFV2-014 — Stage W Execution reference disposition
+
+- Contracts: `CTR-MAFV2-014`
+- Method: compare accepted Stage W execution Spec, parent Canary authority, implemented three-file boundary, and complete incorporated V1 Grant semantics
+- Environment: accepted revision `4718d06...`, implementation Head `d1b508c...`, evaluated base `450a0ec...`, and exact proposed V2 Head
+- Required evidence: full common tuple plus accepted blob identity, parent/reference matrix, implementation file inventory, and V1 dependency comparison
+- Expected result: `STAGE_W_EXECUTION_REFERENCE_DISPOSITION=GRANDFATHERED_EXACT_V1_CONSTRAINT`, no alignment amendment, no product semantic delta
+- Failure condition: Spec byte change, parent conflict, scope expansion, implementation mismatch, unresolved disposition, or wrong future parent
+
+### ACC-MAFV2-015 — svc-forum CCR alignment disposition
+
+- Contracts: `CTR-MAFV2-015`
+- Method: inspect accepted CCR requirements, verify no Contract/Bundle implementation exists on main, compare its target semantics with V2, and review post-acceptance mutability constraints
+- Environment: accepted revision `02e1162...`, evaluated base `450a0ec...`, frozen V1 bundle/manifest objects, and exact proposed V2 Head
+- Required evidence: full common tuple plus accepted blob identity, main path-history receipt for V1 Contract/bundle, semantic-target matrix, and V2 alignment/activation mapping
+- Expected result: semantic target `COMPATIBLE`; reference disposition `ALIGNMENT_AMENDMENT_REQUIRED`; implementation before alignment `FORBIDDEN_AFTER_V2_ACCEPTANCE`; target V2 plus future V2 bundle/activation model
+- Failure condition: existing CCR Contract/Bundle implementation, direct mutation of superseded V1 payload, grandfathering current amendment mechanics, incompatible target semantics, or missing independent alignment gate
+
 ### 10.1 Bidirectional coverage table
 
 | Contract | Acceptance |
@@ -973,6 +1122,9 @@ Head, reviewer/acceptance actor, execution timestamp, and persistent PR review o
 | `CTR-MAFV2-010` | `ACC-MAFV2-010` |
 | `CTR-MAFV2-011` | `ACC-MAFV2-011` |
 | `CTR-MAFV2-012` | `ACC-MAFV2-012` |
+| `CTR-MAFV2-013` | `ACC-MAFV2-013` |
+| `CTR-MAFV2-014` | `ACC-MAFV2-014` |
+| `CTR-MAFV2-015` | `ACC-MAFV2-015` |
 
 | Acceptance | Contracts |
 |---|---|
@@ -988,6 +1140,9 @@ Head, reviewer/acceptance actor, execution timestamp, and persistent PR review o
 | `ACC-MAFV2-010` | `CTR-MAFV2-010` |
 | `ACC-MAFV2-011` | `CTR-MAFV2-011` |
 | `ACC-MAFV2-012` | `CTR-MAFV2-012` |
+| `ACC-MAFV2-013` | `CTR-MAFV2-013` |
+| `ACC-MAFV2-014` | `CTR-MAFV2-014` |
+| `ACC-MAFV2-015` | `CTR-MAFV2-015` |
 
 ## 11. Alternatives and disposition
 
@@ -1008,11 +1163,17 @@ Head, reviewer/acceptance actor, execution timestamp, and persistent PR review o
   Rejected by `DEC-MAFV2-013`; use isolated candidate conformance and coordinated activation。
 - `ALT-MAFV2-009` — defer ownerless disposition to future review prose。Rejected by
   `DEC-MAFV2-014`; exact-reference grandfathering is frozen now。
+- `ALT-MAFV2-010` — treat merged ownerless or Stage W implementation as an architecture semantic
+  delta。Rejected by `DEC-MAFV2-015`; both remain bounded, compatible implementations。
+- `ALT-MAFV2-011` — leave Stage W Execution exact V1 reference unresolved。Rejected by
+  `DEC-MAFV2-016`; grandfather the exact accepted constraint without broadening it。
+- `ALT-MAFV2-012` — grandfather svc-forum CCR as direct authority to mutate superseded V1
+  Contract/bundle bytes。Rejected by `DEC-MAFV2-017`; require V2 alignment first。
 
 ## 12. Migration, compatibility, and rollback
 
 This amendment is docs-only. It does not alter product source, Prisma, migrations, runtime,
-deployment, contract bundle, vendored governance, ownerless/Canary accepted Specs, or PR #2. V1 remains active before atomic
+deployment, contract bundle, vendored governance, any accepted downstream Spec, or PR #2. V1 remains active before atomic
 activation. The existing PRE_CUT artifact supplies the required migration/evidence period; the new
 Cut Artifact is V1-only. Runtime rollback, if later authorized by an implementation Spec, is
 whole-release only. Authority rollback after acceptance requires a new whole-authority transition
@@ -1038,6 +1199,13 @@ CANARY_GRANT_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
 CANARY_GRANT_ALIGNMENT_AMENDMENT_REQUIRED = NO
 CANARY_GRANT_PRODUCT_SEMANTIC_DELTA = NONE
 FUTURE_CANARY_GRANT_SEMANTIC_AMENDMENT_PARENT = MINIMAL_AUTH_FOUNDATION_V2
+OWNERLESS_IMPLEMENTATION_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+STAGE_W_EXECUTION_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
+STAGE_W_IMPLEMENTATION_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+SVC_FORUM_CCR_SEMANTIC_TARGET_COMPATIBILITY = COMPATIBLE
+SVC_FORUM_CCR_REFERENCE_DISPOSITION = ALIGNMENT_AMENDMENT_REQUIRED
+SVC_FORUM_CCR_IMPLEMENTATION_BEFORE_ALIGNMENT = FORBIDDEN_AFTER_V2_ACCEPTANCE
+SVC_FORUM_CCR_ALIGNMENT_TARGET = MINIMAL_AUTH_FOUNDATION_V2 + future V2 bundle / activation model
 ```
 
 The amended exact Head still requires a new independent semantic review. The previous PR #7 review
