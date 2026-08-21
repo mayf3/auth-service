@@ -219,7 +219,7 @@ async function main() {
 
   // Build manifest (always built, written if not --print-manifest)
   const manifest: FixtureManifest = {
-	    contractVersion: '1.2.0',
+	    contractVersion: '1.3.0',
     audiences: [
       { audienceId: 'svc-workflow', status: svcWorkflow.status, scopes: [...svcWorkflow.registeredScopes] },
       { audienceId: 'adc-v2', status: adcV2.status, scopes: [...adcV2.registeredScopes] },
