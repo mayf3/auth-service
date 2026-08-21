@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import { createHash, randomUUID } from 'node:crypto';
-import { mkdtempSync, readFileSync, readSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdtempSync, readFileSync, readSync, rmSync, writeFileSync } from 'node:fs';
+import { connect, createServer } from 'node:net';
 import { execFileSync, spawn } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { createRequire } from 'node:module';
@@ -62,6 +63,21 @@ async function invoke(extraDescriptor: unknown = descriptor) {
   });
 }
 
+async function invokeArgs(args: string[], environment: Record<string, string> = {}) {
+  return new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve, reject) => {
+    const child = spawn(NODE, ['--import', 'tsx', SCRIPT, ...args], {
+      cwd: ROOT,
+      env: { PATH: process.env.PATH ?? '/usr/local/bin:/usr/bin:/bin', HOME: process.env.HOME ?? '/tmp', ...environment },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = ''; let stderr = '';
+    child.stdout.setEncoding('utf8').on('data', (chunk) => { stdout += chunk; });
+    child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr += chunk; });
+    child.on('error', reject);
+    child.on('close', (code) => resolve({ code, stdout, stderr }));
+  });
+}
+
 async function invokeHttp(fixture: unknown) {
   return new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve, reject) => {
     const temporary = mkdtempSync(path.join(tmpdir(), 'stage-w-http-fifo-'));
@@ -88,6 +104,13 @@ function paddedJson(fields: Record<string, unknown>, exactBytes: number): string
   const padding = exactBytes - Buffer.byteLength(value);
   assert.ok(padding >= 0);
   return `${' '.repeat(padding)}${value}`;
+}
+
+function duplicateFirstMember(fields: Record<string, unknown>): string {
+  const [first] = Object.entries(fields);
+  const member = `${JSON.stringify(first[0])}:${JSON.stringify(first[1])}`;
+  const rest = Object.entries(fields).slice(1).map(([key, value]) => `${JSON.stringify(key)}:${JSON.stringify(value)}`).join(',');
+  return `{${member},${member}${rest.length > 0 ? `,${rest}` : ''}}`;
 }
 
 function httpFixture(bodyText: string, overrides: Record<string, unknown> = {}) {
@@ -205,6 +228,102 @@ await test('static boundary excludes Stage F, rollback, exports, and legacy fiel
   assert.match(source, /resultingGrantVersion:\s*1/);
 });
 
+function expectMatches(source: string, pattern: RegExp, times: number, label: string): void {
+  const found = [...source.matchAll(new RegExp(pattern.source, `${pattern.flags}g`))].length;
+  assert.equal(found, times, `${label} must appear exactly ${times} time(s), found ${found}`);
+}
+
+await test('static source binding pins transport constants, headers, and byte/time limits', () => {
+  const source = readFileSync(SCRIPT, 'utf8');
+  expectMatches(source, /const API_HOST = 'api\.github\.com';/, 1, 'fixed host');
+  expectMatches(source, /const API_PORT = 443;/, 1, 'fixed port');
+  expectMatches(source, /hostname: API_HOST, port: API_PORT, method: 'GET', path, headers: HEADERS,/, 1, 'fixed host/port/method wiring');
+  expectMatches(source, /method: 'GET'/, 1, 'single GET transport');
+  assert.doesNotMatch(source, /method: '(?:POST|PUT|DELETE|PATCH|HEAD|OPTIONS)'/);
+  expectMatches(source, /const HEADERS = Object\.freeze\(\{\n {2}'User-Agent': 'mayf3-auth-service-stage-w-v1',\n {2}Accept: 'application\/vnd\.github\+json',\n {2}'X-GitHub-Api-Version': '2022-11-28',\n\}\);/, 1, 'exact fixed header set');
+  expectMatches(source, /requestJson\('commit', path, 2 \* 1024 \* 1024\)/, 1, 'commit 2 MiB limit');
+  expectMatches(source, /requestJson\('compare', path, 16 \* 1024 \* 1024\)/, 1, 'compare 16 MiB limit');
+  expectMatches(source, /requestJson\(kind, path, 2 \* 1024 \* 1024\)/, 1, 'review/comment 2 MiB limit');
+  expectMatches(source, /requestJson\(kind, path, decodedLimit === 1024 \* 1024 \? 2 \* 1024 \* 1024 : 512 \* 1024\)/, 1, 'manifest/receipt Contents wire limits');
+  expectMatches(source, /contents\(pathValue, commit, 1024 \* 1024\)/, 1, 'manifest decoded 1 MiB limit');
+  expectMatches(source, /contents\(link\.path, commit, 256 \* 1024\)/, 1, 'receipt decoded 256 KiB limit');
+  expectMatches(source, /const decodedLimit = kind === 'contents-manifest' \? 1024 \* 1024 : 256 \* 1024;/, 1, 'conformance decoded limits');
+  expectMatches(source, /const limit = value\.kind === 'compare' \? 16 \* 1024 \* 1024\n {4}: value\.kind === 'contents-receipt' \? 512 \* 1024 : 2 \* 1024 \* 1024;/, 1, 'conformance wire limits');
+  expectMatches(source, /agent: false, timeout: 10_000,/, 1, 'connect/TLS/idle timeout');
+  expectMatches(source, /socket\.setTimeout\(10_000\);/, 1, 'socket idle timeout');
+  expectMatches(source, /setTimeout\(\(\) => reject\(new Error\('total deadline'\)\), 30_000\);/, 1, 'total deadline');
+  expectMatches(source, /input\.elapsedMs >= 30_000/, 1, 'elapsed deadline guard');
+});
+
+await test('static source binding pins the environment override rejection list', () => {
+  const source = readFileSync(SCRIPT, 'utf8');
+  expectMatches(source, /const OVERRIDE_ENV = Object\.freeze\(\[\n {2}'NODE_OPTIONS', 'NODE_PATH', 'NODE_EXTRA_CA_CERTS', 'NODE_TLS_REJECT_UNAUTHORIZED',\n {2}'SSL_CERT_FILE', 'SSL_CERT_DIR',\n\]\);/, 1, 'exact environment rejection list');
+  expectMatches(source, /for \(const name of OVERRIDE_ENV\) if \(\(process\.env\[name\] \?\? ''\) !== ''\) fail\(`\$\{name\} override is forbidden`\);/, 1, 'rejection enforcement');
+  for (const name of ['NODE_OPTIONS', 'NODE_PATH', 'NODE_EXTRA_CA_CERTS', 'NODE_TLS_REJECT_UNAUTHORIZED', 'SSL_CERT_FILE', 'SSL_CERT_DIR']) {
+    expectMatches(source, new RegExp(`'${name}'`), 1, `${name} binding`);
+  }
+});
+
+await test('static source binding proves no alternate transport exists', () => {
+  const source = readFileSync(SCRIPT, 'utf8');
+  expectMatches(source, /https\.request\(/, 1, 'single HTTPS transport construction');
+  expectMatches(source, /execFileSync\(git, \['-C', REPO_ROOT, '(?:status|rev-parse)'/, 3, 'git confined to cleanHead probes');
+  expectMatches(source, /execFileSync\(/, 4, 'only docker-inspect and git probes spawn subprocesses');
+  for (const [pattern, label] of [
+    [/\bfetch\(/, 'fetch'],
+    [/\bcurl\b/, 'curl'],
+    [/from 'node:http'|require\('node:http'\)/, 'plain HTTP module'],
+    [/from 'node:net'|from 'node:tls'|require\('node:net'\)|require\('node:tls'\)/, 'raw socket or TLS module'],
+    [/net\.connect|tls\.connect|createConnection|socket\.connect/, 'alternate socket'],
+    [/\bproxy\b|\bProxy\b|ProxyAgent/, 'proxy'],
+    [/new https\.Agent|new http\.Agent/, 'custom agent'],
+    [/undici|axios|node-fetch|\bgot\(/, 'third-party HTTP client'],
+    [/hostname: process\.|port: process\.|process\.env\.[A-Z_]*(?:HOST|PORT)/, 'caller-controlled endpoint'],
+    [/'clone'|'ls-remote'|'cat-file'|'archive'|'rev-list'|'diff-tree'/, 'git evidence transport'],
+  ] as const) {
+    assert.doesNotMatch(source, pattern, `${label} must not exist`);
+  }
+});
+
+await test('static boundary scan covers the executable, the conformance shell, and this test file', () => {
+  const forbiddenSurface = new RegExp([
+    'svc-', 'forum|forum\\.', '|workflow\\.', 'execute|workflow\\.', 'admin|roll', 'back|Stage F',
+    '|allowed', 'Resources|allowed', 'Scopes',
+  ].join(''), 'g');
+  const executableSource = readFileSync(SCRIPT, 'utf8');
+  assert.equal([...executableSource.matchAll(forbiddenSurface)].length, 0, 'executable contains a disabled-surface token');
+  const shellSource = readFileSync(path.join(ROOT, 'scripts/run-agentcore-canary-workflow-grants-v1-conformance.sh'), 'utf8');
+  assert.equal([...shellSource.matchAll(forbiddenSurface)].length, 0, 'conformance shell contains a disabled-surface token');
+  for (const line of shellSource.split('\n')) {
+    if (/allowed_(?:resources|scopes)/.test(line)) {
+      assert.match(line, /has_column_privilege/, 'legacy column names appear in the shell only inside the negative privilege probe');
+    }
+  }
+  const self = readFileSync(fileURLToPath(import.meta.url), 'utf8');
+  const sanctioned = /static boundary|two valid identities|forbidden or conflicting|concurrent non-cooperating|duplicate-corruption/;
+  const seedStart = self.indexOf('async function seed(');
+  const seedEnd = self.indexOf('async function counts(');
+  assert.ok(seedStart >= 0 && seedEnd > seedStart, 'seed fixture region must be locatable');
+  for (const [index, block] of self.split(/\n(?=await test\()/).entries()) {
+    if (!forbiddenSurface.test(block)) continue;
+    if (index === 0) {
+      for (const line of block.split('\n')) {
+        if (!forbiddenSurface.test(line)) continue;
+        const at = self.indexOf(line);
+        assert.ok(at >= seedStart && at < seedEnd, `helper-region literal outside seed(): ${line.trim()}`);
+      }
+    } else {
+      assert.match(block.slice(0, block.indexOf('\n')), sanctioned, 'negative literals are allowed only in rejection or invariance test blocks');
+    }
+  }
+  for (const imported of self.matchAll(/from '([^']+)';/g)) {
+    assert.match(imported[1], /^node:|^@prisma\/client$/, 'test file must not link production code');
+  }
+  for (const required of self.matchAll(/require\('([^']+)'\)/g)) {
+    assert.match(required[1], /^ajv/, 'test file must not require production code');
+  }
+});
+
 await test('deterministic HTTP conformance accepts only the fixed valid state envelope', async () => {
   const validBody = JSON.stringify({ sha: 'a'.repeat(40) });
   const base = 'a'.repeat(40); const head = 'b'.repeat(40);
@@ -257,6 +376,147 @@ await test('deterministic HTTP conformance accepts only the fixed valid state en
     const result = await invokeHttp(fixture);
     assert.notEqual(result.code, 0, `unexpected HTTP fixture success: ${result.stdout}`);
   }
+});
+
+await test('content-length mismatch matrix fails closed', async () => {
+  const validBody = JSON.stringify({ sha: 'a'.repeat(40) });
+  const mediaHeaders = { 'content-type': 'application/json; charset=utf-8' };
+  const declared = (value: string) => ({ ...mediaHeaders, 'content-length': value });
+  const bytes = Buffer.from(validBody); const midpoint = Math.floor(bytes.length / 2);
+  const splitChunks = [bytes.subarray(0, midpoint).toString('base64'), bytes.subarray(midpoint).toString('base64')];
+  const matrix = [
+    ['declared length below actual bytes', httpFixture(validBody, { headers: declared('1') })],
+    ['declared length above actual bytes', httpFixture(validBody, { headers: declared(String(bytes.length + 1)) })],
+    ['negative content-length', httpFixture(validBody, { headers: declared('-1') })],
+    ['non-integer content-length', httpFixture(validBody, { headers: declared('12.5') })],
+    ['non-numeric content-length', httpFixture(validBody, { headers: declared('abc') })],
+    ['signed content-length', httpFixture(validBody, { headers: declared('+30') })],
+    ['exponent content-length', httpFixture(validBody, { headers: declared('1e2') })],
+    ['empty content-length', httpFixture(validBody, { headers: declared('') })],
+    ['non-string content-length header', httpFixture(validBody, { headers: { ...mediaHeaders, 'content-length': 30 } })],
+    ['chunked body with inconsistent content-length', httpFixture(validBody, {
+      headers: declared(String(bytes.length + 5)),
+      chunks_base64: splitChunks,
+    })],
+  ] as const;
+  for (const [label, fixture] of matrix) {
+    const result = await invokeHttp(fixture);
+    assert.notEqual(result.code, 0, `${label} must fail closed`);
+  }
+  const chunked = await invokeHttp(httpFixture(validBody, { headers: mediaHeaders, chunks_base64: splitChunks }));
+  assert.equal(chunked.code, 0, chunked.stderr);
+});
+
+await test('every non-200 HTTP status code fails closed', async () => {
+  const validBody = JSON.stringify({ sha: 'a'.repeat(40) });
+  for (const status of [302, 400, 401, 403, 404, 429, 500, 503]) {
+    const result = await invokeHttp(httpFixture(validBody, { status_code: status }));
+    assert.notEqual(result.code, 0, `HTTP ${status} must fail closed`);
+  }
+});
+
+await test('malformed evidence envelope matrix fails closed for every response kind', async () => {
+  const base = 'a'.repeat(40); const head = 'b'.repeat(40);
+  const compareUrl = `https://api.github.com/repos/mayf3/dsh-agent-core/compare/${base}...${head}`;
+  const contentsUrl = (file: string, ref: string) => `https://api.github.com/repos/mayf3/dsh-agent-core/contents/evidence/${file}?ref=${ref}`;
+  const manifest = { type: 'file', path: 'evidence/manifest.json', url: contentsUrl('manifest.json', base), encoding: 'base64', size: 2, content: 'e30=' };
+  const receipt = { type: 'file', path: 'evidence/receipt.json', url: contentsUrl('receipt.json', base), encoding: 'base64', size: 2, content: 'e30=' };
+  const matrix = [
+    {
+      kind: 'compare',
+      requestPath: `/repos/mayf3/dsh-agent-core/compare/${base}...${head}`,
+      valid: { url: compareUrl, base_commit: { sha: base }, merge_base_commit: { sha: base }, behind_by: 0, status: 'ahead' },
+      missingField: { base_commit: { sha: base }, merge_base_commit: { sha: base }, behind_by: 0, status: 'ahead' },
+      wrongType: { url: compareUrl, base_commit: { sha: base }, merge_base_commit: { sha: base }, behind_by: '0', status: 'ahead' },
+      wrongCanonicalUrl: { url: `https://api.github.evil.com/repos/mayf3/dsh-agent-core/compare/${base}...${head}`, base_commit: { sha: base }, merge_base_commit: { sha: base }, behind_by: 0, status: 'ahead' },
+      wrongShaOrId: { url: compareUrl, base_commit: { sha: 'c'.repeat(40) }, merge_base_commit: { sha: base }, behind_by: 0, status: 'ahead' },
+    },
+    {
+      kind: 'contents-manifest',
+      requestPath: `/repos/mayf3/dsh-agent-core/contents/evidence/manifest.json?ref=${base}`,
+      valid: manifest,
+      missingField: { type: 'file', path: 'evidence/manifest.json', url: manifest.url, encoding: 'base64', size: 2 },
+      wrongType: { ...manifest, size: '2' },
+      wrongCanonicalUrl: { ...manifest, url: contentsUrl('manifest.json', 'c'.repeat(40)) },
+      wrongShaOrId: { ...manifest, size: 5 },
+    },
+    {
+      kind: 'contents-receipt',
+      requestPath: `/repos/mayf3/dsh-agent-core/contents/evidence/receipt.json?ref=${base}`,
+      valid: receipt,
+      missingField: { type: 'file', path: 'evidence/receipt.json', url: receipt.url, encoding: 'base64', size: 2 },
+      wrongType: { ...receipt, type: 'dir' },
+      wrongCanonicalUrl: { ...receipt, url: contentsUrl('receipt.json', 'c'.repeat(40)) },
+      wrongShaOrId: { ...receipt, size: 5 },
+    },
+    {
+      kind: 'review',
+      requestPath: '/repos/mayf3/auth-service/pulls/3/reviews/7',
+      valid: { id: 7, html_url: 'https://github.com/mayf3/auth-service/pull/3#pullrequestreview-7', pull_request_url: 'https://api.github.com/repos/mayf3/auth-service/pulls/3' },
+      missingField: { id: 7, pull_request_url: 'https://api.github.com/repos/mayf3/auth-service/pulls/3' },
+      wrongType: { id: '7', html_url: 'https://github.com/mayf3/auth-service/pull/3#pullrequestreview-7', pull_request_url: 'https://api.github.com/repos/mayf3/auth-service/pulls/3' },
+      wrongCanonicalUrl: { id: 7, html_url: 'https://github.com/mayf3/auth-service/pull/3#pullrequestreview-7', pull_request_url: 'https://api.github.com/repos/mayf3/auth-service/pulls/4' },
+      wrongShaOrId: { id: 8, html_url: 'https://github.com/mayf3/auth-service/pull/3#pullrequestreview-7', pull_request_url: 'https://api.github.com/repos/mayf3/auth-service/pulls/3' },
+    },
+    {
+      kind: 'comment',
+      requestPath: '/repos/mayf3/auth-service/issues/comments/9',
+      valid: { id: 9, html_url: 'https://github.com/mayf3/auth-service/issues/4#issuecomment-9', issue_url: 'https://api.github.com/repos/mayf3/auth-service/issues/4' },
+      missingField: { id: 9, html_url: 'https://github.com/mayf3/auth-service/issues/4#issuecomment-9' },
+      wrongType: { id: 9, html_url: 7, issue_url: 'https://api.github.com/repos/mayf3/auth-service/issues/4' },
+      wrongCanonicalUrl: { id: 9, html_url: 'https://github.com/mayf3/auth-service/issues/4#issuecomment-9', issue_url: 'https://api.github.com/repos/mayf3/auth-service/issues/5' },
+      wrongShaOrId: { id: 10, html_url: 'https://github.com/mayf3/auth-service/issues/4#issuecomment-9', issue_url: 'https://api.github.com/repos/mayf3/auth-service/issues/4' },
+    },
+  ];
+  for (const spec of matrix) {
+    const control = await invokeHttp(httpFixture(JSON.stringify(spec.valid), { kind: spec.kind, request_path: spec.requestPath }));
+    assert.equal(control.code, 0, `${spec.kind} valid control must pass: ${control.stderr}`);
+    for (const [label, body] of [
+      ['missing required field', spec.missingField],
+      ['wrong type', spec.wrongType],
+      ['wrong canonical URL', spec.wrongCanonicalUrl],
+      ['wrong SHA or ID', spec.wrongShaOrId],
+    ] as const) {
+      const result = await invokeHttp(httpFixture(JSON.stringify(body), { kind: spec.kind, request_path: spec.requestPath }));
+      assert.notEqual(result.code, 0, `${spec.kind} ${label} must fail closed`);
+    }
+    const extraProperty = await invokeHttp({ ...httpFixture(JSON.stringify(spec.valid), { kind: spec.kind, request_path: spec.requestPath }), extra_property: 1 });
+    assert.notEqual(extraProperty.code, 0, `${spec.kind} fixture extra property must fail closed`);
+    const duplicateMember = await invokeHttp(httpFixture(duplicateFirstMember(spec.valid), { kind: spec.kind, request_path: spec.requestPath }));
+    assert.notEqual(duplicateMember.code, 0, `${spec.kind} duplicate body member must fail closed`);
+  }
+  const nestedDuplicate = await invokeHttp(httpFixture(`{"url":"${compareUrl}","base_commit":{"sha":"${base}","sha":"${base}"},"merge_base_commit":{"sha":"${base}"},"behind_by":0,"status":"ahead"}`, { kind: 'compare', request_path: `/repos/mayf3/dsh-agent-core/compare/${base}...${head}` }));
+  assert.notEqual(nestedDuplicate.code, 0, 'nested duplicate member must fail closed');
+  const escapedDuplicate = await invokeHttp(httpFixture(`{"url":"${compareUrl}","\\u0075rl":"${compareUrl}","base_commit":{"sha":"${base}"},"merge_base_commit":{"sha":"${base}"},"behind_by":0,"status":"ahead"}`, { kind: 'compare', request_path: `/repos/mayf3/dsh-agent-core/compare/${base}...${head}` }));
+  assert.notEqual(escapedDuplicate.code, 0, 'Unicode escape-equivalent duplicate member must fail closed');
+});
+
+await test('Contents wire and decoded size boundaries are exact for manifest and receipt', async () => {
+  const ref = 'a'.repeat(40);
+  const envelope = (file: string, kind: 'contents-manifest' | 'contents-receipt', decodedBytes: number, wireBytes?: number) => {
+    const decoded = Buffer.alloc(decodedBytes, 0x61);
+    const fields = { type: 'file', path: `evidence/${file}`, url: `https://api.github.com/repos/mayf3/dsh-agent-core/contents/evidence/${file}?ref=${ref}`,
+      encoding: 'base64', size: decodedBytes, content: decoded.toString('base64') };
+    const body = wireBytes === undefined ? JSON.stringify(fields) : paddedJson(fields, wireBytes);
+    return httpFixture(body, { kind, request_path: `/repos/mayf3/dsh-agent-core/contents/evidence/${file}?ref=${ref}` });
+  };
+  const accept = async (fixture: unknown, label: string) => {
+    const result = await invokeHttp(fixture);
+    assert.equal(result.code, 0, `${label} boundary must be accepted: ${result.stderr}`);
+    assert.match(result.stdout, /"host":"api.github.com","port":443/);
+  };
+  const reject = async (fixture: unknown, label: string) => {
+    const result = await invokeHttp(fixture);
+    assert.notEqual(result.code, 0, `${label} must be rejected`);
+  };
+  await accept(envelope('manifest.json', 'contents-manifest', 2, 2 * 1024 * 1024), 'manifest wire 2 MiB');
+  await reject(envelope('manifest.json', 'contents-manifest', 2, 2 * 1024 * 1024 + 1), 'manifest wire 2 MiB + 1');
+  await accept(envelope('manifest.json', 'contents-manifest', 1024 * 1024), 'manifest decoded 1 MiB');
+  await reject(envelope('manifest.json', 'contents-manifest', 1024 * 1024 + 1), 'manifest decoded 1 MiB + 1');
+  await accept(envelope('receipt.json', 'contents-receipt', 2, 512 * 1024), 'receipt wire 512 KiB');
+  await reject(envelope('receipt.json', 'contents-receipt', 2, 512 * 1024 + 1), 'receipt wire 512 KiB + 1');
+  await accept(envelope('receipt.json', 'contents-receipt', 256 * 1024), 'receipt decoded 256 KiB');
+  await reject(envelope('receipt.json', 'contents-receipt', 256 * 1024 + 1), 'receipt decoded 256 KiB + 1');
 });
 
 await test('two valid identities create exactly two grants and two schema-valid audits', async () => {
@@ -312,6 +572,95 @@ await test('exact rerun is a byte-stable no-op', async () => {
   assert.deepEqual(await prisma.machineAccessGrant.findMany({ where: { machineClientId: { in: [STOCK_CLIENT, CTO_CLIENT] } }, orderBy: { machineClientId: 'asc' } }), beforeGrants);
   assert.deepEqual(await prisma.grantChangeAudit.findMany({ where: { clientId: { in: [STOCK_PUBLIC, CTO_PUBLIC] } }, orderBy: { clientId: 'asc' } }), beforeAudits);
 });
+
+await test('named FIFO descriptor drives exact first apply, exact rerun no-op, cleanup, and still rejects regular files', async () => {
+  await reset(); await seed({ sentinel: true });
+  const before = await snapshotNonTarget();
+  const temporary = mkdtempSync(path.join(tmpdir(), 'stage-w-named-fifo-'));
+  const fifo = path.join(temporary, 'descriptor.fifo');
+  execFileSync('/usr/bin/mkfifo', [fifo]);
+  const runThroughNamedFifo = () => new Promise<{ code: number | null; stdout: string; stderr: string }>((resolve, reject) => {
+    const child = spawn('/bin/bash', [
+      '-c', 'exec 3<"$1"; exec "$2" --import tsx "$3" --conformance-apply --descriptor-fd 3',
+      'stage-w-named-fifo', fifo, NODE, SCRIPT,
+    ], {
+      cwd: ROOT,
+      env: { PATH: process.env.PATH ?? '/usr/local/bin:/usr/bin:/bin', HOME: process.env.HOME ?? '/tmp' },
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+    let stdout = ''; let stderr = '';
+    child.stdout.setEncoding('utf8').on('data', (chunk) => { stdout += chunk; });
+    child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr += chunk; });
+    child.on('error', reject);
+    child.on('close', (code) => resolve({ code, stdout, stderr }));
+    writeFileSync(fifo, JSON.stringify(descriptor));
+  });
+  try {
+    const first = await runThroughNamedFifo();
+    assert.equal(first.code, 0, first.stderr);
+    assert.match(first.stdout, /"outcome":"create"/);
+    assert.deepEqual(await counts(), { grants: 2, audits: 2 });
+    const grantsAfterFirst = await prisma.machineAccessGrant.findMany({ where: { machineClientId: { in: [STOCK_CLIENT, CTO_CLIENT] } }, orderBy: { machineClientId: 'asc' } });
+    const auditsAfterFirst = await prisma.grantChangeAudit.findMany({ where: { clientId: { in: [STOCK_PUBLIC, CTO_PUBLIC] } }, orderBy: { clientId: 'asc' } });
+    const rerun = await runThroughNamedFifo();
+    assert.equal(rerun.code, 0, rerun.stderr);
+    assert.match(rerun.stdout, /"outcome":"noop"/);
+    assert.deepEqual(await prisma.machineAccessGrant.findMany({ where: { machineClientId: { in: [STOCK_CLIENT, CTO_CLIENT] } }, orderBy: { machineClientId: 'asc' } }), grantsAfterFirst);
+    assert.deepEqual(await prisma.grantChangeAudit.findMany({ where: { clientId: { in: [STOCK_PUBLIC, CTO_PUBLIC] } }, orderBy: { clientId: 'asc' } }), auditsAfterFirst);
+    const regularPath = path.join(temporary, 'descriptor.json');
+    writeFileSync(regularPath, JSON.stringify(descriptor));
+    const regular = await new Promise<number | null>((resolve, reject) => {
+      const child = spawn('/bin/bash', [
+        '-c', 'exec 3<"$1"; exec "$2" --import tsx "$3" --conformance-apply --descriptor-fd 3',
+        'stage-w-named-fifo-regular', regularPath, NODE, SCRIPT,
+      ], {
+        cwd: ROOT,
+        env: { PATH: process.env.PATH ?? '/usr/local/bin:/usr/bin:/bin', HOME: process.env.HOME ?? '/tmp' },
+        stdio: 'ignore',
+      });
+      child.on('error', reject); child.on('close', resolve);
+    });
+    assert.notEqual(regular, 0, 'regular-file descriptor must still be rejected');
+  } finally {
+    rmSync(temporary, { recursive: true, force: true });
+  }
+  assert.equal(existsSync(fifo), false, 'named FIFO cleanup must complete');
+  assert.deepEqual(await snapshotNonTarget(), before);
+});
+
+async function installExactCompletedState(which: 'stock' | 'cto'): Promise<void> {
+  const clientId = which === 'stock' ? STOCK_CLIENT : CTO_CLIENT;
+  const publicId = which === 'stock' ? STOCK_PUBLIC : CTO_PUBLIC;
+  const principalId = which === 'stock' ? STOCK_PRINCIPAL : CTO_PRINCIPAL;
+  await prisma.machineAccessGrant.create({ data: { machineClientId: clientId, audienceId: 'svc-workflow', scopes: ['workflow.read'], version: 1 } });
+  await prisma.grantChangeAudit.create({ data: {
+    migrationId: 'stage-w-exact-completed', sourceGitCommit: 'a'.repeat(40), operatorId: 'stage-w-conformance',
+    approvalRef: 'https://github.com/mayf3/auth-service/issues/1#issuecomment-1', reason: 'exact completed state fixture',
+    clientId: publicId, changeType: 'create', expectedGrantVersion: null, resultingGrantVersion: 1, beforeValue: undefined,
+    afterValue: { client_id: publicId, client_kind: 'machine', principal_id: principalId, principal_type: 'agent',
+      human_audience_grants: [], machine_access_grants: { 'svc-workflow': ['workflow.read'] },
+      delegation_grants: {}, status: 'active', version: 1 },
+  } });
+}
+
+for (const completed of ['stock', 'cto'] as const) {
+  await test(`mixed partial state: ${completed} exact completed and ${completed === 'stock' ? 'cto' : 'stock'} pristine conflicts with zero writes`, async () => {
+    await reset(); await seed();
+    await installExactCompletedState(completed);
+    const pristineClient = completed === 'stock' ? CTO_CLIENT : STOCK_CLIENT;
+    const pristinePublic = completed === 'stock' ? CTO_PUBLIC : STOCK_PUBLIC;
+    const beforeGrants = await prisma.machineAccessGrant.findMany({ where: { machineClientId: { in: [STOCK_CLIENT, CTO_CLIENT] } }, orderBy: { machineClientId: 'asc' } });
+    const beforeAudits = await prisma.grantChangeAudit.findMany({ where: { clientId: { in: [STOCK_PUBLIC, CTO_PUBLIC] } }, orderBy: { clientId: 'asc' } });
+    const result = await invoke();
+    assert.notEqual(result.code, 0);
+    assert.match(result.stderr, /mixed Stage W states/);
+    assert.deepEqual(await counts(), { grants: 1, audits: 1 });
+    assert.deepEqual(await prisma.machineAccessGrant.findMany({ where: { machineClientId: { in: [STOCK_CLIENT, CTO_CLIENT] } }, orderBy: { machineClientId: 'asc' } }), beforeGrants);
+    assert.deepEqual(await prisma.grantChangeAudit.findMany({ where: { clientId: { in: [STOCK_PUBLIC, CTO_PUBLIC] } }, orderBy: { clientId: 'asc' } }), beforeAudits);
+    assert.equal(await prisma.machineAccessGrant.count({ where: { machineClientId: pristineClient } }), 0, 'pristine client must stay pristine');
+    assert.equal(await prisma.grantChangeAudit.count({ where: { clientId: pristinePublic } }), 0, 'pristine client must stay pristine');
+  });
+}
 
 for (const [name, options] of [
   ['stock missing', { omit: 'stock' }], ['cto missing', { omit: 'cto' }],
@@ -485,6 +834,63 @@ await test('descriptor rejects malformed, duplicate, and wrong-container coordin
     });
     assert.notEqual(regular, 0);
   } finally { rmSync(temporary, { recursive: true, force: true }); }
+});
+
+await test('descriptor FD seam rejects a missing flag, a closed FD, and a socket FD', async () => {
+  const missing = await invokeArgs(['--conformance-apply']);
+  assert.notEqual(missing.code, 0);
+  assert.match(missing.stderr, /descriptor is invalid/);
+  const closed = await invokeArgs(['--conformance-apply', '--descriptor-fd', '3']);
+  assert.notEqual(closed.code, 0, 'a closed FD must be rejected');
+  const socketRejected = await new Promise<{ code: number | null; stderr: string }>((resolve, reject) => {
+    const server = createServer();
+    server.on('error', reject);
+    server.listen(0, '127.0.0.1', () => {
+      const address = server.address();
+      if (address === null || typeof address === 'string') { server.close(); reject(new Error('no listen address')); return; }
+      const client = connect(address.port, '127.0.0.1');
+      client.on('error', reject);
+      server.once('connection', (serverSide) => {
+        const child = spawn(NODE, ['--import', 'tsx', SCRIPT, '--conformance-apply', '--descriptor-fd', '3'], {
+          cwd: ROOT,
+          env: { PATH: process.env.PATH ?? '/usr/local/bin:/usr/bin:/bin', HOME: process.env.HOME ?? '/tmp' },
+          stdio: ['ignore', 'pipe', 'pipe', serverSide],
+        });
+        let stderr = '';
+        child.stderr.setEncoding('utf8').on('data', (chunk) => { stderr += chunk; });
+        child.on('error', reject);
+        child.on('close', (code) => {
+          client.destroy();
+          serverSide.destroy();
+          server.close(() => resolve({ code, stderr }));
+        });
+      });
+    });
+  });
+  assert.notEqual(socketRejected.code, 0, 'a socket FD must be rejected');
+  assert.match(socketRejected.stderr, /must be a FIFO/);
+});
+
+await test('CLI and environment seam rejects unknown flags, DATABASE_URL, and mode cross-contamination', async () => {
+  const evidence = 'a'.repeat(40);
+  const cases: Array<[string, string[], Record<string, string>]> = [
+    ['unknown flag in conformance-apply mode', ['--conformance-apply', '--bogus-flag'], {}],
+    ['unknown flag in conformance-http mode', ['--conformance-http', '--unknown'], {}],
+    ['conformance-apply with DATABASE_URL', ['--conformance-apply'], { DATABASE_URL: 'postgresql://refused' }],
+    ['conformance-http with DATABASE_URL', ['--conformance-http'], { DATABASE_URL: 'postgresql://refused' }],
+    ['conformance-http with evidence arguments', ['--conformance-http', '--evidence-commit', evidence, '--evidence-path', 'evidence/manifest.json'], {}],
+    ['conformance-apply with evidence arguments', ['--conformance-apply', '--evidence-commit', evidence, '--evidence-path', 'evidence/manifest.json'], {}],
+    ['conformance-apply with fixture argument', ['--conformance-apply', '--fixture-fd', '3'], {}],
+    ['apply mode with conformance-http', ['--apply', '--conformance-http'], {}],
+    ['apply mode with conformance-apply', ['--apply', '--conformance-apply'], {}],
+    ['validate-evidence with descriptor-fd', ['--validate-evidence', '--evidence-commit', evidence, '--evidence-path', 'evidence/manifest.json', '--descriptor-fd', '3'], {}],
+    ['descriptor-fd without a value', ['--conformance-apply', '--descriptor-fd'], {}],
+    ['duplicate descriptor-fd', ['--conformance-apply', '--descriptor-fd', '3', '--descriptor-fd', '4'], {}],
+  ];
+  for (const [label, args, environment] of cases) {
+    const result = await invokeArgs(args, environment);
+    assert.notEqual(result.code, 0, `${label} must be rejected: ${result.stdout}`);
+  }
 });
 
 await test('privilege-changing Docker capabilities are rejected before engine access', async () => {
