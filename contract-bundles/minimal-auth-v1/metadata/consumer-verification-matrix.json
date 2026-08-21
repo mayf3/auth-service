@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.2.0",
+  "contract_version": "1.3.0",
   "inventory_date": "2026-07-18",
   "contract_bundle_scope": ["auth-service", "svc-workflow", "svc-okr", "adc-v2", "svc-forum"],
   "all_contract_bundle_scope_fixed_remote_sha": true,
@@ -41,12 +41,12 @@
     {
       "id": "svc-forum",
       "kind": "machine-resource-consumer",
-      "git_sha": "cb7ca300a2c337dd6e8aafc09c3a73f878565cfa",
-      "git_tree": "ec66215a1f3a114ba81ad8ba7ad85cb762e7ac19",
-      "remote_ref": "feat/svc-forum-standard-oauth",
+      "git_sha": "1cccdd54554c0bde13572273401f19f294334e46",
+      "git_tree": "7ee57577f3d1cbe5aa83cc2c2ead9ee7ce88f99d",
+      "remote_ref": "origin/main",
       "fixed_remote_sha": true,
       "contract_bundle_scope": true,
-      "migration_status": "not_started",
+      "migration_status": "completed",
       "v1_ready": true
     },
     {
