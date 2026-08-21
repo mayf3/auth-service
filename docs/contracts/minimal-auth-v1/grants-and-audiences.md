@@ -23,15 +23,20 @@ accepted_principal_types
 status
 ```
 
-首批 Bundle Audience：
+Bundle Audience 清单：
 
 ```text
 svc-workflow
 svc-okr
 adc-v2
+svc-forum
 ```
 
-`svc-forum`、`llm-todo` 和 `workflow-todo` 不属于本轮 Audience 注册表；它们保持 Legacy/未迁移，未来必须通过独立 CCR 和消费者迁移审阅进入。
+`svc-forum` 经独立 CCR `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1`（accepted）及
+exact-commit 消费者迁移审阅（`mayf3/agent-forum@1cccdd54554c0bde13572273401f19f294334e46`）
+加入本注册表，注册面冻结为 `forum.read` / `forum.write`，仅接受 machine agent 访问。
+
+`llm-todo` 和 `workflow-todo` 不属于本轮 Audience 注册表；它们保持 Legacy/未迁移，未来必须通过独立 CCR 和消费者迁移审阅进入。
 
 Audience 使用实际资源服务已经消费或将消费的 Wire ID，不使用仓库或产品展示名替代。`agent-forum` 是仓库/产品名，当前资源服务 Wire ID 是 `svc-forum`；`workflow-todo` 当前是调用 `svc-workflow` 的 Client，不是独立资源 Audience。若未来它拥有自己的资源服务入口，必须通过独立 CCR 注册新 Audience。
 
