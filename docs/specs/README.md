@@ -35,6 +35,7 @@ Program 或 governance adoption Spec 使用 `implementation_authority: none` 时
 | `AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1` | invariant | proposed | none | 精确 vendoring 并采用共享开发治理；不改变产品行为 |
 | `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1` | implementation | accepted | contracts（仅 §5 冻结五文件范围） | ownerless agent direct-token profile 与数据库 CHECK 联合修复；封闭五文件实现范围 |
 | `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1` | implementation | accepted | contracts（仅 CTR-FR-009 冻结的 13 个 Auth 文件 + 8 个 Forum 文件范围） | 注册 `svc-forum` Audience；仅允许 `forum.read` / `forum.write`，冻结 consumer review、activation gates 与 AC1–AC10 |
+| `AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1` | implementation | accepted | contracts（仅 CTR-VL-002 冻结的 18 文件闭包） | Minimal Auth Contract `1.3.0` runtime/version linkage 子 Spec；5 个 proven linkage 文件并入 18 文件实现闭包，2 个非必要文件排除 |
 
 ## Existing authorities outside this directory
 

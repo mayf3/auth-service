@@ -1,9 +1,9 @@
 ---
 spec_id: AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 scope:
   - mayf3/auth-service
 governed_by:
@@ -525,17 +525,18 @@ completion avoids the impossible requirement for a Git commit to contain its own
 SHA while preserving one auditable tuple:
 
 ```text
-ACCEPTANCE_RECORD_LOCATION = REQUIRED_UNSET
-ACCEPTANCE_REVIEW = REQUIRED_UNSET
-REVIEWED_BASE = REQUIRED_UNSET
-REVIEWED_SPEC_HEAD = REQUIRED_UNSET
-REVIEWER_IDENTITY = REQUIRED_UNSET
-REVIEW_VERDICT = REQUIRED_UNSET
-REQUIRED_FIXES = REQUIRED_UNSET
-FINAL_ACCEPTED_HEAD = REQUIRED_UNSET
-ACCEPTANCE_FINALIZE_SEMANTIC_CHANGE = REQUIRED_UNSET
-ACCEPTED_BY = REQUIRED_UNSET
-ACCEPTED_AT = REQUIRED_UNSET
+ACCEPTANCE_RECORD_LOCATION = mayf3/auth-service PR #12 acceptance record comment
+ACCEPTANCE_REVIEW = 联动审计
+REVIEWED_BASE = 450a0ecb286cbe5da6e790d3c572fa71218ca9c0
+REVIEWED_SPEC_HEAD = be59c4c8b37509dcc08d05ff1f0aa4104b5b5989
+REVIEWER_IDENTITY = 独立 Auth Child Spec Reviewer
+REVIEW_VERDICT = PASS
+REQUIRED_FIXES = NONE
+FINAL_ACCEPTED_HEAD = completed only in the PR #12 acceptance record comment
+  (a Git commit cannot embed its own SHA; the persistent PR record completes it)
+ACCEPTANCE_FINALIZE_SEMANTIC_CHANGE = NONE
+ACCEPTED_BY = mayf3
+ACCEPTED_AT = 2026-08-22
 ```
 
 Rules:
@@ -556,8 +557,8 @@ Rules:
 
 ```text
 SPEC_ID = AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1
-SPEC_STATUS = proposed
-IMPLEMENTATION_AUTHORITY = none
+SPEC_STATUS = accepted
+IMPLEMENTATION_AUTHORITY = contracts
 GOVERNED_BY = AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1
 
 ORIGINAL_ROOT_SCOPE_FILES = 13
