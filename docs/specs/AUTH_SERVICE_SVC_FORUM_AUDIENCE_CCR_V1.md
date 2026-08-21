@@ -1,9 +1,9 @@
 ---
 spec_id: AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 scope:
   - mayf3/auth-service
   - mayf3/agent-forum
@@ -58,8 +58,9 @@ EXECUTABLE_REGISTRY_CANNOT_SELF_AUTHORIZE = YES
 自身的注册权威；authority drift 不能自我合法化（见 §4 STATE-FR-002、
 §8 DEC-FR-001）。
 
-本 Spec 本轮为 **SPEC ONLY**：`status: proposed`、
-`implementation_authority: none`。本轮不修改任何 Contract、registry、
+本 Spec 本轮为 **SPEC ACCEPTANCE FINALIZE ONLY**：`status: accepted`、
+`implementation_authority: contracts`。该 authority 仅在本 accepted Spec 合入
+`main` 后覆盖 §9 CTR-FR-009 的封闭实现范围。本轮不修改任何 Contract、registry、
 产品代码、消费者代码；不创建 Grant；不部署；不 merge。
 
 ## 2. Scope and non-goals
@@ -143,7 +144,7 @@ vendored frontmatter schema
 
 - `STATE-FR-001` — 上位 Contract 排除 svc-forum。
   Basis: `OBS-FR-001`、`OBS-FR-002`。
-  as_of: `mayf3/auth-service@1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9`
+  as_of: `mayf3/auth-service@87b3e54b1e8d332738663de38d9c6c599760c14a`
   （github/main）。
   含义：`CURRENT_SVC_FORUM_V1_AUTHORITY = NOT_REGISTERED_BY_FROZEN_PARENT_CONTRACT`。
 
@@ -157,12 +158,14 @@ vendored frontmatter schema
   in-scope fixed consumer，但 `migration_status = not_started`、
   `all_first_wave_migrations_ready = false`。Basis: `OBS-FR-006`。
 
-- `STATE-FR-004` — `mayf3/agent-forum@502cfca`（github/main，2026-08-20
+- `STATE-FR-004` — `mayf3/agent-forum@1cccdd5`（github/main，2026-08-21
   fetch）的 consumer 实现已实现本 CCR §9 CTR-FR-006 要求的验证语义
   （RS256+JWKS 离线验证、精确 issuer/audience、principal_type=agent、
   agent_id 必需、forum.read/forum.write 端点映射、fail-closed scope、
-  无 introspection）。Basis: `OBS-FR-007`。
-  含义：合法激活仍缺的是**独立 exact-commit consumer review**，不是代码。
+  无 introspection）。Basis: `OBS-FR-007` + `论坛调查`（PASS；
+  `FORUM_CONSUMER_DRIFT_CLASSIFICATION = SEMANTICALLY_COMPATIBLE`）。
+  含义：exact-commit consumer review 已 PASS；其余 Activation gates 仍按
+  §9 CTR-FR-007 独立判定。
 
 - `STATE-FR-005` — bundle 正向 fixtures 无 svc-forum 条目；
   `forum.moderate` 在 agent-forum 业务层已被使用（moderation 端点），
@@ -177,16 +180,16 @@ vendored frontmatter schema
 ## 5. Observations
 
 全部 auth-service 观察基于
-`mayf3/auth-service@1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9`（github/main，
-2026-08-20 fetch 后 HEAD），方法为 `git show github/main:<path>` 只读审计；
-agent-forum 观察基于 `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279ccfb`
-（github/main，2026-08-20 fetch 后 HEAD），方法相同。
+`mayf3/auth-service@87b3e54b1e8d332738663de38d9c6c599760c14a`（github/main，
+2026-08-21 fetch 后 HEAD），方法为 `git show github/main:<path>` 只读审计；
+agent-forum 观察基于 `mayf3/agent-forum@1cccdd54554c0bde13572273401f19f294334e46`
+（github/main，2026-08-21 fetch 后 HEAD），方法相同。
 
 ### OBS-FR-001 — 上位 Contract grants-and-audiences.md 排除 svc-forum
 
 - Subject: `docs/contracts/minimal-auth-v1/grants-and-audiences.md` §2
-- Source revision: `auth-service@1da40d4`
-- Observed at: 2026-08-20
+- Source revision: `auth-service@87b3e54`
+- Observed at: 2026-08-21
 - Method: 只读 `git show github/main:docs/contracts/minimal-auth-v1/grants-and-audiences.md`
 - Result（原文引用）:
   - 首批 Bundle Audience：`svc-workflow`、`svc-okr`、`adc-v2`；
@@ -200,8 +203,8 @@ agent-forum 观察基于 `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279
 ### OBS-FR-002 — v0-to-v1-migration.md 同样将 svc-forum 列为 Legacy/未迁移
 
 - Subject: `docs/contracts/minimal-auth-v1/v0-to-v1-migration.md` §6
-- Source revision: `auth-service@1da40d4`
-- Observed at: 2026-08-20
+- Source revision: `auth-service@87b3e54`
+- Observed at: 2026-08-21
 - Method: 同上只读审计。
 - Result（要点）: "以下对象保持 Legacy/未迁移，不阻塞本轮源码 Bundle
   Freeze：svc-forum、workflow-todo、llm-todo、OpenClaw Credential Broker
@@ -212,8 +215,8 @@ agent-forum 观察基于 `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279
 ### OBS-FR-003 — executable audience-registry.json 已包含 svc-forum entry
 
 - Subject: `contract-bundles/minimal-auth-v1/audience-registry.json`
-- Source revision: `auth-service@1da40d4`
-- Observed at: 2026-08-20
+- Source revision: `auth-service@87b3e54`
+- Observed at: 2026-08-21
 - Method: 只读审计。
 - Result: `registry_version = "1.2.0"`、`status = "frozen"`、5 个
   audiences（`svc-workflow`、`svc-okr`、`adc-v2`、`svc-auth`、`svc-forum`）。
@@ -236,7 +239,7 @@ agent-forum 观察基于 `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279
   与 `170736e42eb882277011796a98bb415a65d0e84c`
   （2026-07-31，"contracts: freeze svc-forum as fixed standard OAuth v1
   Consumer"）
-- Observed at: 2026-08-20
+- Observed at: 2026-08-21
 - Method: `git show <sha> --stat` + diff 审计。
 - Result: 两提交仅改动
   `audience-registry.json`、`contract-manifest.json`、
@@ -249,8 +252,8 @@ agent-forum 观察基于 `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279
 
 - Subject: `contract-bundles/minimal-auth-v1/validate.mjs`、
   `contract-manifest.json`
-- Source revision: `auth-service@1da40d4`
-- Observed at: 2026-08-20
+- Source revision: `auth-service@87b3e54`
+- Observed at: 2026-08-21
 - Method: 只读审计。
 - Result:
   - validate.mjs L270–L277 强制 `manifest.contract_version` 与
@@ -275,8 +278,8 @@ agent-forum 观察基于 `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279
 ### OBS-FR-006 — consumer matrix 固定了 agent-forum 的旧 commit
 
 - Subject: `contract-bundles/minimal-auth-v1/metadata/consumer-verification-matrix.json`
-- Source revision: `auth-service@1da40d4`
-- Observed at: 2026-08-20
+- Source revision: `auth-service@87b3e54`
+- Observed at: 2026-08-21
 - Method: 只读审计 + `git cat-file -t` 验证 SHA 归属。
 - Result: svc-forum consumer entry：
   `kind = "machine-resource-consumer"`、
@@ -291,14 +294,14 @@ agent-forum 观察基于 `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279
 
 ### OBS-FR-007 — agent-forum consumer 验证路径现状
 
-- Subject: `mayf3/agent-forum@502cfca`（github/main）
+- Subject: `mayf3/agent-forum@1cccdd5`（github/main）
   - `svc-forum/src/lib/auth-jwt.ts`（consumer verifier）
   - `svc-forum/src/middleware/auth.ts`（inbound 验证中间件）
   - `svc-forum/src/middleware/scope-guard.ts`（scope guard）
   - `svc-forum/tests/standard-oauth.test.ts`、
     `svc-forum/tests/standard-oauth-integration.test.ts`（conformance）
   - `svc-forum/src/config/env.ts`（配置）
-- Observed at: 2026-08-20
+- Observed at: 2026-08-21
 - Method: 只读 `git show github/main:<path>` 审计。
 - Result（与 §9 CTR-FR-006 要求逐条对应）:
   - verifier 强制 `algorithms: ['RS256']`（不接受 HS256 / alg 自动选择）；
@@ -326,8 +329,8 @@ agent-forum 观察基于 `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279
 
 - Subject: `contract-bundles/minimal-auth-v1/fixtures/positive-token-fixtures.json`
   与 `negative-token-fixtures.json`
-- Source revision: `auth-service@1da40d4`
-- Observed at: 2026-08-20
+- Source revision: `auth-service@87b3e54`
+- Observed at: 2026-08-21
 - Method: 只读审计。
 - Result: 正向 fixtures 仅有 `human-svc-okr`、`direct-agent-svc-workflow`、
   `direct-agent-adc-v2`、`direct-agent-svc-okr`、
@@ -339,8 +342,8 @@ agent-forum 观察基于 `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279
 ### OBS-FR-009 — forum.moderate 被业务使用但未注册
 
 - Subject: registry + agent-forum 业务层
-- Source revision: `auth-service@1da40d4` + `agent-forum@502cfca`
-- Observed at: 2026-08-20
+- Source revision: `auth-service@87b3e54` + `agent-forum@1cccdd5`
+- Observed at: 2026-08-21
 - Method: 只读审计。
 - Result: `requireModeratorScope()`（`forum.moderate`）用于 moderation
   端点（pin/feature、soft-delete 等，见 agent-forum 提交 fb11552 等）；
@@ -372,21 +375,20 @@ agent-forum 观察基于 `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279
 
 ### CLM-FR-003 — agent-forum 在 review-fixed commit 上满足全部 consumer 要求是可证明的
 
-- Support state: INFERRED
-- Supported by evidence: `EVD-FR-003`（基于 `OBS-FR-007` 的源码事实）
+- Support state: SUPPORTED
+- Supported by evidence: `EVD-FR-003`（基于 `OBS-FR-007` 的源码事实）+
+  `论坛调查`（`agent-forum@1cccdd54554c0bde13572273401f19f294334e46`，PASS）
 - Contradicted by evidence: none known
-- Uncertainty: `502cfca` 尚未经独立 review；结论必须由 §9 CTR-FR-006
-  要求的 exact-commit consumer review 证明，不由本 Claim 代替。
+- Uncertainty: none for the reviewed exact commit；未来 drift 仍须重新分类。
 
-### CLM-FR-004 — consumer review 将固定一个 agent-forum exact commit 并回填 matrix
+### CLM-FR-004 — consumer review 固定 exact commit；matrix 回填留待实现
 
-- Support state: OPEN_ASSUMPTION（bounded）
-- 说明: 被固定的 commit 身份在 authoring 时未知，属于 review 的输出而非
-  Contract 语义的输入。该假设不改变任何 Decision 或 Contract 的含义
-  （要求是"review 必须固定 exact commit"，commit 值本身不是 normative
-  语义），因此不阻塞 acceptance；若 review 无法在任何 commit 上 PASS，
-  则 `SVC_FORUM_V1_ACTIVATION = BLOCKED`（§9 CTR-FR-006/CTR-FR-007），
-  语义仍然完备。
+- Support state: RESOLVED
+- 说明: consumer review 已固定
+  `agent-forum@1cccdd54554c0bde13572273401f19f294334e46` 并 PASS；
+  `consumer-verification-matrix.json` 的回填仍属于 CTR-FR-006 授权的后续实现，
+  本 acceptance finalize 不修改 Contract Bundle。exact commit 值是 review
+  provenance，不改变任何 Decision 或 Contract 的 normative 语义。
 
 ## 7. Evidence relations
 
@@ -395,7 +397,7 @@ agent-forum 观察基于 `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279
 - Source observations: `OBS-FR-001`、`OBS-FR-002`、`OBS-FR-003`、`OBS-FR-004`
 - Target: `CLM-FR-001`
 - Relation: SUPPORTS
-- Bound coordinates: `auth-service@1da40d4`，观察于 2026-08-20
+- Bound coordinates: `auth-service@87b3e54`，观察于 2026-08-21
 - Strength/sufficiency: 强 — normative 排除条款与 executable drift 的
   共同坐标已固定，历史提交的文件集合已逐一核验。
 - Limitations: 不推断历史提交的意图，只记录其未完成的权威义务。
@@ -407,7 +409,7 @@ agent-forum 观察基于 `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279
   `scripts/prepare-minimal-auth-v1.mjs` 从 bundle 生成它）
 - Target: `CLM-FR-002`
 - Relation: SUPPORTS
-- Bound coordinates: `auth-service@1da40d4`
+- Bound coordinates: `auth-service@87b3e54`
 - Strength/sufficiency: 对观察到的架构成立。
 - Limitations: 若未来实现发现产品代码缺口，超出本 CCR 封闭文件集的变更
   一律 `OWNER_DECISION_REQUIRED`（§9 CTR-FR-009）。
@@ -417,7 +419,7 @@ agent-forum 观察基于 `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279
 - Source observations: `OBS-FR-007`、`OBS-FR-009`
 - Target: `CLM-FR-003`
 - Relation: SUPPORTS
-- Bound coordinates: `agent-forum@502cfca`
+- Bound coordinates: `agent-forum@1cccdd5`
 - Strength/sufficiency: 对该 commit 的静态审计成立。
 - Limitations: 静态审计不替代 §9 CTR-FR-006 的独立、exact-commit、
   含真实进程证据的 consumer review。
@@ -461,10 +463,10 @@ agent-forum 观察基于 `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279
 
 - Decision owner: repository owner（mayf3）
 - Decision: `mayf3/agent-forum` 必须在单一 exact commit 上通过独立
-  consumer review（§9 CTR-FR-006 的 13 项证明），该 commit 及其
-  fixed remote SHA 回填 `consumer-verification-matrix.json` 的
-  svc-forum entry（替换 drift 时期的 `cb7ca300...` pin，或经 review
-  确认沿用——由 review 输出决定）。review 未 PASS：
+  consumer review（§9 CTR-FR-006 的 13 项证明）。`论坛调查` 已在
+  `1cccdd54554c0bde13572273401f19f294334e46` 上 PASS；后续实现 MUST 将该
+  fixed remote SHA 回填 `consumer-verification-matrix.json` 的 svc-forum
+  entry，替换 drift 时期的 `cb7ca300...` pin。review 未 PASS：
   `SVC_FORUM_V1_ACTIVATION = BLOCKED`。
 - Rejected alternative: 接受 matrix 现有 `v1_ready = true` 作为已完成的
   迁移审阅（`ALT-FR-005`）。
@@ -496,8 +498,9 @@ agent-forum 观察基于 `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279
 - Decision owner: repository owner（mayf3）
 - Decision: 冻结 §9 CTR-FR-009 的精确文件集合（经源码审计得出）。
   任何集合外文件的修改需求 = `OWNER_DECISION_REQUIRED`，不得自行扩权。
-  文件集合以 authoring 时审计坐标冻结：`auth-service@1da40d4` +
-  `agent-forum@502cfca`；实现前若文件路径发生 rename/move，按
+  文件集合已在 acceptance-finalize drift review 坐标复核：
+  `auth-service@87b3e54` + `agent-forum@1cccdd5`；实现前若文件路径发生
+  rename/move，按
   OWNER_DECISION 重新映射，不得模糊匹配。
 - Rejected alternative: 写"相关文件"式的开放式授权。
 - Reason: 封闭集合是防 scope creep 的唯一硬边界。
@@ -513,15 +516,14 @@ agent-forum 观察基于 `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279
 - Reason: grants-and-audiences.md §2"Audience 只回答 Token 可以交给哪个
   资源服务，不表示该主体在服务内拥有何种业务权限"。
 
-### DEC-FR-009 — 本轮 SPEC ONLY；implementation authority 的激活属 owner acceptance 决策
+### DEC-FR-009 — acceptance finalize 激活封闭 implementation authority
 
 - Decision owner: repository owner（mayf3）
-- Decision: 本轮 `status: proposed`、`implementation_authority: none`，
-  不含任何实现许可。未来是否将本 Spec 以
-  `implementation_authority: contracts` 接受（从而授权 §9 CTR-FR-009
-  封闭集合内的实现），是 owner 在独立 exact-commit review 之后的
-  acceptance 决策；届时按 `docs/specs/README.md` implementation rule
-  执行。
+- Decision: 独立 exact-commit review 已 PASS；本轮将本 Spec 机械 finalize 为
+  `status: accepted`、`implementation_authority: contracts`。该 authority
+  仅在本 accepted Spec 合入 `main` 后授权 §9 CTR-FR-009 的 13 个 Auth 文件 +
+  8 个 Forum 文件封闭范围；本轮自身不实施任何 Contract、Bundle、产品代码、
+  consumer 或 Grant 变更。
 - Rejected alternative: proposed 状态下开始实现。
 - Reason: `.agents/local/README.md` §6 将 Audience/Scope 合同变更列为
   默认 `NON_MECHANICAL`，必须先有 accepted、implementation-authorizing
@@ -867,9 +869,8 @@ owner 任务冻结编号，与 ACC-FR 稳定 ID 一一对应。
   REVISE（唯一 blocker），已通过机械重命名解决：SPEC_ID →
   `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1`（选项 b），vendored schema
   未修改。semantic change = NONE。
-- `OQ-FR-002`（非 normative，acceptance/docs round 处理）：
-  `docs/specs/README.md` 的 Current index 未在本轮新增本 Spec 行
-  （本轮交付冻结为单文件新增）。acceptance round 应补齐 index 行
+- `OQ-FR-002`（RESOLVED — acceptance finalize 2026-08-21）：
+  `docs/specs/README.md` 的 Current index 已补齐本 Spec accepted 行
   （docs-only，无语义变更）。
 - `OQ-FR-003`（非 normative，bounded，可在实现内顺带处理或保留现状）：
   `contract-manifest.json` 的悬挂字段 `audience_registry_version =
@@ -884,8 +885,8 @@ owner 任务冻结编号，与 ACC-FR 稳定 ID 一一对应。
 ```text
 SPEC_ID = AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1
 SPEC_FILE = docs/specs/AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1.md
-SPEC_STATUS = proposed
-IMPLEMENTATION_AUTHORITY = none
+SPEC_STATUS = accepted
+IMPLEMENTATION_AUTHORITY = contracts
 
 CURRENT_SVC_FORUM_V1_AUTHORITY = NOT_REGISTERED_BY_FROZEN_PARENT_CONTRACT
 TARGET = REGISTER_SVC_FORUM_IN_MINIMAL_AUTH_V1
@@ -899,5 +900,39 @@ FORBIDDEN_SCOPES = forum.admin, forum.moderate, forum.*, *, 其他任何 scope
 
 GRANT_CREATION_AUTHORIZED = NO (Grant supply 由 PR #5 单独管理)
 DEPLOYMENT = NO
-MERGE_PERFORMED = NO (本 SPEC ONLY 轮)
+MERGE_PERFORMED = NO (本 acceptance finalize 轮)
 ```
+
+## 15. Acceptance Record
+
+```text
+ACCEPTANCE_REVIEW =
+  论坛审计（二轮）
+
+REVIEWED_SPEC_HEAD =
+  c437a586422051d83924c27dde6dc7a6e94a20d6
+
+AUTH_DRIFT_REVIEW =
+  论坛调查
+
+CURRENT_AUTH_MAIN =
+  87b3e54b1e8d332738663de38d9c6c599760c14a
+
+CURRENT_FORUM_REVIEW_HEAD =
+  1cccdd54554c0bde13572273401f19f294334e46
+
+AUTH_DRIFT_CLASSIFICATION = COMPATIBLE_AUTHORITY_ADDITION
+FORUM_CONSUMER_DRIFT_CLASSIFICATION = SEMANTICALLY_COMPATIBLE
+SEMANTIC_RE_REVIEW_REQUIRED = NO
+
+REVIEW_VERDICT = PASS
+REQUIRED_FIXES = NONE
+ACCEPTED_AT = 2026-08-21
+ACCEPTANCE_FINALIZE_SEMANTIC_CHANGE = NONE
+```
+
+本 acceptance finalize 为纯机械轮：仅同步 Auth main 与 Forum consumer exact
+commit 坐标、记录 drift classification、更新 lifecycle / implementation authority、
+补充本 Acceptance Record，并在 `docs/specs/README.md` 增加 accepted index 行。
+Audience、scope、consumer contract、5 个 activation gates、13 + 8 文件封闭范围与
+AC1–AC10 的 reviewed semantics 均保持不变；本轮无 implementation、无 Grant、无 merge。
