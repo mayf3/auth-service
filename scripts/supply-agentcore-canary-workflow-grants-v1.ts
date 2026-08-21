@@ -272,7 +272,7 @@ async function loadStagePlan(db: Db): Promise<StagePlan> {
         || client.principal.principalType !== 'agent' || client.principal.status !== 'active') {
       fail(`${target.agentId} identity binding is invalid`);
     }
-    if (!/^mc_[A-Za-z0-9]{24}$/.test(client.clientId)) fail(`${target.agentId} public client ID is invalid`);
+    if (!/^mc_[A-Za-z0-9_-]{24}$/.test(client.clientId)) fail(`${target.agentId} public client ID is invalid`);
     if (client.trustedProxy !== null && client.trustedProxy.delegationGrants.length !== 0) {
       fail(`${target.agentId} has delegation grants outside the Stage W target snapshot`);
     }
@@ -575,7 +575,7 @@ async function validateEvidence(commit: string, pathValue: string): Promise<Meta
     const target = TARGETS.find((item) => item.clientExternalRef === entry.client_external_ref);
     if (!target || entry.principal_external_ref !== target.principalExternalRef || entry.agent_id !== target.agentId
         || entry.client_active !== true || entry.principal_active !== true || entry.principal_type !== 'agent'
-        || typeof entry.client_id !== 'string' || !/^mc_[A-Za-z0-9]{24}$/.test(entry.client_id)
+        || typeof entry.client_id !== 'string' || !/^mc_[A-Za-z0-9_-]{24}$/.test(entry.client_id)
         || typeof entry.principal_id !== 'string' || !/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(entry.principal_id)) {
       fail(`identity ${index} values invalid`);
     }
