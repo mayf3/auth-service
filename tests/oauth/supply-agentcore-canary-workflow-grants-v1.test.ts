@@ -264,6 +264,28 @@ await test('static source binding pins the environment override rejection list',
   }
 });
 
+await test('public client ID contract accepts exactly 24 unpadded base64url characters', () => {
+  const source = readFileSync(SCRIPT, 'utf8');
+  expectMatches(source, /\/\^mc_\[A-Za-z0-9_-\]\{24\}\$\//, 2, 'production client ID guards');
+  const clientId = /^mc_[A-Za-z0-9_-]{24}$/;
+  for (const valid of [
+    `mc_${'a'.repeat(24)}`,
+    `mc_${'a'.repeat(23)}_`,
+    `mc_${'a'.repeat(23)}-`,
+  ]) assert.match(valid, clientId);
+  for (const invalid of [
+    `mc_${'a'.repeat(23)}`,
+    `mc_${'a'.repeat(25)}`,
+    `mc_${'a'.repeat(23)}+`,
+    `mc_${'a'.repeat(23)}/`,
+    `mc_${'a'.repeat(23)}=`,
+    `mc_${'a'.repeat(23)} `,
+    `mc_${'a'.repeat(23)}\n`,
+    `mc_${'a'.repeat(23)}中`,
+    `xx_${'a'.repeat(24)}`,
+  ]) assert.doesNotMatch(invalid, clientId);
+});
+
 await test('static source binding proves no alternate transport exists', () => {
   const source = readFileSync(SCRIPT, 'utf8');
   expectMatches(source, /https\.request\(/, 1, 'single HTTPS transport construction');
