@@ -183,10 +183,13 @@ ADC V2
 auth-service 自身管理入口
 ```
 
+`svc-forum` 已通过独立 CCR `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1`（accepted）完成
+消费者迁移审阅（exact commit `mayf3/agent-forum@1cccdd54554c0bde13572273401f19f294334e46`，
+fixed remote SHA 已回填 consumer-verification-matrix），不再保持 Legacy/未迁移。
+
 以下对象保持 Legacy/未迁移，不阻塞本轮源码 Bundle Freeze：
 
 ```text
-svc-forum
 workflow-todo
 llm-todo
 OpenClaw Credential Broker candidate

@@ -1,5 +1,48 @@
 # Change Log
 
+## 1.3.0 — 2026-08-21
+
+- CCR: `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1`（accepted）— registered `svc-forum`
+  into the Minimal Auth V1 Audience Registry; absorbed the pre-CCR authority drift
+  in the executable artifacts (`audience-registry.json`, `contract-manifest.json`,
+  `consumer-verification-matrix.json`, `validate.mjs`) that lacked a normative
+  parent-contract amendment.
+- Parent contract AMEND: `docs/contracts/minimal-auth-v1/grants-and-audiences.md` §2
+  moves `svc-forum` from the exclusion list into the Bundle Audience list;
+  `docs/contracts/minimal-auth-v1/v0-to-v1-migration.md` §6 removes `svc-forum`
+  from the Legacy/unmigrated set. `llm-todo` / `workflow-todo` exclusions unchanged.
+- Frozen entry (field-by-field, per CTR-FR-002):
+  `audience_id=svc-forum`, `resource_service=svc-forum`, `scope_namespace=forum`,
+  `accepted_principal_types=["agent"]`, `human_access_enabled=false`,
+  `machine_access_enabled=true`, `delegated_access_enabled=false`,
+  `registered_scopes=["forum.read","forum.write"]`, `status=active`,
+  `freeze_ready=true`, `notes="Registered by AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1;
+  machine-only agent access via standard OAuth2 client_credentials."`.
+- `forum.admin`, `forum.moderate`, `forum.*`, `*` and any other scope remain
+  unregistered (forbidden set, CTR-FR-004).
+- Added positive fixture `direct-agent-svc-forum` (RS256 + kid, iss=auth-service,
+  aud=svc-forum, principal_type=agent, agent_id present,
+  scope="forum.read forum.write"; signed with the existing tracked test-only
+  fixture key `fixture-key-v1-svc-okr-canary-20260719`).
+- Added negative cases: `forum.admin` / `forum.moderate` / `*` / `forum.*`
+  scope rejection, wrong aud (`agent-forum`), wrong issuer, missing `agent_id`,
+  plus `compact-jwt-unknown-kid-svc-forum` signature case.
+- `validate.mjs`: Direct Machine fixtures with `principal_type=agent` now require
+  a non-empty `agent_id` (closes the fixture-validator gap for the consumer-side
+  CR-06 requirement; no new fixture semantics introduced).
+- Consumer Verification Matrix update: svc-forum entry re-pinned from the drift-era
+  `cb7ca300…` (`feat/svc-forum-standard-oauth`) to the reviewed exact commit
+  `mayf3/agent-forum@1cccdd54554c0bde13572273401f19f294334e46`
+  (tree `7ee57577f3d1cbe5aa83cc2c2ead9ee7ce88f99d`, `origin/main`,
+  `fixed_remote_sha=true`); `migration_status` → `completed` records the passed
+  exact-commit consumer migration review — not a production cutover claim
+  (first-wave aggregate stays not ready; production deployment stays not_ready).
+- Version linkage: `contract_version` / `registry_version` promoted 1.2.0 → 1.3.0
+  across manifest, registry, freeze gates, consumer matrix, positive/negative
+  fixtures, schema instances, ADC scope map and llm-todo candidate; manifest
+  dangling `audience_registry_version` aligned to 1.3.0 (OQ-FR-003).
+- No Grant created, modified or enlarged (CTR-FR-008); no product-code change.
+
 ## 1.2.0 — 2026-07-22
 
 - Registered `svc-okr.registered_scopes=["okr.read", "okr.write"]`.

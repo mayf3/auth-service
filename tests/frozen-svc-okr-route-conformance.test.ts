@@ -1,14 +1,14 @@
 /**
  * svc-okr Frozen Route Conformance — Real HTTP POST /oauth/token
  *
- * Proves the frozen v1.2.0 Runtime Contract can issue svc-okr Agent tokens
+ * Proves the frozen v1.3.0 Runtime Contract can issue svc-okr Agent tokens
  * through the full real Express route production pipeline:
  *
  *   Express
  *   → POST /oauth/token
  *   → Basic Auth parser
  *   → client_credentials
- *   → Frozen Runtime Contract 1.2.0 (svc-okr agent read/write)
+ *   → Frozen Runtime Contract 1.3.0 (svc-okr agent read/write)
  *   → authorizeV1DirectToken
  *   → RS256 signer
  *
