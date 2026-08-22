@@ -1,9 +1,9 @@
 ---
 spec_id: AUTH_SERVICE_SVC_FORUM_AUDIENCE_REGISTRY_RECONCILIATION_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 scope:
   - mayf3/auth-service
 governed_by:
@@ -649,8 +649,61 @@ OPEN_OWNER_DECISIONS = NONE
 NORMATIVE_TBD = NONE
 UNRESOLVED_AUTHORITY_CONFLICT = NONE
 PARTIAL_SUPERSESSION = NONE
-READY_TO_MARK_ACCEPTED = NO
+READY_TO_MARK_ACCEPTED = YES（2026-08-22 owner acceptance；见 §14）
 ```
 
-本 Spec 为 `proposed`；accepted 需要独立 review PASS、owner acceptance，
-并合入 main。在此之前不产生任何实现或 merge authority。
+本 Spec 已于 2026-08-22 经 review PASS 与 owner acceptance 进入
+`accepted`（lifecycle 记录见 §14 Acceptance Record）；实现与 PR #16 的
+merge authority 按 §9 CTR-RR-007 的链条生效。§1–§12 的 reviewed
+semantics 在该 lifecycle 轮中逐字保留。
+
+## 14. Acceptance Record
+
+```text
+ACCEPTANCE_REVIEW =
+  注册审计（注册 执行 / 注册 审计 任务链，dispatch review）
+
+REVIEWED_BASE =
+  36a11136745bae7a371d21ba62d9617942c41afa
+
+REVIEWED_SPEC_HEAD =
+  fb8059bafbc3e24af17293be7adbf528443e869d
+
+REVIEW_VERDICT = PASS
+REQUIRED_FIXES = NONE
+ACCEPTANCE_FINALIZE_SEMANTIC_CHANGE = NONE
+
+AUTH_BASE_DRIFT_BETWEEN_REVIEW_AND_ACCEPTANCE =
+  main 前移 36a1113 → 37edaa6f8c56749eaa16c0bbbb0c0c75d8c6a1eb
+  （PR #7：MINIMAL_AUTH_FOUNDATION_V2 accepted / V1 superseded）
+  CLASSIFICATION = COMPATIBLE_AUTHORITY_ADDITION_NO_CHILD_SEMANTIC_DELTA
+  依据：Parent AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1 保持 accepted，
+  git blob 78530b1fbfb13d477e65e002185128cf69843942 未变；
+  MINIMAL_AUTH_FOUNDATION_V2 冻结
+  SVC_FORUM_CCR_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA 与
+  SVC_FORUM_CCR_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT，
+  并 exact-incorporate Contract Bundle 1.3.0（audience registry 字节未变）。
+  本 Child Spec §1–§12 reviewed semantics 零改动（先例：sync merge commit）。
+
+PR_16_HEAD_AT_ACCEPTANCE = c67148cf35ecca2eeb4c4ff85a4478697d4ab2ab（未变）
+PR_16_THREE_DOT_DIFF_SHA256 =
+  2d0765de699b91f55bf5359f4a331ba8ade0a75058c96fa0eba54dd32f4aec30（未变）
+
+FINAL_ACCEPTED_HEAD =
+  以 PR #17 merge commit 为准（Git commit 无法内嵌自身 SHA）
+
+ACCEPTED_BY = mayf3
+ACCEPTED_AT = 2026-08-22
+
+IMPLEMENTATION_PERFORMED = NO
+PRODUCTION_CHANGE = NONE
+PRODUCTION_APPLY_AUTHORIZED = NO（apply 仍需 §9 CTR-RR-008 的独立 owner 流程）
+```
+
+本 acceptance finalize 为纯 lifecycle 轮：仅执行
+`status: proposed → accepted`、`implementation_authority: none →
+contracts`、§13 lifecycle 镜像行同步、写入本 Acceptance Record、并在
+`docs/specs/README.md` 增加 accepted index 行（外加同步 main 前移的
+merge commit）。PR #16 未被修改；本轮无 implementation、无 production
+apply、无 Grant 变更。本 Spec 合入 main 后，PR #16 按 §9 CTR-RR-007
+获得 merge authority；production apply 仍不因此自动授权。
