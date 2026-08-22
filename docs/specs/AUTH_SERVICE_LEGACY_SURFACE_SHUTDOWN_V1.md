@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_LEGACY_SURFACE_SHUTDOWN_V1
-status: proposed
+status: accepted
 spec_kind: program
 authority_level: governing_spec
 implementation_authority: none
@@ -24,9 +24,9 @@ owners:
 ```text
 SPEC_ID = AUTH_SERVICE_LEGACY_SURFACE_SHUTDOWN_V1
 SPEC_KIND = program
-SPEC_STATUS = proposed
+SPEC_STATUS = accepted
 SPEC_MERGE_READY = NO
-READY_TO_MARK_ACCEPTED = NO
+READY_TO_MARK_ACCEPTED = YES
 IMPLEMENTATION_AUTHORIZED = NO
 AUTH_SERVICE_V1_ONLY_RUNTIME_V1_START_AUTHORIZED = NO
 INDEPENDENT_REVIEW_REQUIRED = YES
@@ -3952,9 +3952,9 @@ PARENT_AUTHORITY_STATUS = accepted
 PARENT_PRODUCTION_EFFECTIVE = NO
 CURRENT_MINIMAL_AUTH_CONTRACT_VERSION = 1.3.0
 
-SPEC_STATUS = proposed
+SPEC_STATUS = accepted
 SPEC_MERGE_READY = NO
-READY_TO_MARK_ACCEPTED = NO
+READY_TO_MARK_ACCEPTED = YES
 IMPLEMENTATION_AUTHORIZED = NO
 AUTH_SERVICE_V1_ONLY_RUNTIME_V1_START_AUTHORIZED = NO
 INDEPENDENT_REVIEW_REQUIRED = YES
@@ -3962,7 +3962,18 @@ READY_FOR_INDEPENDENT_REVIEW = YES
 MERGE_PERFORMED = NO
 ```
 
-到此停止。不得 implementation，不得修改 Agent Core，不得 deploy，不得
-merge，不得宣布 Spec accepted。本 Spec 被接受后仍不直接授权任何产品
-实现；每个 implementation Child 都必须有独立 accepted、
+Spec 已完成 Owner acceptance；本 acceptance 不授权 implementation、
+Agent Core change、deployment、production database write 或 merge。
+每个 implementation Child 仍必须有独立 accepted、
 `implementation_authority: contracts` 的 Child Spec。
+
+## 15. Acceptance receipt（non-normative）
+
+```text
+ACCEPTED_BY = mayf3
+ACCEPTED_AT = 2026-08-22T06:53:30Z
+REVIEWED_BASE = f5c2305b46020ad907cf5c4a93c0cb8ffca5b95e
+REVIEWED_HEAD = 407f1873ac4fcc2e3dc85f3cf5a5595e73af8d1d
+REVIEW_COMMENT_ID = 5378424541
+SEMANTIC_DELTA_AFTER_REVIEW = lifecycle-only
+```
