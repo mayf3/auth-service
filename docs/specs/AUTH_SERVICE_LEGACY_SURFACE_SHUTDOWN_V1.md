@@ -11,7 +11,7 @@ governed_by:
 external_authorities:
   - repository: mayf3/dsh-agent-core
     authority_id: AGENT_CORE_AGENT_CREDENTIAL_PROVISIONING_V1
-    revision: 5cfb61025641f8ec2430d0b9d39ad0cb8348124e
+    revision: d83a2ff0e9644611707d7481ef88b4d7d49fb68e
     relation: interoperates_with
 supersedes: []
 superseded_by: null
@@ -45,6 +45,50 @@ GOVERNANCE_MIGRATION_OLD_PATH =
 GOVERNANCE_MIGRATION_NEW_PATH =
   docs/specs/AUTH_SERVICE_LEGACY_SURFACE_SHUTDOWN_V1.md
 
+V2_PARENT_REALIGNMENT = YES
+V2_PARENT_REALIGNMENT_BASE =
+  f5c2305b46020ad907cf5c4a93c0cb8ffca5b95e
+V2_PARENT_REALIGNMENT_PREVIOUS_HEAD =
+  fb8d55e785d6f99c9e57a602543609953e8f5410
+
+PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V2
+PARENT_ACCEPTED_HEAD =
+  842fccb384448d7f1bb43919048ce579fac9df96
+PARENT_MERGE_COMMIT =
+  37edaa6f8c56749eaa16c0bbbb0c0c75d8c6a1eb
+PARENT_AUTHORITY_STATUS = accepted
+PARENT_PRODUCTION_EFFECTIVE = NO
+PARTIAL_SUPERSESSION = NONE
+MINIMAL_AUTH_FOUNDATION_V1 =
+  SUPERSEDED_HISTORICAL_AUTHORITY
+V1_ROOT_MODULES_CONTRACT_BUNDLE_1_3_0 =
+  V2_EXACT_INCORPORATED_HISTORICAL_PROVENANCE
+AUTHORITATIVE_CONTRACT_VERSION = 1.3.0
+
+EXTERNAL_AUTHORITY_PIN_KIND =
+  AMENDMENT_6_ACCEPTANCE_FINALIZE
+EXTERNAL_AUTHORITY_PIN =
+  d83a2ff0e9644611707d7481ef88b4d7d49fb68e
+EXTERNAL_AUTHORITY_REVIEWED_SEMANTIC_HEAD =
+  5d1285195f8c2e3eb88ea606be09671b074f68d4
+EXTERNAL_AUTHORITY_BLOB_AT_PIN =
+  df74e92759ad3083328dfd337667fc8a4ec618a0
+EXTERNAL_AUTHORITY_BLOB_AT_CURRENT_MAIN =
+  df74e92759ad3083328dfd337667fc8a4ec618a0
+EXTERNAL_AUTHORITY_DRIFT_AFTER_NEW_PIN = NO
+
+PHASE_A = CLEAN_BOOTSTRAP_ONLY
+PHASE_B = EXISTING_CREDENTIAL_RECONCILIATION_TARGET
+PHASE_B_IMPLEMENTATION_AUTHORITY = none
+CURRENT_AGENT_CORE_READ_ONLY_RESOLUTION_CALLER =
+  ABSENT
+
+CLOSED_MANIFEST_OWNER = RUNTIME_CHILD
+HISTORICAL_INVESTIGATION_EVIDENCE =
+  AUTH_SERVICE_PR2_REMAINING_BLOCKERS_INVESTIGATION_V1
+CLOSED_MANIFEST_RECOMMENDATION =
+  RUNTIME_CHILD_OWNS
+
 HISTORICAL_REVIEW_COORDINATES =
   HISTORICAL_REVIEW_EVIDENCE_ONLY
 HISTORICAL_REVIEWS_BIND_TO_NEW_HEAD = NO
@@ -56,10 +100,9 @@ AUTH_SERVICE_SIDE_STATE_F_PREREQUISITE =
   RESOLVED_AT_SPEC_LEVEL
 
 STATE_F_END_TO_END_IMPLEMENTABILITY =
-  BLOCKED_BY_AGENT_CORE_CALLER_SPEC_ALIGNMENT
+  BLOCKED_BY_EXTERNAL_CALLER_ALIGNMENT
 
-STATE_F_IMPLEMENTABILITY_BLOCKER =
-  NOT_FULLY_RESOLVED
+STATE_F_GATE_CLOSED = NO
 
 HUMAN_PRINCIPAL_ADMINISTRATION_AUTHORITY =
   AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1
@@ -134,6 +177,34 @@ CLIENT_EXTERNAL_REF_NULL_SEMANTICS =
   迁移后的 exact Head 必须重新接受完整 independent semantic review。
 - 本迁移不宣布 production effective、`supersedes_v0=true`、Consumer
   migration complete 或 Agent Core State F end-to-end closed。
+
+V2 parent realignment（本 amendment）：
+
+- `MINIMAL_AUTH_FOUNDATION_V2` 已 accepted 并合入 main
+  （accepted Head `842fccb384448d7f1bb43919048ce579fac9df96`，
+  merge commit `37edaa6f8c56749eaa16c0bbbb0c0c75d8c6a1eb`）；
+  `MINIMAL_AUTH_FOUNDATION_V1` 是
+  `SUPERSEDED_HISTORICAL_AUTHORITY`，其 root、modules 与
+  Contract Bundle `1.3.0` 是
+  `V2_EXACT_INCORPORATED_HISTORICAL_PROVENANCE`。
+- 本 Spec 的 evaluated base 为
+  `f5c2305b46020ad907cf5c4a93c0cb8ffca5b95e`；parent authority 由
+  V1 切换为 accepted V2（先行 human administration authority split
+  amendment `7a2a4991d476f9272b5b9a348b3aa2cdd63a5495` 已完成
+  frontmatter 切换与 §3.5 拆分，本 amendment 保留其全部语义并继续
+  对齐 V2 / 外部 authority / 调查 blocker）；不存在 prose-only
+  partial supersession（`PARTIAL_SUPERSESSION = NONE`）。
+- 硬切产品方向现由 accepted V2 拥有（`DEC-MAFV2-004` 至
+  `DEC-MAFV2-006`、`CTR-MAFV2-002`、`CTR-MAFV2-011`）；本 Program
+  不再自行覆盖 Parent，只在与 Parent 一致的前提下冻结自身边界。
+- 外部 authority 重绑定为 Amendment 6 acceptance finalize
+  `d83a2ff0e9644611707d7481ef88b4d7d49fb68e`（见 §3.2）。
+- 调查 `AUTH_SERVICE_PR2_REMAINING_BLOCKERS_INVESTIGATION_V1`
+  （investigation base `1da40d43...`，investigated Head
+  `fb8d55e7...`）的全部数字按
+  `HISTORICAL_INVESTIGATION_EVIDENCE` 记录（见
+  `CTR-AUTH-SHUTDOWN-025`）；closed manifest 由未来 Runtime Child
+  在其 exact Base 拥有（`CLOSED_MANIFEST_OWNER = RUNTIME_CHILD`）。
 
 本 amendment 保留已经接受的 read-only provisioning resolution 方向与全部
 既有冻结边界，不重新设计 endpoint。前一 amendment（route-local wire
@@ -261,51 +332,95 @@ AUTHENTICATED_ONLINE_MANAGEMENT_PROVISIONING_RESOLUTION
 
 本 Spec 的 authority 顺序为：
 
-1. 本 Spec 中已冻结的 Owner 决策（§8）。
-2. 本 Spec 中冻结的 State-check、Provisioning Resolution、Lifecycle、
-   Backfill Cutoff、Authority Reconciliation 与 Human administration
-   children prerequisite 决策（仅 Program-level prerequisite 与坐标校验，
-   不含 child 的具体规范语义）。
-3. `contract-bundles/minimal-auth-v1/` 中 frozen、
-   implementation-authorized 的 1.2.0 机器合同。
-4. Prisma 中 V1 authority tables 的约束。
-5. accepted Child Spec。
-6. 现有实现与测试只能作为 State / Observation，不能覆盖前述 authority。
-7. Legacy 文档、Legacy 路由、Legacy 字段、Legacy 脚本和历史审计报告
-   只能作为迁移证据。
-8. 其他仓库的 accepted governing Spec 只由该仓库自己的 amendment /
+1. accepted `MINIMAL_AUTH_FOUNDATION_V2`（active whole Architecture
+   authority，`docs/contracts/minimal-auth-v2/MINIMAL_AUTH_FOUNDATION_V2.md`，
+   经 PR #7 合并接受；authority delta scope = migration / hard-cut /
+   sequencing）。本 Spec 的任何 Owner Decision 不得排在 accepted
+   Parent Architecture 之前，也不得覆盖 Parent 已冻结的 lifecycle、
+   迁移与 sequencing 规则。
+2. 本 Program Spec（在 Parent 约束内冻结 Program 级边界与 Child
+   义务；其中 Human administration children 只保留 Program-level
+   prerequisite 与坐标校验决策，不含 child 的具体规范语义，见
+   §3.5）。
+3. accepted implementation Child Specs。
+4. code / tests / runtime / plans / audits：仅作为 State /
+   Observation / Evidence，不能覆盖前述 authority；Legacy 文档、
+   Legacy 路由、Legacy 字段、Legacy 脚本和历史审计报告只能作为
+   迁移证据。
+5. 其他仓库的 accepted governing Spec 只由该仓库自己的 amendment /
    supersession 流程改变；本 Spec 不能单方面改写它们。
 
-本 Spec 受 `MINIMAL_AUTH_FOUNDATION_V2` 治理（active whole Architecture
-authority，`docs/contracts/minimal-auth-v2/MINIMAL_AUTH_FOUNDATION_V2.md`，
-经 PR #7 合并接受）。`MINIMAL_AUTH_FOUNDATION_V1`（normative modules
+`MINIMAL_AUTH_FOUNDATION_V1`（normative modules
 `docs/contracts/minimal-auth-v1/` + executable bundle
 `contract-bundles/minimal-auth-v1/`）是 V2 exact-incorporated 的
-superseded historical predecessor，不是本 Spec 的 active parent；本
+`SUPERSEDED_HISTORICAL_AUTHORITY`，不是本 Spec 的 active parent；本
 amendment 起二者不得同时写成 active parent。本 Spec 遵守
-`.agents/local/README.md` 的 precedence：不得覆盖 `MINIMAL_AUTH_FOUNDATION_V2`
-已冻结的 lifecycle 与迁移规则（authority delta 仅限 migration /
-hard-cut / sequencing）；在 V2 production-effectiveness 完成前，相关 V0
-frozen contract 仍可能治理当前生产路径，不得通过本地 prose 推断 partial
-supersession。
+`.agents/local/README.md` 的 precedence：不得覆盖
+`MINIMAL_AUTH_FOUNDATION_V2` 已冻结的 lifecycle 与迁移规则（authority
+delta 仅限 migration / hard-cut / sequencing）；在 V2
+production-effectiveness 完成前，相关 V0 frozen contract 仍可能治理
+当前生产路径，不得通过本地 prose 推断 partial supersession
+（`PARTIAL_SUPERSESSION = NONE`；`PARENT_PRODUCTION_EFFECTIVE = NO`）。
 
 ### 3.2 External authority reference（exact accepted revision）
 
 ```text
 repository: mayf3/dsh-agent-core
 authority_id: AGENT_CORE_AGENT_CREDENTIAL_PROVISIONING_V1
-revision: 5cfb61025641f8ec2430d0b9d39ad0cb8348124e
+revision: d83a2ff0e9644611707d7481ef88b4d7d49fb68e
 relation: interoperates_with
 ```
 
-核实记录（2026-08-20）：
+核实与重绑定记录（2026-08-22）：
 
-- 该 authority 在 `mayf3/dsh-agent-core` `origin/main` 上存在，frontmatter
-  `status: accepted`；
-- `5cfb61025641f8ec2430d0b9d39ad0cb8348124e` 是 acceptance finalize
-  commit（author = mayf3，2026-08-19，"accept independently reviewed Spec
-  at 610c6b8 — text-only lifecycle finalization"）；
-- 该文件自 `5cfb610` 至当前 `origin/main` 零 drift（byte-identical）。
+- `EXTERNAL_AUTHORITY_PIN_KIND = AMENDMENT_6_ACCEPTANCE_FINALIZE`：
+  pin `d83a2ff0e9644611707d7481ef88b4d7d49fb68e` 是 Amendment 6
+  acceptance finalize commit（Amendment 6 authoring `5ce0cf4` +
+  acceptance finalize `d83a2ff`，independent review PASS，accepted
+  2026-08-20，reviewed semantic head
+  `5d1285195f8c2e3eb88ea606be09671b074f68d4`）；
+- authority 文件 blob @ pin =
+  `df74e92759ad3083328dfd337667fc8a4ec618a0`；
+- dsh-agent-core 当前 main（观察值
+  `d506f81105e8aa05177a01b817ebe11dcc076ba5`）上该文件 blob 与 pin
+  相同：`EXTERNAL_AUTHORITY_DRIFT_AFTER_NEW_PIN = NO`；
+- 旧 pin `5cfb61025641f8ec2430d0b9d39ad0cb8348124e`（2026-08-20
+  核实时 byte-identical）已被 Amendment 6 supersede，保留为历史
+  provenance，不再是本 Spec 的 external authority pin。
+
+Amendment 6 冻结的分阶段语义（本 Spec 如实记录，不重定义）：
+
+```text
+PHASE_A = CLEAN_BOOTSTRAP_ONLY
+PHASE_A_CURRENT_SCOPE =
+  store entry absent
+  → prerequisite (c)
+  → S1
+  → S2
+  → secret store
+  → verification mint
+STORE_ENTRY_EXISTS_PHASE_A =
+  existing_credential_resolution_required
+STORE_ENTRY_EXISTS_PHASE_A_AUTH_CALLS = 0
+PHASE_B = EXISTING_CREDENTIAL_RECONCILIATION_TARGET
+PHASE_B_IMPLEMENTATION_AUTHORITY = none
+PHASE_B_STATE_SCOPE = D / E / F / G
+```
+
+Amendment 6 的出现不得被解释为 State F 已关闭
+（`STATE_F_GATE_CLOSED = NO`；见 §4/§5 current State 与
+`CTR-AUTH-SHUTDOWN-030`）。
+
+当前实现证据（dsh-agent-core main，2026-08-22 观察）：
+
+```text
+CURRENT_AGENT_CORE_AUTH_CLIENT =
+  POST /api/v1/principals
+  POST /api/v1/clients
+  POST /oauth/token
+CURRENT_AGENT_CORE_READ_ONLY_RESOLUTION_CALLER =
+  ABSENT
+```
 
 本引用是 reference-only：auth-service 可以声明对该外部 authority 的
 期望（见 `CTR-AUTH-SHUTDOWN-030`），但不得接受、修改、supersede 或
@@ -330,33 +445,44 @@ ensureClient    → POST /api/v1/clients
 
 没有 read-only client resolution call。
 
-### 3.4 Authoritative 1.2.0 source/snapshot pin
+### 3.4 Authoritative 1.3.0 source/snapshot pin
 
 ```text
-AUTHORITATIVE_CONTRACT_VERSION = 1.2.0
+AUTHORITATIVE_CONTRACT_VERSION = 1.3.0
 AUTHORITATIVE_BASE_COMMIT =
-  84890120bd385b39287cb81890236b0e73e96c8d
-AUTHORITATIVE_FREEZE_TRANSITION_COMMIT =
-  5f401d619e2a236d7ff2ee3cd9a7e7eac84e4656
-AUTHORITATIVE_REVIEWED_SOURCE_COMMIT =
-  02bccd428554868125a65800f1334928c80543a2
+  f5c2305b46020ad907cf5c4a93c0cb8ffca5b95e
+AUTHORITATIVE_PARENT_AUTHORITY =
+  MINIMAL_AUTH_FOUNDATION_V2
 AUTHORITATIVE_CONTRACT_BUNDLE_TREE_SHA1 =
-  796a8b670f8617ab5f45c7b8734e124e07934f09
+  c477f1b1bd7e4b48c2dc99c047c28aa5358f738e
 AUTHORITATIVE_CONTRACT_MANIFEST_BLOB_SHA1 =
-  8557b36de241e39570f478e21a95ff375d11759a
+  60ed66c696fa465c6a850f3a1749df55a19eb65b
+AUTHORITATIVE_CONTRACT_MANIFEST_SHA256 =
+  59edda9ece846c45a5767aa37d76517609762b7815c2a9da6b3068106d6765ab
 AUTHORITATIVE_AUDIENCE_REGISTRY_BLOB_SHA1 =
-  8ddf67afc2494dddc3c087d19f2f93c71db13d70
-AUTHORITATIVE_SNAPSHOT_GENERATOR_BLOB_SHA1 =
-  eeaee471141a0667e119779d04f87663aec8a6dd
-FREEZE_RECEIPT_DIGEST_PREFIX = 3aecaa03
+  ef7e139ec545471cbb4e84ce84a5fbcc3c48b1d7
+AUTHORITATIVE_AUDIENCE_REGISTRY_SHA256 =
+  87ee3e1b239c2d8cc4d200cffb330d72f3f645b037443554f2ed91cc91cd4bf6
+FROZEN_V1_MANIFEST_MUTATION_REQUIRED = NO
 ```
+
+旧 1.2.0 pin（`AUTHORITATIVE_BASE_COMMIT = 84890120...`、tree
+`796a8b67...`、freeze transition `5f401d61...` 等）是 pre-V2
+authoring-time 历史 provenance，不再是本 Spec 的 authority pin。
+
+Frozen 1.3.0 manifest 内的全部 lifecycle 字段（version、
+production/consumer-migration readiness 等）只是
+`FREEZE_TIME_HISTORICAL_FACTS`：本 Program、Runtime Child 与
+Consumer Migration PR 均不得通过修改该 manifest 来表示 production
+effective（见 `CTR-AUTH-SHUTDOWN-026` 的 V2 Activation Record
+模型）。
 
 Runtime snapshot：
 
 ```text
 payload = {
   formatVersion: 1,
-  contractVersion: "1.2.0",
+  contractVersion: "1.3.0",
   reviewedSourceGitCommit: AUTHORITATIVE_REVIEWED_SOURCE_COMMIT,
   sourceBundleDigest:
     SHA256(path + NUL + bytes + NUL for exact pinned bundle tree),
@@ -369,7 +495,17 @@ runtimeDigest = SHA256(JSON.stringify(payload))
 
 Independent Acceptance Review 必须对 exact object 连续运行两次
 `scripts/prepare-minimal-auth-v1.mjs`，记录完整且相同的 64-hex
-`sourceBundleDigest` 与 `runtimeDigest`。不得捏造缺失 digest。
+`sourceBundleDigest` 与 `runtimeDigest`。不得捏造缺失 digest，不得
+沿用 1.2.0 旧 digest。本轮 authoring 在 evaluated base
+`f5c2305b...` 上的真实双运行结果（两次一致，见
+`OBS-AUTH-SHUTDOWN-013`）：
+
+```text
+PREPARE_DOUBLE_RUN_SOURCE_BUNDLE_DIGEST =
+  977ebacdf87d80650b42c7b8699a109fffd9d884228c8b6bfe23319e896a17fc
+PREPARE_DOUBLE_RUN_RUNTIME_DIGEST =
+  15f9a591e25fb1dca99c2a02d8362c83e41f4a932ca0710d97a602e18a8234ad
+```
 
 ### 3.5 Human Principal administration authority split（本 amendment）
 
@@ -551,6 +687,78 @@ Acceptance 只验证正确的 child authority 已存在且 exact Head 坐标匹�
   BLOCKED_BY_AGENT_CORE_CALLER_SPEC_ALIGNMENT`；
   `STATE_F_IMPLEMENTABILITY_BLOCKER = NOT_FULLY_RESOLVED`。
 
+### STATE-AUTH-SHUTDOWN-007 — Parent authority 已切换为 accepted V2；本 Spec 仍为未合并 proposed 候选
+
+- Subject: 本 Spec 的 parent authority 与 lifecycle
+- Repository/commit: mayf3/auth-service evaluated base
+  `f5c2305b46020ad907cf5c4a93c0cb8ffca5b95e`；本文件 current Head
+  （见 PR #2）
+- Environment: repository authority branch 状态：未合并
+- Observed at: 2026-08-22
+- Basis: `OBS-AUTH-SHUTDOWN-009`、V2 realignment provenance（§0）
+- Projection: `PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V2`
+  （`PARENT_AUTHORITY_STATUS = accepted`；
+  `PARENT_ACCEPTED_HEAD = 842fccb...`；
+  `PARENT_MERGE_COMMIT = 37edaa6...`）；
+  `PARENT_PRODUCTION_EFFECTIVE = NO`；
+  `MINIMAL_AUTH_FOUNDATION_V1 = SUPERSEDED_HISTORICAL_AUTHORITY`；
+  `status: proposed`；历史 review 不绑定本 Head；需要新的
+  independent semantic review 后由 Owner 决定是否 accept。
+
+### STATE-AUTH-SHUTDOWN-008 — 当前 base 的 accepted siblings、Human administration 拆分与新增 tracked paths
+
+- Subject: evaluated base 上与 Minimal Auth 相关的 accepted Specs、
+  authority 拆分与 source 实现事实
+- Repository/commit: mayf3/auth-service
+  `f5c2305b46020ad907cf5c4a93c0cb8ffca5b95e`（human administration
+  split amendment Head
+  `7a2a4991d476f9272b5b9a348b3aa2cdd63a5495` 为本 PR 分支先行提交）
+- Environment: source tree（非部署声明）
+- Observed at: 2026-08-22
+- Basis: `OBS-AUTH-SHUTDOWN-010`、§3.5
+- Projection:
+  `AUTH_SERVICE_SVC_FORUM_AUDIENCE_REGISTRY_RECONCILIATION_V1 =
+  accepted`（implementation Head
+  `c67148cf35ecca2eeb4c4ff85a4478697d4ab2ab`，merge
+  `f5c2305b46020ad907cf5c4a93c0cb8ffca5b95e`）；
+  `SOURCE_IMPLEMENTATION_PRESENT_ON_MAIN = YES`；
+  `PRODUCTION_RECONCILIATION_EFFECTIVE =
+  NOT_INFERRED_FROM_SPEC_MERGE`；
+  `PROGRAM_PRODUCT_SEMANTIC_DELTA_FROM_THIS_MERGE = NONE`；
+  `STAGE_W_EXECUTION_V2 = accepted`；
+  `STAGE_F_SOURCE_IMPLEMENTATION_PRESENT = YES`；
+  `STAGE_F_PRODUCTION_EFFECTIVE = NOT_INFERRED_FROM_SOURCE_MERGE`；
+  `SVC_FORUM_AUDIENCE = registered`；
+  `CURRENT_CONTRACT_VERSION = 1.3.0`；
+  `PR_2_OWNS_HUMAN_PRINCIPAL_ADMINISTRATION = NO`（委托给
+  `AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1`，PR #15 exact
+  Head `98ec29a1152bfa9530c572ec5a541ea02df163c4`，见 §3.5）；
+  相对 investigation base 新增 3 个 tracked path（见
+  `CTR-AUTH-SHUTDOWN-025` 的
+  `CURRENT_BASE_NEW_TRACKED_PATH_EVIDENCE`）。
+
+### STATE-AUTH-SHUTDOWN-009 — 外部 authority 已重绑定；State F 端到端仍被 caller 实现阻塞
+
+- Subject: Agent Core State F end-to-end implementability
+- Repository/commit: 本 Spec（auth-side）；外部 authority pinned
+  revision `d83a2ff0...`（caller-side authority）；dsh-agent-core
+  main `d506f811...`（caller-side 实现，观察值）
+- Environment: spec/source-level 状态，非部署状态
+- Observed at: 2026-08-22
+- Basis: `CLM-AUTH-SHUTDOWN-005`、`EVD-AUTH-SHUTDOWN-005`、
+  `OBS-AUTH-SHUTDOWN-011`、`OBS-AUTH-SHUTDOWN-012`
+- Projection:
+  `EXTERNAL_AUTHORITY_PIN = d83a2ff0...`
+  （`AMENDMENT_6_ACCEPTANCE_FINALIZE`；
+  `EXTERNAL_AUTHORITY_DRIFT_AFTER_NEW_PIN = NO`）；
+  `PHASE_A = CLEAN_BOOTSTRAP_ONLY`；
+  `PHASE_B = EXISTING_CREDENTIAL_RECONCILIATION_TARGET`
+  （`PHASE_B_IMPLEMENTATION_AUTHORITY = none`）；
+  `CURRENT_AGENT_CORE_READ_ONLY_RESOLUTION_CALLER = ABSENT`；
+  `STATE_F_END_TO_END_IMPLEMENTABILITY =
+  BLOCKED_BY_EXTERNAL_CALLER_ALIGNMENT`；
+  `STATE_F_GATE_CLOSED = NO`。
+
 ## 5. Observations
 
 ### OBS-AUTH-SHUTDOWN-001 — V1 面 inventory
@@ -664,6 +872,90 @@ Acceptance 只验证正确的 child authority 已存在且 exact Head 坐标匹�
   credential-provisioning 的 S1/S2 ensure sequencing。
 - Provenance: §3.2 核实记录。
 
+### OBS-AUTH-SHUTDOWN-009 — V2 已 accepted 并合入 main
+
+- Subject: `MINIMAL_AUTH_FOUNDATION_V2` lifecycle 与 index truth
+- Source revision: accepted Head
+  `842fccb384448d7f1bb43919048ce579fac9df96`；merge
+  `37edaa6f8c56749eaa16c0bbbb0c0c75d8c6a1eb`；观察 base
+  `f5c2305b46020ad907cf5c4a93c0cb8ffca5b95e`
+- Environment: repository authority branch（github origin/main）
+- Observed at: 2026-08-22
+- Method: fetch + frontmatter/authority-graph/index inspection
+- Result: V2 `status: accepted`；`docs/specs/README.md` 与
+  `.agents/local/README.md` 记录 V2 = accepted / current、V1 =
+  superseded / historical；本 PR #2 Spec 行仍为 proposed / none。
+- Provenance: PR #7 merge `37edaa6`；`docs/specs/README.md`；
+  `docs/contracts/minimal-auth-v2/MINIMAL_AUTH_FOUNDATION_V2.md`。
+
+### OBS-AUTH-SHUTDOWN-010 — svc-forum registry reconciliation Spec accepted 且实现已合入；human administration 已拆分
+
+- Subject: `AUTH_SERVICE_SVC_FORUM_AUDIENCE_REGISTRY_RECONCILIATION_V1`
+  三文件实现闭包与 PR #2 human administration split amendment
+- Source revision: Spec 经 merge
+  `7e3be3d0be92c49f1c62f762145c8675ef8b3227` 合入；implementation
+  Head `c67148cf35ecca2eeb4c4ff85a4478697d4ab2ab`；merge
+  `f5c2305b46020ad907cf5c4a93c0cb8ffca5b95e`；human split Head
+  `7a2a4991d476f9272b5b9a348b3aa2cdd63a5495`（本 PR 分支）
+- Environment: repository authority branch（github origin/main）
+- Observed at: 2026-08-22
+- Method: fetch + merge history + tracked path inspection
+- Result: Spec accepted / contracts（三文件闭包）；新增 3 个 tracked
+  path：`scripts/reconcile-svc-forum-audience-registry-v1.ts`、
+  `scripts/run-svc-forum-audience-registry-v1-conformance.sh`、
+  `tests/oauth/reconcile-svc-forum-audience-registry-v1.test.ts`；
+  上述 merge 不改变本 Program 语义，也不证明生产 reconciliation 已
+  执行；human administration authority 已由本 PR 先行 amendment
+  委托给 PR #15 Child（§3.5）。
+- Provenance: PR #17 / PR #16 merge records；`git diff --name-status
+  7e3be3d..f5c2305`；PR #2 分支 commit `7a2a499`。
+
+### OBS-AUTH-SHUTDOWN-011 — 外部 authority 在新 pin 上零 drift
+
+- Subject: `AGENT_CORE_AGENT_CREDENTIAL_PROVISIONING_V1` 文件字节
+- Source revision: pin
+  `d83a2ff0e9644611707d7481ef88b4d7d49fb68e`；dsh-agent-core
+  origin/main `d506f81105e8aa05177a01b817ebe11dcc076ba5`
+- Environment: 外部仓库 authority branch
+- Observed at: 2026-08-22
+- Method: `git rev-parse <rev>:<path>` blob 比较
+- Result: blob @ pin = blob @ main =
+  `df74e92759ad3083328dfd337667fc8a4ec618a0`；
+  `EXTERNAL_AUTHORITY_DRIFT_AFTER_NEW_PIN = NO`。Amendment 6
+  （PHASE_A / PHASE_B）语义见 §3.2。
+- Provenance: §3.2 核实与重绑定记录。
+
+### OBS-AUTH-SHUTDOWN-012 — Agent Core 当前实现没有 read-only resolution caller
+
+- Subject: dsh-agent-core credential provisioning auth client
+- Source revision: mayf3/dsh-agent-core origin/main
+  `d506f81105e8aa05177a01b817ebe11dcc076ba5`
+- Environment: source tree
+- Observed at: 2026-08-22
+- Method: source inspection of
+  `packages/agent-credential-provisioning/src/auth-client.js`
+- Result: 该文件只调用 `POST /api/v1/principals`、
+  `POST /api/v1/clients`、`POST /oauth/token`；不存在 read-only
+  client resolution call（`CURRENT_AGENT_CORE_READ_ONLY_RESOLUTION_CALLER
+  = ABSENT`）。
+- Provenance: §3.2 当前实现证据块。
+
+### OBS-AUTH-SHUTDOWN-013 — 本轮 prepare 双运行 digest 一致
+
+- Subject: Minimal Auth V1 Contract `1.3.0` snapshot 可复现性
+- Source revision: 本 amendment worktree（evaluated base
+  `f5c2305b46020ad907cf5c4a93c0cb8ffca5b95e` + 本 PR 文件）
+- Environment: 本地 clean task worktree（node 同环境连续执行）
+- Observed at: 2026-08-22
+- Method: 连续两次执行 `scripts/prepare-minimal-auth-v1.mjs`
+- Result: 两次输出完全一致：
+  `sourceBundleDigest =
+  977ebacdf87d80650b42c7b8699a109fffd9d884228c8b6bfe23319e896a17fc`；
+  `runtimeDigest =
+  15f9a591e25fb1dca99c2a02d8362c83e41f4a932ca0710d97a602e18a8234ad`。
+- Provenance: §3.4 双运行记录；执行输出保存在本 PR authoring
+  execution record。
+
 ## 6. Claims and assumptions
 
 ### CLM-AUTH-SHUTDOWN-001 — 当前 S1/S2 不能作为 State F resolution 探针
@@ -708,6 +1000,22 @@ Acceptance 只验证正确的 child authority 已存在且 exact Head 坐标匹�
   "当前一定存在缓存"。
 - 解释：新鲜度是 mutation-before-check 语义的前提，必须显式冻结为
   no-store/no-cache Contract（`CTR-AUTH-SHUTDOWN-013`）。
+
+### CLM-AUTH-SHUTDOWN-005 — Amendment 6 的出现不关闭 State F；端到端仍被 external caller alignment 阻塞
+
+- Support state: SUPPORTED
+- Supported by evidence: `EVD-AUTH-SHUTDOWN-005`
+- Contradicted by evidence: none known
+- Uncertainty: 外部 authority 可能继续经其自身流程 amendment；本
+  Claim 绑定 §3.2 pinned revision `d83a2ff0...`。
+- 解释：Amendment 6 在 spec 层冻结了 PHASE_A（store entry 存在 →
+  `existing_credential_resolution_required`，Auth 调用为零）与
+  PHASE_B 目标语义（implementation authority = none），方向与本
+  Program 的 resolution Contract 一致；但 caller 侧 read-only
+  resolution 实现（fixed-SHA）与 State F E2E 仍不存在，
+  `GATE_AGENT_CORE_RESOLUTION_CALLER_FIXED_SHA` 与
+  `GATE_STATE_F_NO_MUTATION_BEFORE_RESOLUTION_E2E` 仍无证据。
+  `STATE_F_GATE_CLOSED = NO`。
 
 ## 7. Evidence relations
 
@@ -760,6 +1068,35 @@ Acceptance 只验证正确的 child authority 已存在且 exact Head 坐标匹�
   的 normative 结论
 - Limitations: 非运行时测量
 - Provenance: OBS-AUTH-SHUTDOWN-005
+
+### EVD-AUTH-SHUTDOWN-005 — 外部 authority 与 caller 实现观测支持 State F 仍阻塞 Claim
+
+- Source observations: `OBS-AUTH-SHUTDOWN-011`、
+  `OBS-AUTH-SHUTDOWN-012`
+- Target: `CLM-AUTH-SHUTDOWN-005`、`STATE-AUTH-SHUTDOWN-009`
+- Relation: SUPPORTS
+- Bound coordinates: dsh-agent-core pin `d83a2ff0...`（authority）
+  与 main `d506f811...`（实现观察），observed 2026-08-22
+- Strength/sufficiency: authority blob 比较 + caller source
+  inspection，sufficient for the pinned revisions
+- Limitations: 不覆盖外部仓库未来 revision；不评价外部 authority
+  的正确性
+- Provenance: §3.2、OBS 条目引用的 source 路径
+
+### EVD-AUTH-SHUTDOWN-006 — V2 与 sibling 实现观测支持 current-base State
+
+- Source observations: `OBS-AUTH-SHUTDOWN-009`、
+  `OBS-AUTH-SHUTDOWN-010`、`OBS-AUTH-SHUTDOWN-013`
+- Target: `STATE-AUTH-SHUTDOWN-007`、`STATE-AUTH-SHUTDOWN-008`
+- Relation: SUPPORTS
+- Bound coordinates: auth-service `f5c2305b...`（含 V2 merge
+  `37edaa6...`、reconciliation merge `f5c2305...`、本 PR human
+  split Head `7a2a499...`），observed 2026-08-22
+- Strength/sufficiency: authority-graph 与 merge-history inspection
+  + 本轮真实双运行 digest
+- Limitations: source-level；不证明任何生产 reconciliation 执行、
+  部署或 production effectiveness
+- Provenance: OBS 条目引用的 merge records 与执行输出
 
 ## 8. Decisions
 
@@ -951,6 +1288,20 @@ alias；规范引用必须使用稳定 DEC ID。
   prefix 选择 policy。
 - Rejected alternative: `ALT-AUTH-SHUTDOWN-014`、`ALT-AUTH-SHUTDOWN-015`
 - Reason: external-ref 语义由外部 authority 拥有；本地不重定义。
+
+### DEC-AUTH-SHUTDOWN-018 — Resolution exact error Wire 是 route-local exact-path policy
+
+- Decision owner: mayf3
+- Decision: `GET /api/v1/clients/:client_id` 的错误响应使用封闭
+  exact Wire `{"error":"<exact_code>"}`（由
+  `CTR-AUTH-SHUTDOWN-014` 冻结完整映射表）；MUST NOT 复用普通
+  `{"message":"..."}` envelope；该 Wire 是 route-local exact-path
+  policy，MUST NOT 扩展到其他 endpoint（非影响边界由
+  `CTR-AUTH-SHUTDOWN-018` 冻结）。
+- Rejected alternative: `ALT-AUTH-SHUTDOWN-019`
+- Reason: caller 需要可执行、稳定、无歧义的 management error
+  Wire；其他 endpoint 的既有 Wire 语义不受本 Decision 影响
+  （`PRODUCT_SEMANTIC_DELTA = NONE`）。
 
 保持冻结的 Owner 决策清单（不得重新打开）：
 
@@ -1580,7 +1931,7 @@ Legacy Route mounting
 
 启动流程：
 
-1. 从 exact pinned 1.2.0 Contract Bundle 生成 runtime snapshot。
+1. 从 exact pinned 1.3.0 Contract Bundle 生成 runtime snapshot。
 2. 校验 source object、runtime digest、version、freeze status 与
    implementation authorization。
 3. 校验 exact issuer。
@@ -1702,12 +2053,21 @@ MachinePrincipal.ownerUserId
 MUST NOT 读取任何 Grant、Legacy flat field、Secret verifier 或
 request digest。
 
-### CTR-AUTH-SHUTDOWN-025 — Exact source disposition manifest（封闭集合）
+### CTR-AUTH-SHUTDOWN-025 — Runtime Child exact closed manifest obligation
 
-本 Contract 是首个 Runtime Child 的完整 source disposition。MUST NOT
-使用目录通配推断额外删除，MUST NOT 把未列文件留给实现阶段自由选择。
+```text
+CLOSED_MANIFEST_OWNER = RUNTIME_CHILD
+CTR_SEMANTICS = RUNTIME_CHILD_EXACT_CLOSED_MANIFEST_OBLIGATION
+```
 
-Disposition 枚举：
+本 Contract 不再声称 Program 已包含 Runtime Child 在当前 repo 上的
+完整封闭文件集合（exact closed manifest）。Program 只拥有并冻结以下
+边界；exact closed manifest 由首个 Runtime Child 在它自己的 exact
+implementation Base 上产生、评审并被验收。
+
+Program 拥有：
+
+- Disposition 枚举：
 
 ```text
 KEEP
@@ -1716,6 +2076,78 @@ DELETE
 CREATE
 KEEP_TEST_ONLY
 KEEP_OUT_OF_RUNTIME_SCOPE
+```
+
+- 必须删除与必须保留的语义边界（由本 Spec 各 Contract 冻结，含
+  `CTR-AUTH-SHUTDOWN-001`、`CTR-AUTH-SHUTDOWN-002`、
+  `CTR-AUTH-SHUTDOWN-003`、`CTR-AUTH-SHUTDOWN-005`、
+  `CTR-AUTH-SHUTDOWN-019`、`CTR-AUTH-SHUTDOWN-020`、
+  `CTR-AUTH-SHUTDOWN-021`、`CTR-AUTH-SHUTDOWN-022`，以及本
+  Contract 保留下方的 resolution seam 封闭文件授权）；
+- schema 不得在 Runtime Child 阶段执行破坏性 drop 的阶段边界
+  （破坏性删除属于 `AUTH_SERVICE_LEGACY_SCHEMA_CLEANUP_V1`；见
+  `CTR-AUTH-SHUTDOWN-005`、`CTR-AUTH-SHUTDOWN-028`）；
+- 禁止 implementation Agent 自由增加平行 route / service /
+  middleware（见下方 MUST NOT 创建清单）；
+- Runtime Child 必须产生 closed manifest 的义务（见下）。
+
+Runtime Child MUST 在自己的 exact implementation Base 上：
+
+1. 执行完整 `git ls-files` inventory；
+2. 列出全部 existing path；
+3. 列出全部 CREATE path；
+4. 为每项固定 disposition（仅使用上述枚举）；
+5. 为每项固定 owning child；
+6. 为每项固定 schema / migration / test impact；
+7. 确保闭集之外的文件不因 shutdown / resolution 被修改；
+8. 将该 exact manifest 交给独立 exact-revision review；
+9. 由 `ACC-AUTH-SHUTDOWN-019` 比较 manifest 与实现 diff。
+
+任何使用目录通配推断额外删除、把未分类文件留给实现阶段自由选择、
+或把本 Contract 下列历史表格当作 exact manifest 的实现都违反本
+Contract。
+
+#### 25.0 Historical investigation evidence（非 exact manifest）
+
+调查 `AUTH_SERVICE_PR2_REMAINING_BLOCKERS_INVESTIGATION_V1` 的
+source disposition 结论按以下坐标记录，且仅为
+`HISTORICAL_INVESTIGATION_EVIDENCE`：
+
+```text
+INVESTIGATION_BASE =
+  1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9
+INVESTIGATED_HEAD =
+  fb8d55e785d6f99c9e57a602543609953e8f5410
+TRACKED_PATHS_INSPECTED = 138
+TRACKED_PATHS_OMITTED_BY_OLD_SPEC = 55
+OMITTED_AND_CONTRACT_AFFECTED = 49
+HISTORICAL_RECOMMENDED_CHILD_MANIFEST_SIZE = 149
+REMAINING_UNCLASSIFIED_AT_INVESTIGATION_HEAD = 0
+CLOSED_MANIFEST_RECOMMENDATION = RUNTIME_CHILD_OWNS
+```
+
+这些数字是 historical investigation evidence，不是任何新 Base 的
+frozen exact manifest：`HISTORICAL_RECOMMENDED_CHILD_MANIFEST_SIZE =
+149` 不得被误写成当前或未来 Base 的永久封闭文件集，也不得因后续
+main 前进而被改写或扩充为"149+N"。
+
+当前 evaluated base 相对 investigation base 新增的 tracked path 只能
+作为 `CURRENT_BASE_NEW_TRACKED_PATH_EVIDENCE`：
+
+```text
+CURRENT_BASE_NEW_TRACKED_PATH_EVIDENCE =
+  scripts/reconcile-svc-forum-audience-registry-v1.ts
+  scripts/run-svc-forum-audience-registry-v1-conformance.sh
+  tests/oauth/reconcile-svc-forum-audience-registry-v1.test.ts
+```
+
+对这 3 个 path：不得并入历史 149 项；不得把 149 改写为 152；本
+Program 不永久决定其最终 disposition（它们属于 accepted
+`AUTH_SERVICE_SVC_FORUM_AUDIENCE_REGISTRY_RECONCILIATION_V1` 的
+三文件实现闭包）。因此冻结：
+
+```text
+RUNTIME_CHILD_MUST_CLASSIFY_ALL_CURRENT_BASE_PATHS = YES
 ```
 
 Resolution seam 的文件授权是封闭集合：
@@ -1752,6 +2184,15 @@ MUST NOT 创建：
 新 generic IAM package
 新 introspection module
 ```
+
+以下 §25.1 至 §25.11 的 disposition 表是
+`INVESTIGATED_HEAD fb8d55e7...` 坐标上的 historical investigation
+evidence（authoring-time 分类），不是当前或未来 Base 的 exact
+closed manifest。它们保留两个作用：(1) 传递其中已被其他 Contract
+独立冻结的语义边界；(2) 作为 Runtime Child 在其 exact Base 生成
+closed manifest 时的历史参考输入。表中任何与旧 1.2.0 pin 相关的
+表述（如 provider/bundle-digest 行）已被 §3.4 的 1.3.0 authority
+pin 取代。Runtime Child 的 exact manifest 是唯一 authority。
 
 #### 25.1 Entry, config, database and utilities
 
@@ -1973,7 +2414,7 @@ Production Activation MUST 同时满足：
 ```text
 GATE_ACCEPTED_SHUTDOWN_SPEC = PASS
 GATE_V1_CONTRACT_FROZEN = PASS
-GATE_PINNED_1_2_RUNTIME_FINGERPRINT = PASS
+GATE_PINNED_1_3_RUNTIME_FINGERPRINT = PASS
 GATE_EXACT_JWKS_URL = PASS
 GATE_JWKS_HTTPS_REACHABLE = PASS
 GATE_ACTIVE_KEY_AND_KID = PASS
@@ -2003,7 +2444,22 @@ GATE_FULL_TEST_MATRIX = PASS
 GATE_INDEPENDENT_PRODUCTION_ACTIVATION_REVIEW = PASS
 ```
 
-Shutdown Spec、Runtime Child、Consumer Migration PR 均不得设置：
+V2 Activation Record 模型（与 accepted
+`MINIMAL_AUTH_FOUNDATION_V2` 的 `CTR-MAFV2-003` / `CTR-MAFV2-010`
+对齐）：
+
+```text
+ACTIVATION_RECORD_ID = MINIMAL_AUTH_FOUNDATION_V2_ACTIVATION_V1
+ACTIVATION_RECORD_PATH = docs/contracts/minimal-auth-v2/activation/MINIMAL_AUTH_FOUNDATION_V2_ACTIVATION_V1.json
+ACTIVATION_RECORD_OWNER = AUTH_SERVICE_V1_PRODUCTION_ACTIVATION_V1
+FROZEN_V1_MANIFEST_MUTATION_REQUIRED = NO
+```
+
+Shutdown Spec、Runtime Child、Consumer Migration PR 均不得：
+
+- 直接修改 frozen V1 `1.3.0` manifest；
+- 翻转 accepted Contract literal；
+- 直接写入下列字段来表示 effective：
 
 ```text
 auth_token_contract_v1_production_effective = true
@@ -2012,14 +2468,42 @@ production_deployment.status = effective
 consumer_migration.status = complete
 ```
 
-只有 `AUTH_SERVICE_V1_PRODUCTION_ACTIVATION_V1` 在所有 Gate 通过并独立
-Review PASS 后，才可更新这些字段并部署 Cut Artifact。在这些 Gate 全
-通过前：
+没有唯一、accepted、经独立审计通过、绑定全部九门
+（`CTR-MAFV2-003`）与本 Contract 全部 Gate 的有效 Activation
+Record 时：
+
+```text
+MINIMAL_AUTH_FOUNDATION_V2_MAINLINE_EFFECTIVE = false
+```
+
+只有有效 Activation Record 才可投影：
+
+```text
+AUTH_TOKEN_CONTRACT_V1_PRODUCTION_EFFECTIVE
+production_deployment.status
+consumer_migration.status
+legacy_consumers_migrated
+v0_compatibility.supersedes_v0
+```
+
+`AUTH_SERVICE_V1_PRODUCTION_ACTIVATION_V1`（Production Activation
+Child）负责，且仅它负责：
+
+1. 收集九门与全部 Gate 的 Evidence；
+2. 创建 `MINIMAL_AUTH_FOUNDATION_V2_ACTIVATION_V1` Activation
+   Record；
+3. 对 Record 执行独立审计；
+4. Owner acceptance；
+5. Record 合入后才投影 effective，并部署 Auth Cut Artifact。
+
+本 Program 本身不得创建 effective record；本 PR 不宣布 production
+effective。在有效 Record 存在前，当前投影保持：
 
 ```text
 production_deployment.status = not_ready
 auth_token_contract_v1_production_effective = false
 v0_compatibility.supersedes_v0 = false
+MINIMAL_AUTH_FOUNDATION_V2_MAINLINE_EFFECTIVE = false
 ```
 
 ### CTR-AUTH-SHUTDOWN-027 — Failure-closed rules
@@ -2221,7 +2705,7 @@ implementability 已经关闭。
 POST `/api/v1/principals` 与 POST `/api/v1/clients` 保持 creation-capable
 idempotent provisioning 语义（见 `CTR-AUTH-SHUTDOWN-001` 管理接口表与
 `CTR-AUTH-SHUTDOWN-024` data authority）；其 shape/conflict 语义由
-frozen 1.2.0 bundle 与本 Spec Acceptance 的 idempotent gates 验证：
+frozen 1.3.0 bundle 与本 Spec Acceptance 的 idempotent gates 验证：
 same external-ref + same payload resolves same identity；same
 external-ref + different payload → 409；并发不同 payload 不静默接受
 winner；agent shape incomplete → 400；service shape with agent fields →
@@ -2304,6 +2788,74 @@ PRODUCTION_GATES = PASS
 引用真实存在的 Contract。既有 `AC-R1`..`AC-R16` 名称保留为 legacy
 aliases，语义不变（历史 review 中的 AC-R 名称仍指向原语义）。
 
+### 10.0 Acceptance coordinate model（35-item coordinate matrix）
+
+本 Spec 的 16 个 `ACC-AUTH-RESOLUTION-*` 与 19 个
+`ACC-AUTH-SHUTDOWN-*`，共 35 项 Acceptance，每项除既有
+Contracts / Method / Expected result / Failure condition 外，还必须
+绑定以下 coordinate 字段（迁入自调查
+`AUTH_SERVICE_PR2_REMAINING_BLOCKERS_INVESTIGATION_V1` §3 的完整
+矩阵，语义不得删减或改写）：
+
+```text
+Contracts
+Evidence class
+Profile
+exact accepted Spec revision
+exact implementation commit
+environment identity
+configuration identity
+database identity
+observed_at
+command / probe
+persistent record location
+expected result
+failure condition
+```
+
+共享 coordinate profiles：
+
+```text
+SRC  = source-tree / static analysis / build-reproducibility evidence
+DB   = database-state evidence（schema、migration、authority rows）
+PROC = real-process integration evidence（local/integration runtime）
+STG  = isolated/staging environment evidence
+XR   = cross-repository evidence（fixed-SHA external caller / receipt）
+PROD = production environment evidence
+RB   = rollback evidence（whole-release drill / artifact scan）
+```
+
+允许的 persistent record location（不接受其他位置）：
+
+```text
+PR   = implementation PR Contract matrix
+CONF = docs/conformance/auth-service-legacy-shutdown-v1.md
+ACT  = docs/audits/auth-service-legacy-shutdown-v1-activation.md
+RB   = docs/audits/auth-service-legacy-shutdown-v1-rollback.md
+XR   = cross-repository activation receipt
+```
+
+规则：
+
+- 本 Program `implementation_authority = none`，实现尚未开始；因此
+  每项的 "Coordinate binding" 块先冻结 Profile、Evidence class、
+  command / probe 与 persistent record，而 exact accepted Spec
+  revision、exact implementation commit、environment identity、
+  configuration identity、database identity 与 `observed_at` 是
+  执行时坐标：evidence 产生时 MUST 记录进该项指定的 persistent
+  record，缺失任一坐标的记录不构成 Evidence。
+- 测试文件存在、测试名称或未执行命令不得充当 Evidence。
+- 机械完整性等式：
+
+```text
+ACCEPTANCE_ITEMS = 35
+ACCEPTANCE_ITEMS_WITH_COORDINATE_PROFILE = 35
+ACCEPTANCE_ITEMS_WITH_IMPLEMENTATION_COMMIT = 35
+ACCEPTANCE_ITEMS_WITH_OBSERVED_AT = 35
+ACCEPTANCE_ITEMS_WITH_PERSISTENT_RECORD = 35
+ACCEPTANCE_COORDINATE_MATRIX = COMPLETE
+```
+
 ### 10.1 Resolution seam acceptance（legacy aliases AC-R1..AC-R16）
 
 #### ACC-AUTH-RESOLUTION-001 — Missing client（Legacy alias: AC-R1）
@@ -2326,6 +2878,12 @@ GET unknown mc_*
 
 - Failure condition: 任意断言失败
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — `tests/v1-management-resolution.test.ts` AC-R1 用例；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-RESOLUTION-002 — Active client（Legacy alias: AC-R2）
 
 - Contracts: `CTR-AUTH-SHUTDOWN-011`、`CTR-AUTH-SHUTDOWN-013`、
@@ -2344,6 +2902,12 @@ GET unknown mc_*
 - Failure condition: projection 字段缺失/多余、row drift 或 cache header
   缺失
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — `tests/v1-management-resolution.test.ts` AC-R2 用例；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-RESOLUTION-003 — Revoked client（Legacy alias: AC-R3）
 
 - Contracts: `CTR-AUTH-SHUTDOWN-011`、`CTR-AUTH-SHUTDOWN-012`
@@ -2358,6 +2922,12 @@ GET unknown mc_*
 
 - Failure condition: 404、恢复或 claim 行为
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — `tests/v1-management-resolution.test.ts` AC-R3 用例；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-RESOLUTION-004 — Disabled principal（Legacy alias: AC-R4）
 
 - Contracts: `CTR-AUTH-SHUTDOWN-011`、`CTR-AUTH-SHUTDOWN-012`
@@ -2371,6 +2941,12 @@ GET unknown mc_*
 
 - Failure condition: 非 200 或任何 repair
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — `tests/v1-management-resolution.test.ts` AC-R4 用例；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-RESOLUTION-005 — Authorization（Legacy alias: AC-R5）
 
 - Contracts: `CTR-AUTH-SHUTDOWN-009`、`CTR-AUTH-SHUTDOWN-014`
@@ -2389,6 +2965,12 @@ Caller identity comes only from verified Token。
 
 - Failure condition: 任意错误身份被接受，或正确身份被错误 wire 拒绝
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — `tests/v1-management-resolution.test.ts` AC-R5 用例；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-RESOLUTION-006 — No introspection expansion（Legacy alias: AC-R6）
 
 - Contracts: `CTR-AUTH-SHUTDOWN-009`、`CTR-AUTH-SHUTDOWN-007`
@@ -2399,6 +2981,12 @@ Caller identity comes only from verified Token。
 - Failure condition: 任何非授权 caller 通过该 endpoint 获得
   authorization 决策输入
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — `tests/v1-management-resolution.test.ts` AC-R6 用例；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-RESOLUTION-007 — Concurrency（Legacy alias: AC-R7）
 
 - Contracts: `CTR-AUTH-SHUTDOWN-016`
@@ -2408,6 +2996,12 @@ Caller identity comes only from verified Token。
   external-ref claims = 0
 - Failure condition: 任何写入或身份漂移
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — `tests/v1-management-resolution.test.ts` AC-R7 并发用例；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-RESOLUTION-008 — Secret absence（Legacy alias: AC-R8）
 
 - Contracts: `CTR-AUTH-SHUTDOWN-015`
@@ -2424,6 +3018,12 @@ raw exception absent
 
 - Failure condition: 任何敏感字段出现
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — `tests/v1-management-resolution.test.ts` AC-R8 断言；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-RESOLUTION-009 — Mutating-function isolation（Legacy alias: AC-R9）
 
 - Contracts: `CTR-AUTH-SHUTDOWN-017`、`CTR-AUTH-SHUTDOWN-010`
@@ -2433,6 +3033,12 @@ raw exception absent
   backfill、Grant read/write；无第二 resolution Route/service
 - Failure condition: 任何 mutating import/call 或并行 surface
 
+- Coordinate binding: Profile = `SRC`；Evidence class =
+  `STATIC_IMPORT_CALL_GRAPH_PROBE`；command / probe = independent import/call-graph probe + `tests/v1-management-resolution.test.ts` AC-R9 断言；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-RESOLUTION-010 — Freshness after revoke（Legacy alias: AC-R10）
 
 - Contracts: `CTR-AUTH-SHUTDOWN-013`
@@ -2450,6 +3056,12 @@ raw exception absent
 
 - Failure condition: 任何缓存结果或 304
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — `tests/v1-management-resolution.test.ts` AC-R10 顺序用例；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-RESOLUTION-011 — Negative-cache prevention（Legacy alias: AC-R11）
 
 - Contracts: `CTR-AUTH-SHUTDOWN-013`
@@ -2466,6 +3078,12 @@ raw exception absent
 
 - Failure condition: 任何缓存结果或 304
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — `tests/v1-management-resolution.test.ts` AC-R11 顺序用例；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-RESOLUTION-012 — Exact error Wire（Legacy alias: AC-R12）
 
 - Contracts: `CTR-AUTH-SHUTDOWN-014`、`CTR-AUTH-SHUTDOWN-013`、
@@ -2530,6 +3148,12 @@ sensitive-field assertions 与上表全部 absence assertions，而不是仅在
 
 - Failure condition: 任何 wire/cache/sensitive-field 断言失败
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — `tests/v1-management-resolution.test.ts` AC-R12 逐状态断言；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-RESOLUTION-013 — Nullable Client external ref（Legacy alias: AC-R13）
 
 - Contracts: `CTR-AUTH-SHUTDOWN-011`、`CTR-AUTH-SHUTDOWN-016`
@@ -2548,6 +3172,12 @@ existing Client with externalRef=null
 - Failure condition: 非 200、任何 mutation 或 caller 分类未被外部
   authority 冻结时被本地替代
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — `tests/v1-management-resolution.test.ts` AC-R13 用例；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-RESOLUTION-014 — No mutation before State F classification（Legacy alias: AC-R14）
 
 - Contracts: `CTR-AUTH-SHUTDOWN-030`
@@ -2588,6 +3218,12 @@ duplicate identities = 0
 
 - Failure condition: 任何 classification 前 mutation
 
+- Coordinate binding: Profile = `XR`；Evidence class =
+  `CROSS_REPOSITORY_E2E_RECEIPT`；command / probe = Production Activation 的 exact fixed Agent Core SHA State F E2E receipt；
+  Persistent record = `XR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-RESOLUTION-015 — Route-local limiter Wire（Legacy alias: AC-R15）
 
 - Contracts: `CTR-AUTH-SHUTDOWN-018`
@@ -2611,6 +3247,12 @@ global limiter 没有被绕过（请求确实被 global limiter 拒绝）
 
 - Failure condition: limiter 绕过、wire 不精确或其他 endpoint 受影响
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — `tests/v1-management-resolution.test.ts` AC-R15 limiter 用例；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-RESOLUTION-016 — Route-local error non-impact（Legacy alias: AC-R16）
 
 - Contracts: `CTR-AUTH-SHUTDOWN-018`
@@ -2625,6 +3267,12 @@ resolution path 的普通 HttpError 不输出 {"message":...}
 
 - Failure condition: 任何非 resolution endpoint 的 error envelope 改变
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — `tests/v1-management-resolution.test.ts` AC-R16 用例；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 ### 10.2 Program-level acceptance
 
 #### ACC-AUTH-SHUTDOWN-001 — Static source gates
@@ -2653,6 +3301,12 @@ resolution path 的普通 HttpError 不输出 {"message":...}
   - 保留 dead data 字段不被 runtime 认证/签发/授权读取。
 - Failure condition: 任意静态断言失败
 
+- Coordinate binding: Profile = `SRC`；Evidence class =
+  `STATIC_SOURCE_ANALYSIS`；command / probe = `npm run verify` — `tests/oauth/v1-source-disposition.test.ts` 等静态断言；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-002 — Legacy Route gates
 
 - Contracts: `CTR-AUTH-SHUTDOWN-001`、`CTR-AUTH-SHUTDOWN-002`、
@@ -2676,6 +3330,12 @@ resolution path 的普通 HttpError 不输出 {"message":...}
 
 - Failure condition: 任何非 404 或兼容响应
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — Legacy route 404 HTTP probes；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-003 — State boundary gates
 
 - Contracts: `CTR-AUTH-SHUTDOWN-006`、`CTR-AUTH-SHUTDOWN-007`、
@@ -2694,6 +3354,12 @@ resolution path 的普通 HttpError 不输出 {"message":...}
     request。
 - Failure condition: 任意边界失效
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — `tests/oauth/v1-state-boundary.test.ts`；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-004 — Operator lifecycle seam gates
 
 - Contracts: `CTR-AUTH-SHUTDOWN-019`
@@ -2708,6 +3374,12 @@ resolution path 的普通 HttpError 不输出 {"message":...}
   - Lifecycle 不访问 flat fields、Grants 或 issuance。
 - Failure condition: 任意 lifecycle 断言失败
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — `tests/oauth/v1-lifecycle.test.ts`（host-local CLI）；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-005 — Backfill cutoff gates
 
 - Contracts: `CTR-AUTH-SHUTDOWN-020`、`CTR-AUTH-SHUTDOWN-021`
@@ -2721,18 +3393,30 @@ resolution path 的普通 HttpError 不输出 {"message":...}
   - Cut Artifact 不读取 flat fields。
 - Failure condition: 任何写路径存在
 
+- Coordinate binding: Profile = `DB`；Evidence class =
+  `STATIC_AND_SCRIPT_DATABASE_EVIDENCE`；command / probe = `npm run verify` — `tests/oauth/v1-readiness-readonly.test.ts` + readiness 输出；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-006 — Runtime fingerprint gates
 
 - Contracts: `CTR-AUTH-SHUTDOWN-022`、`CTR-AUTH-SHUTDOWN-026`
 - Method: `tests/oauth/v1-runtime-fingerprint.test.ts` 与
   Independent Acceptance Review 的 double-run
 - Expected result:
-  - Exact Git pins 与 1.2.0 内容一致。
+  - Exact Git pins 与 1.3.0 内容一致。
   - Prepare 连续两次，完整 source/runtime digest 分别一致。
   - 修改 pinned byte 后 gate 失败。
-  - Provider digest test 不接受旧 1.1.0 digest。
+  - Provider digest test 不接受旧 1.2.0/1.1.0 digest。
 - Failure condition: digest 不一致或可被旧 digest 通过
 
+- Coordinate binding: Profile = `SRC`；Evidence class =
+  `BUILD_DIGEST_DOUBLE_RUN`；command / probe = 连续两次 `node scripts/prepare-minimal-auth-v1.mjs` + `tests/oauth/v1-runtime-fingerprint.test.ts`；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-007 — Human session gates
 
 - Contracts: `CTR-AUTH-SHUTDOWN-006`、`CTR-AUTH-SHUTDOWN-008`
@@ -2748,6 +3432,12 @@ resolution path 的普通 HttpError 不输出 {"message":...}
   - 已签发 Access Token 仍只按 `exp` 失效。
 - Failure condition: 任意 session 断言失败
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — human session integration tests；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-008 — Idempotent mutating management gates
 
 - Contracts: `CTR-AUTH-SHUTDOWN-032`、`CTR-AUTH-SHUTDOWN-024`
@@ -2761,6 +3451,12 @@ resolution path 的普通 HttpError 不输出 {"message":...}
   - Secret 只在 Client creation 返回一次。
 - Failure condition: 任意 idempotency/shape 断言失败
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — idempotent management integration tests；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-009 — Repository verification command gates
 
 - Contracts: `CTR-AUTH-SHUTDOWN-033`
@@ -2768,14 +3464,32 @@ resolution path 的普通 HttpError 不输出 {"message":...}
 - Expected result: §CTR-033 所列 16 项全部纳入且通过
 - Failure condition: 任一项缺失或失败
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `VERIFICATION_COMMAND_RUN`；command / probe = `npm run verify`（§CTR-033 16 项）完整执行记录；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-010 — Production activation gate evidence
 
 - Contracts: `CTR-AUTH-SHUTDOWN-026`
 - Method: activation child receipt（跨环境证据）
-- Expected result: §CTR-026 全部 Gate PASS 且独立 Review PASS 后才更新
-  lifecycle 字段
-- Failure condition: 任何 Gate 缺失证据时字段被更新
+- Expected result: `AUTH_SERVICE_V1_PRODUCTION_ACTIVATION_V1` 收集
+  九门与全部 Gate 的 Evidence，创建
+  `MINIMAL_AUTH_FOUNDATION_V2_ACTIVATION_V1` Activation Record，
+  对 Record 完成独立审计，经 Owner acceptance 合入后，才由该有效
+  Record 投影 effective 字段并部署 Auth Cut Artifact；frozen
+  `1.3.0` manifest 与 accepted Contract literal 保持未被修改
+- Failure condition: 任何 Gate 缺失证据时 Record 被创建或 effective
+  字段被投影；manifest 或 accepted literal 被直接修改来表示
+  effective
 
+- Coordinate binding: Profile = `PROD`；Evidence class =
+  `ACTIVATION_RECEIPT`；command / probe = Production Activation Child 的 Gate evidence + Activation Record 审计；
+  Persistent record = `ACT`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-011 — Human administration children prerequisite
 
 - Contracts: `CTR-AUTH-SHUTDOWN-029`
@@ -2792,6 +3506,12 @@ resolution path 的普通 HttpError 不输出 {"message":...}
 - Failure condition: 无 Child / 坐标不匹配 / 占位名充当 authority 而
   activation 进行
 
+- Coordinate binding: Profile = `PROD`；Evidence class =
+  `ACTIVATION_PREREQUISITE_CHECK`；command / probe = activation 前置检查（两个 Human administration children 均存在、accepted、implemented、audited 且 exact Head 匹配）；
+  Persistent record = `ACT`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-012 — Cross-repository closure gates
 
 - Contracts: `CTR-AUTH-SHUTDOWN-030`
@@ -2799,6 +3519,12 @@ resolution path 的普通 HttpError 不输出 {"message":...}
 - Expected result: 三个 `GATE_AGENT_CORE_*` / State F gate 全 PASS
 - Failure condition: 任何跨仓库 gate 缺失
 
+- Coordinate binding: Profile = `XR`；Evidence class =
+  `CROSS_REPOSITORY_E2E_RECEIPT`；command / probe = 三个 `GATE_AGENT_CORE_*` / State F gate 的 fixed-SHA E2E receipt；
+  Persistent record = `XR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-013 — Public registration remains removed
 
 - Contracts: `CTR-AUTH-SHUTDOWN-031`
@@ -2807,6 +3533,12 @@ resolution path 的普通 HttpError 不输出 {"message":...}
   reset
 - Failure condition: 任何注册面出现
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — static + HTTP 注册面探针；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-014 — Rollback boundary verification
 
 - Contracts: `CTR-AUTH-SHUTDOWN-028`
@@ -2815,6 +3547,12 @@ resolution path 的普通 HttpError 不输出 {"message":...}
   whole-release 步骤
 - Failure condition: 任何 seam 存在
 
+- Coordinate binding: Profile = `RB`；Evidence class =
+  `ROLLBACK_SCAN_AND_DRILL`；command / probe = Cut Artifact static scan + whole-release rollback 演练记录；
+  Persistent record = `RB`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-015 — Completion definition gates
 
 - Contracts: `CTR-AUTH-SHUTDOWN-034`、`CTR-AUTH-SHUTDOWN-005`
@@ -2822,6 +3560,12 @@ resolution path 的普通 HttpError 不输出 {"message":...}
 - Expected result: §CTR-034 全部等式成立
 - Failure condition: 任何计数非零或 seam 状态不符
 
+- Coordinate binding: Profile = `PROD`；Evidence class =
+  `COMPLETION_CHECKLIST`；command / probe = §CTR-034 完成判定清单核对（含生产侧等式）；
+  Persistent record = `ACT`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-016 — Failure-closed behavior gates
 
 - Contracts: `CTR-AUTH-SHUTDOWN-027`
@@ -2829,6 +3573,12 @@ resolution path 的普通 HttpError 不输出 {"message":...}
 - Expected result: §CTR-027 每条规则按指定失败方式闭合
 - Failure condition: 任何 fail-open
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — fault-injection integration tests；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-017 — Token rejection gates
 
 - Contracts: `CTR-AUTH-SHUTDOWN-023`
@@ -2838,6 +3588,12 @@ resolution path 的普通 HttpError 不输出 {"message":...}
   按 exact binding 通过
 - Failure condition: 任何 rejected token 被接受
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `NEGATIVE_CONFORMANCE`；command / probe = `npm run verify` — `scripts/obo-conformance-negative.ts`；
+  Persistent record = `CONF`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-018 — Preserved public surface semantics
 
 - Contracts: `CTR-AUTH-SHUTDOWN-032`、`CTR-AUTH-SHUTDOWN-001`
@@ -2847,14 +3603,36 @@ resolution path 的普通 HttpError 不输出 {"message":...}
   不撤销已签发 Access Token
 - Failure condition: 任何保留 surface 语义漂移
 
+- Coordinate binding: Profile = `PROC`；Evidence class =
+  `INTEGRATION_TEST`；command / probe = `npm run verify` — preserved surface integration tests；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 #### ACC-AUTH-SHUTDOWN-019 — Source disposition gates
 
 - Contracts: `CTR-AUTH-SHUTDOWN-025`
-- Method: `tests/oauth/v1-source-disposition.test.ts`
-- Expected result: deleted Legacy modules/scripts/exports absent；
-  CREATE 文件存在；封闭文件集合之外的文件未被 resolution seam 修改
-- Failure condition: disposition 偏离 manifest
+- Method: Runtime Child 在其 exact implementation Base 上产生的
+  closed manifest（完整 `git ls-files` inventory + 全部
+  disposition/owning child/impact）+ 独立 exact-revision review +
+  `tests/oauth/v1-source-disposition.test.ts`
+- Expected result: Runtime Child 的 exact closed manifest 覆盖其
+  Base 上全部 tracked path（含 §25.0 所列
+  `CURRENT_BASE_NEW_TRACKED_PATH_EVIDENCE` 与其后任何新增 path）；
+  deleted Legacy modules/scripts/exports absent；CREATE 文件存在；
+  实现 diff 与 manifest 零偏离；闭集之外的文件未被
+  shutdown/resolution 修改；§25.1–§25.11 历史表未被当作 exact
+  manifest 使用，历史 149 项未被当作当前 Base 的封闭集
+- Failure condition: Runtime Child 未产生 manifest、manifest 未覆盖
+  全部 path、manifest 与实现 diff 偏离、闭集外文件被修改、或历史
+  调查数字被误用为 exact manifest
 
+- Coordinate binding: Profile = `SRC`；Evidence class =
+  `EXACT_REVISION_MANIFEST_REVIEW`；command / probe = Runtime Child exact closed manifest + 独立 exact-revision review + `tests/oauth/v1-source-disposition.test.ts`；
+  Persistent record = `PR`。执行时必须记录：exact accepted
+  Spec revision、exact implementation commit、environment identity、
+  configuration identity、database identity、`observed_at`
+  （写入该 persistent record；缺失任一坐标不构成 Evidence）。
 ### 10.3 Contract → Acceptance coverage table
 
 | Contract | Acceptance coverage |
@@ -2986,28 +3764,29 @@ resolution path 的普通 HttpError 不输出 {"message":...}
 
 ### ALT-AUTH-SHUTDOWN-016 —（Legacy alias: P）Auth Spec 单方面宣布 Agent Core State F 已关闭
 
-- Related decision: `CTR-AUTH-SHUTDOWN-030`（authority limit）
+- Related decision: `DEC-AUTH-SHUTDOWN-015`
 - Disposition: rejected。caller sequencing 由 Agent Core accepted
   authority 治理；必须原地 amendment 并获得 fixed-SHA E2E evidence。
 
 ### ALT-AUTH-SHUTDOWN-017 —（Legacy alias: Q）Cache successful or missing resolution
 
-- Related decision: `CTR-AUTH-SHUTDOWN-013`
+- Related decision: `DEC-AUTH-SHUTDOWN-010`
 - Disposition: rejected。active/revoked/missing 是时变状态；任何正缓存
   或负缓存都会破坏 mutation-before-current-state-check。
 
 ### ALT-AUTH-SHUTDOWN-018 —（Legacy alias: R）`client_external_ref=null` 返回 5xx
 
-- Related decision: `CTR-AUTH-SHUTDOWN-011`
+- Related decision: `DEC-AUTH-SHUTDOWN-017`
 - Disposition: rejected。当前正式数据模型允许 null/unbound 状态；纯只读
   seam 应返回事实。Caller 将其判为 mismatch/State F，Auth 不在 read
   path claim 或 repair。
 
 ### ALT-AUTH-SHUTDOWN-019 —（Legacy alias: S）复用普通 `{message:...}` HttpError envelope
 
-- Related decision: `CTR-AUTH-SHUTDOWN-014`
+- Related decision: `DEC-AUTH-SHUTDOWN-018`
 - Disposition: rejected。caller 需要可执行、稳定、无歧义的 management
-  error Wire。
+  error Wire；该 Wire 是 route-local exact-path policy，不得推广为
+  全服务 envelope。
 
 ## 12. Migration, compatibility, and rollback
 
@@ -3022,25 +3801,88 @@ resolution path 的普通 HttpError 不输出 {"message":...}
 - 本迁移不改产品语义；如实现期发现真实语义矛盾，不得静默修复，必须
   报告 `GOVERNANCE_MIGRATION_SEMANTIC_CONFLICT = YES` 并由 Owner 另行
   amendment。
+- V2 parent realignment amendment：本 Spec 的 evaluated base 为
+  `f5c2305b46020ad907cf5c4a93c0cb8ffca5b95e`（parent V2 merge
+  `37edaa6f...` 已包含），parent authority 切换为 accepted
+  `MINIMAL_AUTH_FOUNDATION_V2`（先行 human administration authority
+  split amendment `7a2a499...` 完成拆分，本 amendment 保留其全部
+  语义），外部 authority 重绑定为 `d83a2ff0...`，并完成五个 review
+  blocker 的修订（见 §0 与 PR body 的 blocker closure map）。本
+  realignment 亦不改产品语义。
 
-### 12.2 `v0-to-v1-migration.md` superseded sequencing clauses
+### 12.2 Parent V2 拥有的 migration sequencing（无 partial supersession）
 
-| Source clause | Superseded meaning | Replacement |
-|---|---|---|
-| §7 Phase 3：`不静默删除 Legacy` | Cut Artifact 继续携带 Legacy runtime | Cut Artifact 直接删除 Legacy runtime；由 accepted Spec、Consumer Gate 与 Release Gate 授权 |
-| §8：迁移窗口可存在受控双协议 | 单一 Artifact 保留 V0/V1 mode | 不存在双协议 Artifact、mode switch 或 per-request fallback |
-| §8：每种模式独立遥测并设置截止日期 | runtime mode 维持兼容窗口 | Consumer 与 Legacy traffic evidence 在 PRE_CUT 完成 |
-| §7 Phase 5：Legacy 流量为零后再删除 | 在携带 Legacy 代码的新 Artifact 中观察零流量 | 部署 Cut Artifact 前以旧 Artifact telemetry、inventory 与 fixed-SHA evidence 证明 |
-| §6 与 1.2.0 Consumer Matrix 不一致的范围/分类 | 历史 inventory 继续作为当前 authority | 当前 Consumer Matrix 与 Production Activation fixed-SHA evidence 为 authority |
+```text
+PARTIAL_SUPERSESSION = NONE
+MIGRATION_SEQUENCING_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V2
+```
 
-以下不被 supersede：
+本 Program 不再通过 prose 对
+`docs/contracts/minimal-auth-v1/v0-to-v1-migration.md` 或任何 V1
+文档做 prose-only partial supersession。`MINIMAL_AUTH_FOUNDATION_V1`
+是 `SUPERSEDED_HISTORICAL_AUTHORITY`；V1 root、modules 与
+Contract Bundle `1.3.0` 是
+`V2_EXACT_INCORPORATED_HISTORICAL_PROVENANCE`。migration /
+hard-cut / sequencing 方向由 accepted V2 拥有（`DEC-MAFV2-004` 至
+`DEC-MAFV2-006`、`CTR-MAFV2-002`、`CTR-MAFV2-011`）；本 Program
+的硬切产品方向与 Parent 一致并受其约束：
 
-- V1 在 Production Activation gates 全通过前不生产生效；
-- 不得仅因文档、单测或局部代码完成宣布 effective；
-- 不新增 V0 Consumer；
-- Wire claims compatibility 决定继续有效；
-- 不允许 per-request algorithm/audience/profile fallback；
-- 全部门禁通过前，V0 仍是当前生产 governing contract。
+```text
+LEGACY_MIGRATION_WINDOW = NONE
+NEW_DUAL_PROTOCOL_ARTIFACT = FORBIDDEN
+POST_CUT_COMPATIBILITY_WINDOW = NONE
+PER_REQUEST_FALLBACK = NONE
+CUT_ARTIFACT = V1_ONLY
+ROLLBACK = WHOLE_RELEASE_ONLY
+```
+
+其中 `LEGACY_MIGRATION_WINDOW = NONE` 仅作为
+`NEW_OR_POST_CUT_COMPATIBILITY_WINDOW = NONE` 的 shorthand（与
+`CTR-MAFV2-002` 一致）；它 MUST NOT 否定 PRE_CUT consumer
+migration period 与 legacy-traffic evidence window。
+
+Consumer dependency 必须分类（与 `CTR-MAFV2-011` 一致）：
+
+```text
+PRE_CUT_EXISTING_SURFACE =
+  available on EXISTING_DEPLOYED_LEGACY_CARRYING_ARTIFACT
+CUT_INTRODUCED_SURFACE =
+  first available only in V1_ONLY Cut Artifact
+GET /api/v1/clients/:client_id = CUT_INTRODUCED_SURFACE
+```
+
+不可变顺序：
+
+1. build V1-only Cut Artifact；
+2. 在 isolated/staging 启动真实 Cut candidate（绝不是 pre-gate
+   production deployment）；
+3. fixed-SHA Agent Core caller 对该 candidate 完成 State F E2E；
+4. 生产 PRE_CUT existing-surface Consumers 完成迁移；
+5. 证明 Legacy traffic zero（冻结窗口）；
+6. 部署 Auth Cut Artifact；
+7. 验证 Cut-only endpoint ready；
+8. 激活依赖该 endpoint 的 fixed-SHA caller artifact；
+9. mainline reconformance；
+10. 创建并接受 Activation Record（仅当全部 gate 通过）。
+
+必须区分：
+
+```text
+IMPLEMENTATION_AND_CONFORMANCE_READY
+  ≠ PRODUCTION_CALLER_ACTIVATED
+```
+
+`ALL_REQUIRED_MIGRATIONS_COMPLETE` 只断言前者加上 PRE_CUT consumer
+迁移完成；Cut-only caller 的生产激活只在第 8 步发生。本顺序 MUST
+NOT 引入新的 dual-protocol artifact、mode switch、per-request
+fallback、pre-cut Cut-candidate 生产部署或 post-cut compatibility
+window。
+
+V0 frozen contracts（`WORKFLOW_RS256_MACHINE_TOKEN_JWKS_V0` 与
+`WORKFLOW_AGENT_OBO_TOKEN_EXCHANGE_V0`）继续治理生产，直到有效
+V2 Activation Record 证明全部九门完成；不得仅因文档、单测或局部
+代码完成宣布 effective；不允许 per-request
+algorithm/audience/profile fallback；不新增 V0 Consumer。
 
 ### 12.3 Compatibility 与 rollback
 
@@ -3101,10 +3943,14 @@ AUTH_SERVICE_SIDE_STATE_F_PREREQUISITE =
   RESOLVED_AT_SPEC_LEVEL
 
 STATE_F_END_TO_END_IMPLEMENTABILITY =
-  BLOCKED_BY_AGENT_CORE_CALLER_SPEC_ALIGNMENT
+  BLOCKED_BY_EXTERNAL_CALLER_ALIGNMENT
 
-STATE_F_IMPLEMENTABILITY_BLOCKER =
-  NOT_FULLY_RESOLVED
+STATE_F_GATE_CLOSED = NO
+
+PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V2
+PARENT_AUTHORITY_STATUS = accepted
+PARENT_PRODUCTION_EFFECTIVE = NO
+CURRENT_MINIMAL_AUTH_CONTRACT_VERSION = 1.3.0
 
 SPEC_STATUS = proposed
 SPEC_MERGE_READY = NO
