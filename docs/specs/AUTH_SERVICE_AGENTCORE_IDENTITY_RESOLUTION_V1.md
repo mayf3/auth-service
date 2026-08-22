@@ -13,6 +13,10 @@ external_authorities:
     authority_id: AGENT_CORE_AGENT_CREDENTIAL_PROVISIONING_V1
     revision: d83a2ff0e9644611707d7481ef88b4d7d49fb68e
     relation: interoperates_with
+  - repository: mayf3/dsh-agent-core
+    authority_id: AGENT_CORE_BINDING_WORKSPACE_V1
+    revision: d83a2ff0e9644611707d7481ef88b4d7d49fb68e
+    relation: constrained_by
 supersedes: []
 superseded_by: null
 owners:
@@ -24,9 +28,11 @@ owners:
 ## 1. Goal
 
 Establish one bounded, authenticated, deterministic, **read-only** Auth identity
-resolution seam for Agent Core deterministic `external_ref` values so trusted
-operators can observe whether the exact Principal and Client already exist before any
-credential provisioning or reconciliation decision.
+discovery seam for Agent Core deterministic `external_ref` values so trusted operators
+can observe whether the exact Principal and Client already exist before any credential
+provisioning or reconciliation decision. This discovery seam does not replace fresh
+resolution of a known stored Client ID through the parent-authority route
+`GET /api/v1/clients/:client_id`.
 
 This Spec authorizes **no implementation while proposed**. After independent review,
 Owner acceptance, and merge to `main`, its Contracts may authorize only the exact
@@ -39,6 +45,9 @@ principal external_ref = agentcore:v1:principal:<agent_id>
 client external_ref    = agentcore:v1:client:<agent_id>
 
 QUERY_ONLY = YES
+EXTERNAL_REF_IDENTITY_DISCOVERY = PROVIDED_BY_THIS_SPEC
+KNOWN_CLIENT_ID_FRESH_RESOLUTION = REMAINS_GOVERNED_BY_PARENT_AUTHORITY
+PHASE_B_COMPLETE = NO_UNLESS_ALL_OTHER_ACCEPTED_PREREQUISITES_ARE_SATISFIED
 IDENTITY_MUTATION = FORBIDDEN
 CLIENT_SECRET_RETURN = FORBIDDEN
 GRANT_QUERY_OR_MUTATION = OUT_OF_SCOPE
@@ -76,6 +85,9 @@ credential readiness, Grant readiness, or implementation authorization.
   lookup;
 - production deployment, production database migration, production data apply, or
   Trusted Fleet Cutover execution;
+- replacing or redefining parent-authority fresh resolution of a known `stored.clientId`
+  through `GET /api/v1/clients/:client_id`;
+- declaring Phase B complete merely because external-ref identity discovery exists;
 - changing `AGENT_CORE_AGENT_CREDENTIAL_PROVISIONING_V1` Phase A / Phase B semantics;
 - expanding Agent existence authority beyond Agent Definition.
 
@@ -87,6 +99,7 @@ AUTHORITY_BRANCH = main
 PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V2 (accepted)
 PROCESS_AUTHORITY = AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1 (accepted)
 EXTERNAL_INTEROP_AUTHORITY = AGENT_CORE_AGENT_CREDENTIAL_PROVISIONING_V1
+EXTERNAL_GRAMMAR_AUTHORITY = AGENT_CORE_BINDING_WORKSPACE_V1
 EXTERNAL_REVISION = d83a2ff0e9644611707d7481ef88b4d7d49fb68e
 ```
 
@@ -96,8 +109,12 @@ implementation round for a new read-only API surface. Repository-local governanc
 requires a merged accepted governing Spec with `implementation_authority: contracts`
 for non-mechanical identity/API work. Therefore this new bounded Child is required.
 
-The external Agent Core authority requires read-only Auth client resolution before
-Phase B existing-credential reconciliation; this Spec interoperates with that need but
+The external Agent Core authority requires read-only Auth resolution before Phase B
+existing-credential reconciliation. This Spec provides only the discovery direction
+`agent_id -> deterministic external_ref -> Principal/Client identity observation`.
+The parent Minimal Auth authority continues to govern the separate fresh-resolution
+direction `stored.clientId -> GET /api/v1/clients/:client_id`. This Spec neither replaces
+that route nor, by itself, closes every Phase B credential-resolution prerequisite. It
 does not grant Agent Core implementation or fleet mutation authority.
 
 Authentication reuses the existing management boundary:
@@ -123,8 +140,18 @@ new mutation; the two routes below remain query-only.
 
 - `STATE-RES-003` — `AGENT_CORE_AGENT_CREDENTIAL_PROVISIONING_V1` at accepted
   revision `d83a2ff0e9644611707d7481ef88b4d7d49fb68e` freezes Phase B existing-credential
-  reconciliation as requiring read-only Auth resolution before S1/S2 or store writes.
-  Basis: `OBS-RES-003`, `CLM-RES-002`.
+  reconciliation as requiring read-only Auth resolution before S1/S2 or store writes;
+  its known-credential path requires fresh resolution of `stored.clientId`. Basis:
+  `OBS-RES-003`, `CLM-RES-002`, `CLM-RES-003`.
+
+- `STATE-RES-004` — At the same accepted Agent Core revision, the actual Agent ID
+  validation contract used by Agent Core's workspace identity seam accepts one ASCII
+  safe component over `[A-Za-z0-9_-]` with length `1..200` and rejects rather than
+  reshapes invalid input. Basis: `OBS-RES-004`, `CLM-RES-004`.
+
+- `STATE-RES-005` — Parent authority `MINIMAL_AUTH_FOUNDATION_V2` continues to govern
+  `GET /api/v1/clients/:client_id` as the fresh resolution surface for a known public
+  Client ID. Basis: `OBS-RES-005`, `CLM-RES-003`.
 
 ## 5. Observations
 
@@ -157,10 +184,36 @@ new mutation; the two routes below remain query-only.
 - Source revision: `mayf3/dsh-agent-core@d83a2ff0e9644611707d7481ef88b4d7d49fb68e`.
 - Environment: accepted external governing Spec.
 - Observed at: `2026-08-22`.
-- Method: inspect accepted Phase A / Phase B boundary.
+- Method: inspect accepted Phase A / Phase B boundary and D.7.3.
 - Result: Phase B existing credential reconciliation requires Auth read-only resolution
-  before S1/S2 and before store mutation; current absence is explicitly a blocker.
+  before S1/S2 and before store mutation; the known-credential path specifically requires
+  fresh resolution of `stored.clientId`; current absence is explicitly a blocker.
 - Provenance: external accepted Spec at exact revision.
+
+### OBS-RES-004 — Agent Core has an existing authoritative Agent ID grammar
+
+- Subject: accepted `AGENT_CORE_BINDING_WORKSPACE_V1` `SANITIZE_REUSABLE` contract and
+  `WorkspaceIdValidation`, which explicitly reuse the Agent ID safe-component grammar.
+- Source revision: `mayf3/dsh-agent-core@d83a2ff0e9644611707d7481ef88b4d7d49fb68e`.
+- Environment: accepted external governing Spec.
+- Observed at: `2026-08-22`.
+- Method: inspect the accepted grammar and its named `sanitizeAgentId` authority seam.
+- Result: a legal Agent ID is an ASCII string of length `1..200` containing only
+  `[A-Za-z0-9_-]`; invalid, whitespace, separator, dot, NUL, absolute, and overlong inputs
+  are rejected without truncation, reshaping, or normalization.
+- Provenance: accepted `AGENT_CORE_BINDING_WORKSPACE_V1` at the exact pinned revision;
+  named implementation seam `packages/workspace-bootstrap/src/paths.js`.
+
+### OBS-RES-005 — Parent authority owns known-Client-ID resolution
+
+- Subject: `MINIMAL_AUTH_FOUNDATION_V2` `CTR-MAFV2-011`.
+- Source revision: parent authority incorporated by this Spec's reviewed base.
+- Environment: accepted local Architecture authority.
+- Observed at: `2026-08-22`.
+- Method: inspect the frozen Cut-introduced surface classification.
+- Result: `GET /api/v1/clients/:client_id` remains the named resolution surface for a
+  known public Client ID; this Child does not supersede that parent Contract.
+- Provenance: `docs/contracts/minimal-auth-v2/MINIMAL_AUTH_FOUNDATION_V2.md`.
 
 ## 6. Claims and assumptions
 
@@ -171,13 +224,30 @@ new mutation; the two routes below remain query-only.
 - Contradicted by evidence: none known.
 - Uncertainty: none for the exact observed source revision.
 
-### CLM-RES-002 — A bounded exact-key GET seam closes the observation blocker without expanding mutation authority
+### CLM-RES-002 — A bounded exact-key GET seam provides external-ref identity discovery without expanding mutation authority
 
 - Support state: SUPPORTED.
 - Supported by evidence: `EVD-RES-002`, `EVD-RES-003`.
 - Contradicted by evidence: none known.
-- Uncertainty: future implementation still requires exact-revision independent review
-  and conformance; this Claim does not declare production deployment.
+- Uncertainty: this seam does not replace known-Client-ID fresh resolution and does not,
+  by itself, complete Phase B; future implementation still requires exact-revision
+  independent review and conformance, and this Claim does not declare production deployment.
+
+### CLM-RES-003 — Parent known-Client-ID fresh resolution remains independently required
+
+- Support state: SUPPORTED.
+- Supported by evidence: `EVD-RES-003`, `EVD-RES-005`.
+- Contradicted by evidence: none known.
+- Uncertainty: Phase B completion additionally depends on every other prerequisite of the
+  accepted external authority; this Child evaluates none of those prerequisites.
+
+### CLM-RES-004 — Reusing the existing Agent ID grammar avoids a conflicting identity language
+
+- Support state: SUPPORTED.
+- Supported by evidence: `EVD-RES-004`.
+- Contradicted by evidence: none known.
+- Uncertainty: a future Agent Core authority may version the grammar; such a change would
+  require a separately reviewed Spec update rather than permissive interpretation here.
 
 ## 7. Evidence relations
 
@@ -202,15 +272,37 @@ new mutation; the two routes below remain query-only.
   produces more than one row.
 - Provenance: Prisma schema.
 
-### EVD-RES-003 — External Phase B need supports the bounded seam
+### EVD-RES-003 — External Phase B need supports bounded discovery but preserves the separate known-ID prerequisite
 
 - Source observations: `OBS-RES-003`.
-- Target: `CLM-RES-002`, `STATE-RES-003`.
+- Target: `CLM-RES-002`, `CLM-RES-003`, `STATE-RES-003`.
 - Relation: SUPPORTS.
 - Bound coordinates: `dsh-agent-core@d83a2ff0e9644611707d7481ef88b4d7d49fb68e`.
 - Strength/sufficiency: direct accepted external authority.
-- Limitations: does not grant local auth-service implementation authority.
+- Limitations: supports external-ref discovery as one seam only; does not prove known-ID
+  fresh resolution, complete Phase B, or grant local auth-service implementation authority.
 - Provenance: external accepted Spec.
+
+### EVD-RES-004 — Exact Agent Core validator supports one frozen input grammar
+
+- Source observations: `OBS-RES-004`.
+- Target: `CLM-RES-004`, `STATE-RES-004`.
+- Relation: SUPPORTS.
+- Bound coordinates: `dsh-agent-core@d83a2ff0e9644611707d7481ef88b4d7d49fb68e`.
+- Strength/sufficiency: direct exact-revision validator plus matching accepted Spec record.
+- Limitations: does not authorize Auth to broaden, normalize, or version Agent IDs.
+- Provenance: named external source and accepted Spec at the pinned revision.
+
+### EVD-RES-005 — Parent Contract preserves known-Client-ID resolution authority
+
+- Source observations: `OBS-RES-005`.
+- Target: `CLM-RES-003`, `STATE-RES-005`.
+- Relation: SUPPORTS.
+- Bound coordinates: accepted local parent authority on the reviewed base.
+- Strength/sufficiency: direct parent Contract.
+- Limitations: does not assert implementation, deployment, readiness, or satisfaction of
+  any external Phase B prerequisite.
+- Provenance: `MINIMAL_AUTH_FOUNDATION_V2` `CTR-MAFV2-011`.
 
 ## 8. Decisions
 
@@ -224,8 +316,10 @@ new mutation; the two routes below remain query-only.
   GET /api/v1/clients/by-external-ref?external_ref=<exact>
   ```
 
-  Both routes use `v1ManagementAuth`. They are query-only and accept exactly one
-  `external_ref` per request.
+  Both routes use `v1ManagementAuth`. They are query-only. The complete query string
+  MUST contain exactly one key named `external_ref` with exactly one scalar value; a
+  missing, duplicated, multi-value, or additional query parameter is rejected before
+  identity lookup.
 - Rejected alternative: use POST `createOrGet*` as a query.
 - Reason: observation must never create, claim, update, rotate, or otherwise mutate.
 
@@ -233,10 +327,15 @@ new mutation; the two routes below remain query-only.
 
 - Decision owner: `mayf3`.
 - Decision:
-  - Principal route accepts only prefix `agentcore:v1:principal:` followed by a
-    non-empty Agent ID suffix.
-  - Client route accepts only prefix `agentcore:v1:client:` followed by a non-empty
-    Agent ID suffix.
+  - Reuse the current Agent Core `sanitizeAgentId` contract at pinned external revision
+    `d83a2ff0e9644611707d7481ef88b4d7d49fb68e`: `agent_id` is ASCII
+    `[A-Za-z0-9_-]`, length `1..200`, with rejection rather than normalization.
+  - Principal route accepts only
+    `agentcore:v1:principal:<valid-agent-id>`.
+  - Client route accepts only
+    `agentcore:v1:client:<valid-agent-id>`.
+  - Empty/whitespace values, `*`, wildcard syntax, extra colon, malformed or cross-kind
+    prefixes, and every suffix outside the frozen Agent ID grammar are invalid.
   - Matching is exact string equality only.
 - Rejected alternative: generic arbitrary external-ref search, prefix scan, fuzzy
   search, list, or batch lookup.
@@ -267,6 +366,29 @@ new mutation; the two routes below remain query-only.
 - Rejected alternative: introduce `auth.identity.read` in this Child.
 - Reason: a new Scope would widen Contract surface beyond the minimum observation seam.
 
+### DEC-RES-006 — Query failures are fail-loud and never ABSENT
+
+- Decision owner: `mayf3`.
+- Decision: only a successful query returning zero exact rows is `ABSENT`. Database,
+  timeout, query, and internal failures return explicit errors and MUST NOT be caught,
+  translated, or presented as HTTP 404 or `ABSENT`.
+- Rejected alternative: fail-safe-to-empty lookup.
+- Reason: absence is identity evidence; fabricating it from an unknown query outcome can
+  drive incorrect credential reconciliation.
+
+### DEC-RES-007 — Preserve parent authority for known-Client-ID fresh resolution
+
+- Decision owner: `mayf3`.
+- Decision: this Child provides only
+  `agent_id -> deterministic external_ref -> read-only identity discovery`.
+  `stored.clientId -> GET /api/v1/clients/:client_id` remains governed by
+  `MINIMAL_AUTH_FOUNDATION_V2`; Phase B is not complete unless that and every other
+  accepted prerequisite are simultaneously satisfied.
+- Rejected alternative: claim that external-ref discovery replaces known-ID resolution
+  or independently completes Phase B.
+- Reason: a discovery key and a stored public Client ID are distinct resolution inputs
+  under distinct authority paths.
+
 ## 9. Contracts
 
 ### CTR-RES-001 — Exact read-only route surface
@@ -279,16 +401,31 @@ GET /api/v1/principals/by-external-ref?external_ref=<exact>
 GET /api/v1/clients/by-external-ref?external_ref=<exact>
 ```
 
-Both MUST use `v1ManagementAuth`. No anonymous, list, bulk, prefix, wildcard, fuzzy, or
-POST-as-query path is authorized.
+Both MUST use `v1ManagementAuth`. The query object MUST have exactly one own key,
+`external_ref`, whose value MUST be exactly one scalar string. Missing `external_ref`,
+duplicate `external_ref`, parser-produced array/multi-value input, or any unexpected extra
+query parameter MUST return `400 {"error":"INVALID_QUERY_PARAMETERS"}` before identity
+lookup. No anonymous, list, bulk, prefix, wildcard, fuzzy, or POST-as-query path is
+authorized.
 
 ### CTR-RES-002 — Deterministic external-ref validation
 
-The Principal route MUST accept only exact strings of the form
-`agentcore:v1:principal:<non-empty-agent-id>`. The Client route MUST accept only exact
-strings of the form `agentcore:v1:client:<non-empty-agent-id>`. Invalid or cross-kind
-refs MUST return `400 {"error":"INVALID_EXTERNAL_REF"}` and MUST perform zero identity
-mutation.
+The Agent ID grammar MUST reuse the existing Agent Core `sanitizeAgentId` contract at
+pinned revision `d83a2ff0e9644611707d7481ef88b4d7d49fb68e`:
+
+```text
+agent_id = 1*200( ALPHA / DIGIT / "_" / "-" )
+ALPHA    = ASCII "A".."Z" / "a".."z"
+DIGIT    = ASCII "0".."9"
+NORMALIZATION = FORBIDDEN
+```
+
+The Principal route MUST accept only
+`agentcore:v1:principal:<valid-agent-id>`. The Client route MUST accept only
+`agentcore:v1:client:<valid-agent-id>`. Empty or whitespace input, `*`, wildcard syntax,
+extra colon, malformed prefix, cross-kind prefix, non-ASCII input, overlong input, and any
+suffix outside the grammar MUST return `400 {"error":"INVALID_EXTERNAL_REF"}` before
+identity lookup and MUST perform zero identity mutation.
 
 ### CTR-RES-003 — Closed response projections
 
@@ -321,16 +458,31 @@ Client `PRESENT` MUST return exactly:
 
 No additional properties are authorized.
 
-### CTR-RES-004 — Explicit ABSENT
+### CTR-RES-004 — ABSENT is only a successful zero-match result
 
-When zero exact rows exist, the corresponding route MUST return HTTP 200 with exactly:
+Only when a successfully completed exact-equality query returns zero rows MUST the
+corresponding route return HTTP 200 with exactly:
 
 ```json
 {"state":"ABSENT"}
 ```
 
-ABSENT MUST NOT trigger create, claim, repair, rotation, fallback, legacy lookup, or
-secondary heuristic search.
+The outcome mapping is frozen:
+
+```text
+ZERO_MATCH     = ABSENT
+DB_ERROR       = FAIL_LOUD
+TIMEOUT        = FAIL_LOUD
+QUERY_FAILURE  = FAIL_LOUD
+INTERNAL_ERROR = FAIL_LOUD
+```
+
+A query timeout MUST return `504 {"error":"IDENTITY_RESOLUTION_TIMEOUT"}`. Any other
+database, query, or internal resolution failure MUST return
+`500 {"error":"IDENTITY_RESOLUTION_QUERY_FAILED"}`. No exception or rejected query
+operation may be caught and translated to HTTP 404, HTTP 200 `ABSENT`, an empty row set,
+or an identity-not-found result. ABSENT MUST NOT trigger create, claim, repair, rotation,
+fallback, legacy lookup, or secondary heuristic search.
 
 ### CTR-RES-005 — Ambiguity fail-loud
 
@@ -355,12 +507,21 @@ arrays, access Grants, rotation metadata, token material, or credential material
 Principal resolution MUST explicitly select only `id`, `principalType`, `agentId`, and
 `externalRef`.
 
-### CTR-RES-008 — Presence is observation, not authority
+### CTR-RES-008 — Discovery is observation, not complete resolution authority
 
 `PRESENT` or `ABSENT` MUST NOT be interpreted by this API as Agent existence authority,
 credential readiness, Grant readiness, activation, production cutover readiness, or
-permission to mutate. The caller owns later classification under its own accepted
-authority.
+permission to mutate. This Child's authority is exactly:
+
+```text
+EXTERNAL_REF_IDENTITY_DISCOVERY = PROVIDED_BY_THIS_SPEC
+KNOWN_CLIENT_ID_FRESH_RESOLUTION = REMAINS_GOVERNED_BY_PARENT_AUTHORITY
+PHASE_B_COMPLETE = NO, unless all other accepted prerequisites are simultaneously satisfied
+```
+
+The routes in this Child MUST NOT replace, alias, or claim authority over
+`stored.clientId -> GET /api/v1/clients/:client_id`. The caller owns later classification
+under its own accepted authority.
 
 ### CTR-RES-009 — Closed future implementation scope
 
@@ -396,11 +557,15 @@ and their semantics MUST remain unchanged.
 ### ACC-RES-002 — Principal ABSENT has zero mutation
 
 - Contracts: `CTR-RES-004`, `CTR-RES-006`.
-- Method: query an unused valid deterministic Principal ref and compare DB before/after.
+- Method: complete a successful exact query for an unused valid deterministic Principal
+  ref and compare DB before/after.
 - Environment: disposable test database.
-- Required evidence: request/response plus row-count/snapshot equivalence.
-- Expected result: HTTP 200 `{"state":"ABSENT"}` and byte/row-equivalent identity state.
-- Failure condition: any created/claimed/updated object or non-ABSENT response.
+- Required evidence: request/response, successful zero-row query result, and
+  row-count/snapshot equivalence.
+- Expected result: successful zero match returns HTTP 200 `{"state":"ABSENT"}` and
+  byte/row-equivalent identity state.
+- Failure condition: any created/claimed/updated object, non-ABSENT response, or ABSENT
+  produced without a successful zero-row query.
 
 ### ACC-RES-003 — Client PRESENT relationship projection
 
@@ -414,11 +579,15 @@ and their semantics MUST remain unchanged.
 ### ACC-RES-004 — Client ABSENT has zero mutation
 
 - Contracts: `CTR-RES-004`, `CTR-RES-006`.
-- Method: query an unused valid deterministic Client ref and compare DB before/after.
+- Method: complete a successful exact query for an unused valid deterministic Client ref
+  and compare DB before/after.
 - Environment: disposable test database.
-- Required evidence: request/response plus identity snapshot equivalence.
-- Expected result: HTTP 200 `{"state":"ABSENT"}` and zero writes.
-- Failure condition: any mutation or heuristic fallback.
+- Required evidence: request/response, successful zero-row query result, and identity
+  snapshot equivalence.
+- Expected result: successful zero match returns HTTP 200 `{"state":"ABSENT"}` and zero
+  writes.
+- Failure condition: any mutation, heuristic fallback, or ABSENT produced without a
+  successful zero-row query.
 
 ### ACC-RES-005 — Ambiguous result fails loud
 
@@ -429,14 +598,23 @@ and their semantics MUST remain unchanged.
 - Expected result: 409 `IDENTITY_RESOLUTION_AMBIGUOUS`, writes = 0.
 - Failure condition: a row is selected or state is mutated.
 
-### ACC-RES-006 — Invalid/cross-kind ref fails before query
+### ACC-RES-006 — Input grammar and single query parameter are enforced before query
 
-- Contracts: `CTR-RES-002`.
-- Method: test empty, malformed, wildcard, prefix-only, and cross-kind refs.
+- Contracts: `CTR-RES-001`, `CTR-RES-002`.
+- Method: positive boundary tests for Agent ID lengths 1 and 200 plus negative tests for
+  empty, whitespace, `*`, wildcard, extra colon, malformed prefix, prefix-only,
+  cross-kind, non-ASCII, and length 201 refs; separately test missing `external_ref`,
+  duplicate `external_ref`, parser-produced multi-value input, and every unexpected extra
+  query parameter.
 - Environment: test process.
-- Required evidence: query call count and response matrix.
-- Expected result: exact `INVALID_EXTERNAL_REF`, identity query count = 0, writes = 0.
-- Failure condition: DB identity lookup or mutation occurs.
+- Required evidence: exact request matrix, parser-visible query shape, query call count,
+  and response matrix.
+- Expected result: exactly one valid scalar `external_ref` reaches identity lookup;
+  invalid refs return exact `INVALID_EXTERNAL_REF`; query cardinality/shape violations
+  return exact `INVALID_QUERY_PARAMETERS`; identity query count = 0 and writes = 0 for
+  every rejected request.
+- Failure condition: invalid syntax, duplicate/multi-value/additional input reaches DB
+  lookup, any invalid request is accepted or normalized, or any mutation occurs.
 
 ### ACC-RES-007 — Authentication boundary is reused exactly
 
@@ -480,6 +658,35 @@ and their semantics MUST remain unchanged.
   unchanged; production change = none.
 - Failure condition: fourth file, schema/migration/Contract Bundle change, Grant behavior,
   deployment action, or inferred cutover authority.
+
+### ACC-RES-011 — Query failures are distinct from ABSENT
+
+- Contracts: `CTR-RES-004`, `CTR-RES-006`.
+- Method: inject, independently, a database error, query timeout, generic query rejection,
+  and internal resolver error for both route kinds; also execute a successful zero-match
+  control case.
+- Environment: test process + disposable database.
+- Required evidence: exact status/envelope matrix, thrown/rejected operation trace, and
+  write/query spy.
+- Expected result: successful zero match alone returns HTTP 200 exact `ABSENT`; timeout
+  returns HTTP 504 exact `IDENTITY_RESOLUTION_TIMEOUT`; database, query, and internal
+  failures return HTTP 500 exact `IDENTITY_RESOLUTION_QUERY_FAILED`; writes = 0.
+- Failure condition: any failure becomes HTTP 404, HTTP 200 `ABSENT`, empty/not-found
+  state, a swallowed exception, or a mutation.
+
+### ACC-RES-012 — Parent known-Client-ID resolution remains authoritative
+
+- Contracts: `CTR-RES-008`, `CTR-RES-010`.
+- Method: authority and route-surface review against `MINIMAL_AUTH_FOUNDATION_V2`
+  `CTR-MAFV2-011` plus external Phase B D.7.3 at the pinned revision.
+- Environment: clean source and authority trees.
+- Required evidence: exact route inventory and Claim/Contract wording audit.
+- Expected result: external-ref routes provide identity discovery only;
+  `GET /api/v1/clients/:client_id` remains the parent-governed fresh resolution path for
+  `stored.clientId`; `PHASE_B_COMPLETE = NO` unless every other accepted prerequisite is
+  simultaneously satisfied.
+- Failure condition: this Child replaces/aliases the parent route, claims the external-ref
+  seam alone closes credential resolution, or declares Phase B complete.
 
 ## 11. Alternatives and disposition
 
@@ -526,6 +733,9 @@ UNRESOLVED_AUTHORITY_CONFLICT = NONE
 PARTIAL_SUPERSESSION = NONE
 
 AUTHORITY_SUFFICIENT_FOR_IMPLEMENTATION_NOW = NO
+EXTERNAL_REF_IDENTITY_DISCOVERY = PROVIDED_BY_THIS_SPEC
+KNOWN_CLIENT_ID_FRESH_RESOLUTION = REMAINS_GOVERNED_BY_PARENT_AUTHORITY
+PHASE_B_COMPLETE = NO_UNLESS_ALL_OTHER_ACCEPTED_PREREQUISITES_ARE_SATISFIED
 READ_ONLY_RESOLUTION_IMPLEMENTED = NO
 PRODUCTION_CHANGE = NONE
 ```
