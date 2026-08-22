@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -26,7 +26,7 @@ owners:
 
 ```text
 SPEC_ID = AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1
-SPEC_STATUS = proposed
+SPEC_STATUS = accepted
 SPEC_KIND = implementation
 IMPLEMENTATION_AUTHORITY = contracts
 AUTHORING_BASE = 36a11136745bae7a371d21ba62d9617942c41afa
@@ -1007,13 +1007,38 @@ NORMATIVE_TBD = NONE
 UNRESOLVED_AUTHORITY_CONFLICT = NONE
 PARTIAL_SUPERSESSION = NONE
 PARENT_RECONCILIATION_COMPLETE = YES
-FRESH_INDEPENDENT_REVIEW_REQUIRED = YES
+FRESH_INDEPENDENT_REVIEW_REQUIRED = FULFILLED (round-3 independent semantic review at reviewed head 98ec29a1152bfa9530c572ec5a541ea02df163c4; see §14 Acceptance Record)
 BOOTSTRAP_AUTHORITY_UNRESOLVED = NO
 OWNER_DECISION_REQUIRED = NO
 AUTHORING_READY_FOR_REVIEW = YES
-READY_TO_MARK_ACCEPTED = NO
+READY_TO_MARK_ACCEPTED = FULFILLED (owner acceptance performed 2026-08-22; see §14 Acceptance Record)
 PRODUCT_IMPLEMENTATION_AUTHORIZED = NO
 CONFORMANCE_PENDING = YES
 ```
 
 Real production requester/approver Principal UUIDs and the svc-workflow Root roster remain intentionally unselected operational/governance inputs; they are not normative gaps in this auth-service Spec. They MUST be supplied only through the reviewed assignment and external Root-authority mechanisms defined above, never guessed by an implementation Agent.
+
+## 14. Acceptance Record (OWNER_ACCEPTANCE_LIFECYCLE_TRANSITION_ONLY)
+
+```text
+ACCEPTANCE_STATUS = accepted
+REVIEWED_MAIN = f5c2305b46020ad907cf5c4a93c0cb8ffca5b95e
+REVIEWED_SPEC_HEAD = 98ec29a1152bfa9530c572ec5a541ea02df163c4
+REVIEWER_ID = local-independent-audit-agent/hpa-v1-r3@2026-08-22
+REVIEW_RESULT = ACCEPT
+READY_TO_MARK_ACCEPTED = YES (per round-3 independent semantic review)
+ACCEPTED_BY = mayf3
+ACCEPTED_AT = 2026-08-22T06:29:35Z
+PR_2_REVIEWED_HEAD = 407f1873ac4fcc2e3dc85f3cf5a5595e73af8d1d
+PR_2_STATUS_AT_ACCEPTANCE = OPEN / DRAFT / UNMERGED
+PR_2_PRECONDITION = SATISFIED (§3.5 reconciliation verified at the exact head above)
+SEMANTIC_DELTA_AFTER_REVIEW = NONE
+ALLOWED_DELTA = lifecycle metadata + acceptance receipt + docs/specs index lifecycle status
+FINAL_HEAD_RECHECK = PENDING (independent final-head recheck required)
+ACTIVE_ON_MAIN = NO (accepted candidate on PR #15 branch; becomes repository-active only after merge to main)
+PRODUCT_IMPLEMENTATION_AUTHORIZED = NO
+```
+
+Persistent review provenance: round-3 independent semantic review record persisted as PR #15 conversation comment (`issuecomment-5378448059`, posted before this acceptance transition).
+
+This acceptance is an owner lifecycle transition only. It records the round-3 independent review outcome and the owner acceptance of the exact reviewed head. It does not authorize implementation, deployment, Principal mutation, credential issuance, database writes, repository-owner mapping, Ready transition, or merge. The final accepted head must still be independently rechecked; `FINAL_ACCEPTED_HEAD` is reported as a persistent PR record after the acceptance commit and is not embedded here.
