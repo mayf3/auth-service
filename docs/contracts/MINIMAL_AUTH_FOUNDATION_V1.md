@@ -1,25 +1,27 @@
 # Minimal Auth Foundation V1 文档入口
 
-> 本文件是兼容旧路径的非规范入口，不再承载完整合同正文。
+> 本文件现在只是 superseded V1 的历史兼容入口，不再承载完整合同正文。
 
 ## 当前状态
 
 ```text
 DESIGN_ID=MINIMAL_AUTH_FOUNDATION_V1
-STATUS=FROZEN_TARGET_CONTRACT
+STATUS=SUPERSEDED
+SUPERSEDED_BY=MINIMAL_AUTH_FOUNDATION_V2
+CURRENT_ARCHITECTURE_AUTHORITY=MINIMAL_AUTH_FOUNDATION_V2
 CONTRACT_VERSION=1.0.0
 ARCHITECTURE_DIRECTION_ACCEPTED=true
 REDESIGN_REQUIRED=false
 READY_FOR_IMPLEMENTATION_INVENTORY=true
 READY_FOR_CONTRACT_BUNDLE_FREEZE=true
 CONTRACT_BUNDLE_FROZEN=true
-IMPLEMENTATION_AUTHORIZED=true
+IMPLEMENTATION_AUTHORIZED=false
 PRODUCTION_JWKS_DEPLOYMENT_READY=false
 AUTH_TOKEN_CONTRACT_V1_PRODUCTION_EFFECTIVE=false
 CONSUMER_MIGRATION_IN_SCOPE_READY=false
 ```
 
-原单文件设计已经拆分到 [`minimal-auth-v1/README.md`](./minimal-auth-v1/README.md) 及其六份模块合同。
+superseded V1 的历史 Contract Bundle 与语义已拆分到 [`minimal-auth-v1/README.md`](./minimal-auth-v1/README.md) 及其六份模块合同，并继续作为 V2 exact incorporation 的 provenance。
 
 拆分原因：
 
@@ -31,7 +33,7 @@ CONSUMER_MIGRATION_IN_SCOPE_READY=false
 
 ## 权威规则
 
-1. 当前 V1 源码 Contract Bundle 已冻结并授权实现，但不代表生产或消费者迁移已生效。
+1. 当前 Architecture Authority 是 [`MINIMAL_AUTH_FOUNDATION_V2`](./minimal-auth-v2/MINIMAL_AUTH_FOUNDATION_V2.md)；V1 源码 Contract Bundle 是其 exact-incorporated 历史 provenance，不再是可直接实施的 authority。
 2. V1 生效前，两份现有 V0 冻结合同继续有效。
 3. 本入口文件不覆盖 `minimal-auth-v1/` 中任何规范内容。
 4. 若本入口与模块合同冲突，以模块合同和其中定义的权威关系为准。
