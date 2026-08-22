@@ -144,14 +144,20 @@ new mutation; the two routes below remain query-only.
   its known-credential path requires fresh resolution of `stored.clientId`. Basis:
   `OBS-RES-003`, `CLM-RES-002`, `CLM-RES-003`.
 
-- `STATE-RES-004` — At the same accepted Agent Core revision, the actual Agent ID
-  validation contract used by Agent Core's workspace identity seam accepts one ASCII
-  safe component over `[A-Za-z0-9_-]` with length `1..200` and rejects rather than
-  reshapes invalid input. Basis: `OBS-RES-004`, `CLM-RES-004`.
+- `STATE-RES-004` — At the same accepted Agent Core revision,
+  `AGENT_CORE_BINDING_WORKSPACE_V1` normatively freezes Agent ID as one ASCII safe
+  component over `[A-Za-z0-9_-]` with length `1..200`, rejecting rather than reshaping
+  invalid input. Basis: `OBS-RES-004`, `CLM-RES-004`.
 
 - `STATE-RES-005` — Parent authority `MINIMAL_AUTH_FOUNDATION_V2` continues to govern
   `GET /api/v1/clients/:client_id` as the fresh resolution surface for a known public
   Client ID. Basis: `OBS-RES-005`, `CLM-RES-003`.
+
+- `STATE-RES-006` — At pinned source revision
+  `mayf3/dsh-agent-core@d83a2ff0e9644611707d7481ef88b4d7d49fb68e`, the
+  `sanitizeAgentId` / `INVALID_AGENT_ID_RE` implementation accepts a wider character set
+  than the accepted grammar. The source divergence is known and does not amend the
+  governing grammar. Basis: `OBS-RES-006`, `CLM-RES-004`.
 
 ## 5. Observations
 
@@ -193,16 +199,15 @@ new mutation; the two routes below remain query-only.
 ### OBS-RES-004 — Agent Core has an existing authoritative Agent ID grammar
 
 - Subject: accepted `AGENT_CORE_BINDING_WORKSPACE_V1` `SANITIZE_REUSABLE` contract and
-  `WorkspaceIdValidation`, which explicitly reuse the Agent ID safe-component grammar.
+  `WorkspaceIdValidation`, which explicitly freeze the Agent ID safe-component grammar.
 - Source revision: `mayf3/dsh-agent-core@d83a2ff0e9644611707d7481ef88b4d7d49fb68e`.
 - Environment: accepted external governing Spec.
 - Observed at: `2026-08-22`.
-- Method: inspect the accepted grammar and its named `sanitizeAgentId` authority seam.
+- Method: inspect the accepted normative grammar.
 - Result: a legal Agent ID is an ASCII string of length `1..200` containing only
   `[A-Za-z0-9_-]`; invalid, whitespace, separator, dot, NUL, absolute, and overlong inputs
   are rejected without truncation, reshaping, or normalization.
-- Provenance: accepted `AGENT_CORE_BINDING_WORKSPACE_V1` at the exact pinned revision;
-  named implementation seam `packages/workspace-bootstrap/src/paths.js`.
+- Provenance: accepted `AGENT_CORE_BINDING_WORKSPACE_V1` at the exact pinned revision.
 
 ### OBS-RES-005 — Parent authority owns known-Client-ID resolution
 
@@ -214,6 +219,23 @@ new mutation; the two routes below remain query-only.
 - Result: `GET /api/v1/clients/:client_id` remains the named resolution surface for a
   known public Client ID; this Child does not supersede that parent Contract.
 - Provenance: `docs/contracts/minimal-auth-v2/MINIMAL_AUTH_FOUNDATION_V2.md`.
+
+### OBS-RES-006 — Pinned `sanitizeAgentId` source is wider than the accepted grammar
+
+- Subject: `packages/workspace-bootstrap/src/paths.js` `sanitizeAgentId` and
+  `INVALID_AGENT_ID_RE`.
+- Source revision: `mayf3/dsh-agent-core@d83a2ff0e9644611707d7481ef88b4d7d49fb68e`.
+- Environment: pinned external source tree.
+- Observed at: `2026-08-22`.
+- Method: compare the implementation's actual rejection predicate with the accepted
+  `[A-Za-z0-9_-]`, length `1..200` grammar in `OBS-RES-004`.
+- Result: `INVALID_AGENT_ID_RE` rejects NUL, `/`, `\\`, space, and dot, but does not
+  enforce the complete ASCII allowlist; therefore values such as `@`, `:`, `+`, and
+  Chinese characters can pass this implementation despite being invalid under the
+  accepted grammar.
+- Provenance: named source file at the exact pinned revision.
+- Limitation: this implementation observation describes divergence only. It is not
+  evidence that the wider input language is valid and does not amend accepted authority.
 
 ## 6. Claims and assumptions
 
@@ -241,13 +263,15 @@ new mutation; the two routes below remain query-only.
 - Uncertainty: Phase B completion additionally depends on every other prerequisite of the
   accepted external authority; this Child evaluates none of those prerequisites.
 
-### CLM-RES-004 — Reusing the existing Agent ID grammar avoids a conflicting identity language
+### CLM-RES-004 — Accepted grammar governs despite the pinned implementation divergence
 
 - Support state: SUPPORTED.
 - Supported by evidence: `EVD-RES-004`.
-- Contradicted by evidence: none known.
+- Contradicted by evidence: none known; `OBS-RES-006` is implementation drift, not
+  normative counter-authority.
 - Uncertainty: a future Agent Core authority may version the grammar; such a change would
   require a separately reviewed Spec update rather than permissive interpretation here.
+  Repair of the upstream validator is outside this Child.
 
 ## 7. Evidence relations
 
@@ -283,15 +307,19 @@ new mutation; the two routes below remain query-only.
   fresh resolution, complete Phase B, or grant local auth-service implementation authority.
 - Provenance: external accepted Spec.
 
-### EVD-RES-004 — Exact Agent Core validator supports one frozen input grammar
+### EVD-RES-004 — Accepted authority governs while source comparison records divergence
 
-- Source observations: `OBS-RES-004`.
-- Target: `CLM-RES-004`, `STATE-RES-004`.
+- Source observations: `OBS-RES-004`, `OBS-RES-006`.
+- Target: `CLM-RES-004`, `STATE-RES-004`, `STATE-RES-006`.
 - Relation: SUPPORTS.
 - Bound coordinates: `dsh-agent-core@d83a2ff0e9644611707d7481ef88b4d7d49fb68e`.
-- Strength/sufficiency: direct exact-revision validator plus matching accepted Spec record.
-- Limitations: does not authorize Auth to broaden, normalize, or version Agent IDs.
-- Provenance: named external source and accepted Spec at the pinned revision.
+- Strength/sufficiency: direct accepted governing grammar plus exact-revision source
+  comparison proving the implementation's wider acceptance set.
+- Limitations: the `sanitizeAgentId` implementation is not evidence for grammar
+  correctness and cannot be the future Auth GET routes' sole validator. It does not
+  authorize Auth to broaden, normalize, or version Agent IDs.
+- Provenance: accepted `AGENT_CORE_BINDING_WORKSPACE_V1` and named external source at the
+  pinned revision.
 
 ### EVD-RES-005 — Parent Contract preserves known-Client-ID resolution authority
 
@@ -327,9 +355,10 @@ new mutation; the two routes below remain query-only.
 
 - Decision owner: `mayf3`.
 - Decision:
-  - Reuse the current Agent Core `sanitizeAgentId` contract at pinned external revision
-    `d83a2ff0e9644611707d7481ef88b4d7d49fb68e`: `agent_id` is ASCII
-    `[A-Za-z0-9_-]`, length `1..200`, with rejection rather than normalization.
+  - Reuse the accepted `AGENT_CORE_BINDING_WORKSPACE_V1` normative grammar at pinned
+    external revision `d83a2ff0e9644611707d7481ef88b4d7d49fb68e`: `agent_id` is
+    ASCII `[A-Za-z0-9_-]`, length `1..200`, with rejection rather than normalization.
+    The divergent `sanitizeAgentId` implementation is not the grammar authority.
   - Principal route accepts only
     `agentcore:v1:principal:<valid-agent-id>`.
   - Client route accepts only
@@ -410,22 +439,31 @@ authorized.
 
 ### CTR-RES-002 — Deterministic external-ref validation
 
-The Agent ID grammar MUST reuse the existing Agent Core `sanitizeAgentId` contract at
-pinned revision `d83a2ff0e9644611707d7481ef88b4d7d49fb68e`:
+The Agent ID grammar MUST implement the accepted `AGENT_CORE_BINDING_WORKSPACE_V1`
+normative grammar at pinned revision
+`d83a2ff0e9644611707d7481ef88b4d7d49fb68e`:
 
 ```text
 agent_id = 1*200( ALPHA / DIGIT / "_" / "-" )
 ALPHA    = ASCII "A".."Z" / "a".."z"
 DIGIT    = ASCII "0".."9"
 NORMALIZATION = FORBIDDEN
+ACCEPTED_SPEC_GRAMMAR_IS_NORMATIVE = YES
 ```
+
+The pinned `sanitizeAgentId` / `INVALID_AGENT_ID_RE` implementation is known to accept a
+wider language. It MUST NOT serve as the future Auth GET routes' sole validator. Before
+any DB query, each route MUST independently enforce the normative allowlist and length.
+If the old helper is reused, its wider behavior MUST NOT expand the accepted input
+language.
 
 The Principal route MUST accept only
 `agentcore:v1:principal:<valid-agent-id>`. The Client route MUST accept only
 `agentcore:v1:client:<valid-agent-id>`. Empty or whitespace input, `*`, wildcard syntax,
-extra colon, malformed prefix, cross-kind prefix, non-ASCII input, overlong input, and any
-suffix outside the grammar MUST return `400 {"error":"INVALID_EXTERNAL_REF"}` before
-identity lookup and MUST perform zero identity mutation.
+`@`, `:`, `+`, Chinese or any other non-ASCII character, extra colon, malformed prefix,
+cross-kind prefix, overlong input, and any suffix outside the grammar MUST return
+`400 {"error":"INVALID_EXTERNAL_REF"}` before identity lookup and MUST perform zero
+identity mutation.
 
 ### CTR-RES-003 — Closed response projections
 
@@ -602,19 +640,20 @@ and their semantics MUST remain unchanged.
 
 - Contracts: `CTR-RES-001`, `CTR-RES-002`.
 - Method: positive boundary tests for Agent ID lengths 1 and 200 plus negative tests for
-  empty, whitespace, `*`, wildcard, extra colon, malformed prefix, prefix-only,
-  cross-kind, non-ASCII, and length 201 refs; separately test missing `external_ref`,
-  duplicate `external_ref`, parser-produced multi-value input, and every unexpected extra
-  query parameter.
+  empty, whitespace, `*`, wildcard, `@`, `:`, `+`, Chinese characters, extra colon,
+  malformed/path prefix, prefix-only, cross-kind, other non-ASCII, and length 201 refs;
+  separately test missing `external_ref`, duplicate `external_ref`, parser-produced
+  multi-value input, and every unexpected extra query parameter.
 - Environment: test process.
-- Required evidence: exact request matrix, parser-visible query shape, query call count,
-  and response matrix.
+- Required evidence: exact request matrix, parser-visible query shape, validation-before-DB
+  call order, query call count, and response matrix.
 - Expected result: exactly one valid scalar `external_ref` reaches identity lookup;
   invalid refs return exact `INVALID_EXTERNAL_REF`; query cardinality/shape violations
-  return exact `INVALID_QUERY_PARAMETERS`; identity query count = 0 and writes = 0 for
-  every rejected request.
+  return exact `INVALID_QUERY_PARAMETERS`; for `@`, `:`, `+`, Chinese, and every other
+  rejected request, `FAIL_BEFORE_DB_QUERY = YES`, `DB_QUERY_COUNT = 0`, and writes = 0.
 - Failure condition: invalid syntax, duplicate/multi-value/additional input reaches DB
-  lookup, any invalid request is accepted or normalized, or any mutation occurs.
+  lookup, the wider pinned `sanitizeAgentId` behavior expands accepted input, any invalid
+  request is accepted or normalized, or any mutation occurs.
 
 ### ACC-RES-007 — Authentication boundary is reused exactly
 
@@ -724,6 +763,9 @@ Because the seam performs no persistent mutation, code rollback requires no data
 rollback. Removing or disabling the GET routes after deployment does not modify identity
 state.
 
+The pinned upstream `sanitizeAgentId` divergence is recorded but its repair is outside
+this auth-service Child. No dsh-agent-core code or revision pin changes are authorized.
+
 ## 13. Open questions
 
 ```text
@@ -736,6 +778,12 @@ AUTHORITY_SUFFICIENT_FOR_IMPLEMENTATION_NOW = NO
 EXTERNAL_REF_IDENTITY_DISCOVERY = PROVIDED_BY_THIS_SPEC
 KNOWN_CLIENT_ID_FRESH_RESOLUTION = REMAINS_GOVERNED_BY_PARENT_AUTHORITY
 PHASE_B_COMPLETE = NO_UNLESS_ALL_OTHER_ACCEPTED_PREREQUISITES_ARE_SATISFIED
+ACCEPTED_SPEC_GRAMMAR_IS_NORMATIVE = YES
+SOURCE_DIVERGENCE_RECORDED = YES
+IMPLEMENTATION_SOURCE_DIVERGENCE = KNOWN
+GOVERNING_GRAMMAR_UNCHANGED = YES
+UPSTREAM_VALIDATOR_FIX_REQUIRED_NOW = NO
+UPSTREAM_VALIDATOR_REPAIR = OUT_OF_SCOPE
 READ_ONLY_RESOLUTION_IMPLEMENTED = NO
 PRODUCTION_CHANGE = NONE
 ```
