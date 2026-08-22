@@ -3,9 +3,11 @@
  *
  * POST /api/v1/principals  — Idempotent principal creation by external_ref
  * POST /api/v1/clients     — Idempotent client creation by external_ref + principal_id
+ * GET  /api/v1/principals/by-external-ref — Exact Agent Core identity discovery
+ * GET  /api/v1/clients/by-external-ref    — Exact Agent Core identity discovery
  *
- * These endpoints are strictly generic. Auth does not interpret external_ref.
- * No Agent names, roles, OpenClaw, or business domain logic lives here.
+ * POST semantics remain strictly generic and continue treating external_ref as opaque.
+ * The two bounded GET routes validate only the accepted deterministic Agent Core format.
  *
  * Authentication: V1 RS256 access token with scope auth.identity.provision.
  * Machine callers must have a MachineAccessGrant for the svc-auth audience.
@@ -19,6 +21,12 @@ import {
   createOrGetPrincipal,
   createOrGetClient,
 } from '../lib/oauth/v1/idempotent.js';
+import {
+  parseExternalRefQuery,
+  resolveClientByExternalRef,
+  resolvePrincipalByExternalRef,
+  toIdentityResolutionError,
+} from '../lib/oauth/v1/resolution.js';
 
 export const idempotentRouter = Router();
 
@@ -42,6 +50,38 @@ const createClientSchema = z.object({
     expected_client_id: z.string().uuid().optional(),
   }),
 });
+
+// ─── GET /api/v1/*/by-external-ref ───────────────────────────────────────
+
+idempotentRouter.get(
+  '/v1/principals/by-external-ref',
+  v1ManagementAuth,
+  asyncHandler(async (req, res) => {
+    try {
+      const externalRef = parseExternalRefQuery(req.query, 'principal');
+      const result = await resolvePrincipalByExternalRef(externalRef);
+      res.status(200).json(result);
+    } catch (error) {
+      const mapped = toIdentityResolutionError(error);
+      res.status(mapped.status).json({ error: mapped.code });
+    }
+  }),
+);
+
+idempotentRouter.get(
+  '/v1/clients/by-external-ref',
+  v1ManagementAuth,
+  asyncHandler(async (req, res) => {
+    try {
+      const externalRef = parseExternalRefQuery(req.query, 'client');
+      const result = await resolveClientByExternalRef(externalRef);
+      res.status(200).json(result);
+    } catch (error) {
+      const mapped = toIdentityResolutionError(error);
+      res.status(mapped.status).json({ error: mapped.code });
+    }
+  }),
+);
 
 // ─── POST /api/v1/principals ──────────────────────────────────────────────
 
