@@ -1,6 +1,6 @@
 ---
-spec_id: AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1
-status: superseded
+spec_id: AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V2
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -11,35 +11,52 @@ governed_by:
   - AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1
   - AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1
 external_authorities: []
-supersedes: []
-superseded_by:
-  - AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V2
+supersedes:
+  - AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1
+superseded_by: null
 owners:
   - mayf3
 ---
 
-# AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1
+# AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V2
 
 ## 1. Goal and authority relationship
 
-Freeze only the execution coordinates absent from accepted
-`AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1`: the exact Stage W executable,
-exclusive implementation files, self-owned temporary PostgreSQL test lifecycle,
-and closed durable-evidence input.
+Preserve the complete Stage W execution authority frozen by
+`AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1` while replacing
+only its Client ID format with the exact unpadded base64url alphabet already used
+by the current implementation candidate. This whole-Spec successor retains the
+exact Stage W executable, exclusive implementation files, self-owned temporary
+PostgreSQL test lifecycle, closed durable-evidence input, and every other V1
+product, permission, security, failure, transaction, Evidence, and Stage W
+boundary.
 
-This is a new subordinate authority. It does not amend, supersede, narrow, or
-reinterpret the accepted parent. The parent owns all Stage W identity, Grant,
-Scope, revision, transaction, audit, idempotency, conflict, operational,
-rollback, Stage F, and production-apply meaning. Any conflict stops work and the
-parent wins.
+This proposed Spec supersedes V1 as a whole only if it is later accepted through
+the atomic lifecycle transition in §8. It remains subordinate to the accepted
+parent `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1`. The parent continues to
+own all Stage W identity, Grant, Scope, revision, transaction, audit,
+idempotency, conflict, operational, rollback, Stage F, and production-apply
+meaning. Any conflict stops work and the parent wins. Until that future
+transition merges, V1 remains accepted authority and V2 has no active authority.
 
 ```text
 PARENT_SPEC = AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1
 PARENT_SPEC_BLOB = d89bf08c8714f55571ee7d75da017b7cf7237096
-AUTHORING_BASE = cb0b3d37dfb105c763c9c83ebd65483270b21b81
-AUTHORITY_ACTION = NEW
+SUPERSEDES_SPEC = AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1
+SUPERSEDED_SPEC_ACCEPTED_BLOB = 6de180cdd4aad509912dfc9d6864301731f7909f
+AUTHORING_BASE = afb4f067dbc70e5cfb86cdd8a61c1da2346c9317
+EVALUATED_BASE = 953d7475ccdfb3d7afb02352a9ec5db7b5c2b34b
+AUTHORITY_ACTION = SUPERSEDE
+SEMANTIC_DELTA = CLIENT_ID_ALPHABET_EXPANSION_ONLY
+CHANGED_V1_STABLE_ID = DEC-SWX-003
+V2_STABLE_ID_NAMESPACE = SWX2
+CURRENT_PARENT_CONTRACT_VERSION = 1.3.0
+SVC_FORUM_AUDIENCE_REGISTRATION = OUTSIDE_STAGE_W_SCOPE
+STAGE_W_V2_COMPATIBILITY_WITH_CONTRACT_1_3 = COMPATIBLE_NO_SEMANTIC_DELTA
+STAGE_W_V2_CLIENT_ID_DECISION_CHANGED_BY_1_3 = NO
 STAGE_W_ONLY = YES
 STAGE_F_IMPLEMENTATION_AUTHORIZED = NO
+SVC_FORUM_GRANT_SUPPLY_AUTHORIZED_BY_STAGE_W_V2 = NO
 PRODUCTION_MIGRATION_APPLY_AUTHORIZED = NO
 PRODUCTION_DB_WRITE_AUTHORIZED = NO
 ```
@@ -74,33 +91,62 @@ PRODUCTION_DB_WRITE_AUTHORIZED = NO
 
 ## 3. State and observations
 
-### STATE-SWX-001 — Parent behavior is complete; execution coordinates are absent
+### STATE-SWX2-001 — Parent behavior is complete; execution coordinates are absent
 
 At source `mayf3/auth-service@cb0b3d37dfb105c763c9c83ebd65483270b21b81`
 in the authoring checkout on `2026-08-20`, the accepted parent fully freezes
 Stage W behavior but names no exact executable path, file set, disposable-DB
 lifecycle, or machine-readable durable-evidence transport. Basis:
-`OBS-SWX-001`, `CLM-SWX-001`, `EVD-SWX-001A`, `EVD-SWX-001B`.
+`OBS-SWX2-001`, `CLM-SWX2-001`, `EVD-SWX2-001A`, `EVD-SWX2-001B`.
 
-### STATE-SWX-002 — Checked-in migrations are not an empty-database baseline
+### STATE-SWX2-002 — Checked-in migrations are not an empty-database baseline
 
 At the same source coordinate and date, static inspection shows that checked-in
 migrations alter pre-existing `OkrRole` and reference a pre-existing `users`
 table; the last historical migration additionally requires fixed data rows.
 Therefore neither plain fresh `prisma migrate deploy` nor lexical SQL replay is
-a viable isolated-test baseline. Basis: `OBS-SWX-002`, `CLM-SWX-002`,
-`EVD-SWX-002A`, `EVD-SWX-002B`.
+a viable isolated-test baseline. Basis: `OBS-SWX2-002`, `CLM-SWX2-002`,
+`EVD-SWX2-002A`, `EVD-SWX2-002B`.
 
-### STATE-SWX-003 — Current schema plus explicit safety DDL is testable locally
+### STATE-SWX2-003 — Current schema plus explicit safety DDL is testable locally
 
 At the same source coordinate and date, the Prisma datamodel describes all Stage
 W tables while the additive production SQL records the exact Grant-audit check
 constraints and immutable trigger omitted by `prisma db push`. A self-owned local
 cluster can create current schema, install those exact existing controls as
-test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
-`CLM-SWX-003`, `EVD-SWX-003A`, `EVD-SWX-003C`.
+test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX2-003`,
+`CLM-SWX2-003`, `EVD-SWX2-003A`, `EVD-SWX2-003C`.
 
-### OBS-SWX-001 — Execution surface inventory
+### STATE-SWX2-004 — Current implementation is candidate evidence only
+
+At `mayf3/auth-service@73a04f8a9c9999cf9183017cddd4766b35683c60`, the
+candidate implementation changes the Client ID guards to unpadded base64url and
+adds focused tests. Its product-code delta is exactly:
+
+```text
+scripts/supply-agentcore-canary-workflow-grants-v1.ts
+tests/oauth/supply-agentcore-canary-workflow-grants-v1.test.ts
+```
+
+The same commit's edit to accepted V1 was authority drift and is not authority
+for this successor. Code and tests remain lower-precedence conformance evidence.
+Basis: `OBS-SWX2-004`, `EVD-SWX2-004A`.
+
+### STATE-SWX2-005 — Contract 1.3.0 is compatible without Stage W semantic delta
+
+At evaluated base
+`mayf3/auth-service@953d7475ccdfb3d7afb02352a9ec5db7b5c2b34b`, the
+frozen Minimal Auth Contract Bundle reports `contract_version=1.3.0` and
+`audience_registry_version=1.3.0`; its active `svc-forum` entry registers only
+`forum.read` and `forum.write` for machine agent access. That registration and
+its version-linkage implementation are outside Stage W scope. They create no
+Stage W Grant, do not authorize Stage F, and do not alter the two exact
+`svc-workflow[workflow.read]` targets or any Stage W identity, transaction,
+audit, idempotency, evidence transport, rollback, production-apply, or V2 Client
+ID meaning. Basis: `OBS-SWX2-005`, `CLM-SWX2-004`, `EVD-SWX2-005A`,
+`EVD-SWX2-005B`.
+
+### OBS-SWX2-001 — Execution surface inventory
 
 - Subject: Stage W repository execution and test surfaces.
 - Repository/source: `mayf3/auth-service`.
@@ -112,7 +158,7 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
   changes; the broad backfill is forbidden because it reads Legacy flat fields.
 - Provenance: named files at the bound revision.
 
-### OBS-SWX-002 — Migration-chain baseline gaps
+### OBS-SWX2-002 — Migration-chain baseline gaps
 
 - Subject: empty-database replayability of checked-in auth-service migrations.
 - Repository/source: `mayf3/auth-service/prisma/migrations/`.
@@ -125,7 +171,7 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
   Audience, and Grant data. Fresh replay is therefore not an available baseline.
 - Provenance: the checked-in migration SQL files at the bound revision.
 
-### OBS-SWX-003 — Current schema and audit controls
+### OBS-SWX2-003 — Current schema and audit controls
 
 - Subject: current Stage W persistence schema and Grant-audit safety controls.
 - Repository/source: `prisma/schema.prisma`,
@@ -143,108 +189,205 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
   `grant_change_audits_immutable` are exact frozen read-only dependencies.
 - Provenance: named files at the bound revision.
 
+### OBS-SWX2-004 — Base64url implementation-candidate delta
+
+- Subject: current Stage W Client ID implementation and tests.
+- Repository/source: `mayf3/auth-service`.
+- Revision: `73a04f8a9c9999cf9183017cddd4766b35683c60`.
+- Environment: local immutable Git diff inspection; observed during V2 authoring.
+- Method: compare the revision with its first parent and separate product/test
+  candidate changes from the invalid in-place accepted-Spec edit.
+- Result: both production guards use `^mc_[A-Za-z0-9_-]{24}$`; tests accept `_`
+  and `-`, reject `+`, `/`, `=`, whitespace, non-ASCII, wrong length, and wrong
+  prefix; candidate product/test changes are confined to the two paths named in
+  `STATE-SWX2-004`.
+- Provenance: immutable commit and named paths; classification is
+  `CURRENT_IMPLEMENTATION_CANDIDATE_EVIDENCE`, not governing authority.
+
+### OBS-SWX2-005 — Main drift is bounded to svc-forum registration and 1.3.0 linkage
+
+- Subject: parent-authority drift between V2 authoring and evaluated bases.
+- Repository/source: `mayf3/auth-service`.
+- Authoring base: `afb4f067dbc70e5cfb86cdd8a61c1da2346c9317`.
+- Evaluated base: `953d7475ccdfb3d7afb02352a9ec5db7b5c2b34b`.
+- Environment: immutable Git tree/diff inspection after linear rebase.
+- Method: inspect the complete 18-file base-to-base diff; read the two amended
+  Minimal Auth Contract modules, `audience-registry.json`,
+  `contract-manifest.json`, related fixtures/metadata/schema/validator, and the
+  five Contract `1.3.0` runtime/candidate linkage files; compare all four Stage W
+  executable/accepted surfaces across both bases.
+- Result: the parent drift formalizes and completes the accepted `svc-forum` CCR
+  registration with exactly `forum.read` and `forum.write`: the pre-existing
+  executable registry entry is promoted from registry `1.2.0` to the frozen
+  `1.3.0` authority/provenance, related positive/negative Bundle fixtures and
+  metadata are added, and readers are linked to Contract `1.3.0`. The
+  `svc-workflow` registry entry remains
+  byte-equivalent in meaning, no Grant is created or modified, and these Stage W
+  paths are unchanged across the bases:
+
+  ```text
+  docs/specs/AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1.md
+  scripts/supply-agentcore-canary-workflow-grants-v1.ts
+  tests/oauth/supply-agentcore-canary-workflow-grants-v1.test.ts
+  scripts/run-agentcore-canary-workflow-grants-v1-conformance.sh
+  ```
+
+- Provenance: Git diff
+  `afb4f067dbc70e5cfb86cdd8a61c1da2346c9317..953d7475ccdfb3d7afb02352a9ec5db7b5c2b34b`,
+  Contract Bundle `1.3.0`, accepted `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1`, and
+  accepted `AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1` at the evaluated base.
+
 ## 4. Claims and evidence
 
-### CLM-SWX-001 — Three new files are sufficient
+### CLM-SWX2-001 — Three new files are sufficient
 
 - Support state: SUPPORTED.
 - Claim: one executable, one real-DB test, and one self-owned cluster harness can
   implement and verify Stage W without changing an existing artifact.
-- Supported by: `EVD-SWX-001B`, `EVD-SWX-003B`; contradicted by: none known.
+- Supported by: `EVD-SWX2-001B`, `EVD-SWX2-003B`; contradicted by: none known.
 
-### CLM-SWX-002 — Production migration replay is the wrong isolated baseline
+### CLM-SWX2-002 — Production migration replay is the wrong isolated baseline
 
 - Support state: SUPPORTED.
 - Claim: fresh replay would require inventing a pre-chain schema and historical
   product fixtures outside Stage W authority.
-- Supported by: `EVD-SWX-002B`; contradicted by: none known.
+- Supported by: `EVD-SWX2-002B`; contradicted by: none known.
 
-### CLM-SWX-003 — Current schema plus exact safety DDL preserves test relevance
+### CLM-SWX2-003 — Current schema plus exact safety DDL preserves test relevance
 
 - Support state: SUPPORTED.
 - Claim: `prisma db push` may establish only the current disposable schema if the
   harness then installs and behaviorally verifies the exact existing Grant-audit
   safety controls before Stage W tests.
-- Supported by: `EVD-SWX-003C`; contradicted by: none known.
+- Supported by: `EVD-SWX2-003C`; contradicted by: none known.
 
-### EVD-SWX-001A
+### CLM-SWX2-004 — Contract 1.3.0 registration is orthogonal to Stage W
 
-- Source observations: `OBS-SWX-001`.
+- Support state: SUPPORTED.
+- Claim: the additive `svc-forum` Audience registration, related Bundle fixtures,
+  and limited Contract `1.3.0` reader linkage do not entail, authorize, or modify
+  any Stage W or Stage F Grant supply. Existing Stage W Contracts already exclude
+  `svc-forum` and freeze the two exact `svc-workflow[workflow.read]` Grants, so no
+  new Decision or Contract is required for compatibility reconciliation.
+- Supported by: `EVD-SWX2-005B`; contradicted by: none known.
+
+### EVD-SWX2-001A
+
+- Source observations: `OBS-SWX2-001`.
 - Target type: State.
-- Target ID: `STATE-SWX-001`.
+- Target ID: `STATE-SWX2-001`.
 - Relation: SUPPORTS.
 - Bound coordinates: repository `mayf3/auth-service`, revision
   `cb0b3d37dfb105c763c9c83ebd65483270b21b81`, local source environment,
   observed `2026-08-20`.
 - Strength/sufficiency: direct complete inventory of relevant execution files.
 - Limitations: source feasibility is not executed conformance.
-- Provenance: `OBS-SWX-001` named files.
+- Provenance: `OBS-SWX2-001` named files.
 
-### EVD-SWX-001B
+### EVD-SWX2-001B
 
-- Source observations: `OBS-SWX-001`.
+- Source observations: `OBS-SWX2-001`.
 - Target type: Claim.
-- Target ID: `CLM-SWX-001`.
+- Target ID: `CLM-SWX2-001`.
 - Relation: SUPPORTS.
 - Bound coordinates, strength, limitations, and provenance: identical to
-  `EVD-SWX-001A`.
+  `EVD-SWX2-001A`.
 
-### EVD-SWX-002A
+### EVD-SWX2-002A
 
-- Source observations: `OBS-SWX-002`.
+- Source observations: `OBS-SWX2-002`.
 - Target type: State.
-- Target ID: `STATE-SWX-002`.
+- Target ID: `STATE-SWX2-002`.
 - Relation: SUPPORTS.
 - Bound coordinates: repository `mayf3/auth-service`, revision
   `cb0b3d37dfb105c763c9c83ebd65483270b21b81`, local SQL inspection,
   observed `2026-08-20`.
 - Strength/sufficiency: direct unresolved DDL and data dependencies.
 - Limitations: says nothing about deployed migration history.
-- Provenance: every checked-in migration SQL file named by `OBS-SWX-002`.
+- Provenance: every checked-in migration SQL file named by `OBS-SWX2-002`.
 
-### EVD-SWX-002B
+### EVD-SWX2-002B
 
-- Source observations: `OBS-SWX-002`.
+- Source observations: `OBS-SWX2-002`.
 - Target type: Claim.
-- Target ID: `CLM-SWX-002`.
+- Target ID: `CLM-SWX2-002`.
 - Relation: SUPPORTS.
 - Bound coordinates, strength, limitations, and provenance: identical to
-  `EVD-SWX-002A`.
+  `EVD-SWX2-002A`.
 
-### EVD-SWX-003A
+### EVD-SWX2-003A
 
-- Source observations: `OBS-SWX-003`.
+- Source observations: `OBS-SWX2-003`.
 - Target type: State.
-- Target ID: `STATE-SWX-003`.
+- Target ID: `STATE-SWX2-003`.
 - Relation: SUPPORTS.
 - Bound coordinates: repository `mayf3/auth-service`, revision
   `cb0b3d37dfb105c763c9c83ebd65483270b21b81`, local schema inspection,
   observed `2026-08-20`.
 - Strength/sufficiency: exact model, DDL, and JSON-schema definitions.
 - Limitations: runtime behavior remains to be executed in Acceptance.
-- Provenance: `OBS-SWX-003` named files.
+- Provenance: `OBS-SWX2-003` named files.
 
-### EVD-SWX-003B
+### EVD-SWX2-003B
 
-- Source observations: `OBS-SWX-003`.
+- Source observations: `OBS-SWX2-003`.
 - Target type: Claim.
-- Target ID: `CLM-SWX-001`.
+- Target ID: `CLM-SWX2-001`.
 - Relation: SUPPORTS.
 - Bound coordinates, strength, limitations, and provenance: identical to
-  `EVD-SWX-003A`.
+  `EVD-SWX2-003A`.
 
-### EVD-SWX-003C
+### EVD-SWX2-003C
 
-- Source observations: `OBS-SWX-003`.
+- Source observations: `OBS-SWX2-003`.
 - Target type: Claim.
-- Target ID: `CLM-SWX-003`.
+- Target ID: `CLM-SWX2-003`.
 - Relation: SUPPORTS.
 - Bound coordinates, strength, limitations, and provenance: identical to
-  `EVD-SWX-003A`.
+  `EVD-SWX2-003A`.
+
+### EVD-SWX2-004A
+
+- Source observations: `OBS-SWX2-004`.
+- Target type: State.
+- Target ID: `STATE-SWX2-004`.
+- Relation: SUPPORTS.
+- Bound coordinates: repository `mayf3/auth-service`, revision
+  `73a04f8a9c9999cf9183017cddd4766b35683c60`, immutable Git diff inspection.
+- Strength/sufficiency: direct source and focused-test evidence for the candidate
+  Client ID behavior.
+- Limitations: code and tests cannot authorize or accept V2 and do not prove all
+  V1/Stage W Contracts unchanged without independent review.
+- Provenance: `OBS-SWX2-004` named commit and paths.
+
+### EVD-SWX2-005A
+
+- Source observations: `OBS-SWX2-005`.
+- Target type: State.
+- Target ID: `STATE-SWX2-005`.
+- Relation: SUPPORTS.
+- Bound coordinates: repository `mayf3/auth-service`, authoring base
+  `afb4f067dbc70e5cfb86cdd8a61c1da2346c9317`, evaluated base
+  `953d7475ccdfb3d7afb02352a9ec5db7b5c2b34b`, immutable Git diff and tree
+  inspection.
+- Strength/sufficiency: complete base-to-base path inventory plus direct Contract,
+  registry, manifest, fixture/linkage, and protected Stage W path inspection.
+- Limitations: establishes source compatibility only; executed conformance is
+  separately required by `ACC-SWX2-013` and does not constitute acceptance.
+- Provenance: `OBS-SWX2-005` named artifacts and exact revisions.
+
+### EVD-SWX2-005B
+
+- Source observations: `OBS-SWX2-005`.
+- Target type: Claim.
+- Target ID: `CLM-SWX2-004`.
+- Relation: SUPPORTS.
+- Bound coordinates, strength, limitations, and provenance: identical to
+  `EVD-SWX2-005A`.
 
 ## 5. Decisions
 
-### DEC-SWX-001 — Exact executable and exclusive file set
+### DEC-SWX2-001 — Exact executable and exclusive file set
 
 - Decision owner: `mayf3` or delegated auth-service maintainer.
 - Decision: sole executable path:
@@ -265,9 +408,9 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
   script/dependency, online route/command, or any fourth file.
 - Reason: smallest reviewable surface consistent with parent obligations.
 
-### DEC-SWX-002 — Digest-pinned disposable PostgreSQL baseline
+### DEC-SWX2-002 — Digest-pinned disposable PostgreSQL baseline
 
-- Decision owner: same as `DEC-SWX-001`.
+- Decision owner: same as `DEC-SWX2-001`.
 - Decision: the shell MUST start exactly
   `postgres@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777`
   with Docker `--rm`, a generated container name prefixed
@@ -294,9 +437,9 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
   normatively minimizes host coupling, is disposable and loopback-only, and
   exercises current schema plus existing security controls.
 
-### DEC-SWX-003 — Remote-main-anchored evidence and exact apply interface
+### DEC-SWX2-003 — Remote-main-anchored evidence and exact apply interface
 
-- Decision owner: same as `DEC-SWX-001`.
+- Decision owner: same as `DEC-SWX2-001`.
 - Decision: plan is default and read-only. Operational interfaces are exactly:
 
   ```text
@@ -372,7 +515,9 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
   identities: array exactly 2, unique by both refs, each additionalProperties=false:
     client_external_ref: one exact parent Client ref
     principal_external_ref: corresponding exact parent Principal ref
-    client_id: string matching ^mc_[A-Za-z0-9]{24}$
+    client_id: string matching ^mc_[A-Za-z0-9_-]{24}$
+      (exactly 24 unpadded base64url characters after `mc_`; `+`, `/`, `=`,
+      whitespace, non-ASCII, other prefixes, and all other lengths are rejected)
     principal_id: lowercase UUID
     client_active: boolean exactly true
     principal_active: boolean exactly true
@@ -400,6 +545,17 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
     approval_ref: exact manifest approval.approval_ref
     reason: non-empty string, maximum 512 UTF-8 bytes
   ```
+
+  The V2 Client ID semantic delta is exactly:
+
+  ```text
+  CLIENT_ID_FORMAT = mc_ + exactly 24 unpadded base64url characters
+  ALLOWED_AFTER_PREFIX = A-Z a-z 0-9 _ -
+  FORBIDDEN = + / = whitespace non-ASCII wrong length wrong prefix
+  ```
+
+  No other manifest, receipt, identity, permission, failure, transaction,
+  evidence, or Stage W meaning changes from the legally accepted V1 blob.
 
   Every receipt object is also `additionalProperties: false` and has
   `schema_version=1`, `repository="mayf3/dsh-agent-core"`, and an RFC3339 UTC
@@ -471,12 +627,12 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
   cross-field binding make operational evidence durable and non-local-forgeable
   without treating it as normative authority.
 
-### DEC-SWX-004 — Production-ineligible container conformance mode
+### DEC-SWX2-004 — Production-ineligible container conformance mode
 
-- Decision owner: same as `DEC-SWX-001`.
+- Decision owner: same as `DEC-SWX2-001`.
 - Decision: the executable contains one private planner/Serializable transaction
   engine. No engine function or test closure is exported. Operational `--apply`
-  validates `DEC-SWX-003` before Prisma construction. DB integration uses an
+  validates `DEC-SWX2-003` before Prisma construction. DB integration uses an
   explicit `--conformance-apply --descriptor-fd <integer>` CLI mode that refuses
   `DATABASE_URL` and reads one duplicate-key-free JSON descriptor to EOF from an
   inherited descriptor whose `fstat` type is FIFO, then closes it. Anonymous and
@@ -497,7 +653,7 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
   audit_metadata = strict five-field parent metadata using synthetic test values
   ```
 
-  The harness generates the 256-bit nonce, starts the exact `DEC-SWX-002` image
+  The harness generates the 256-bit nonce, starts the exact `DEC-SWX2-002` image
   with label
   `com.mayf3.auth.stage-w-conformance=sha256:<SHA256(nonce)>` and PostgreSQL custom
   setting `stage_w.conformance_nonce=<nonce>`, and transfers the descriptor only
@@ -523,16 +679,16 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
   only evidence-free DB mode is cryptographically bound to the disposable
   container.
 
-### DEC-SWX-005 — DB-free deterministic HTTPS state conformance mode
+### DEC-SWX2-005 — DB-free deterministic HTTPS state conformance mode
 
-- Decision owner: same as `DEC-SWX-001`.
+- Decision owner: same as `DEC-SWX2-001`.
 - Decision: executable may expose
   `--conformance-http --fixture-fd <integer>` only. It refuses every DB/evidence/
   apply argument and `DATABASE_URL`, never constructs Prisma, never calls the
   Stage W engine, and never reports operational evidence success. It reads one
   duplicate-key-free fixture from a FIFO and feeds it to the same private request
   construction, byte-limit, stream-terminal, header, envelope, and JSON validators
-  used by `DEC-SWX-003`, but replaces only the actual socket with deterministic
+  used by `DEC-SWX2-003`, but replaces only the actual socket with deterministic
   events.
 
   Fixture is `additionalProperties:false` with exactly:
@@ -565,27 +721,27 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
 
 ## 6. Contracts
 
-### CTR-SWX-001 — Artifact boundary is exact
+### CTR-SWX2-001 — Artifact boundary is exact
 
-Only the three new files in `DEC-SWX-001` may differ from implementation base.
+Only the three new files in `DEC-SWX2-001` may differ from implementation base.
 The executable is plan-only unless exact apply gates pass.
 
-### CTR-SWX-002 — Temporary DB is owned, safe, and complete
+### CTR-SWX2-002 — Temporary DB is owned, safe, and complete
 
-The harness implements every lifecycle and control check in `DEC-SWX-002`.
+The harness implements every lifecycle and control check in `DEC-SWX2-002`.
 Failure at any step prevents Stage W test execution and still stops/removes the
 owned cluster. No externally supplied connection is read or used.
 
-### CTR-SWX-003 — Evidence and metadata fail before DB access
+### CTR-SWX2-003 — Evidence and metadata fail before DB access
 
 Every sanitized-fetch, reachability, duplicate-key, type, cardinality, exact
 value, URL, path, receipt schema, cross-binding, blob, digest, identity, approval,
-cleanliness, and SHA rule in `DEC-SWX-003` is mandatory. Invalid evidence fails
+cleanliness, and SHA rule in `DEC-SWX2-003` is mandatory. Invalid evidence fails
 before the executable constructs Prisma or performs any database query/write.
 Plan opens the target DB read-only in behavior but does not require evidence;
 `--validate-evidence` performs no DB access.
 
-### CTR-SWX-004 — Parent Stage W obligations remain mandatory
+### CTR-SWX2-004 — Parent Stage W obligations remain mandatory
 
 The implementation MUST satisfy all applicable parent Contracts
 `CTR-CGS-001` through `CTR-CGS-011`, `CTR-CGS-013`, and `CTR-CGS-014` exactly.
@@ -593,34 +749,34 @@ Parent `CTR-CGS-012` is NOT_APPLICABLE because rollback implementation is outsid
 this Spec and remains separately reviewed future work. No parent obligation is
 replaced or weakened.
 
-### CTR-SWX-005 — Test seam cannot become an operational bypass
+### CTR-SWX2-005 — Test seam cannot become an operational bypass
 
-The only evidence-free integration mode is exactly `DEC-SWX-004`; its pipe,
+The only evidence-free integration mode is exactly `DEC-SWX2-004`; its pipe,
 descriptor, Docker inspection, image/label/tmpfs/network, nonce, database, and
 no-external-URL guards are mandatory. No engine function is exported.
 Operational `--apply` always performs full provenance validation first. No
 conformance result qualifies `CTR-CGS-010`; positive provenance remains a
 separate runtime/manual result from `--validate-evidence` with real receipts.
 
-### CTR-SWX-006 — HTTP conformance cannot become transport or apply override
+### CTR-SWX2-006 — HTTP conformance cannot become transport or apply override
 
-`--conformance-http` is exactly `DEC-SWX-005`: FIFO fixture events enter only the
+`--conformance-http` is exactly `DEC-SWX2-005`: FIFO fixture events enter only the
 private deterministic HTTP validation state machine. The mode has no Prisma,
 Stage W engine, operational evidence success, caller endpoint, CA, proxy, agent,
 or socket path. Operational modes cannot read its fixture interface.
 
 ## 7. Acceptance and parent mapping
 
-### ACC-SWX-001 — Exact diff
+### ACC-SWX2-001 — Exact diff
 
-- Contracts: `CTR-SWX-001`.
+- Contracts: `CTR-SWX2-001`.
 - Method: diff implementation base to head.
-- Expected: exactly three new paths from `DEC-SWX-001`.
+- Expected: exactly three new paths from `DEC-SWX2-001`.
 - Failure: missing, renamed, modified-existing, or fourth file.
 
-### ACC-SWX-002 — Owned PostgreSQL lifecycle and audit controls
+### ACC-SWX2-002 — Owned PostgreSQL lifecycle and audit controls
 
-- Contracts: `CTR-SWX-002`; parent `CTR-CGS-007`, `CTR-CGS-013`,
+- Contracts: `CTR-SWX2-002`; parent `CTR-CGS-007`, `CTR-CGS-013`,
   `CTR-CGS-014`.
 - Method: run shell from clean commit; inject setup, test, and cleanup failures.
 - Expected: exact image digest, tmpfs/no-volume, loopback Docker-assigned port,
@@ -630,9 +786,9 @@ or socket path. Operational modes cannot read its fixture interface.
 - Failure: mutable tag, external connection/input, host volume, retained
   container, missing/bypassed control, or Stage W execution before setup passes.
 
-### ACC-SWX-003 — Closed evidence and metadata
+### ACC-SWX2-003 — Closed evidence and metadata
 
-- Contracts: `CTR-SWX-003`; parent `CTR-CGS-008`, `CTR-CGS-010`.
+- Contracts: `CTR-SWX2-003`; parent `CTR-CGS-008`, `CTR-CGS-010`.
 - Method: test every field missing/extra/duplicated (including Unicode-escaped
   duplicate member names); wrong type; empty/over-byte-limit metadata; unsafe
   path; absent/empty/digest-mismatched/schema-invalid receipt; manifest/receipt
@@ -656,7 +812,7 @@ or socket path. Operational modes cannot read its fixture interface.
   provenance by design because the parent prerequisites do not yet exist;
   sufficient negative enforcement and parser coverage are still mandatory.
 
-### ACC-SWX-004 — Identity and selection matrix
+### ACC-SWX2-004 — Identity and selection matrix
 
 - Contracts: parent `CTR-CGS-001`, `CTR-CGS-005`, `CTR-CGS-011`.
 - Method: temporary DB cases for both exact pairs plus misleading names,
@@ -668,7 +824,7 @@ or socket path. Operational modes cannot read its fixture interface.
   Grant writes `0`, audit writes `0`, and all sentinel rows byte-equivalent.
 - Failure: alternate selection, partial mutation, or non-target delta.
 
-### ACC-SWX-005 — Audience, Scope, and forbidden privilege matrix
+### ACC-SWX2-005 — Audience, Scope, and forbidden privilege matrix
 
 - Contracts: parent `CTR-CGS-002`, `CTR-CGS-003`, `CTR-CGS-005`.
 - Method: exact active `svc-workflow`; missing, duplicate after controlled key
@@ -679,7 +835,7 @@ or socket path. Operational modes cannot read its fixture interface.
   every variant fails before writes without repair/downscope/union.
 - Failure: any forbidden privilege or mutation.
 
-### ACC-SWX-006 — State, revision, no-op, and conflict matrix
+### ACC-SWX2-006 — State, revision, no-op, and conflict matrix
 
 - Contracts: parent `CTR-CGS-004`, `CTR-CGS-005`, `CTR-CGS-006`.
 - Method: pristine no-audit/no-Grant; exact completed revision-1 state; existing
@@ -689,7 +845,7 @@ or socket path. Operational modes cannot read its fixture interface.
   timestamps; every other or racing state conflicts and rolls back both Clients.
 - Failure: overwrite, repair, union, last-write-wins, or partial result.
 
-### ACC-SWX-007 — Audit schema and one-stage transaction
+### ACC-SWX2-007 — Audit schema and one-stage transaction
 
 - Contracts: parent `CTR-CGS-006`, `CTR-CGS-007`, `CTR-CGS-013`,
   `CTR-CGS-014`.
@@ -702,7 +858,7 @@ or socket path. Operational modes cannot read its fixture interface.
 - Failure: extra/missing field, external ref in audit, partial snapshot,
   non-atomic result, or wrong isolation/revision.
 
-### ACC-SWX-008 — Legacy and non-target invariance
+### ACC-SWX2-008 — Legacy and non-target invariance
 
 - Contracts: parent `CTR-CGS-009`, `CTR-CGS-011`.
 - Method: static source dependency check plus instrumented DB privileges/counters
@@ -711,55 +867,55 @@ or socket path. Operational modes cannot read its fixture interface.
 - Expected: Legacy reads `0`, writes `0`; only target two Grants and audits differ.
 - Failure: Legacy data flow or any other row/column delta.
 
-### ACC-SWX-009 — Parent acceptance coverage ledger
+### ACC-SWX2-009 — Parent acceptance coverage ledger
 
 ```text
-CTR-CGS-001 -> ACC-SWX-004
-CTR-CGS-002 -> ACC-SWX-005
-CTR-CGS-003 -> ACC-SWX-005
-CTR-CGS-004 -> ACC-SWX-006
-CTR-CGS-005 -> ACC-SWX-004 | ACC-SWX-005 | ACC-SWX-006
-CTR-CGS-006 -> ACC-SWX-006 | ACC-SWX-007
-CTR-CGS-007 -> ACC-SWX-002 | ACC-SWX-007
-CTR-CGS-008 -> ACC-SWX-003
-CTR-CGS-009 -> ACC-SWX-008
-CTR-CGS-010 -> ACC-SWX-003 | ACC-SWX-010 | ACC-SWX-011
-CTR-CGS-011 -> ACC-SWX-004 | ACC-SWX-008
+CTR-CGS-001 -> ACC-SWX2-004
+CTR-CGS-002 -> ACC-SWX2-005
+CTR-CGS-003 -> ACC-SWX2-005
+CTR-CGS-004 -> ACC-SWX2-006
+CTR-CGS-005 -> ACC-SWX2-004 | ACC-SWX2-005 | ACC-SWX2-006
+CTR-CGS-006 -> ACC-SWX2-006 | ACC-SWX2-007
+CTR-CGS-007 -> ACC-SWX2-002 | ACC-SWX2-007
+CTR-CGS-008 -> ACC-SWX2-003
+CTR-CGS-009 -> ACC-SWX2-008
+CTR-CGS-010 -> ACC-SWX2-003 | ACC-SWX2-010 | ACC-SWX2-011
+CTR-CGS-011 -> ACC-SWX2-004 | ACC-SWX2-008
 CTR-CGS-012 -> NOT_APPLICABLE (rollback not implemented)
-CTR-CGS-013 -> ACC-SWX-002 | ACC-SWX-007
-CTR-CGS-014 -> ACC-SWX-002 | ACC-SWX-007
-ACC-CGS-001 -> ACC-SWX-004 (exact deterministic identity selection)
-ACC-CGS-002 -> ACC-SWX-004 (missing/mismatched identity all-or-nothing)
-ACC-CGS-003 -> ACC-SWX-005 (Audience failures write zero)
-ACC-CGS-004 -> ACC-SWX-005 (unknown/forbidden Scope rejection)
-ACC-CGS-005 -> ACC-SWX-006 | ACC-SWX-007 (two Grants + two audits atomically)
-ACC-CGS-006 -> ACC-SWX-006 (exact rerun writes zero)
-ACC-CGS-007 -> ACC-SWX-006 | ACC-SWX-007 (state/concurrency conflict rollback)
-ACC-CGS-008 -> ACC-SWX-005 (forbidden privilege rejection)
-ACC-CGS-009 -> ACC-SWX-008 (Legacy reads/writes zero)
-ACC-CGS-010 -> ACC-SWX-002 | ACC-SWX-003 | ACC-SWX-007 (metadata, audit, atomicity)
-ACC-CGS-011 -> ACC-SWX-004 | ACC-SWX-008 (only two canaries change)
+CTR-CGS-013 -> ACC-SWX2-002 | ACC-SWX2-007
+CTR-CGS-014 -> ACC-SWX2-002 | ACC-SWX2-007
+ACC-CGS-001 -> ACC-SWX2-004 (exact deterministic identity selection)
+ACC-CGS-002 -> ACC-SWX2-004 (missing/mismatched identity all-or-nothing)
+ACC-CGS-003 -> ACC-SWX2-005 (Audience failures write zero)
+ACC-CGS-004 -> ACC-SWX2-005 (unknown/forbidden Scope rejection)
+ACC-CGS-005 -> ACC-SWX2-006 | ACC-SWX2-007 (two Grants + two audits atomically)
+ACC-CGS-006 -> ACC-SWX2-006 (exact rerun writes zero)
+ACC-CGS-007 -> ACC-SWX2-006 | ACC-SWX2-007 (state/concurrency conflict rollback)
+ACC-CGS-008 -> ACC-SWX2-005 (forbidden privilege rejection)
+ACC-CGS-009 -> ACC-SWX2-008 (Legacy reads/writes zero)
+ACC-CGS-010 -> ACC-SWX2-002 | ACC-SWX2-003 | ACC-SWX2-007 (metadata, audit, atomicity)
+ACC-CGS-011 -> ACC-SWX2-004 | ACC-SWX2-008 (only two canaries change)
 ACC-CGS-012 -> NOT_APPLICABLE (rollback not implemented)
-AC-AUTHORITY-1 -> ACC-SWX-005 (Stage F absent and forum writes zero)
-AC-AUTHORITY-2 -> ACC-SWX-005 (registry presence cannot unblock Stage F)
-AC-AUDIT-1 -> ACC-SWX-007 (Stage W create audit schema-valid)
+AC-AUTHORITY-1 -> ACC-SWX2-005 (Stage F absent and forum writes zero)
+AC-AUTHORITY-2 -> ACC-SWX2-005 (registry presence cannot unblock Stage F)
+AC-AUDIT-1 -> ACC-SWX2-007 (Stage W create audit schema-valid)
 AC-AUDIT-2 -> NOT_APPLICABLE (Stage F not implemented)
-AC-AUDIT-3 -> ACC-SWX-007 (exact 13 fields, no additions)
-AC-AUDIT-4 -> ACC-SWX-007 (complete nine-field snapshots)
+AC-AUDIT-3 -> ACC-SWX2-007 (exact 13 fields, no additions)
+AC-AUDIT-4 -> ACC-SWX2-007 (complete nine-field snapshots)
 AC-ROLLBACK-1 -> NOT_APPLICABLE (rollback not implemented)
 AC-ROLLBACK-2 -> NOT_APPLICABLE (rollback not implemented)
 AC-ROLLBACK-3 -> NOT_APPLICABLE (rollback not implemented)
-AC-NOOP -> ACC-SWX-006
+AC-NOOP -> ACC-SWX2-006
 ```
 
 A static test MUST also prove the three implementation files contain no
 `svc-forum`, `forum.`, rollback apply path, or forbidden Scope constant except
 negative-test literals.
 
-### ACC-SWX-010 — Integration seam is DB-only and non-operational
+### ACC-SWX2-010 — Integration seam is DB-only and non-operational
 
-- Contracts: `CTR-SWX-005`; parent DB Contracts exercised by `ACC-SWX-004`
-  through `ACC-SWX-008`.
+- Contracts: `CTR-SWX2-005`; parent DB Contracts exercised by `ACC-SWX2-004`
+  through `ACC-SWX2-008`.
 - Method: invoke conformance mode with descriptor FD missing, regular-file,
   socket, stdin, closed, duplicate-key, and malformed variants; wrong
   nonce/label/image/mount/network/port/database/GUC; caller `DATABASE_URL`;
@@ -775,10 +931,10 @@ negative-test literals.
   non-FIFO descriptor, nonconforming/production DB access, flag/env provenance
   bypass, exact-rerun mutation, or DB test reported as positive provenance.
 
-### ACC-SWX-011 — Deterministic HTTPS validator without operational override
+### ACC-SWX2-011 — Deterministic HTTPS validator without operational override
 
-- Contracts: `CTR-SWX-006`; supports `CTR-SWX-003` and parent `CTR-CGS-010`.
-- Method: run every boundary/event/envelope case in `DEC-SWX-005`; test fixture FD
+- Contracts: `CTR-SWX2-006`; supports `CTR-SWX2-003` and parent `CTR-CGS-010`.
+- Method: run every boundary/event/envelope case in `DEC-SWX2-005`; test fixture FD
   wrong type and malformed/duplicate JSON; invoke fixture mode with every DB,
   evidence, apply, endpoint, CA, proxy, and agent argument/env; scan imports,
   exports, dispatch, and private call graph.
@@ -789,9 +945,64 @@ negative-test literals.
   operational mode reading fixture data, DB/engine access, or conformance result
   accepted as evidence.
 
+### ACC-SWX2-012 — Whole-Spec supersession and Client ID conformance
+
+- Contracts: `CTR-SWX2-003`, `CTR-SWX2-004`; parent `CTR-CGS-001`,
+  `CTR-CGS-005`, `CTR-CGS-010`, and `CTR-CGS-011`.
+- Method: independently compare V2 against accepted V1 blob
+  `6de180cdd4aad509912dfc9d6864301731f7909f`; inspect and execute the focused
+  Client ID guards/tests at implementation candidate
+  `73a04f8a9c9999cf9183017cddd4766b35683c60`; run all existing Stage W
+  conformance required by `ACC-SWX2-001` through `ACC-SWX2-011`; and verify the
+  authoring head restores the V1 file byte-for-byte to that accepted blob.
+- Expected: `_` and `-` are accepted after exact prefix `mc_`; `+`, `/`, `=`,
+  whitespace, non-ASCII, wrong prefix, and every after-prefix length other than
+  exactly 24 are rejected; both production guards and the focused tests conform;
+  all other V1 and parent Stage W product, permission, security, failure,
+  transaction, Evidence, and boundary meanings have semantic delta `NONE`; and
+  V1's accepted meaning is restored.
+- Failure: any other V1 meaning changes; any prohibited character, prefix, or
+  length passes; `_` or `-` fails; the current implementation candidate does not
+  satisfy V2; V1 differs from its accepted blob; or code/tests are treated as
+  authority rather than candidate conformance evidence.
+- Current evidence qualification: `INCONCLUSIVE` until independent exact-head
+  semantic review and all required executed conformance evidence are recorded.
+
+### ACC-SWX2-013 — Contract 1.3.0 parent-authority compatibility
+
+- Contracts: `CTR-SWX2-001`, `CTR-SWX2-004`; parent `CTR-CGS-001` through
+  `CTR-CGS-014` with `CTR-CGS-012` remaining not applicable.
+- Evaluated base: `953d7475ccdfb3d7afb02352a9ec5db7b5c2b34b`.
+- Method: verify Bundle and registry versions equal `1.3.0`; machine-compare the
+  `svc-forum` entry to accepted `CTR-FR-002`; inspect the complete
+  authoring-base-to-evaluated-base 18-file drift; prove the four Stage W paths in
+  `OBS-SWX2-005` are unchanged across those bases; run Bundle validation, full
+  Contract tests, full OAuth tests, and complete Stage W conformance; then diff
+  the evaluated base to the proposed head.
+- Expected: `svc-forum` registration and related fixtures/version linkage conform
+  to their accepted authority but remain outside Stage W; the two exact
+  `svc-workflow[workflow.read]` Grants and all Stage W identity, transaction,
+  audit, idempotency, evidence transport, rollback, production-apply, and Client
+  ID meanings are unchanged; Stage F and `svc-forum` Grant supply remain
+  unauthorized; the Contract Bundle needs no V2 change; V1 remains the exact
+  accepted blob; and the proposed head changes only the three docs paths.
+- Failure: any Stage W path changed in the parent drift; any new or modified Grant;
+  any Stage W semantic delta beyond the V2 Client ID alphabet expansion; any
+  failed validation/conformance; any Contract Bundle byte changed by this Spec;
+  or any need to expand V2 scope. Such a result is
+  `STAGE_W_V2_CONTRACT_1_3_COMPATIBILITY=AUTHORITY_CONFLICT` and blocks further
+  authoring.
+- Current evidence qualification: source reconciliation complete; executed result
+  remains `INCONCLUSIVE` until the commands above pass at the exact proposed head.
+
 ## 8. Compatibility and lifecycle
 
 ```text
+CURRENT_PARENT_CONTRACT_VERSION = 1.3.0
+SVC_FORUM_AUDIENCE_REGISTRATION = OUTSIDE_STAGE_W_SCOPE
+STAGE_W_V2_CONTRACT_1_3_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+STAGE_W_V2_CLIENT_ID_DECISION_CHANGED_BY_1_3 = NO
+SVC_FORUM_GRANT_SUPPLY_AUTHORIZED_BY_STAGE_W_V2 = NO
 LEGACY_FIELDS_TOUCHED = NO
 PRISMA_SCHEMA_CHANGED = NO
 PRODUCTION_MIGRATION_CHANGED = NO
@@ -803,26 +1014,62 @@ PRODUCTION_GRANT_CREATED = NO
 PRODUCTION_MIGRATION_APPLIED = NO
 ```
 
-This proposed Spec authorizes no implementation. After independent review, an
-authorized actor may mechanically finalize only:
+Although `implementation_authority: contracts` states what an accepted V2 would
+authorize, this proposed authoring head is not active authority and authorizes no
+new implementation, deployment, acceptance, or production action.
+
+A future acceptance-only transition MUST atomically make exactly these lifecycle
+and index changes in one docs-only commit:
 
 ```text
-status: proposed -> accepted
-implementation_authority: none -> contracts
+V2:
+  status = accepted
+  supersedes = [AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1]
+    (retained and confirmed from the proposed authoring head)
+
+V1:
+  status = superseded
+  superseded_by = AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V2
+
+docs/specs/README.md:
+  V1 = superseded
+  V2 = accepted
 ```
 
-The exact accepted revision must merge to `main` before implementation.
+That exact transition requires independent review and an authorized acceptance
+actor, and it must merge to `main` before V2 becomes active. The current authoring
+head deliberately remains:
+
+```text
+V1_STATUS = accepted
+V1_SUPERSEDED_BY = null
+V2_STATUS = proposed
+READY_TO_MARK_ACCEPTED = NO
+```
 
 ## 9. Authoring record
 
 ```text
-AUTHORING_BASE = cb0b3d37dfb105c763c9c83ebd65483270b21b81
+AUTHORING_BASE = afb4f067dbc70e5cfb86cdd8a61c1da2346c9317
+EVALUATED_BASE = 953d7475ccdfb3d7afb02352a9ec5db7b5c2b34b
+PREVIOUS_AUTHORING_HEAD = eb65a2442aaceec3eda15470111fc2b3a5c177ac
 PARENT_SPEC_BLOB = d89bf08c8714f55571ee7d75da017b7cf7237096
-ROUND = 7
-PRIOR_REVIEWED_COMMIT = 0e43cb953ad3b958a069f0d4dc28c10e2a0f8dd0
-PRIOR_REVIEW = REVISE
-PRIOR_BLOCKERS_RESOLVED = 4
+LAST_VALID_V1_BASE = 450a0ecb286cbe5da6e790d3c572fa71218ca9c0
+RESTORED_V1_BLOB = 6de180cdd4aad509912dfc9d6864301731f7909f
+DRIFT_COMMIT = 73a04f8a9c9999cf9183017cddd4766b35683c60
+DRIFTED_STABLE_ID = DEC-SWX-003
+DRIFT_CLASSIFICATION = SUPERSEDE_REQUIRED
+CURRENT_IMPLEMENTATION_CANDIDATE = 73a04f8a9c9999cf9183017cddd4766b35683c60
+CURRENT_IMPLEMENTATION_CANDIDATE_EVIDENCE_ONLY = YES
+MINIMAL_AUTH_CONTRACT_VERSION = 1.3.0
+SVC_FORUM_AUDIENCE = REGISTERED
+REGISTERED_SCOPES = forum.read, forum.write
+STAGE_W_V2_CONTRACT_1_3_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+INDEPENDENT_EXACT_HEAD_AUDIT = NOT_YET_PERFORMED
 OPEN_OWNER_DECISIONS = NONE
 NORMATIVE_TBD = NONE
+UNRESOLVED_AUTHORITY_CONFLICT = NONE
+PARTIAL_SUPERSESSION = NONE
 READY_FOR_INDEPENDENT_REVIEW = YES
+READY_TO_MARK_ACCEPTED = NO
 ```
