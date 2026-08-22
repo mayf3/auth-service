@@ -262,7 +262,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: `MINIMAL_AUTH_FOUNDATION_V1` lifecycle and frozen contract set
 - As-of commit / artifact revision: `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: `mayf3/auth-service` source repository, `github/main`
-- Observed at: `2026-08-20T22:56:05Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Basis: `OBS-MAFV2-001`, `CLM-MAFV2-001`, `EVD-MAFV2-001`
 
 ### STATE-MAFV2-002 — Governance is accepted but manually enforced
@@ -270,7 +270,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: local Development Governance adoption and enforcement state
 - As-of commit / artifact revision: `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: repository source and local governance verifier
-- Observed at: `2026-08-20T22:56:05Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Basis: `OBS-MAFV2-002`, `EVD-MAFV2-002`
 
 ### STATE-MAFV2-003 — Previous exact-Head ACCEPT review is historical evidence only
@@ -286,7 +286,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1`
 - As-of commit / artifact revision: `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: `mayf3/auth-service` source repository, `github/main`
-- Observed at: `2026-08-20T22:56:05Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Basis: `OBS-MAFV2-004`, `OBS-MAFV2-005`, `CLM-MAFV2-003`, `EVD-MAFV2-004`
 
 ### STATE-MAFV2-005 — Current V1 Contract 1.3.0 identities are pinned
@@ -302,7 +302,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1` lifecycle, parent relation, and bounded scope
 - As-of commit / artifact revision: accepted finalize `1f7fa6378fa44042f3001b4a5813210c0a8313e8`, present in `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: `mayf3/auth-service` source repository, `github/main`
-- Observed at: `2026-08-20T22:56:05Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Basis: `OBS-MAFV2-007`, `CLM-MAFV2-007`, `EVD-MAFV2-007`
 
 ### STATE-MAFV2-007 — V1 root contains load-bearing normative architecture
@@ -310,7 +310,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: V1 root bytes outside the closed four-field lifecycle mask
 - As-of commit / artifact revision: blob `fbaf7c8986aa367e0f8f43de1872e6d7e6c5ca5f`
 - Environment: Git object database and deterministic UTF-8/LF digest procedure
-- Observed at: `2026-08-20T23:45:10Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Basis: `OBS-MAFV2-008`, `CLM-MAFV2-008`, `EVD-MAFV2-008`
 
 ### STATE-MAFV2-008 — No effective V2 Activation Record exists
@@ -318,7 +318,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: `MINIMAL_AUTH_FOUNDATION_V2_ACTIVATION_V1` current source-tree presence and V1 manifest lifecycle facts
 - As-of commit / artifact revision: `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: `mayf3/auth-service` source repository, `github/main`
-- Observed at: `2026-08-20T23:45:10Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Basis: `OBS-MAFV2-009`, `CLM-MAFV2-009`, `EVD-MAFV2-009`
 
 ### STATE-MAFV2-009 — Cut-introduced caller sequencing requires isolated candidate conformance
@@ -326,7 +326,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: V1 surface availability classes and fixed-SHA caller activation order
 - As-of commit / artifact revision: evaluated base `36a11136745bae7a371d21ba62d9617942c41afa`; historical PR #2 remains proposed
 - Environment: source authority graph; no production execution asserted
-- Observed at: `2026-08-20T23:45:10Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Basis: `OBS-MAFV2-010`, `CLM-MAFV2-010`, `EVD-MAFV2-010`
 
 ### STATE-MAFV2-010 — Current main contains compatible bounded implementations
@@ -370,7 +370,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: vendored governance bytes and accepted adoption metadata
 - Source revision: `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: clean task worktree, local Python 3 verifier
-- Observed at: `2026-08-20T22:56:05Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Method: executed `python3 .agents/tools/verify_governance.py --target . --require-accepted`
 - Result: `vendored governance bytes match governance.lock.json and adoption is accepted`
 - Provenance: this PR authoring execution record; `.agents/governance.lock.json`
@@ -390,7 +390,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: `docs/specs/AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1.md`
 - Source revision: `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: repository source, `github/main`
-- Observed at: `2026-08-20T22:56:05Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Method: direct source inspection of frontmatter and bounded authorization section
 - Result: `status=accepted`; `implementation_authority=contracts`; external `authority_id=MINIMAL_AUTH_FOUNDATION_V1`, revision `1da40d4...`, relation `constrained_by`; implementation scope is a closed five-file product delta
 - Provenance: accepted Spec at the source path above, lines 1–18 and §5
@@ -410,7 +410,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: in-repository textual authority references to `MINIMAL_AUTH_FOUNDATION_V1`
 - Source revision: `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: repository documentation tree
-- Observed at: `2026-08-20T22:56:05Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Method: repository content search for exact authority ID, followed by frontmatter classification
 - Result: references include the accepted ownerless Spec's external-authority constraint and accepted Canary Grant Spec's `governed_by` parent; inventory must cover both reference classes
 - Provenance: this PR authoring execution record and matching repository paths
@@ -420,8 +420,8 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: `docs/specs/AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1.md` and its V1 Grant dependencies
 - Source revision: accepted finalize `1f7fa6378fa44042f3001b4a5813210c0a8313e8`; source blob `d89bf08c8714f55571ee7d75da017b7cf7237096`; evaluated base `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: repository source and Git object database
-- Observed at: `2026-08-20T22:56:05Z`
-- Method: inspect frontmatter, §1–§3, Decisions/Contracts, Acceptance record; compare `grants-and-audiences.md`, bundle tree, audience registry, and grants schema objects across `e9b6dbc...cb0b3d3`
+- Observed at: `2026-08-22T02:49:02Z`
+- Method: inspect frontmatter, §1–§3, Decisions/Contracts, Acceptance record; compare `grants-and-audiences.md`, bundle tree, audience registry, and grants schema objects across old evaluated base `450a0ec...` and current evaluated base `36a1113...`
 - Result: accepted `implementation_authority=contracts`, `governed_by` includes V1; Stage W remains two exact workflow Grants; Stage F source implementation supplies only the two accepted forum Grants; all depended-on Grant/Audience/Scope/audit/concurrency/forward-only objects and semantics are exactly incorporated by V2, while production apply remains unproven
 - Provenance: accepted Canary Grant Spec; Git history/object output in this PR authoring record
 
@@ -430,8 +430,8 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: exact V1 root base blob and all bytes outside the closed lifecycle mask
 - Source revision: blob `fbaf7c8986aa367e0f8f43de1872e6d7e6c5ca5f`
 - Environment: clean task worktree, Git object database, Python 3 SHA-256
-- Observed at: `2026-08-20T23:45:10Z`
-- Method: execute the canonicalization algorithm frozen in §3.2 on `git show cb0b3d3...:docs/contracts/minimal-auth-v1/README.md`
+- Observed at: `2026-08-22T02:49:02Z`
+- Method: execute the canonicalization algorithm frozen in §3.2 on `git show 36a11136745bae7a371d21ba62d9617942c41afa:docs/contracts/minimal-auth-v1/README.md`
 - Result: canonicalized length `10866` bytes; SHA-256 `953085bf7265b0d53870e90771c87be3cea29477eb459ca04cb7c0e744b71468`; root contains the enumerated load-bearing architecture semantics
 - Provenance: executed digest output in this PR authoring record and exact base blob
 
@@ -450,10 +450,10 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: `GET /api/v1/clients/:client_id` implementation availability and proposed Runtime Child sequencing
 - Source revision: evaluated base `36a11136745bae7a371d21ba62d9617942c41afa`; historical PR #2 is proposed only
 - Environment: source repository and persistent PR #7 Round 2 review record
-- Observed at: `2026-08-20T23:45:10Z`
-- Method: execute Git object existence check for `src/lib/oauth/v1/resolution.ts` and inspect the exact-Head Round 2 review coordinates
+- Observed at: `2026-08-22T02:49:02Z`
+- Method: execute Git object existence check at `36a11136745bae7a371d21ba62d9617942c41afa` for `src/lib/oauth/v1/resolution.ts`; inspect the V2 Cut sequence and historical review evidence
 - Result: resolution implementation is absent from the evaluated base and classified as CREATE work in the V1-only Runtime Child; it cannot be a PRE_CUT existing production surface
-- Provenance: executed Git check and PR #7 review bound to `263b0c685a35e9e9299f0470acc38b14b5a9ed10`
+- Provenance: current-base Git object check, V2 Contracts, and historical PR #7 review `4997678886`
 
 ## 6. Claims and assumptions
 
@@ -534,7 +534,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Source observations: `OBS-MAFV2-001`
 - Target: `CLM-MAFV2-001`
 - Relation: SUPPORTS
-- Bound coordinates: `mayf3/auth-service@36a11136745bae7a371d21ba62d9617942c41afa`, source repository, observed `2026-08-20T22:56:05Z`
+- Bound coordinates: `mayf3/auth-service@36a11136745bae7a371d21ba62d9617942c41afa`, source repository, observed `2026-08-22T02:49:02Z`
 - Strength / sufficiency: strong for the current V1 lifecycle representation and exact source identities
 - Limitations: does not itself accept the successor
 - Provenance: Git object results and V1 lifecycle source
@@ -544,7 +544,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Source observations: `OBS-MAFV2-002`
 - Target: `STATE-MAFV2-002`
 - Relation: SUPPORTS
-- Bound coordinates: `mayf3/auth-service@cb0b3d3...`, clean local worktree, observed `2026-08-20T22:56:05Z`
+- Bound coordinates: `mayf3/auth-service@36a11136745bae7a371d21ba62d9617942c41afa`, clean local worktree, observed `2026-08-22T02:49:02Z`
 - Strength / sufficiency: sufficient for vendored-byte identity and accepted lock status
 - Limitations: verifier does not prove semantic correctness, acceptance, implementation, deployment, or branch protection
 - Provenance: executed verifier output in this PR authoring record
@@ -564,7 +564,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Source observations: `OBS-MAFV2-004`
 - Target: `CLM-MAFV2-003`, `CLM-MAFV2-006`
 - Relation: SUPPORTS
-- Bound coordinates: `mayf3/auth-service@cb0b3d3...`, repository source, observed `2026-08-20T22:56:05Z`
+- Bound coordinates: `mayf3/auth-service@36a11136745bae7a371d21ba62d9617942c41afa`, repository source, observed `2026-08-22T02:49:02Z`
 - Strength / sufficiency: sufficient to establish accepted lifecycle, exact V1 constraint, and closed product scope
 - Limitations: does not decide whether a future reference-alignment amendment is required
 - Provenance: accepted ownerless Spec frontmatter and §5
@@ -584,7 +584,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Source observations: `OBS-MAFV2-001`, `OBS-MAFV2-006`
 - Target: `CLM-MAFV2-005`, `CLM-MAFV2-006`
 - Relation: SUPPORTS
-- Bound coordinates: `mayf3/auth-service@cb0b3d3...`, source repository, observed `2026-08-20T22:56:05Z`
+- Bound coordinates: `mayf3/auth-service@36a11136745bae7a371d21ba62d9617942c41afa`, source repository, observed `2026-08-22T02:49:02Z`
 - Strength / sufficiency: sufficient for an internally complete normative sequence and both current downstream reference classes
 - Limitations: not executed migration evidence and not proof of out-of-repository consumers
 - Provenance: V1 source modules and repository authority-reference inventory
@@ -604,7 +604,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Source observations: `OBS-MAFV2-008`
 - Target: `CLM-MAFV2-008`, `STATE-MAFV2-007`
 - Relation: SUPPORTS
-- Bound coordinates: V1 root blob `fbaf7c89...`, canonicalized bytes `10866`, observed `2026-08-20T23:45:10Z`
+- Bound coordinates: V1 root blob `fbaf7c89...`, canonicalized bytes `10866`, observed `2026-08-22T02:49:02Z`
 - Strength / sufficiency: byte-exact and reproducible for the base root outside the four-field mask
 - Limitations: final accepted root comparison must be executed after lifecycle-field changes
 - Provenance: executed SHA-256 receipt and §3.2 canonical algorithm
@@ -624,7 +624,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Source observations: `OBS-MAFV2-010`
 - Target: `CLM-MAFV2-010`, `STATE-MAFV2-009`
 - Relation: SUPPORTS
-- Bound coordinates: evaluated base `cb0b3d3...`, historical review Head `263b0c6...`, observed `2026-08-20T23:45:10Z`
+- Bound coordinates: evaluated base `36a11136745bae7a371d21ba62d9617942c41afa`, historical review `4997678886`, observed `2026-08-22T02:49:02Z`
 - Strength / sufficiency: sufficient to classify the resolution endpoint as not PRE_CUT-existing and require a non-production candidate path
 - Limitations: proposed PR #2 is provenance, not active authority; V2 owns the selected sequence only upon acceptance
 - Provenance: executed source-path check and persistent PR #7 Round 2 review
@@ -1017,7 +1017,7 @@ Head, reviewer/acceptance actor, execution timestamp, and persistent PR review o
 
 - Contracts: `CTR-MAFV2-001`
 - Method: execute `git rev-parse <evaluated-base>:<path>` for every table object and compare with the frozen SHA; separately verify lifecycle/migration provenance blobs
-- Environment: clean `mayf3/auth-service` worktree at evaluated base `cb0b3d3...`
+- Environment: clean `mayf3/auth-service` worktree at evaluated base `36a11136745bae7a371d21ba62d9617942c41afa`
 - Required evidence: full common tuple plus command output for every object
 - Expected result: all immutable objects match; complete V1 root is incorporated under the closed mask and exact masked digest
 - Failure condition: any mismatch, missing coordinate, dropped root semantic body, or unlisted semantic exclusion
@@ -1071,7 +1071,7 @@ Head, reviewer/acceptance actor, execution timestamp, and persistent PR review o
 
 - Contracts: `CTR-MAFV2-007`
 - Method: compare ownerless bounded scope and V1 dependency semantics with CTR-MAFV2-001 identities and V2 delta scope
-- Environment: accepted ownerless Spec at `cb0b3d3...` and exact proposed V2 Head
+- Environment: accepted ownerless Spec at evaluated base `36a11136745bae7a371d21ba62d9617942c41afa` and exact proposed V2 Head
 - Required evidence: full common tuple plus source-object comparison and independent compatibility finding
 - Expected result: `COMPATIBLE_NO_SEMANTIC_DELTA`, ownerless Spec preserved byte-for-byte, and disposition is grandfathered/no-alignment/no-product-delta
 - Failure condition: architecture conflict, changed relied-on semantics, ownerless file delta, unresolved disposition, or any current alignment requirement
