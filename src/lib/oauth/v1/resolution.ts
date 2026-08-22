@@ -145,16 +145,12 @@ export function validateExternalRef(
 
 function isTimeoutError(error: unknown): boolean {
   if (!(error instanceof Error) && (typeof error !== 'object' || error === null)) return false;
-  const value = error as { name?: unknown; code?: unknown; message?: unknown };
+  const value = error as { name?: unknown; code?: unknown };
   const code = typeof value.code === 'string' ? value.code.toUpperCase() : '';
-  const name = typeof value.name === 'string' ? value.name.toLowerCase() : '';
-  const message = typeof value.message === 'string' ? value.message.toLowerCase() : '';
   return code === 'ETIMEDOUT'
     || code === 'P1008'
     || code === 'P2024'
-    || name.includes('timeout')
-    || message.includes('timed out')
-    || message.includes('timeout');
+    || value.name === 'TimeoutError';
 }
 
 export function toIdentityResolutionError(error: unknown): IdentityResolutionError {
