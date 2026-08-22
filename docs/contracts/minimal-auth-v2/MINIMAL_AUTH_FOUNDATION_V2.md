@@ -278,7 +278,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: PR #7 independent review `4997678886` of the previous exact Base/Head
 - As-of commit / artifact revision: base `450a0ecb286cbe5da6e790d3c572fa71218ca9c0`, Head `93bbcdf78eb726e48f53ffdf435617c0e00f14c3`
 - Environment: persistent GitHub PR #7 review record
-- Observed at: `2026-08-22T02:39:23Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Basis: `OBS-MAFV2-003`, `CLM-MAFV2-002`, `EVD-MAFV2-003`; result `ACCEPT`, but rebase/reconciliation requires a new exact-Head independent audit
 
 ### STATE-MAFV2-004 — New base preserves the accepted ownerless downstream Spec
@@ -294,7 +294,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: V1 root, all normative modules, Contract Bundle `1.3.0`, manifest, registry, and runtime linkage
 - As-of commit / artifact revision: evaluated base `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: clean task worktree, Git object database
-- Observed at: `2026-08-22T02:39:23Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Basis: `OBS-MAFV2-001`, `OBS-MAFV2-005`, `CLM-MAFV2-004`, `EVD-MAFV2-005`
 
 ### STATE-MAFV2-006 — New base contains accepted Canary Grant authority
@@ -334,7 +334,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: ownerless, Stage W, and Stage F bounded source implementations
 - As-of commit / artifact revision: evaluated base `36a11136745bae7a371d21ba62d9617942c41afa`; Stage F merge `3b2ae71c38905c720399a74e038e49f725ceb178`
 - Environment: `mayf3/auth-service` source repository, `github/main`
-- Observed at: `2026-08-22T02:39:23Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Basis: merge-parent file inventories, accepted parents, and exact Contract `1.3.0` objects; no production apply inferred
 
 ### STATE-MAFV2-011 — Current main contains accepted Stage W Execution V2 authority
@@ -342,7 +342,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: superseded `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1` and accepted V2 successor
 - As-of commit / artifact revision: acceptance `8df5600e71281860bf0291d704e1e7b24bbdb2b3`; V1 blob `fe6705df1a406464e9344124298bea09d8b85e9b`; V2 blob `8c86d736394d9c98001b019b087d936d367acd80`
 - Environment: `mayf3/auth-service` source repository, `github/main`
-- Observed at: `2026-08-22T02:39:23Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Basis: lifecycle frontmatter, whole-Spec supersession, exact Client ID delta, parent references, and implementation boundary
 
 ### STATE-MAFV2-012 — svc-forum Contract 1.3.0 and version linkage are merged
@@ -350,7 +350,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: accepted `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1`, accepted `AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1`, and their 18-file implementation closure
 - As-of commit / artifact revision: CCR blob `78530b1fbfb13d477e65e002185128cf69843942`; linkage blob `ff8dbf9a27002a5e92a171fa249a1371d5c69bda`; implementation merge `953d7475ccdfb3d7afb02352a9ec5db7b5c2b34b`
 - Environment: `mayf3/auth-service` source repository, `github/main`
-- Observed at: `2026-08-22T02:39:23Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Basis: Contract `1.3.0` bundle identities, exact audience semantics, and runtime version allowlist
 
 ## 5. Observations
@@ -360,7 +360,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: V1 lifecycle root, every normative module, Contract Bundle `1.3.0`, manifest, audience registry, and runtime linkage
 - Source revision: `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: clean task worktree, Git object database
-- Observed at: `2026-08-22T02:39:23Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Method: executed `git rev-parse <base>:<path>` for every CTR-MAFV2-001 object, SHA-256 over manifest/registry bytes, the root masked-digest algorithm, and runtime allowlist inspection
 - Result: root masked digest remains exact; all current V1 module and `1.3.0` executable-bundle identities are frozen in CTR-MAFV2-001; runtime supports `1.3.0`
 - Provenance: this PR authoring execution record and CTR-MAFV2-001 table
@@ -380,7 +380,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: PR #7 review `4997678886` bound to the previous authority Base/Head
 - Source revision: base `450a0ecb286cbe5da6e790d3c572fa71218ca9c0`, Head `93bbcdf78eb726e48f53ffdf435617c0e00f14c3`
 - Environment: GitHub PR #7 persistent review record
-- Observed at: `2026-08-22T02:39:23Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Method: inspect the submitted exact-Head review and binding
 - Result: `ACCEPT`; the four earlier core blockers remain closed `4 / 4`; the result is historical evidence only after rebase and authority reconciliation
 - Provenance: `https://github.com/mayf3/auth-service/pull/7#pullrequestreview-4997678886`; new exact Head requires independent audit
@@ -400,7 +400,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: all authority and implementation changes from old evaluated base to current evaluated base
 - Source revision: `450a0ecb286cbe5da6e790d3c572fa71218ca9c0..36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: clean task worktree, Git object database
-- Observed at: `2026-08-22T02:39:23Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Method: inspected every commit and changed path, then recomputed all V1 module, bundle, manifest, registry, runtime-linkage, downstream-Spec, Stage W, and Stage F identities
 - Result: current main adds Contract `1.3.0` svc-forum implementation/linkage, Stage F source implementation, and accepted Stage W Execution V2; V2 incorporates these exactly with no product semantic delta and no inferred production apply
 - Provenance: executed Git history, object, digest, and source inspection in this PR authoring record
@@ -440,7 +440,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Subject: V1 `1.3.0` manifest lifecycle fields and V2 Activation Record path
 - Source revision: `36a11136745bae7a371d21ba62d9617942c41afa`; manifest blob `60ed66c696fa465c6a850f3a1749df55a19eb65b`; SHA-256 `59edda9ece846c45a5767aa37d76517609762b7815c2a9da6b3068106d6765ab`
 - Environment: clean task worktree and Git object database
-- Observed at: `2026-08-22T02:39:23Z`
+- Observed at: `2026-08-22T02:49:02Z`
 - Method: inspect `contract-manifest.json` lifecycle/version objects, verify registry/linkage identity, and execute exact-path Git object existence check
 - Result: manifest records Contract `1.3.0` V1/not-ready/not-started/false freeze-time facts; `MINIMAL_AUTH_FOUNDATION_V2_ACTIVATION_V1.json` is absent
 - Provenance: current manifest and audience registry bytes; executed path check in this PR authoring record
@@ -574,7 +574,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Source observations: `OBS-MAFV2-005`
 - Target: `CLM-MAFV2-003`, `CLM-MAFV2-004`
 - Relation: SUPPORTS
-- Bound coordinates: old evaluated base `450a0ec...`, new base `36a1113...`, Git object database, observed `2026-08-22T02:39:23Z`
+- Bound coordinates: old evaluated base `450a0ec...`, new base `36a1113...`, Git object database, observed `2026-08-22T02:49:02Z`
 - Strength / sufficiency: exact for the complete base-to-base history, tracked bytes, object identities, and current authority graph
 - Limitations: no claim about runtime deployment or future revisions
 - Provenance: executed scoped Git diff and object-identity output
@@ -594,7 +594,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Source observations: `OBS-MAFV2-005`, `OBS-MAFV2-007`
 - Target: `CLM-MAFV2-006`, `CLM-MAFV2-007`, `STATE-MAFV2-006`
 - Relation: SUPPORTS
-- Bound coordinates: Canary accepted finalize `1f7fa637...`, evaluated base `36a1113...`, V1 Grant blob `2f05c06...`, bundle tree `c477f1b...`, Stage F merge `3b2ae71...`, observed `2026-08-22T02:39:23Z`
+- Bound coordinates: Canary accepted finalize `1f7fa637...`, evaluated base `36a1113...`, V1 Grant blob `2f05c06...`, bundle tree `c477f1b...`, Stage F merge `3b2ae71...`, observed `2026-08-22T02:49:02Z`
 - Strength / sufficiency: exact for accepted lifecycle, parent relation, bounded scope, object identity, and source implementation presence; strong semantic match for MachineAccessGrant, Audience/Scope, audit, optimistic concurrency, and forward-only migration/rollback
 - Limitations: source merge does not prove production Grant apply, database write, deployment, or production effectiveness
 - Provenance: accepted Canary Grant Spec, V1 Grant source, bundle objects, and executed Git object comparison
@@ -614,7 +614,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Source observations: `OBS-MAFV2-009`
 - Target: `CLM-MAFV2-009`, `STATE-MAFV2-008`
 - Relation: SUPPORTS
-- Bound coordinates: Contract `1.3.0` manifest blob `60ed66c...`, evaluated base `36a1113...`, observed `2026-08-22T02:39:23Z`
+- Bound coordinates: Contract `1.3.0` manifest blob `60ed66c...`, evaluated base `36a1113...`, observed `2026-08-22T02:49:02Z`
 - Strength / sufficiency: exact for immutable manifest contents and current record absence
 - Limitations: does not create or accept an Activation Record
 - Provenance: manifest source and executed exact-path existence check
