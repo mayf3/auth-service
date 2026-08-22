@@ -53,12 +53,14 @@ Audience 行、identity）保持字节不变。
 - 冻结精确问题陈述（唯一违规 Grant 的完整坐标，§4）；
 - 冻结精确实现文件闭包（恰好三个文件，§9 CTR-NG-001）；
 - 冻结唯一允许的生产状态变化与其禁止清单（§9 CTR-NG-002）；
-- 冻结事务内前置校验（§9 CTR-NG-003）；
+- 冻结事务内前置校验（§9 CTR-NG-003，含 principal active 前置）；
 - 冻结事务、锁与审计模型（§9 CTR-NG-004 / CTR-NG-005）；
-- 冻结重跑与冲突语义（§9 CTR-NG-006）;
+- 冻结重跑与冲突语义（§9 CTR-NG-006，15 项 conflict matrix）;
 - 冻结固定 SHA 离线执行形态与 production apply 边界
   （§9 CTR-NG-007 / CTR-NG-008）；
-- 冻结 ACC-NG-001–ACC-NG-010（§10）。
+- 冻结 implementation review 不可变绑定与 merge eligibility 链
+  （§9 CTR-NG-009）；
+- 冻结 ACC-NG-001–ACC-NG-012（§10）。
 
 ### Non-goals
 
@@ -91,6 +93,11 @@ OWNER_EXECUTION_AUTHORIZATION = 2026-08-22 owner dispatch（"授权最小降权�
   同事务审计的离线变更"；存档 mayf3/dsh-agent-core
   docs/evidence/svc-forum-audience-registry-reconciliation-20260822/）
 PROCESS_AUTHORITY = 仓库治理（.agents/README.md、docs/specs/README.md）
+AMENDMENT_AUTHORITY = 2026-08-22 降权审计（REVISE）两个 REQUIRED_FIXES：
+  Fix 1 = principal active / disabled_at 前置（§8 DEC-NG-004、
+    §9 CTR-NG-003 / CTR-NG-006）
+  Fix 2 = implementation review 不可变绑定（§8 DEC-NG-005、
+    §9 CTR-NG-009）
 ```
 
 - 本 Spec 与 Parent 的关系是 bounded child：全部 Contract 在 Parent 冻结
@@ -125,6 +132,19 @@ PROCESS_AUTHORITY = 仓库治理（.agents/README.md、docs/specs/README.md）
 - `STATE-NG-003` — 姊妹任务的其余前置全部 PASS（干净 checkout、HEAD 含
   f5c2305、health/contract/JWKS、两 canary Grant 精确、Stage F plan
   noop）。Basis: 2026-08-22 执行 dispatch 的 evidence 目录。
+
+- `STATE-NG-004` — 已保存实现（hold 分支
+  `agent/svc-forum-legacy-grant-narrowing-v1-implementation-hold`）尚未
+  实现 Fix 1 的 principal 前置。Basis: 降权审计 REQUIRED_FIXES + 对
+  preserved head 的静态复核
+  （`scripts/narrow-svc-forum-legacy-grant-v1.ts` 的 principal select 仅含
+  id / principal_type，全文无 status / disabled_at 校验）。
+  ```text
+  PRESERVED_IMPLEMENTATION_EVIDENCE_HEAD =
+    d7924b11f9a14917cd68d38196ba2b96f2a5df55
+  PRESERVED_IMPLEMENTATION_CURRENTLY_CONFORMANT = NO
+  KNOWN_IMPLEMENTATION_FIX = ADD_PRINCIPAL_ACTIVE_AND_DISABLED_AT_GUARD
+  ```
 
 ## 5. Observations
 
@@ -255,6 +275,33 @@ PROCESS_AUTHORITY = 仓库治理（.agents/README.md、docs/specs/README.md）
   不变会与既有审计语义冲突。
 - Owner decision remaining: NONE。
 
+### DEC-NG-004 — principal disabled / inactive 为 terminal conflict
+
+- Decision owner: mayf3。
+- Decision: 目标 MachinePrincipal 不满足 `status = 'active'` 且
+  `disabled_at IS NULL` 时，收窄 MUST fail-loud 终止且零写入；不自动修复、
+  不更换身份（PRINCIPAL_DISABLED / PRINCIPAL_INACTIVE =
+  TERMINAL_CONFLICT；AUTO_REPAIR = NO；REPLACEMENT_IDENTITY = NO，冻结于
+  CTR-NG-006）。
+- Reason: principal 生命周期状态属 owner 管辖面，超出本 Spec"最小降权"
+  授权面；降权审计 REQUIRED_FIXES（Fix 1）。
+- Owner decision remaining: NONE（terminal conflict 后的后续处置属未来
+  独立 owner 决策，以新观察重新冻结）。
+
+### DEC-NG-005 — implementation review 不可变绑定链
+
+- Decision owner: mayf3。
+- Decision: 未来实现 PR 的 merge eligibility 只能来自独立 implementation
+  review 对 immutable `IMPLEMENTATION_REVIEW_HEAD` /
+  `IMPLEMENTATION_MERGE_BASE` / `IMPLEMENTATION_DIFF_DIGEST` 的冻结验证
+  （CTR-NG-009）；branch name 不构成 authority；本 Spec acceptance 本身
+  不产生 implementation merge authority。
+- Reason: 降权审计 REQUIRED_FIXES（Fix 2）；镜像姊妹 Spec
+  `AUTH_SERVICE_SVC_FORUM_AUDIENCE_REGISTRY_RECONCILIATION_V1` 已 accepted
+  的 CTR-RR-007 implementation-binding 模型；Fix 1（KNOWN_IMPLEMENTATION_
+  FIX）必然产生新的实现 commit，preserved head 只能作为 evidence 起点。
+- Owner decision remaining: NONE。
+
 ## 9. Contracts
 
 ### CTR-NG-001 — 精确实现文件闭包
@@ -302,16 +349,20 @@ Audience 行 / Human Grant / Delegation Grant；MUST NOT 修改或删除
    其 internal `id` 精确等于 `b4f209b3-968c-4bf2-8aac-4b9528752e75`；
 2. `machine_principal_id` 精确等于 `132ab857-35ab-408b-b909-bc0b1deab55b`
    （principal 行存在且 id 绑定一致）；
-3. client `status = 'active'` 且 `revoked_at IS NULL`；
-4. client 不是带 Delegation Grant 的 trusted proxy（若有，fail-loud）；
-5. 该 client 恰好一条 `audience_id = 'svc-forum'` 的 Grant 行；
-6. 该行 scopes 集合精确等于三项 drift 集合或两项 target 集合；
-7. drift 态该行 `version = 1`，且该 client 无任何
+3. 目标 MachinePrincipal 行 `status = 'active'` 且
+   `disabled_at IS NULL`（`principal.status ≠ 'active'` 即
+   PRINCIPAL_INACTIVE；`disabled_at IS NOT NULL` 即 PRINCIPAL_DISABLED；
+   两者均为 TERMINAL_CONFLICT，处置冻结于 CTR-NG-006）；
+4. client `status = 'active'` 且 `revoked_at IS NULL`；
+5. client 不是带 Delegation Grant 的 trusted proxy（若有，fail-loud）；
+6. 该 client 恰好一条 `audience_id = 'svc-forum'` 的 Grant 行；
+7. 该行 scopes 集合精确等于三项 drift 集合或两项 target 集合；
+8. drift 态该行 `version = 1`，且该 client 无任何
    `change_type = 'replace'` 的既有 grant_change_audits 行；
-8. target 态该行 `version = 2`，且该 client 恰好一条 'replace' 审计、
+9. target 态该行 `version = 2`，且该 client 恰好一条 'replace' 审计、
    envelope 全字段精确匹配（含五项 metadata、before/after snapshot、
    expected 1 / resulting 2）——仅此时 NOOP；
-9. 全部其他 Grant 行（任何 audience）作为不可变 tripwire 参与前后比对。
+10. 全部其他 Grant 行（任何 audience）作为不可变 tripwire 参与前后比对。
 
 ### CTR-NG-004 — 事务与锁模型
 
@@ -374,12 +425,39 @@ GRANT_ROWS_UPDATED = 0
 AUDITS_CREATED = 0
 ```
 
-以下全部 conflict fail-closed（writes = 0）：目标态但审计缺失；审计
-metadata 不匹配；before/after snapshot 漂移；duplicate 'replace' 审计；
-drift 态已有 'replace' 审计；scopes 非精确三项集合；drift 态 version ≠ 1；
-client 解析异常 / internal id 漂移 / principal 漂移 / client 非 active 或
-已吊销；伴随 Grant 行前后不一致。实现 MUST NOT 自动补审计、MUST NOT
-last-write-wins。
+以下 15 项 conflict matrix 全部 fail-closed（每项 RESULT = conflict、
+GRANT_WRITES = 0、AUDIT_WRITES = 0）：
+
+```text
+CM-01 目标态但 'replace' 审计缺失
+CM-02 审计 metadata 不匹配（五项任一）
+CM-03 before/after snapshot 漂移
+CM-04 duplicate 'replace' 审计
+CM-05 drift 态已有 'replace' 审计
+CM-06 scopes 非精确三项 drift 集合 / 两项 target 集合
+CM-07 drift 态 version ≠ 1
+CM-08 client 解析异常（public client_id 缺失 / 不唯一）
+CM-09 internal id 漂移
+CM-10 principal id 漂移（machine_principal_id 或 principal 行 id 不等）
+CM-11 PRINCIPAL_DISABLED（principal.disabled_at IS NOT NULL）
+CM-12 PRINCIPAL_INACTIVE（principal.status ≠ 'active'）
+CM-13 client 非 active（client.status ≠ 'active'）
+CM-14 client 已吊销（client.revoked_at IS NOT NULL）
+CM-15 伴随 Grant 行前后不一致
+```
+
+principal 状态冲突（CM-11 / CM-12）的冻结处置：
+
+```text
+PRINCIPAL_DISABLED    = TERMINAL_CONFLICT
+PRINCIPAL_INACTIVE    = TERMINAL_CONFLICT
+AUTO_REPAIR           = NO（不自动重新启用 / 修复 principal）
+REPLACEMENT_IDENTITY  = NO（不迁移到替代 principal、不新建身份）
+处置 = fail-loud 终止 + GRANT_WRITES = 0 + AUDIT_WRITES = 0；
+  后续处置由 owner 以新观察重新冻结（独立决策，不在本 Spec 内）
+```
+
+实现 MUST NOT 自动补审计、MUST NOT last-write-wins。
 
 ### CTR-NG-007 — 固定 SHA 离线执行形态
 
@@ -395,6 +473,52 @@ last-write-wins。
 2026-08-22"最小降权"dispatch 授权（§3 已引用存档），执行时以
 `approval_ref` 指向该 dispatch 存档坐标。任何超出 CTR-NG-002 的生产变化
 （包括 rollback）都是独立 owner 决策。
+
+### CTR-NG-009 — implementation review 不可变绑定与 merge eligibility 链
+
+```text
+IMPLEMENTATION_REVIEW_BINDING_REQUIRED = YES
+
+PRESERVED_IMPLEMENTATION_EVIDENCE_HEAD =
+  d7924b11f9a14917cd68d38196ba2b96f2a5df55
+PRESERVED_IMPLEMENTATION_EVIDENCE_ROLE =
+  authoring/evidence 起点（authoring 轮 22/22 conformance 的已保存
+  实现），不是未来 merge-authorized implementation Head——Fix 1 的
+  KNOWN_IMPLEMENTATION_FIX 必然产生新的实现 commit
+FUTURE_IMPLEMENTATION_HEAD_PINNED_NOW = NO
+BRANCH_NAME_IS_AUTHORITY = NO
+```
+
+在未来任何 implementation PR 取得 merge authority 之前，独立
+implementation review MUST 冻结并验证三项不可变坐标：
+
+```text
+IMPLEMENTATION_REVIEW_HEAD  = review 时点实现 PR head 的完整 commit SHA
+IMPLEMENTATION_MERGE_BASE   = three-dot diff merge-base 的完整 commit SHA
+IMPLEMENTATION_DIFF_DIGEST  = three-dot diff 的确定性 digest（SHA256）
+```
+
+规则（镜像姊妹 Spec
+`AUTH_SERVICE_SVC_FORUM_AUDIENCE_REGISTRY_RECONCILIATION_V1` 已 accepted
+的 CTR-RR-007 implementation-binding 模型）：
+
+1. 三者 MUST 为 immutable SHA / digest；可移动 branch 名 MUST NOT 充当
+   authority；
+2. `IMPLEMENTATION_REVIEW_HEAD` 漂移 → review 失效，MUST 重新评审；
+3. `IMPLEMENTATION_MERGE_BASE` 漂移且涉及 authority / 实现语义 → MUST
+   re-review；
+4. `IMPLEMENTATION_DIFF_DIGEST` 不匹配 → MUST re-review；
+5. 本 Spec acceptance 本身不产生 implementation merge authority；
+6. merge eligibility 仅在 implementation review PASS（且本 Spec 已
+   accepted 并合入 main）后产生；
+7. production apply 仍是独立 Owner 决定（CTR-NG-008），不由 implementation
+   review PASS 或 merge 自动授权。
+
+本 Spec 处于 proposed，MUST NOT 预先伪造未来实现 Head：未来
+`IMPLEMENTATION_REVIEW_HEAD` 由 Fix 1 修复后的实现 commit 在其独立
+review 时点冻结。当前 preserved 实现
+（`PRESERVED_IMPLEMENTATION_EVIDENCE_HEAD`）在
+KNOWN_IMPLEMENTATION_FIX 落地前不得直接视为 merge-authorized Head。
 
 ## 10. Acceptance
 
@@ -420,9 +544,13 @@ last-write-wins。
 ### ACC-NG-004 — 前置校验矩阵
 
 - Contracts: CTR-NG-003。Method: 至少覆盖 client 缺失、internal id 漂移、
-  principal 漂移、status 非 active、已吊销、双 svc-forum Grant、scopes 非
-  精确三项、drift 态 version≠1、drift 态已有 replace 审计。
-- Expected: 每项 fail-loud、writes=0。Failure: 任一被接受或产生写入。
+  principal 漂移、principal disabled（`disabled_at` 非 NULL）、principal
+  inactive（`status ≠ active`）、client status 非 active、已吊销、双
+  svc-forum Grant、scopes 非精确三项、drift 态 version≠1、drift 态已有
+  replace 审计。
+- Expected: 每项 fail-loud、RESULT = conflict、GRANT_WRITES = 0、
+  AUDIT_WRITES = 0；principal 两项按 TERMINAL_CONFLICT 处置（无
+  auto-repair、无 replacement identity）。Failure: 任一被接受或产生写入。
 
 ### ACC-NG-005 — lock-before-snapshot + Serializable
 
@@ -464,6 +592,26 @@ last-write-wins。
 - Expected: 工具在最小权限下完整通过；legacy/secret 列不可读。Failure:
   权限需求超出或 legacy 列可读。
 
+### ACC-NG-011 — implementation review 不可变绑定
+
+- Contracts: CTR-NG-009。Method: 独立 implementation review 记录冻结
+  `IMPLEMENTATION_REVIEW_HEAD` / `IMPLEMENTATION_MERGE_BASE` /
+  `IMPLEMENTATION_DIFF_DIGEST` 三项坐标并复算 head / merge-base /
+  three-dot diff digest。
+- Expected: 三者为 immutable SHA / digest 且复算相等；branch 名未充当
+  authority；head / digest 失配触发 re-review。Failure: 坐标缺失、以可
+  移动引用充当坐标、或失配未触发 re-review。
+
+### ACC-NG-012 — preserved head 非 merge-authorized；acceptance 不自动授权 apply
+
+- Contracts: CTR-NG-008 / CTR-NG-009。Method: 文本审计 + review 链核对。
+- Expected: `PRESERVED_IMPLEMENTATION_EVIDENCE_HEAD` 仅作 evidence 起点
+  （KNOWN_IMPLEMENTATION_FIX 落地前不得直接 merge）；实现修复后必须重新
+  独立 review；merge eligibility 仅来自 implementation review PASS；
+  acceptance 记录无任何 production apply 授权语句。Failure:
+  d7924b11f9a14917cd68d38196ba2b96f2a5df55 被视为最终 merge-authorized
+  Head、修复后未重新独立 review、或 acceptance 被解释为 apply 授权。
+
 ### Contract coverage
 
 | Contract | Acceptance | Evidence class | Covered |
@@ -475,7 +623,8 @@ last-write-wins。
 | CTR-NG-005 | ACC-NG-006、ACC-NG-007 | executed test | YES |
 | CTR-NG-006 | ACC-NG-008、ACC-NG-009 | executed test | YES |
 | CTR-NG-007 | ACC-NG-010 | executed test | YES |
-| CTR-NG-008 | 文本审计 | 只读审计 | YES |
+| CTR-NG-008 | ACC-NG-012、文本审计 | 只读审计 | YES |
+| CTR-NG-009 | ACC-NG-011、ACC-NG-012 | review 记录 / 只读审计 | YES |
 
 > 执行类证据由实现 PR 提供一次性 PostgreSQL conformance；本 Spec 处于
 > proposed 阶段，最终 review/acceptance tuple 以独立 review 记录为准。
@@ -520,6 +669,16 @@ OPEN_OWNER_DECISIONS = NONE
 NORMATIVE_TBD = NONE
 UNRESOLVED_AUTHORITY_CONFLICT = NONE
 PARTIAL_SUPERSESSION = NONE
+SPEC_AMENDMENT_2026_08_22 = 降权审计（REVISE）REQUIRED_FIXES 修复轮
+  FIX_1_PRINCIPAL_ACTIVE_PREREQUISITE = APPLIED（DEC-NG-004、
+    CTR-NG-003 第 3 项、CTR-NG-006 15 项 conflict matrix CM-11/CM-12
+    与 TERMINAL_CONFLICT 处置、ACC-NG-004）
+  FIX_2_IMPLEMENTATION_REVIEW_BINDING = APPLIED（DEC-NG-005、CTR-NG-009、
+    ACC-NG-011、ACC-NG-012）
+  AMENDMENT_SEMANTIC_BASE = 0bbe12e2581e916101011ab3bda8580c1cbae6f4
+  PRESERVED_IMPLEMENTATION_CURRENTLY_CONFORMANT = NO
+    （KNOWN_IMPLEMENTATION_FIX = ADD_PRINCIPAL_ACTIVE_AND_DISABLED_AT_GUARD
+    由未来实现轮落地并重新独立 review；本轮不改 hold 分支）
 ```
 
 ## 14. Acceptance Record
