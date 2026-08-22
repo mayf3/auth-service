@@ -38,12 +38,13 @@ Program 或 governance adoption Spec 使用 `implementation_authority: none` 时
 | `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1` | implementation | accepted | contracts（仅 §5 冻结五文件范围） | ownerless agent direct-token profile 与数据库 CHECK 联合修复；封闭五文件实现范围 |
 | `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1` | implementation | accepted | contracts（仅 CTR-FR-009 冻结的 13 个 Auth 文件 + 8 个 Forum 文件范围） | 注册 `svc-forum` Audience；仅允许 `forum.read` / `forum.write`，冻结 consumer review、activation gates 与 AC1–AC10 |
 | `AUTH_SERVICE_SVC_FORUM_AUDIENCE_REGISTRY_RECONCILIATION_V1` | implementation | accepted | contracts（仅 CTR-RR-001 冻结的三文件闭包） | svc-forum Audience Registry 离线 reconciliation 子 Spec：生产 `registered_scopes` 单列收敛回 CCR 冻结目标 `[forum.read, forum.write]`；绑定 PR #16 三文件实现闭包与 exact rerun NOOP / conflict fail-closed 语义 |
+| `AUTH_SERVICE_SVC_FORUM_LEGACY_GRANT_NARROWING_V1` | implementation | accepted | contracts（仅 CTR-NG-001 冻结的三文件闭包：`scripts/narrow-svc-forum-legacy-grant-v1.ts`；`scripts/run-svc-forum-legacy-grant-narrowing-v1-conformance.sh`；`tests/oauth/narrow-svc-forum-legacy-grant-v1.test.ts`） | svc-forum 遗留 Grant 最小降权子 Spec；preserved implementation 当前不 conformant、未获 merge authority，production apply 不因 acceptance 自动授权 |
 | `AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1` | implementation | accepted | contracts（仅 CTR-VL-002 冻结的 18 文件闭包） | Minimal Auth Contract `1.3.0` runtime/version linkage 子 Spec；5 个 proven linkage 文件并入 18 文件实现闭包，2 个非必要文件排除 |
 
 Human administration child mapping（PR #2 human authority split amendment，2026-08-22）：
 
 - `AUTH_SERVICE_LEGACY_SURFACE_SHUTDOWN_V1`（PR #2）的 active parent 是 `MINIMAL_AUTH_FOUNDATION_V2`；其不再拥有 Human Principal administration 规范语义；
-- `AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1`（PR #15，exact Head `98ec29a1152bfa9530c572ec5a541ea02df163c4`）是唯一 Human Principal administration child（proposed 未合并候选，本 index 不将其视为 accepted 或 active authority）；
+- `AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1`（PR #15）是唯一 Human Principal administration child：`accepted candidate`，reviewed semantic Head `98ec29a1152bfa9530c572ec5a541ea02df163c4`，final accepted Head `292ca47e9f89c366456fe9f53745bd3d05156b6a`，`OPEN / DRAFT / UNMERGED`，`ACTIVE_ON_MAIN = NO`；`accepted candidate != repository-active authority` 且 `accepted candidate != implementation authorized`，只有完成 final-head recheck 并 merge 到 `main` 后才可成为 active-on-main Child authority，本 index 当前不将其列入 active accepted Spec 表；
 - planned credential-only child `AUTH_SERVICE_HUMAN_CREDENTIAL_LIFECYCLE_V1`（password reset）尚未创建，`planned / not yet an authority`，不得列为 proposed 或 accepted authority；
 - 旧占位名 `AUTH_SERVICE_V1_HUMAN_CREDENTIAL_LIFECYCLE_V1` 是 non-authority historical placeholder（`AUTHORITY_STATUS = NONE`），不是 authority；
 - 除合法 whole-authority supersession 外，不得创建第二份 Human Principal administration child。
