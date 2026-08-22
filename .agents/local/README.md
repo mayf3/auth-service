@@ -37,9 +37,19 @@ accepted snapshot merged into main
 第二层当前包括：
 
 ```text
+CURRENT_MINIMAL_AUTH_ARCHITECTURE = MINIMAL_AUTH_FOUNDATION_V2
+MINIMAL_AUTH_FOUNDATION_V2_STATUS = accepted
+MINIMAL_AUTH_FOUNDATION_V1_STATUS = superseded
+MINIMAL_AUTH_FOUNDATION_V1_SUPERSEDED_BY = MINIMAL_AUTH_FOUNDATION_V2
+
+MINIMAL_AUTH_FOUNDATION_V2
+  location: docs/contracts/minimal-auth-v2/MINIMAL_AUTH_FOUNDATION_V2.md
+  supersedes: MINIMAL_AUTH_FOUNDATION_V1 (whole authority)
+  authority delta scope: migration / hard-cut / sequencing only
+
 MINIMAL_AUTH_FOUNDATION_V1
-  normative modules: docs/contracts/minimal-auth-v1/
-  executable bundle: contract-bundles/minimal-auth-v1/
+  historical normative modules: docs/contracts/minimal-auth-v1/
+  exact-incorporated executable bundle provenance: contract-bundles/minimal-auth-v1/ (1.3.0)
 
 AUTH_SERVICE_WORKFLOW_RS256_V0_FROZEN
   docs/contracts/WORKFLOW_RS256_MACHINE_TOKEN_JWKS_V0.md
@@ -48,20 +58,11 @@ AUTH_SERVICE_WORKFLOW_AGENT_OBO_V0_FROZEN
   docs/contracts/WORKFLOW_AGENT_OBO_TOKEN_EXCHANGE_V0.md
 ```
 
-上述 authority 的相互关系由 `MINIMAL_AUTH_FOUNDATION_V1` 自己冻结的 lifecycle 与迁移规则决定：在 V1 production-effectiveness 和 supersession gates 完成前，相关 V0 contract 仍可能治理当前生产路径。不得通过本地 prose 推断 partial supersession。
+`MINIMAL_AUTH_FOUNDATION_V2` 是当前第二层 Minimal Auth Architecture Authority。V1 lifecycle root、modules 与 Contract Bundle `1.3.0` 作为 V2 exact-incorporated 的历史 authority / provenance 保留；V1 旧路径 `docs/contracts/MINIMAL_AUTH_FOUNDATION_V1.md` 只是 compatibility entry，不再是当前或可直接实施的 architecture authority。
 
-Pending whole-authority supersession（proposed，未激活）：
+相关 V0 frozen Contracts 仍继续治理生产，直到 V2 Activation Record 证明九门全部完成。V2 accepted 不等于 production effective，也不等于 PR #2 implementation authorized；不得通过本地 prose 推断 partial supersession、生产 Grant apply、数据库写入、部署或 production effectiveness。
 
-```text
-MINIMAL_AUTH_FOUNDATION_V2
-  location: docs/contracts/minimal-auth-v2/MINIMAL_AUTH_FOUNDATION_V2.md
-  supersedes: MINIMAL_AUTH_FOUNDATION_V1 (whole authority)
-  authority delta scope: migration / hard-cut / sequencing only
-```
-
-在 `MINIMAL_AUTH_FOUNDATION_V2` 通过独立 semantic review、Owner accept 并合入 `main` 之前，`MINIMAL_AUTH_FOUNDATION_V1` 仍是该层唯一活动 authority。V1 的明确 lifecycle root 是 `docs/contracts/minimal-auth-v1/README.md`，旧路径 `docs/contracts/MINIMAL_AUTH_FOUNDATION_V1.md` 是 compatibility entry。激活时，同一 acceptance-only docs change 必须按 V2 `CTR-MAFV2-005` 原子更新 V2、V1 lifecycle root、compatibility entry、本文件与 `docs/specs/README.md`：V2 为 `accepted`，V1 为 `superseded` 且 backlink 指向 V2；旧入口不得继续表达 V1 为当前或可直接实施的 architecture authority。除该 Contract 精确列出的 lifecycle/backlink delta 外，不得改写 V1 normative meaning。
-
-V2 当前 proposed revision 以 `main@36a11136745bae7a371d21ba62d9617942c41afa` 的 Minimal Auth Contract `1.3.0` executable bundle 为 exact incorporation 对象，并将已合入的 svc-forum CCR/Version Linkage、accepted Stage W Execution V2 与 Stage F source implementation 作为 grandfathered exact V1 constraints。Stage W V1 仅是 superseded historical authority；Stage F source merge 不证明生产 Grant apply、数据库写入、部署或 production effectiveness。上述 reconciliation 不授权新产品行为，也不改变 V2 的 migration / hard-cut / sequencing-only authority delta。
+V2 接受版本以 `main@36a11136745bae7a371d21ba62d9617942c41afa` 的 Minimal Auth Contract `1.3.0` executable bundle 为 exact incorporation 对象，并将已合入的 svc-forum CCR/Version Linkage、accepted Stage W Execution V2 与 Stage F source implementation 作为 grandfathered exact V1 constraints。Stage W V1 仅是 superseded historical authority；Stage F source merge 不证明生产 Grant apply、数据库写入、部署或 production effectiveness。上述 reconciliation 不授权新产品行为，也不改变 V2 的 migration / hard-cut / sequencing-only authority delta。
 
 以下文档不是自动 governing authority：
 
@@ -96,7 +97,7 @@ Implemented state != verified conformance
 
 ```text
 PRODUCT_DIRECTION = NONE_DECLARED
-ARCHITECTURE = docs/contracts/minimal-auth-v1/ + contract-bundles/minimal-auth-v1/ + named frozen V0 contracts
+ARCHITECTURE = docs/contracts/minimal-auth-v2/MINIMAL_AUTH_FOUNDATION_V2.md + exact-incorporated historical V1 provenance + named frozen V0 contracts
 SPECS = docs/specs/
 INVESTIGATIONS = docs/plans/ | future docs/investigations/ | persistent GitHub Issues/PR records
 CONFORMANCE_REPORTS = docs/audits/ | implementation PR Contract matrix | linked runtime reports

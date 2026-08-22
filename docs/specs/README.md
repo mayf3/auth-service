@@ -38,19 +38,21 @@ Program 或 governance adoption Spec 使用 `implementation_authority: none` 时
 | `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1` | implementation | accepted | contracts（仅 CTR-FR-009 冻结的 13 个 Auth 文件 + 8 个 Forum 文件范围） | 注册 `svc-forum` Audience；仅允许 `forum.read` / `forum.write`，冻结 consumer review、activation gates 与 AC1–AC10 |
 | `AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1` | implementation | accepted | contracts（仅 CTR-VL-002 冻结的 18 文件闭包） | Minimal Auth Contract `1.3.0` runtime/version linkage 子 Spec；5 个 proven linkage 文件并入 18 文件实现闭包，2 个非必要文件排除 |
 
-## Existing authorities outside this directory
+## Architecture authorities outside this directory
 
-治理采用为 forward-only，不批量迁移历史合同。以下现有 authority 保持原路径和原状态：
+治理采用为 forward-only，不批量迁移历史合同。当前 Architecture authority 状态为：
 
-- `docs/contracts/minimal-auth-v1/` 与 `contract-bundles/minimal-auth-v1/`；
-- `docs/contracts/WORKFLOW_RS256_MACHINE_TOKEN_JWKS_V0.md`；
-- `docs/contracts/WORKFLOW_AGENT_OBO_TOKEN_EXCHANGE_V0.md`。
+```text
+MINIMAL_AUTH_FOUNDATION_V2 = accepted / current
+MINIMAL_AUTH_FOUNDATION_V1 = superseded / historical
+backlink = MINIMAL_AUTH_FOUNDATION_V2
+```
 
-Pending whole-authority successor（proposed，未激活）：
+- `MINIMAL_AUTH_FOUNDATION_V2`（`docs/contracts/minimal-auth-v2/MINIMAL_AUTH_FOUNDATION_V2.md`）是当前 whole Architecture authority，authority delta 仅限 migration / hard-cut / sequencing；
+- `MINIMAL_AUTH_FOUNDATION_V1` lifecycle root（`docs/contracts/minimal-auth-v1/README.md`）、modules 与 `contract-bundles/minimal-auth-v1/` Contract Bundle `1.3.0` 作为 V2 exact-incorporated 的历史 authority / provenance 保留，旧路径 `docs/contracts/MINIMAL_AUTH_FOUNDATION_V1.md` 只是 compatibility entry；
+- `docs/contracts/WORKFLOW_RS256_MACHINE_TOKEN_JWKS_V0.md` 与 `docs/contracts/WORKFLOW_AGENT_OBO_TOKEN_EXCHANGE_V0.md` 继续治理生产，直到 V2 Activation Record 证明全部生效门完成。
 
-- `MINIMAL_AUTH_FOUNDATION_V2`（`docs/contracts/minimal-auth-v2/MINIMAL_AUTH_FOUNDATION_V2.md`）— `MINIMAL_AUTH_FOUNDATION_V1` 的 whole-authority successor 候选，status=`proposed` / inactive，authority delta 仅限 migration / hard-cut / sequencing。在通过新 exact Head 的独立 review、Owner accept 并合入 `main` 之前，它不改变任何现有 authority 的状态。V1 lifecycle root 为 `docs/contracts/minimal-auth-v1/README.md`，旧路径 `docs/contracts/MINIMAL_AUTH_FOUNDATION_V1.md` 为 compatibility entry；激活时必须按 `CTR-MAFV2-005` 在同一 acceptance-only docs change 中把 V2 标记 accepted、V1 root/entry 标记 superseded 并更新本 index 与 `.agents/local/README.md`，不得只写 index prose 模拟 supersession。
-
-它们的 precedence 与 transition 见 `.agents/local/README.md`。未来修改既有 normative meaning 时，应通过明确的 `AMEND`、`NEW` 或 whole-authority `SUPERSEDE` 处理，不得静默重写。
+V2 accepted 不等于 production effective，也不等于 PR #2 implementation authorized。它们的 precedence 与 transition 见 `.agents/local/README.md`。未来修改既有 normative meaning 时，应通过明确的 `AMEND`、`NEW` 或 whole-authority `SUPERSEDE` 处理，不得静默重写。
 
 ## Unmerged legacy candidates
 
