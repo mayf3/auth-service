@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1
-status: accepted
+status: superseded
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -12,7 +12,8 @@ governed_by:
   - AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1
 external_authorities: []
 supersedes: []
-superseded_by: null
+superseded_by:
+  - AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V2
 owners:
   - mayf3
 ---
@@ -371,9 +372,7 @@ test-only DDL, and verify their runtime behavior. Basis: `OBS-SWX-003`,
   identities: array exactly 2, unique by both refs, each additionalProperties=false:
     client_external_ref: one exact parent Client ref
     principal_external_ref: corresponding exact parent Principal ref
-    client_id: string matching ^mc_[A-Za-z0-9_-]{24}$
-      (exactly 24 unpadded base64url characters after `mc_`; `+`, `/`, `=`,
-      whitespace, non-ASCII, other prefixes, and all other lengths are rejected)
+    client_id: string matching ^mc_[A-Za-z0-9]{24}$
     principal_id: lowercase UUID
     client_active: boolean exactly true
     principal_active: boolean exactly true
