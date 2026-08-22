@@ -1,12 +1,21 @@
 import assert from 'node:assert/strict';
 import test from 'node:test';
 import crypto from 'node:crypto';
+import jwt from 'jsonwebtoken';
 import { hashClientSecret } from '../../src/lib/oauth/secret.js';
 import {
   authorizeV1DirectToken,
+  issueV1DirectToken,
   type V1DirectDatabase,
 } from '../../src/lib/oauth/v1/direct.js';
 import { getV1AudienceDefinitions } from '../../src/lib/oauth/v1/contract.js';
+import { verifyV1DirectMachineToken } from '../../src/lib/oauth/v1/signer.js';
+import { resetWorkflowKeyringForTests } from '../../src/lib/oauth/workflow-keyring.js';
+import {
+  configureKeyringEnv,
+  generateTestKeyPair,
+  clearKeyringEnv,
+} from './_workflow-test-keys.js';
 
 const secret = 'test-secret-' + crypto.randomUUID().slice(0,8);
 
@@ -117,5 +126,117 @@ test('V1 Direct fails unavailable when database Audience differs from frozen reg
   await assert.rejects(
     authorizeV1DirectToken(request, { machineClient: { findUnique: async () => client } }),
     (error: any) => error.message === 'temporarily_unavailable' && error.statusCode === 503,
+  );
+});
+
+// ---- Ownerless Agent principal coverage (AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1) ----
+// Existing cases above are untouched; ownerful regression stays covered by the
+// first case (AC2). Cases below add AC1/AC3-AC7 ownerless behavior.
+
+async function ownerlessDatabase(): Promise<V1DirectDatabase> {
+  const base = database();
+  const client = await base.machineClient.findUnique({});
+  const ownerless = { ...client!, principal: { ...client!.principal, ownerUserId: null } };
+  return { machineClient: { findUnique: async () => ownerless as never } };
+}
+
+test('V1 Direct authorizes an ownerless agent with valid secret and grant (AC1)', async () => {
+  const result = await authorizeV1DirectToken(request, await ownerlessDatabase());
+  assert.deepEqual(result, {
+    principalId: '20000000-0000-4000-8000-000000000001',
+    principalType: 'agent',
+    agentId: 'v1-direct-agent',
+    clientId: 'v1-direct-test-client',
+    audience: 'svc-workflow',
+    scope: 'workflow.execute workflow.read',
+  });
+});
+
+test('V1 Direct issues an RS256 token for an ownerless agent with no owner claim (AC1/AC7)', async () => {
+  const key = generateTestKeyPair('v1-direct-ownerless-test-key');
+  configureKeyringEnv({ activeKid: key.kid, activePrivateKeyPem: key.privateKeyPem });
+  resetWorkflowKeyringForTests();
+  try {
+    const issued = await issueV1DirectToken(request, await ownerlessDatabase());
+    assert.equal(issued.token_type, 'Bearer');
+    const header = jwt.decode(issued.access_token, { complete: true }) as {
+      header: { alg: string; kid: string };
+    };
+    assert.equal(header.header.alg, 'RS256');
+    assert.equal(header.header.kid, 'v1-direct-ownerless-test-key');
+    const raw = jwt.decode(issued.access_token) as Record<string, unknown>;
+    assert.equal('owner_user_id' in raw, false);
+    const claims = verifyV1DirectMachineToken(issued.access_token, 'svc-workflow');
+    assert.equal(claims.principal_type, 'agent');
+    assert.equal(claims.agent_id, 'v1-direct-agent');
+    assert.equal(claims.sub, '20000000-0000-4000-8000-000000000001');
+    assert.equal(claims.aud, 'svc-workflow');
+    assert.equal(claims.scope, 'workflow.execute workflow.read');
+    assert.equal('owner_user_id' in claims, false);
+    assert.deepEqual(
+      Object.keys(claims).filter((name) => name.toLowerCase().includes('owner')),
+      [],
+      'no fake owner claim in any form',
+    );
+  } finally {
+    clearKeyringEnv();
+    resetWorkflowKeyringForTests();
+  }
+});
+
+test('V1 Direct still rejects agents missing agent_id regardless of owner (AC3)', async () => {
+  for (const ownerUserId of ['10000000-0000-4000-8000-000000000001', null]) {
+    for (const agentId of [null, '']) {
+      const base = database();
+      const client = await base.machineClient.findUnique({});
+      const broken = { ...client!, principal: { ...client!.principal, agentId, ownerUserId } };
+      await assert.rejects(
+        authorizeV1DirectToken(request, { machineClient: { findUnique: async () => broken as never } }),
+        (error: any) => error.message === 'invalid_client'
+          && error.category === 'agent_profile_invalid'
+          && error.statusCode === 401,
+      );
+    }
+  }
+});
+
+test('V1 Direct still rejects Service principals carrying agent_id (AC4)', async () => {
+  const base = database();
+  const client = await base.machineClient.findUnique({});
+  const service = {
+    ...client!,
+    principal: {
+      ...client!.principal,
+      principalType: 'service' as const,
+      agentId: 'v1-direct-agent',
+      ownerUserId: null,
+    },
+  };
+  await assert.rejects(
+    authorizeV1DirectToken(request, { machineClient: { findUnique: async () => service as never } }),
+    (error: any) => error.message === 'invalid_client'
+      && error.category === 'service_profile_invalid'
+      && error.statusCode === 401,
+  );
+});
+
+test('ownerless agent with invalid secret fails on credential_invalid, not the profile gate (AC5)', async () => {
+  await assert.rejects(
+    authorizeV1DirectToken({ ...request, clientSecret: 'wrong-secret' }, await ownerlessDatabase()),
+    (error: any) => error.message === 'invalid_client'
+      && error.category === 'credential_invalid'
+      && error.statusCode === 401,
+  );
+});
+
+test('ownerless agent with valid secret but no grant fails on machine_grant_missing (AC6)', async () => {
+  const base = await ownerlessDatabase();
+  const client = await base.machineClient.findUnique({});
+  const noGrant = { ...client!, accessGrants: [] };
+  await assert.rejects(
+    authorizeV1DirectToken(request, { machineClient: { findUnique: async () => noGrant as never } }),
+    (error: any) => error.message === 'invalid_scope'
+      && error.category === 'machine_grant_missing'
+      && error.statusCode === 400,
   );
 });
