@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_AUDIENCE_CCR_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -395,4 +395,15 @@ PRODUCT_CODE_CHANGE = NONE
 DATABASE_CHANGE = NONE
 PRODUCTION_CHANGE = NONE
 MERGE_PERFORMED = NO
+```
+
+## 15. Acceptance provenance
+
+```text
+ACCEPTED_BY = mayf3
+REVIEWED_SPEC_COMMIT = 159d020b1635cfa7144c8238e9a91d1c6bc268d1
+REVIEW_VERDICT = PASS
+MECHANICAL_EXECUTOR = DeepSeek Harness Agent (gpt-5.6-sol)
+NORMATIVE_BODY_CHANGE = NONE
+SEMANTIC_DELTA_AFTER_REVIEW = NONE
 ```
