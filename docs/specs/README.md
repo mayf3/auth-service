@@ -31,8 +31,8 @@ Program 或 governance adoption Spec 使用 `implementation_authority: none` 时
 | Spec ID | Kind | Status | Implementation authority | Purpose |
 |---|---|---|---|---|
 | `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1` | implementation | accepted | contracts | 两阶段 canary Grant supply：Stage W（svc-workflow 2 行）合入 main 后可实现；Stage F（svc-forum）被 forum Audience CCR 阻塞 |
-| `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1` | implementation | accepted | contracts | Stage W exact executable、exclusive three-file boundary、临时 PostgreSQL replay 与 closed apply evidence；在 V2 proposal 阶段保持 accepted |
-| `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V2` | implementation | proposed | contracts（仅在未来原子 acceptance transition 合入 main 后生效） | Whole-Spec successor；仅将 Client ID 扩为 `mc_` + 精确 24 位无 padding base64url；已在 `main@953d747` 对齐 Minimal Auth Contract `1.3.0`，其他 V1 / Stage W 语义不变 |
+| `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1` | implementation | superseded | contracts | 已由 Stage W Execution V2 whole-Spec supersede；保留为历史 accepted authority。 |
+| `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V2` | implementation | accepted | contracts | Stage W Execution V1 的 whole-Spec successor；仅将 Client ID 扩为精确 24 位无 padding base64url。 |
 | `AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1` | invariant | proposed | none | 精确 vendoring 并采用共享开发治理；不改变产品行为 |
 | `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1` | implementation | accepted | contracts（仅 §5 冻结五文件范围） | ownerless agent direct-token profile 与数据库 CHECK 联合修复；封闭五文件实现范围 |
 | `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1` | implementation | accepted | contracts（仅 CTR-FR-009 冻结的 13 个 Auth 文件 + 8 个 Forum 文件范围） | 注册 `svc-forum` Audience；仅允许 `forum.read` / `forum.write`，冻结 consumer review、activation gates 与 AC1–AC10 |
