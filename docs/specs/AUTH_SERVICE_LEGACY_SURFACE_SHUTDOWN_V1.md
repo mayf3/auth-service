@@ -7,7 +7,7 @@ implementation_authority: none
 scope:
   - mayf3/auth-service
 governed_by:
-  - MINIMAL_AUTH_FOUNDATION_V1
+  - MINIMAL_AUTH_FOUNDATION_V2
 external_authorities:
   - repository: mayf3/dsh-agent-core
     authority_id: AGENT_CORE_AGENT_CREDENTIAL_PROVISIONING_V1
@@ -60,6 +60,25 @@ STATE_F_END_TO_END_IMPLEMENTABILITY =
 
 STATE_F_IMPLEMENTABILITY_BLOCKER =
   NOT_FULLY_RESOLVED
+
+HUMAN_PRINCIPAL_ADMINISTRATION_AUTHORITY =
+  AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1
+HUMAN_PRINCIPAL_ADMINISTRATION_PR =
+  mayf3/auth-service#15
+HUMAN_PRINCIPAL_ADMINISTRATION_HEAD =
+  98ec29a1152bfa9530c572ec5a541ea02df163c4
+HUMAN_PRINCIPAL_ADMINISTRATION_STATUS =
+  proposed / independently semantically reviewed / not accepted
+PR_2_OWNS_HUMAN_PRINCIPAL_ADMINISTRATION = NO
+
+PASSWORD_RESET =
+  OUTSIDE_AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1
+PASSWORD_RESET_AUTHORITY =
+  SEPARATE_CREDENTIAL_ONLY_CHILD_REQUIRED
+PLANNED_CREDENTIAL_CHILD_ID =
+  AUTH_SERVICE_HUMAN_CREDENTIAL_LIFECYCLE_V1
+PLANNED_CREDENTIAL_CHILD_STATUS =
+  planned / not yet an authority
 
 ONLINE_PROVISIONING_CLIENT_RESOLUTION = REQUIRED
 ENDPOINT = GET /api/v1/clients/:client_id
@@ -220,6 +239,11 @@ authority cutoff、生产激活 gate 体系与 implementation Child 序列。
 - 不立即删除生产数据库中的旧表、旧列或历史记录。
 - 不把 User role 写入 V1 Access Token。
 - 不使 Access Token 在 `exp` 前具备逐 Token 撤销能力。
+- 不拥有 Human/User Principal administration（create、existing User claim、
+  canonical status query、minimal Human directory、enable、disable）或
+  password reset 的具体规范语义；前者由
+  `AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1`（PR #15）拥有，后者由
+  独立 credential-only Child 拥有（见 §3.5 与 `CTR-AUTH-SHUTDOWN-029`）。
 - 不在本 PR 中修改 Agent Core governing Spec 或实现。
 
 允许且仅允许的 live read exception：
@@ -239,8 +263,9 @@ AUTHENTICATED_ONLINE_MANAGEMENT_PROVISIONING_RESOLUTION
 
 1. 本 Spec 中已冻结的 Owner 决策（§8）。
 2. 本 Spec 中冻结的 State-check、Provisioning Resolution、Lifecycle、
-   Backfill Cutoff、Authority Reconciliation 与 Human Credential Lifecycle
-   决策。
+   Backfill Cutoff、Authority Reconciliation 与 Human administration
+   children prerequisite 决策（仅 Program-level prerequisite 与坐标校验，
+   不含 child 的具体规范语义）。
 3. `contract-bundles/minimal-auth-v1/` 中 frozen、
    implementation-authorized 的 1.2.0 机器合同。
 4. Prisma 中 V1 authority tables 的约束。
@@ -251,13 +276,17 @@ AUTHENTICATED_ONLINE_MANAGEMENT_PROVISIONING_RESOLUTION
 8. 其他仓库的 accepted governing Spec 只由该仓库自己的 amendment /
    supersession 流程改变；本 Spec 不能单方面改写它们。
 
-本 Spec 受 `MINIMAL_AUTH_FOUNDATION_V1`（normative modules
+本 Spec 受 `MINIMAL_AUTH_FOUNDATION_V2` 治理（active whole Architecture
+authority，`docs/contracts/minimal-auth-v2/MINIMAL_AUTH_FOUNDATION_V2.md`，
+经 PR #7 合并接受）。`MINIMAL_AUTH_FOUNDATION_V1`（normative modules
 `docs/contracts/minimal-auth-v1/` + executable bundle
-`contract-bundles/minimal-auth-v1/`）治理，并遵守
-`.agents/local/README.md` 的 precedence：本 Spec 不得覆盖
-`MINIMAL_AUTH_FOUNDATION_V1` 已冻结的 lifecycle 与迁移规则；在 V1
-production-effectiveness 和 supersession gates 完成前，相关 V0 frozen
-contract 仍可能治理当前生产路径，不得通过本地 prose 推断 partial
+`contract-bundles/minimal-auth-v1/`）是 V2 exact-incorporated 的
+superseded historical predecessor，不是本 Spec 的 active parent；本
+amendment 起二者不得同时写成 active parent。本 Spec 遵守
+`.agents/local/README.md` 的 precedence：不得覆盖 `MINIMAL_AUTH_FOUNDATION_V2`
+已冻结的 lifecycle 与迁移规则（authority delta 仅限 migration /
+hard-cut / sequencing）；在 V2 production-effectiveness 完成前，相关 V0
+frozen contract 仍可能治理当前生产路径，不得通过本地 prose 推断 partial
 supersession。
 
 ### 3.2 External authority reference（exact accepted revision）
@@ -341,6 +370,103 @@ runtimeDigest = SHA256(JSON.stringify(payload))
 Independent Acceptance Review 必须对 exact object 连续运行两次
 `scripts/prepare-minimal-auth-v1.mjs`，记录完整且相同的 64-hex
 `sourceBundleDigest` 与 `runtimeDigest`。不得捏造缺失 digest。
+
+### 3.5 Human Principal administration authority split（本 amendment）
+
+本 Program 不拥有 Human/User Principal administration 的任何具体规范
+语义。该 authority 已由本 amendment 正式委托给独立 Child Spec：
+
+```text
+HUMAN_PRINCIPAL_ADMINISTRATION_AUTHORITY =
+  AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1
+
+HUMAN_PRINCIPAL_ADMINISTRATION_PR =
+  mayf3/auth-service#15
+
+HUMAN_PRINCIPAL_ADMINISTRATION_HEAD =
+  98ec29a1152bfa9530c572ec5a541ea02df163c4
+
+HUMAN_PRINCIPAL_ADMINISTRATION_STATUS =
+  proposed / independently semantically reviewed / not accepted
+
+PR_2_OWNS_HUMAN_PRINCIPAL_ADMINISTRATION = NO
+```
+
+以下规范语义全部由
+`AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1`（PR #15）承接，本 Spec
+及其 Acceptance 不再拥有、不重复定义：
+
+- Human/User create；
+- existing User claim；
+- canonical User status query；
+- minimal Human directory；
+- enable；
+- disable；
+- Human administration operator scopes；
+- approval；
+- durable administration audit；
+- administration idempotency；
+- administration outcome_unknown；
+- repository mapping boundary。
+
+password reset / credential replacement 不属于 Human Principal
+administration authority，必须保留为独立 credential-only Child：
+
+```text
+PASSWORD_RESET =
+  OUTSIDE_AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1
+
+PASSWORD_RESET_AUTHORITY =
+  SEPARATE_CREDENTIAL_ONLY_CHILD_REQUIRED
+
+PLANNED_CREDENTIAL_CHILD_ID =
+  AUTH_SERVICE_HUMAN_CREDENTIAL_LIFECYCLE_V1
+
+PLANNED_CREDENTIAL_CHILD_STATUS =
+  planned / not yet an authority
+```
+
+本 Spec 不定义 password reset 的任何管理面 Contract；该 Child 必须经
+独立 Spec 流程创建、评审与接受，不得由
+`AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1` 吞并，也不得由本
+Program 吞并。
+
+旧占位名称的处置：
+
+```text
+LEGACY_PLACEHOLDER_ID =
+  AUTH_SERVICE_V1_HUMAN_CREDENTIAL_LIFECYCLE_V1
+
+AUTHORITY_STATUS =
+  NONE
+
+DISPOSITION =
+  historical placeholder only
+
+MUST_NOT_BE_USED_AS_AUTHORITY =
+  YES
+```
+
+`AUTH_SERVICE_V1_HUMAN_CREDENTIAL_LIFECYCLE_V1` 是本 Spec 早期修订中
+预留的占位名称，从未成为 authority；它与 planned credential-only
+Child（`AUTH_SERVICE_HUMAN_CREDENTIAL_LIFECYCLE_V1`）与 PR #15 Spec 均不
+构成第二份 authority，任何新工作不得引用它作为 authority。
+
+第二份 Human administration child 禁止：
+
+```text
+SECOND_HUMAN_PRINCIPAL_ADMINISTRATION_CHILD =
+  FORBIDDEN
+
+SOLE_HUMAN_ADMINISTRATION_CHILD =
+  AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1
+```
+
+除非未来通过合法 whole-authority supersession 替代 PR #15 Spec，否则
+不得创建第二份 Human Principal administration Spec；本 Program 的
+Acceptance 只验证正确的 child authority 已存在且 exact Head 坐标匹配
+（见 `CTR-AUTH-SHUTDOWN-029`、`ACC-AUTH-SHUTDOWN-011`），不重复 child
+的字段、权限、审批、审计与失败语义。
 
 ## 4. Current State
 
@@ -764,15 +890,20 @@ alias；规范引用必须使用稳定 DEC ID。
 - Rejected alternative: `ALT-AUTH-SHUTDOWN-009`
 - Reason: 防止局部完成被宣布为全局生效。
 
-### DEC-AUTH-SHUTDOWN-013 — Human Credential Lifecycle Child 是 activation blocker
+### DEC-AUTH-SHUTDOWN-013 — Human administration children 是 activation blocker
 
 - Decision owner: mayf3
 - Decision: 生产激活前必须存在 accepted、implemented、
-  independently-reviewed
-  `AUTH_SERVICE_V1_HUMAN_CREDENTIAL_LIFECYCLE_V1`。见
-  `CTR-AUTH-SHUTDOWN-029`。公开注册保持删除。
+  independently-reviewed 的两个独立 Child：Human Principal
+  administration Child `AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1`
+  （PR #15，exact Head
+  `98ec29a1152bfa9530c572ec5a541ea02df163c4`）与独立 credential-only
+  Child（planned `AUTH_SERVICE_HUMAN_CREDENTIAL_LIFECYCLE_V1`）。见
+  §3.5 与 `CTR-AUTH-SHUTDOWN-029`。公开注册保持删除。
 - Rejected alternative: `ALT-AUTH-SHUTDOWN-010`
-- Reason: User creation/reset/disable 必须受控并持久审计。
+- Reason: User create/claim/status/enable/disable 与 password reset
+  必须受控并持久审计；二者分别由各自 Child Spec 拥有具体规范语义，
+  本 Program 仅持有 prerequisite 与坐标校验。
 
 ### DEC-AUTH-SHUTDOWN-014 — Runtime/config fail-closed authority
 
@@ -787,7 +918,10 @@ alias；规范引用必须使用稳定 DEC ID。
 ### DEC-AUTH-SHUTDOWN-015 — Implementation Child 序列固定
 
 - Decision owner: mayf3
-- Decision: Child 0 = Human credential lifecycle；Child 1 =
+- Decision: Child 0 = Human administration（拆分为 Human Principal
+  administration Child `AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1`
+  （PR #15）与独立 credential-only Child（planned
+  `AUTH_SERVICE_HUMAN_CREDENTIAL_LIFECYCLE_V1`），见 §3.5）；Child 1 =
   V1-only runtime（仅在本 Spec accepted 并进入 implementation base 后
   启动，范围严格等于 source disposition manifest）；Cross-repository
   prerequisite = Agent Core in-place amendment；Child 2 = Consumer
@@ -838,7 +972,7 @@ provisioning resolution = authenticated read-only GET
 flat-field migration = PRE_CUT_ONLY
 post-cut backfill/repair = forbidden
 production activation separate
-Human credential lifecycle Child required
+Human Principal administration Child + credential-only Child required
 Agent Core State F end-to-end closure remains external dependency
 ```
 
@@ -1855,9 +1989,12 @@ GATE_AGENT_CORE_RESOLUTION_CALLER_FIXED_SHA = PASS
 GATE_STATE_F_NO_MUTATION_BEFORE_RESOLUTION_E2E = PASS
 
 GATE_V1_MACHINE_LIFECYCLE_SEAM = PASS
-GATE_V1_HUMAN_CREDENTIAL_LIFECYCLE_ACCEPTED = PASS
-GATE_V1_HUMAN_CREDENTIAL_LIFECYCLE_IMPLEMENTED = PASS
-GATE_V1_HUMAN_CREDENTIAL_LIFECYCLE_AUDIT_PASS = PASS
+GATE_HUMAN_PRINCIPAL_ADMINISTRATION_CHILD_ACCEPTED = PASS
+GATE_HUMAN_PRINCIPAL_ADMINISTRATION_CHILD_IMPLEMENTED = PASS
+GATE_HUMAN_PRINCIPAL_ADMINISTRATION_CHILD_AUDIT_PASS = PASS
+GATE_HUMAN_CREDENTIAL_LIFECYCLE_CHILD_ACCEPTED = PASS
+GATE_HUMAN_CREDENTIAL_LIFECYCLE_CHILD_IMPLEMENTED = PASS
+GATE_HUMAN_CREDENTIAL_LIFECYCLE_CHILD_AUDIT_PASS = PASS
 GATE_ALL_REAL_CONSUMERS_CLASSIFIED = PASS
 GATE_NO_REAL_CONSUMER_REQUIRES_LEGACY = PASS
 GATE_EXTERNAL_CONSUMERS_OFFLINE_JWKS_ONLY = PASS
@@ -1935,22 +2072,56 @@ whole-release rollback to the immediately previous immutable artifact
 digest、Operator 与恢复计划。首个 Runtime Child 不执行 Legacy 表/列
 破坏性删除，以保持数据库可回滚。
 
-### CTR-AUTH-SHUTDOWN-029 — Human Credential Lifecycle Child prerequisite
+### CTR-AUTH-SHUTDOWN-029 — Human administration children prerequisite
 
-生产激活前必须存在 accepted、implemented、independently-reviewed：
+本 Program 不拥有 Human/User Principal 管理或 credential 管理的具体
+规范语义（见 §3.5）。生产激活前必须存在 accepted、implemented、
+independently-reviewed 的两个独立 Child：
+
+1. Human Principal administration Child：
 
 ```text
-AUTH_SERVICE_V1_HUMAN_CREDENTIAL_LIFECYCLE_V1
+SPEC_ID = AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1
+PR = mayf3/auth-service#15
+EXACT_HEAD = 98ec29a1152bfa9530c572ec5a541ea02df163c4
+STATUS = proposed / independently semantically reviewed / not accepted
 ```
 
-该 Child 必须冻结并实现：
+Human/User create、existing User claim、canonical User status query、
+minimal Human directory、enable、disable、operator scopes、approval、
+durable administration audit、administration idempotency、administration
+outcome_unknown 与 repository mapping boundary 的全部具体 Contract 由该
+Child Spec 拥有；本 Spec 不重复其字段、权限、审批、审计与失败语义。
 
-1. Audited User creation。
-2. Audited password reset，并撤销该 User 的 active HumanSession、
-   RefreshFamily 与 RefreshCredential。
-3. Audited User disable，并撤销全部 active Human session/refresh
-   authority。
-4. 已签发 Access Token 仍按本 Spec `exp` 语义存续。
+2. 独立 credential-only Child（password reset / credential
+   replacement）：
+
+```text
+PASSWORD_RESET =
+  OUTSIDE_AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1
+PASSWORD_RESET_AUTHORITY =
+  SEPARATE_CREDENTIAL_ONLY_CHILD_REQUIRED
+PLANNED_CHILD_ID = AUTH_SERVICE_HUMAN_CREDENTIAL_LIFECYCLE_V1
+PLANNED_CHILD_STATUS = planned / not yet an authority
+```
+
+password reset 的具体管理面 Contract（含 reset 后撤销该 User 的
+active HumanSession、RefreshFamily 与 RefreshCredential 的语义）由该
+独立 Child 拥有；本 Spec 不定义。
+
+本 Contract 作为 Program prerequisite 只要求：两个 Child 均 accepted、
+implemented、independently-reviewed，且
+`AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1` 的 exact Head 与
+`CTR-AUTH-SHUTDOWN-029` 所绑定坐标一致；User create/disable 的具体
+Contract 由 PR #15 Spec 拥有，password reset 的具体 Contract 由未来
+credential-only Child 拥有。已签发 Access Token 仍按本 Spec `exp`
+语义存续；Audited User disable 后撤销全部 active Human session/refresh
+authority 的具体语义由 PR #15 Spec 拥有。
+
+旧占位名称 `AUTH_SERVICE_V1_HUMAN_CREDENTIAL_LIFECYCLE_V1`
+（`AUTHORITY_STATUS = NONE`、`historical placeholder only`、
+`MUST_NOT_BE_USED_AS_AUTHORITY = YES`）不满足本 prerequisite，也不得
+被用作满足本 prerequisite 的坐标（见 §3.5）。
 
 ### CTR-AUTH-SHUTDOWN-030 — Cross-repository closure 与外部 authority 边界
 
@@ -2122,7 +2293,8 @@ ALL_REAL_CONSUMERS =
   INTENTIONALLY_OFFLINE |
   NOT_A_REAL_CONSUMER
 
-HUMAN_CREDENTIAL_LIFECYCLE = ACCEPTED_AND_AUDITED
+HUMAN_PRINCIPAL_ADMINISTRATION_CHILD = ACCEPTED_AND_IMPLEMENTED_AND_AUDITED
+HUMAN_CREDENTIAL_LIFECYCLE_CHILD = ACCEPTED_AND_IMPLEMENTED_AND_AUDITED
 PRODUCTION_GATES = PASS
 ```
 
@@ -2604,13 +2776,21 @@ resolution path 的普通 HttpError 不输出 {"message":...}
   lifecycle 字段
 - Failure condition: 任何 Gate 缺失证据时字段被更新
 
-#### ACC-AUTH-SHUTDOWN-011 — Human credential lifecycle prerequisite
+#### ACC-AUTH-SHUTDOWN-011 — Human administration children prerequisite
 
 - Contracts: `CTR-AUTH-SHUTDOWN-029`
-- Method: activation 前置检查（accepted + implemented + audited child
-  存在）
-- Expected result: 缺失该 Child 时 activation blocked
-- Failure condition: 无 Child 而 activation 进行
+- Method: activation 前置检查（Program-level 坐标校验：
+  `AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1` 在
+  `mayf3/auth-service#15` 存在、accepted、implemented、audited，exact
+  Head 与 `CTR-AUTH-SHUTDOWN-029` 绑定坐标一致；独立 credential-only
+  Child（planned
+  `AUTH_SERVICE_HUMAN_CREDENTIAL_LIFECYCLE_V1`）同样 accepted、
+  implemented、audited）
+- Expected result: 缺失任一 Child、HPA exact Head 不匹配、或以旧占位名
+  `AUTH_SERVICE_V1_HUMAN_CREDENTIAL_LIFECYCLE_V1` 充当 Child 时
+  activation blocked
+- Failure condition: 无 Child / 坐标不匹配 / 占位名充当 authority 而
+  activation 进行
 
 #### ACC-AUTH-SHUTDOWN-012 — Cross-repository closure gates
 
@@ -2774,7 +2954,9 @@ resolution path 的普通 HttpError 不输出 {"message":...}
 
 - Related decision: `DEC-AUTH-SHUTDOWN-013`
 - Disposition: rejected。User creation/reset/disable 必须受控并持久
-  审计。
+  审计；受控路径为 §3.5 委托的
+  `AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1`（PR #15）与独立
+  credential-only Child，而非公开注册。
 
 ### ALT-AUTH-SHUTDOWN-011 —（Legacy alias: K）首轮同时 drop 所有 Legacy tables/columns
 
@@ -2868,6 +3050,22 @@ resolution path 的普通 HttpError 不输出 {"message":...}
 - Rollback：见 `CTR-AUTH-SHUTDOWN-028`（whole-release only；无 Legacy
   重启用 seam；首个 Runtime Child 不做破坏性 schema 删除）。
 
+### 12.4 Human authority split amendment（本 amendment）
+
+- 本 amendment 为 docs-only Program scope split 与 acceptance-precondition
+  reconciliation：将 Human Principal administration 权威正式委托给
+  `AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1`（PR #15，exact Head
+  `98ec29a1152bfa9530c572ec5a541ea02df163c4`，见 §3.5），将 password
+  reset / credential replacement 委托给 planned credential-only Child
+  `AUTH_SERVICE_HUMAN_CREDENTIAL_LIFECYCLE_V1`。
+- 旧占位名称 `AUTH_SERVICE_V1_HUMAN_CREDENTIAL_LIFECYCLE_V1` 降级为
+  non-authority historical placeholder（`AUTHORITY_STATUS = NONE`）。
+- 本 amendment 同时将 active parent authority 从已 superseded 的
+  `MINIMAL_AUTH_FOUNDATION_V1` 对齐为 `MINIMAL_AUTH_FOUNDATION_V2`
+  （frontmatter 与 §3.1）。
+- 本 amendment 不改变 Shutdown Program 其他语义，不修改产品代码、
+  SQL/Migration、schema、Contract Bundle 或测试。
+
 ## 13. Open questions
 
 非 normative follow-up（均不能改变 Decision 或 Contract meaning）：
@@ -2879,6 +3077,10 @@ resolution path 的普通 HttpError 不输出 {"message":...}
    阶段产生；其可得性是 activation gate，不是本 Spec 的 open decision。
 3. 各 implementation Child Spec 的 authoring 顺序细节由各自 PREFLIGHT
    决定，但 Child 序列本身已由 `DEC-AUTH-SHUTDOWN-015` 冻结。
+4. planned credential-only Child
+   `AUTH_SERVICE_HUMAN_CREDENTIAL_LIFECYCLE_V1` 的 authoring 时间表与
+   形式由其自身 PREFLIGHT / AUTHOR 流程决定；本 Program 仅冻结其独立
+   authority 要求与不可由 PR #15 或本 Program 吞并的边界（§3.5）。
 
 ```text
 OPEN_OWNER_DECISIONS = NONE
