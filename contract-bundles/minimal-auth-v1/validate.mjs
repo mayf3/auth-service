@@ -144,6 +144,10 @@ function validateFixture(fixture, manifest, audienceById, jwksKids, now, options
     if (claims.principal_type === 'service' && 'agent_id' in claims) {
       contractError('PROFILE_FORBIDDEN_CLAIM', 'Service tokens cannot contain agent_id.');
     }
+    if (claims.principal_type === 'agent'
+      && (typeof claims.agent_id !== 'string' || claims.agent_id.length === 0)) {
+      contractError('MISSING_REQUIRED_CLAIM', 'Agent tokens require a non-empty agent_id.');
+    }
     if (!audience.machine_access_enabled
       || !audience.accepted_principal_types.includes(claims.principal_type)) {
       contractError('AUDIENCE_PROFILE_NOT_ACCEPTED', 'Audience does not accept the Machine profile.');
