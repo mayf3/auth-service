@@ -1,9 +1,9 @@
 ---
 spec_id: AUTH_SERVICE_AGENTCORE_IDENTITY_RESOLUTION_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 scope:
   - mayf3/auth-service
 governed_by:
@@ -34,9 +34,10 @@ provisioning or reconciliation decision. This discovery seam does not replace fr
 resolution of a known stored Client ID through the parent-authority route
 `GET /api/v1/clients/:client_id`.
 
-This Spec authorizes **no implementation while proposed**. After independent review,
-Owner acceptance, and merge to `main`, its Contracts may authorize only the exact
-three-file implementation closure in `CTR-RES-009`.
+This Spec has completed independent semantic review and Owner acceptance. Its Contracts
+become active implementation authority only when this exact accepted revision is present
+on `main`, and then authorize only the exact three-file implementation closure in
+`CTR-RES-009`.
 
 Frozen target:
 
@@ -774,7 +775,7 @@ NORMATIVE_TBD = NONE
 UNRESOLVED_AUTHORITY_CONFLICT = NONE
 PARTIAL_SUPERSESSION = NONE
 
-AUTHORITY_SUFFICIENT_FOR_IMPLEMENTATION_NOW = NO
+AUTHORITY_SUFFICIENT_FOR_IMPLEMENTATION = YES_WHEN_THIS_ACCEPTED_REVISION_IS_ON_MAIN
 EXTERNAL_REF_IDENTITY_DISCOVERY = PROVIDED_BY_THIS_SPEC
 KNOWN_CLIENT_ID_FRESH_RESOLUTION = REMAINS_GOVERNED_BY_PARENT_AUTHORITY
 PHASE_B_COMPLETE = NO_UNLESS_ALL_OTHER_ACCEPTED_PREREQUISITES_ARE_SATISFIED
@@ -788,6 +789,21 @@ READ_ONLY_RESOLUTION_IMPLEMENTED = NO
 PRODUCTION_CHANGE = NONE
 ```
 
-This proposed Child requires independent semantic review. Acceptance recommendation is
-not acceptance; acceptance is not merge; merge is not deployment or Trusted Fleet
-Cutover execution.
+This accepted Child was independently reviewed at exact Head
+`ade286356866b398729a7565dd6d294c06bd37fc`. Owner acceptance changes lifecycle only;
+acceptance is not deployment or Trusted Fleet Cutover execution.
+
+## 14. Acceptance record (non-normative)
+
+```text
+REVIEWED_HEAD = ade286356866b398729a7565dd6d294c06bd37fc
+FINAL_REVIEW = 解析 审计 = PASS
+REQUIRED_FIXES = NONE
+READY_FOR_ACCEPTANCE_FINALIZE = YES
+ACCEPTED_BY = mayf3
+ACCEPTED_AT = 2026-08-22T11:50:14Z
+SEMANTIC_DELTA_AFTER_REVIEW = NONE
+ACCEPTANCE_DELTA_CLASS = lifecycle-only
+IMPLEMENTATION_PERFORMED = NO
+PRODUCTION_CHANGE = NONE
+```
