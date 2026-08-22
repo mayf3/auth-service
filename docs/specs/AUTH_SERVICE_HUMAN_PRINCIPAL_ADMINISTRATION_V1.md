@@ -10,7 +10,7 @@ scope:
   - human-principal-directory
   - human-principal-status-lifecycle
 governed_by:
-  - MINIMAL_AUTH_FOUNDATION_V1
+  - MINIMAL_AUTH_FOUNDATION_V2
 external_authorities:
   - repository: mayf3/svc-workflow
     authority_id: SVC_WORKFLOW_PRODUCT_BOUNDARY_V2
@@ -30,11 +30,15 @@ SPEC_STATUS = proposed
 SPEC_KIND = implementation
 IMPLEMENTATION_AUTHORITY = contracts
 AUTHORING_BASE = 36a11136745bae7a371d21ba62d9617942c41afa
+ALIGNMENT_BASE = 37edaa6f8c56749eaa16c0bbbb0c0c75d8c6a1eb
 AUTHORITY_ACTION = NEW
-PRIMARY_PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V1
-PROPOSED_PARENT_SUCCESSOR = MINIMAL_AUTH_FOUNDATION_V2
+CURRENT_TASK_CLASS = PARENT_AUTHORITY_RECONCILIATION
+PRIMARY_PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V2
+SUPERSEDED_PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V1
 PARENT_SUCCESSOR_PR = #7
-PARENT_SUCCESSOR_PENDING = YES
+PARENT_SUCCESSOR_MERGED = YES
+MINIMAL_AUTH_FOUNDATION_V2_ACTIVE = YES
+PARENT_RECONCILIATION_COMPLETE = YES
 PRODUCT_IMPLEMENTATION_AUTHORIZED = NO
 CONFORMANCE_PENDING = YES
 ```
@@ -90,22 +94,27 @@ This Spec MUST NOT authorize or define:
 
 ## 3. Authority and dependencies
 
-### 3.1 Active parent and pending successor
+### 3.1 Current parent authority (aligned to MINIMAL_AUTH_FOUNDATION_V2)
 
 ```text
-PRIMARY_PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V1
-ACTIVE_LOCAL_PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V1
-PROPOSED_PARENT_SUCCESSOR = MINIMAL_AUTH_FOUNDATION_V2
+CURRENT_PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V2
+CURRENT_PARENT_REVISION = 37edaa6f8c56749eaa16c0bbbb0c0c75d8c6a1eb
+PARENT_V2_ACCEPTED_HEAD = 842fccb384448d7f1bb43919048ce579fac9df96
 PARENT_SUCCESSOR_PR = #7
-PARENT_SUCCESSOR_STATE = OPEN
-PARENT_SUCCESSOR_DRAFT = YES
-PARENT_SUCCESSOR_STATUS = proposed
-PARENT_SUCCESSOR_PENDING = YES
+PARENT_SUCCESSOR_MERGED = YES
+SUPERSEDED_PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V1
+SUPERSEDED_PARENT_RELATION = historical predecessor / inherited constraints incorporated by V2
+MINIMAL_AUTH_FOUNDATION_V2_ACTIVE = YES
+PARENT_RECONCILIATION_COMPLETE = YES
 ```
 
-PR #7 proposes a whole-authority successor but is unmerged and inactive. Therefore this Spec is governed only by accepted `MINIMAL_AUTH_FOUNDATION_V1`. If PR #7 merges before review or acceptance of this Spec, authoring MUST stop and this exact Spec head MUST be reconciled against V2 before any review can bind or acceptance can occur.
+`MINIMAL_AUTH_FOUNDATION_V2` was accepted through merged PR #7 (final accepted head `842fccb384448d7f1bb43919048ce579fac9df96`) and is the current whole Minimal Auth Architecture authority on `main` (`37edaa6f8c56749eaa16c0bbbb0c0c75d8c6a1eb` at alignment). `MINIMAL_AUTH_FOUNDATION_V1` is superseded / historical; its inherited constraints — Principal identity/type/status ownership, Human Session/Refresh semantics, machine provisioning, OBO boundaries, and RS256/JWKS behavior — are exact-incorporated by V2, whose authority delta is limited to migration / hard-cut / sequencing. The preserved parent semantics in §3.2 therefore remain binding under V2 without change, and this alignment amendment introduces no Contract semantic delta.
+
+The authoring-time precondition in the pre-alignment revision — that a PR #7 merge before review or acceptance would require this exact Spec head to be reconciled against V2 — has now been executed by this amendment. The prior independent semantic review at head `c24eedb11facceef8efd85bc38b563b826043467` is `HISTORICAL_SEMANTIC_REVIEW_EVIDENCE_ONLY`; a fresh independent review of the aligned head is required before any review can bind or acceptance can occur (see §12 and §13).
 
 ### 3.2 Parent semantics preserved exactly
+
+All values in this block were re-confirmed at parent-authority alignment (`2026-08-22`) against `MINIMAL_AUTH_FOUNDATION_V2` and its exact-incorporated V1 constraints: every value is unchanged, because the V2 authority delta is limited to migration / hard-cut / sequencing (see `OBS-010`, `STATE-007`).
 
 ```text
 PRINCIPAL_TYPES = user | agent | service
@@ -153,26 +162,36 @@ UNRESOLVED_AUTHORITY_CONFLICT = NONE
 
 No accepted, proposed, or superseded standalone governing Spec found at the authoring coordinates owns the same Human Principal administration scope. Draft PR #2 is a broader proposed Program with `implementation_authority: none`; it names a not-yet-created Human credential-lifecycle child but is not that child. The old local candidate is product code without governing authority and is not a Spec.
 
-### 3.5 Proposed PR #2 child reconciliation
+### 3.5 Proposed PR #2 child reconciliation (acceptance precondition pinned at alignment)
 
-Draft PR #2 (`AUTH_SERVICE_LEGACY_SURFACE_SHUTDOWN_V1`) is inactive and does not govern this Spec. Its `DEC-AUTH-SHUTDOWN-013`, `CTR-AUTH-SHUTDOWN-029`, and `ACC-AUTH-SHUTDOWN-011` reserve a future child label `AUTH_SERVICE_V1_HUMAN_CREDENTIAL_LIFECYCLE_V1` covering User creation, password reset, disable, and Session/Refresh revocation. No governing Spec with that ID exists.
+Draft PR #2 (`AUTH_SERVICE_LEGACY_SURFACE_SHUTDOWN_V1`) is inactive and does not govern this Spec. Its `DEC-AUTH-SHUTDOWN-013`, `CTR-AUTH-SHUTDOWN-029`, and `ACC-AUTH-SHUTDOWN-011` reserve a future child label `AUTH_SERVICE_V1_HUMAN_CREDENTIAL_LIFECYCLE_V1` covering User creation, password reset, disable, and Session/Refresh revocation. No governing Spec with that ID exists; it is a non-authority historical placeholder only.
 
 This Spec is the sole planned child authority for the non-credential Principal-administration portions of that placeholder: controlled User creation and disable. Password reset and all credential lifecycle operations remain out of scope and require a separate, non-overlapping accepted authority. Before PR #2 can be accepted, PR #2 MUST be amended to:
 
 1. reference `AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1` for User Principal creation/disable;
 2. assign password reset to a separately named credential-only child;
 3. remove or mark `AUTH_SERVICE_V1_HUMAN_CREDENTIAL_LIFECYCLE_V1` as a non-authority historical placeholder; and
-4. forbid creation of a second Human Principal management Spec under that placeholder.
+4. forbid creation of a second Human Principal management Spec under that placeholder;
 
-This is reconciliation of two proposed documents, not partial supersession. This Spec does not modify PR #2 and does not claim to satisfy its password-reset gate. This Spec MAY be reviewed while PR #2 remains Draft, but MUST NOT be accepted unless the then-current PR #2 head has completed the split above or PR #2 is closed/rejected without acceptance. The final acceptance record for this Spec MUST pin that PR #2 disposition by exact head/status; otherwise acceptance is blocked.
+and that PR #2 amendment MUST bind the exact aligned PR #15 head of this Spec produced by the `2026-08-22` parent-authority alignment, so the disposition is pinned to one exact reviewable coordinate.
+
+This is reconciliation of two proposed documents, not partial supersession. This Spec does not modify PR #2 and does not claim to satisfy its password-reset gate. This Spec MAY be reviewed while PR #2 remains Draft, but MUST NOT be accepted unless the then-current PR #2 head has completed the split above or PR #2 is closed/rejected without acceptance. The final acceptance record for this Spec MUST pin that PR #2 disposition by exact head/status and by the aligned PR #15 head above; otherwise acceptance is blocked.
 
 ```text
 OVERLAPPING_PROPOSED_PROGRAM = AUTH_SERVICE_LEGACY_SURFACE_SHUTDOWN_V1 / PR #2
+PR_2_REPOSITORY = mayf3/auth-service
+PR_2_NUMBER = 2
+PR_2_HEAD_AT_ALIGNMENT = fb8d55e785d6f99c9e57a602543609953e8f5410
+PR_2_STATUS_AT_ALIGNMENT = OPEN / DRAFT / UNMERGED
+PR_2_OVERLAP = BOUNDED
+PR_2_DISPOSITION_REQUIRED = AMEND
 EXISTING_SAME_SCOPE_CHILD_SPEC = NONE
 PR_2_IMPLEMENTATION_AUTHORITY = none
 PR_2_RECONCILIATION_REQUIRED_BEFORE_ACCEPTANCE = YES
+PR_15_ACCEPTANCE_BLOCKED_BY_PR_2 = YES
 THIS_SPEC_ACCEPTANCE_BLOCKED_UNTIL_PR_2_RECONCILED_OR_CLOSED = YES
 SECOND_HUMAN_PRINCIPAL_MANAGEMENT_CHILD_ALLOWED = NO
+AUTH_SERVICE_V1_HUMAN_CREDENTIAL_LIFECYCLE_V1 = non-authority historical placeholder only
 DUPLICATE_AUTHORITY_RISK = NONE_AFTER_REQUIRED_RECONCILIATION
 ```
 
@@ -231,6 +250,15 @@ DUPLICATE_AUTHORITY_RISK = NONE_AFTER_REQUIRED_RECONCILIATION
 - Observed at: `2026-08-22T03:02:19Z`.
 - Projection: PR #2 is an inactive Program with `implementation_authority: none`; it names a future child that combines Principal creation/disable with password reset, but no such child Spec exists. Its placeholder must be split/reconciled before PR #2 acceptance to avoid a parallel Human Principal authority.
 - Basis: `OBS-009`, `CLM-007`, `EVD-009`.
+
+### STATE-007 — Current parent authority is MINIMAL_AUTH_FOUNDATION_V2; V1 is superseded historical
+
+- Subject: Minimal Auth Architecture parent authority binding this Spec.
+- As of commit: `mayf3/auth-service@37edaa6f8c56749eaa16c0bbbb0c0c75d8c6a1eb` (V2 accepted via PR #7 final head `842fccb384448d7f1bb43919048ce579fac9df96`).
+- Environment: source authority inspection only; no runtime or database query.
+- Observed at: `2026-08-22T04:32:33Z`.
+- Projection: `MINIMAL_AUTH_FOUNDATION_V2` is the current whole Architecture authority; `MINIMAL_AUTH_FOUNDATION_V1` is superseded / historical with its inherited constraints exact-incorporated by V2; the V2 authority delta is migration / hard-cut / sequencing only. The parent semantics this Spec preserves in §3.2 are unchanged under V2, and the active parent of this Spec is `MINIMAL_AUTH_FOUNDATION_V2`.
+- Basis: `OBS-010`, `EVD-010`.
 
 ## 5. Observations
 
@@ -318,7 +346,7 @@ DUPLICATE_AUTHORITY_RISK = NONE_AFTER_REQUIRED_RECONCILIATION
 - Provenance: `docs/product/SVC_WORKFLOW_PRODUCT_BOUNDARY_V2.md:340-357,692-694` at the exact external revision.
 - Limitations: this Spec references but cannot govern or activate the external authority.
 
-### OBS-008 — PR #7 remains proposed, Draft, open, and unmerged
+### OBS-008 — PR #7 was still proposed, Draft, open, and unmerged at authoring time (superseded by OBS-010)
 
 - Subject: proposed parent successor.
 - Repository/source: GitHub PR #7 and its exact head.
@@ -328,7 +356,7 @@ DUPLICATE_AUTHORITY_RISK = NONE_AFTER_REQUIRED_RECONCILIATION
 - Method: `git fetch github --prune`, `gh pr view 7 --repo mayf3/auth-service`, and inspect `docs/contracts/minimal-auth-v2/MINIMAL_AUTH_FOUNDATION_V2.md` at the fetched PR head.
 - Result: PR is `OPEN`, Draft, unmerged; authority frontmatter/status is `proposed`; it proposes whole supersession of V1 while preserving Human Session semantics.
 - Provenance: PR #7 metadata and exact fetched head file.
-- Limitations: time-sensitive; requires recheck before review or acceptance.
+- Limitations: time-sensitive; requires recheck before review or acceptance. Superseded at parent-authority alignment (`2026-08-22T04:32:33Z`) by `OBS-010`: PR #7 has since merged and V2 is accepted/current (see §3.1).
 
 ### OBS-009 — PR #2 is a proposed Program with a planned child, not the child itself
 
@@ -341,6 +369,18 @@ DUPLICATE_AUTHORITY_RISK = NONE_AFTER_REQUIRED_RECONCILIATION
 - Result: PR #2 is `OPEN`, Draft, proposed, `spec_kind=program`, `implementation_authority=none`; it requires a future child label covering audited creation, password reset, disable, and revocation, but no child file/authority with that ID exists.
 - Provenance: exact PR head and named stable items.
 - Limitations: PR #2 is inactive and may change; it must be rescanned before either proposal is accepted.
+
+### OBS-010 — PR #7 merged and MINIMAL_AUTH_FOUNDATION_V2 is accepted and current on main
+
+- Subject: parent authority transition.
+- Repository/source: `mayf3/auth-service`.
+- Commit/artifact: PR #7 final accepted head `842fccb384448d7f1bb43919048ce579fac9df96`; `github/main` at `37edaa6f8c56749eaa16c0bbbb0c0c75d8c6a1eb`.
+- Environment: fetched Git refs plus GitHub metadata; no runtime or database query.
+- Observed at: `2026-08-22T04:32:33Z`.
+- Method: `git fetch github --prune`; `git rev-parse github/main`; `git merge-base --is-ancestor 842fccb384448d7f1bb43919048ce579fac9df96 github/main`; `gh pr view 7`; read `docs/specs/README.md` and `.agents/local/README.md` at `github/main`.
+- Result: PR #7 is merged (merged `2026-08-22T04:11:03Z`); its final accepted head `842fccb...` is an ancestor of `main` `37edaa6f...`; the authority map on `main` records `MINIMAL_AUTH_FOUNDATION_V2 = accepted / current` and `MINIMAL_AUTH_FOUNDATION_V1 = superseded / historical`, with the V2 authority delta limited to migration / hard-cut / sequencing and V1 constraints exact-incorporated by V2.
+- Provenance: `docs/specs/README.md` authority block and `.agents/local/README.md` §2 at `github/main@37edaa6f...`; PR #7 metadata.
+- Limitations: establishes current authority coordinates only; does not authorize product implementation, activate any Contract of this proposed Spec, or prove V2 production effectiveness.
 
 ## 6. Claims and assumptions
 
@@ -466,6 +506,16 @@ No `OPEN_ASSUMPTION` changes Contract meaning.
 - Strength/sufficiency: strong for the Program kind, inactive lifecycle, literal placeholder ID, and mixed Principal/credential scope.
 - Limitations: does not amend PR #2; the required two-sided reconciliation must occur before PR #2 acceptance.
 - Provenance: exact stable items and PR metadata in `OBS-009`.
+
+### EVD-010 — Parent-transition observation supports the V2 alignment State
+
+- Source observations: `OBS-010`.
+- Target: `STATE-007`, §3.1 current-parent authority relation.
+- Relation: SUPPORTS.
+- Bound coordinates: auth-service `github/main@37edaa6f8c56749eaa16c0bbbb0c0c75d8c6a1eb` with PR #7 accepted head `842fccb384448d7f1bb43919048ce579fac9df96`, observed `2026-08-22T04:32:33Z`.
+- Strength/sufficiency: strong for current parent authority identity, V1 superseded status, V2 exact-incorporation of V1 constraints, and the migration/hard-cut/sequencing-only delta scope.
+- Limitations: does not evaluate V2 migration hard-cut conformance, does not authorize implementation, and is time-sensitive; must be rechecked at review/acceptance of this Spec.
+- Provenance: exact authority paths and commands recorded in `OBS-010`.
 
 ## 8. Decisions
 
@@ -851,7 +901,7 @@ Every Acceptance item requires executed evidence bound to exact implementation c
 | `CTR-HPA-011` | `ACC-HPA-010` | real-process lifecycle | YES |
 | `CTR-HPA-012` | `ACC-HPA-011` | real-process lifecycle | YES |
 | `CTR-HPA-013` | `ACC-HPA-012` | database concurrency | YES |
-| `CTR-HPA-014` | `ACC-HPA-013` | durable audit fault injection | YES |
+| `CTR-HPA-014` | `ACC-HPA-008`, `ACC-HPA-013` | durable audit fault injection | YES |
 | `CTR-HPA-015` | `ACC-HPA-014` | idempotency replay | YES |
 | `CTR-HPA-016` | `ACC-HPA-015` | idempotency conflict | YES |
 | `CTR-HPA-017` | `ACC-HPA-016` | database concurrency | YES |
@@ -868,6 +918,8 @@ CONTRACTS_WITH_ACCEPTANCE = 23
 ACCEPTANCE_COUNT = 22
 DANGLING_CONTRACT_REFERENCES = 0
 UNCOVERED_CONTRACTS = 0
+DECLARATION_ONLY_EDGES = 0
+COVERAGE_TABLE_ONLY_EDGES = 0
 ACCEPTANCE_WITHOUT_FAILURE_CONDITION = 0
 ```
 
@@ -934,11 +986,15 @@ ROOT_MAPPING_WRITE_PERFORMED = NO
 
 A later implementation may require schema and migration work, but only after this Spec is independently reviewed, accepted, merged to the implementation base, and pinned. The implementation must define exact files and migration mechanics in its PR and prove every Contract. It MUST NOT retrofit required semantics into legacy registration, machine provisioning, or the old candidate without conformance.
 
-If `MINIMAL_AUTH_FOUNDATION_V2` becomes active before this Spec is reviewed or accepted:
+`MINIMAL_AUTH_FOUNDATION_V2` became active before this Spec was accepted (merged PR #7, final accepted head `842fccb384448d7f1bb43919048ce579fac9df96`). The required authority reconciliation has been performed by the `2026-08-22` parent-authority alignment amendment on this Spec:
 
 ```text
 AUTHORITY_RECONCILIATION_REQUIRED = YES
-CURRENT_SPEC_REVIEW_BINDING_INVALID_UNTIL_RECONCILED = YES
+AUTHORITY_RECONCILIATION_PERFORMED = YES (2026-08-22, aligned to main 37edaa6f8c56749eaa16c0bbbb0c0c75d8c6a1eb)
+PREVIOUS_REVIEWED_SPEC_HEAD = c24eedb11facceef8efd85bc38b563b826043467
+PREVIOUS_REVIEW_STATUS = HISTORICAL_SEMANTIC_REVIEW_EVIDENCE_ONLY
+SEMANTIC_DELTA_FROM_PREVIOUS_REVIEW = NONE
+FRESH_INDEPENDENT_REVIEW_REQUIRED = YES
 ```
 
 Rollback never means restoring pre-disable Session/Refresh/Token authority or deleting durable audit.
@@ -950,6 +1006,8 @@ OPEN_OWNER_DECISIONS = NONE
 NORMATIVE_TBD = NONE
 UNRESOLVED_AUTHORITY_CONFLICT = NONE
 PARTIAL_SUPERSESSION = NONE
+PARENT_RECONCILIATION_COMPLETE = YES
+FRESH_INDEPENDENT_REVIEW_REQUIRED = YES
 BOOTSTRAP_AUTHORITY_UNRESOLVED = NO
 OWNER_DECISION_REQUIRED = NO
 AUTHORING_READY_FOR_REVIEW = YES
