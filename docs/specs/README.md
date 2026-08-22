@@ -40,6 +40,14 @@ Program 或 governance adoption Spec 使用 `implementation_authority: none` 时
 | `AUTH_SERVICE_SVC_FORUM_AUDIENCE_REGISTRY_RECONCILIATION_V1` | implementation | accepted | contracts（仅 CTR-RR-001 冻结的三文件闭包） | svc-forum Audience Registry 离线 reconciliation 子 Spec：生产 `registered_scopes` 单列收敛回 CCR 冻结目标 `[forum.read, forum.write]`；绑定 PR #16 三文件实现闭包与 exact rerun NOOP / conflict fail-closed 语义 |
 | `AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1` | implementation | accepted | contracts（仅 CTR-VL-002 冻结的 18 文件闭包） | Minimal Auth Contract `1.3.0` runtime/version linkage 子 Spec；5 个 proven linkage 文件并入 18 文件实现闭包，2 个非必要文件排除 |
 
+Human administration child mapping（PR #2 human authority split amendment，2026-08-22）：
+
+- `AUTH_SERVICE_LEGACY_SURFACE_SHUTDOWN_V1`（PR #2）的 active parent 是 `MINIMAL_AUTH_FOUNDATION_V2`；其不再拥有 Human Principal administration 规范语义；
+- `AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1`（PR #15，exact Head `98ec29a1152bfa9530c572ec5a541ea02df163c4`）是唯一 Human Principal administration child（proposed 未合并候选，本 index 不将其视为 accepted 或 active authority）；
+- planned credential-only child `AUTH_SERVICE_HUMAN_CREDENTIAL_LIFECYCLE_V1`（password reset）尚未创建，`planned / not yet an authority`，不得列为 proposed 或 accepted authority；
+- 旧占位名 `AUTH_SERVICE_V1_HUMAN_CREDENTIAL_LIFECYCLE_V1` 是 non-authority historical placeholder（`AUTHORITY_STATUS = NONE`），不是 authority；
+- 除合法 whole-authority supersession 外，不得创建第二份 Human Principal administration child。
+
 ## Architecture authorities outside this directory
 
 治理采用为 forward-only，不批量迁移历史合同。当前 Architecture authority 状态为：
