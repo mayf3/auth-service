@@ -1,9 +1,9 @@
 ---
 spec_id: AUTH_SERVICE_SVC_FORUM_LEGACY_GRANT_NARROWING_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 scope:
   - mayf3/auth-service
 governed_by:
@@ -669,6 +669,10 @@ OPEN_OWNER_DECISIONS = NONE
 NORMATIVE_TBD = NONE
 UNRESOLVED_AUTHORITY_CONFLICT = NONE
 PARTIAL_SUPERSESSION = NONE
+READY_TO_MARK_ACCEPTED = YES（2026-08-22 owner acceptance；见 §14）
+SPEC_AUTHORITY_ON_MAIN = YES_AFTER_PR_18_MERGED
+PRESERVED_IMPLEMENTATION_MERGE_AUTHORIZED = NO
+PRODUCTION_APPLY_AUTHORIZED_BY_ACCEPTANCE = NO
 SPEC_AMENDMENT_2026_08_22 = 降权审计（REVISE）REQUIRED_FIXES 修复轮
   FIX_1_PRINCIPAL_ACTIVE_PREREQUISITE = APPLIED（DEC-NG-004、
     CTR-NG-003 第 3 项、CTR-NG-006 15 项 conflict matrix CM-11/CM-12
@@ -684,7 +688,61 @@ SPEC_AMENDMENT_2026_08_22 = 降权审计（REVISE）REQUIRED_FIXES 修复轮
 ## 14. Acceptance Record
 
 ```text
-（proposed 阶段占位；acceptance 时由独立 review 记录填写：
-REVIEWED_BASE / REVIEWED_SPEC_HEAD / REVIEW_VERDICT / REQUIRED_FIXES /
-ACCEPTED_BY / ACCEPTED_AT / FINAL_ACCEPTED_HEAD）
+ACCEPTANCE_REVIEW = 降权审计
+
+REVIEWED_BASE =
+  f5c2305b46020ad907cf5c4a93c0cb8ffca5b95e
+
+REVIEWED_SPEC_HEAD =
+  61d1c946fb2ad1fa8759f1f3d6ff3f080bf0619e
+
+REVIEW_VERDICT = PASS
+REQUIRED_FIXES = NONE
+REQUIRED_FIX_1_CLOSED = YES
+REQUIRED_FIX_2_CLOSED = YES
+NEW_BLOCKERS = NONE
+
+ACCEPTED_BY = mayf3
+ACCEPTED_AT = 2026-08-22T06:51:38Z
+FINAL_ACCEPTED_HEAD =
+  以 PR #18 merge commit 为准（Git commit 无法内嵌自身 SHA）
+SEMANTIC_DELTA_AFTER_REVIEW = lifecycle-only
+
+MAIN_HEAD_AT_ACCEPTANCE =
+  f5c2305b46020ad907cf5c4a93c0cb8ffca5b95e
+MAIN_DRIFT_CLASSIFICATION = NONE
+
+SPEC_AUTHORITY_ON_MAIN = YES_AFTER_PR_18_MERGED
+IMPLEMENTATION_AUTHORITY_ON_MAIN = contracts
+
+AUTHORIZED_IMPLEMENTATION_FILES =
+  scripts/narrow-svc-forum-legacy-grant-v1.ts
+  scripts/run-svc-forum-legacy-grant-narrowing-v1-conformance.sh
+  tests/oauth/narrow-svc-forum-legacy-grant-v1.test.ts
+IMPLEMENTATION_FILE_CLOSURE_EXPANDED = NO
+
+PRESERVED_IMPLEMENTATION_HEAD =
+  d7924b11f9a14917cd68d38196ba2b96f2a5df55
+PRESERVED_IMPLEMENTATION_HEAD_UNCHANGED = YES
+PRESERVED_IMPLEMENTATION_CURRENTLY_CONFORMANT = NO
+KNOWN_IMPLEMENTATION_FIX = ADD_PRINCIPAL_ACTIVE_AND_DISABLED_AT_GUARD
+PRESERVED_IMPLEMENTATION_MERGE_AUTHORIZED = NO
+
+PRODUCTION_APPLY_AUTHORIZED_BY_ACCEPTANCE = NO
+IMPLEMENTATION_PERFORMED = NO
+PRODUCTION_CHANGE = NONE
 ```
+
+本 acceptance finalize 为纯 lifecycle 轮：仅执行
+`status: proposed → accepted`、`implementation_authority: none → contracts`、
+§13 lifecycle/finalization 镜像字段同步、写入本 Acceptance Record，并在
+`docs/specs/README.md` 增加 accepted index 行。§1–§12 与 §13 已审产品/实现
+语义保持不变；本轮不恢复三个实现文件、不修改 preserved implementation hold
+分支、不执行 production apply，也不修改 DB / Grant / identity / credential。
+
+Spec acceptance 仅使本 Spec 在合入 `main` 后成为 authority；它不授予
+`d7924b11f9a14917cd68d38196ba2b96f2a5df55` merge authority。未来实现必须先
+加入 principal `active` / `disabled_at` guard，形成新的 implementation Head，
+再由独立 review 冻结 `IMPLEMENTATION_REVIEW_HEAD` / `IMPLEMENTATION_MERGE_BASE` /
+`IMPLEMENTATION_DIFF_DIGEST` 并取得 PASS，方可 merge。production apply 仍需
+独立 owner 决策。

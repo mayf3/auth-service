@@ -37,6 +37,7 @@ Program 或 governance adoption Spec 使用 `implementation_authority: none` 时
 | `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1` | implementation | accepted | contracts（仅 §5 冻结五文件范围） | ownerless agent direct-token profile 与数据库 CHECK 联合修复；封闭五文件实现范围 |
 | `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1` | implementation | accepted | contracts（仅 CTR-FR-009 冻结的 13 个 Auth 文件 + 8 个 Forum 文件范围） | 注册 `svc-forum` Audience；仅允许 `forum.read` / `forum.write`，冻结 consumer review、activation gates 与 AC1–AC10 |
 | `AUTH_SERVICE_SVC_FORUM_AUDIENCE_REGISTRY_RECONCILIATION_V1` | implementation | accepted | contracts（仅 CTR-RR-001 冻结的三文件闭包） | svc-forum Audience Registry 离线 reconciliation 子 Spec：生产 `registered_scopes` 单列收敛回 CCR 冻结目标 `[forum.read, forum.write]`；绑定 PR #16 三文件实现闭包与 exact rerun NOOP / conflict fail-closed 语义 |
+| `AUTH_SERVICE_SVC_FORUM_LEGACY_GRANT_NARROWING_V1` | implementation | accepted | contracts（仅 CTR-NG-001 冻结的三文件闭包：`scripts/narrow-svc-forum-legacy-grant-v1.ts`；`scripts/run-svc-forum-legacy-grant-narrowing-v1-conformance.sh`；`tests/oauth/narrow-svc-forum-legacy-grant-v1.test.ts`） | svc-forum 遗留 Grant 最小降权子 Spec；preserved implementation 当前不 conformant、未获 merge authority，production apply 不因 acceptance 自动授权 |
 | `AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1` | implementation | accepted | contracts（仅 CTR-VL-002 冻结的 18 文件闭包） | Minimal Auth Contract `1.3.0` runtime/version linkage 子 Spec；5 个 proven linkage 文件并入 18 文件实现闭包，2 个非必要文件排除 |
 
 ## Architecture authorities outside this directory
