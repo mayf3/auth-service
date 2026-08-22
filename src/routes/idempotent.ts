@@ -3,15 +3,17 @@
  *
  * POST /api/v1/principals  — Idempotent principal creation by external_ref
  * POST /api/v1/clients     — Idempotent client creation by external_ref + principal_id
+ * GET  /api/v1/principals/by-external-ref — Exact Agent Core identity discovery
+ * GET  /api/v1/clients/by-external-ref    — Exact Agent Core identity discovery
  *
- * These endpoints are strictly generic. Auth does not interpret external_ref.
- * No Agent names, roles, OpenClaw, or business domain logic lives here.
+ * POST semantics remain strictly generic and continue treating external_ref as opaque.
+ * The two bounded GET routes validate only the accepted deterministic Agent Core format.
  *
  * Authentication: V1 RS256 access token with scope auth.identity.provision.
  * Machine callers must have a MachineAccessGrant for the svc-auth audience.
  */
 
-import { Router } from 'express';
+import { Router, type RequestHandler } from 'express';
 import { z } from 'zod';
 import { asyncHandler } from '../utils/async-handler.js';
 import { v1ManagementAuth } from '../middleware/v1-management-auth.js';
@@ -19,6 +21,12 @@ import {
   createOrGetPrincipal,
   createOrGetClient,
 } from '../lib/oauth/v1/idempotent.js';
+import {
+  parseExternalRefQuery,
+  resolveClientByExternalRef,
+  resolvePrincipalByExternalRef,
+  toIdentityResolutionError,
+} from '../lib/oauth/v1/resolution.js';
 
 export const idempotentRouter = Router();
 
@@ -42,6 +50,61 @@ const createClientSchema = z.object({
     expected_client_id: z.string().uuid().optional(),
   }),
 });
+
+// ─── GET /api/v1/*/by-external-ref ───────────────────────────────────────
+
+interface IdentityResolutionRouteDependencies {
+  managementAuth: RequestHandler;
+  resolvePrincipal: typeof resolvePrincipalByExternalRef;
+  resolveClient: typeof resolveClientByExternalRef;
+}
+
+const defaultResolutionRouteDependencies: IdentityResolutionRouteDependencies = {
+  managementAuth: v1ManagementAuth,
+  resolvePrincipal: resolvePrincipalByExternalRef,
+  resolveClient: resolveClientByExternalRef,
+};
+
+/** Factory keeps production wiring exact while allowing executable route tests. */
+export function createIdentityResolutionRouter(
+  dependencies: IdentityResolutionRouteDependencies = defaultResolutionRouteDependencies,
+): Router {
+  const router = Router();
+
+  router.get(
+    '/v1/principals/by-external-ref',
+    dependencies.managementAuth,
+    asyncHandler(async (req, res) => {
+      try {
+        const externalRef = parseExternalRefQuery(req.query, 'principal');
+        const result = await dependencies.resolvePrincipal(externalRef);
+        res.status(200).json(result);
+      } catch (error) {
+        const mapped = toIdentityResolutionError(error);
+        res.status(mapped.status).json({ error: mapped.code });
+      }
+    }),
+  );
+
+  router.get(
+    '/v1/clients/by-external-ref',
+    dependencies.managementAuth,
+    asyncHandler(async (req, res) => {
+      try {
+        const externalRef = parseExternalRefQuery(req.query, 'client');
+        const result = await dependencies.resolveClient(externalRef);
+        res.status(200).json(result);
+      } catch (error) {
+        const mapped = toIdentityResolutionError(error);
+        res.status(mapped.status).json({ error: mapped.code });
+      }
+    }),
+  );
+
+  return router;
+}
+
+idempotentRouter.use(createIdentityResolutionRouter());
 
 // ─── POST /api/v1/principals ──────────────────────────────────────────────
 
