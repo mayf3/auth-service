@@ -25,8 +25,8 @@ AUTHORITY_STATUS = proposed
 SUPERSEDES = MINIMAL_AUTH_FOUNDATION_V1 (whole authority)
 SUPERSEDED_BY = null
 PROPOSED_AT_BASE = cb0b3d37dfb105c763c9c83ebd65483270b21b81
-EVALUATED_BASE = 450a0ecb286cbe5da6e790d3c572fa71218ca9c0
-PREVIOUS_EVALUATED_BASE = cb0b3d37dfb105c763c9c83ebd65483270b21b81
+EVALUATED_BASE = 36a11136745bae7a371d21ba62d9617942c41afa
+PREVIOUS_EVALUATED_BASE = 450a0ecb286cbe5da6e790d3c572fa71218ca9c0
 PREVIOUS_REVIEWED_BASE = 1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9
 DATE = 2026-08-20
 AUTHORITY_DELTA_SCOPE = migration / hard-cut / sequencing only
@@ -42,7 +42,7 @@ READY_TO_MARK_ACCEPTED = NO
 
 建立 `MINIMAL_AUTH_FOUNDATION_V1` 的 whole-authority successor。V2 精确保留
 V1 的 claims、profiles、grants、delegation、human session、conformance 与
-1.2.0 executable bundle，只替换 migration / hard-cut / sequencing meaning。
+1.3.0 executable bundle，只替换 migration / hard-cut / sequencing meaning。
 本 proposed PR 只形成可独立评审的 authority 候选；不接受、不实现、不部署、不合并。
 
 ## 2. Scope and non-goals
@@ -84,6 +84,14 @@ V1_ROOT_NORMATIVE_BODY = EXACTLY_INCORPORATED_BY_V2
 V1_ROOT_MASKED_DIGEST_ALGORITHM = SHA-256
 V1_ROOT_MASKED_DIGEST = 953085bf7265b0d53870e90771c87be3cea29477eb459ca04cb7c0e744b71468
 V1_ROOT_DELTA_OUTSIDE_MASK = 0
+CURRENT_MINIMAL_AUTH_CONTRACT_VERSION = 1.3.0
+CONTRACT_BUNDLE_1_3_0 = EXACTLY_INCORPORATED_BY_V2
+CONTRACT_BUNDLE_TREE_SHA = c477f1b1bd7e4b48c2dc99c047c28aa5358f738e
+CONTRACT_MANIFEST_BLOB = 60ed66c696fa465c6a850f3a1749df55a19eb65b
+MANIFEST_DIGEST = 59edda9ece846c45a5767aa37d76517609762b7815c2a9da6b3068106d6765ab
+AUDIENCE_REGISTRY_BLOB = ef7e139ec545471cbb4e84ce84a5fbcc3c48b1d7
+AUDIENCE_REGISTRY_DIGEST = 87ee3e1b239c2d8cc4d200cffb330d72f3f645b037443554f2ed91cc91cd4bf6
+RUNTIME_CONTRACT_VERSION_LINKAGE = 1.3.0_SUPPORTED
 ```
 
 V1 root 不是整体可变的 wrapper。V2 完整继承 base blob 的 normative body，唯一允许
@@ -143,9 +151,10 @@ claims/profile/bundle semantics 已由 V2 继承，因此本 V2 冻结其 refere
 accepted finalize revision `1f7fa6378fa44042f3001b4a5813210c0a8313e8`（新 Base
 中 blob `d89bf08c8714f55571ee7d75da017b7cf7237096`），
 `implementation_authority=contracts`，并通过 `governed_by` 直接依赖
-`MINIMAL_AUTH_FOUNDATION_V1`。其 bounded scope 是两个 Agent Core canary Client 的
-Stage W 两条 `svc-workflow[workflow.read]` MachineAccessGrant；Stage F 的两条
-`svc-forum` Grant 继续被独立 CCR、consumer migration review 与 bundle update 阻塞。
+`MINIMAL_AUTH_FOUNDATION_V1`。其 bounded scope 是两个 Agent Core canary Client：Stage W
+两条 `svc-workflow[workflow.read]` MachineAccessGrant，以及已在 main 具备 source
+implementation 的 Stage F 两条 `svc-forum[forum.read,forum.write]` Grant。source merge
+只证明实现存在，不证明任何生产数据库已 apply。
 
 V2 exact-incorporates Canary Grant 所依赖的 `grants-and-audiences.md` 与 bundle：
 MachineAccessGrant、Audience/Scope 严格拒绝、same-transaction audit、
@@ -160,35 +169,52 @@ CANARY_GRANT_PRODUCT_SEMANTIC_DELTA = NONE
 FUTURE_CANARY_GRANT_SEMANTIC_AMENDMENT_PARENT = MINIMAL_AUTH_FOUNDATION_V2
 ```
 
-Current main additionally contains the accepted Stage W execution authority and both authorized
-implementations. The implementation merges do not change any incorporated V1 object or the V2
+Current main additionally contains accepted Stage W Execution V2, which whole-Spec supersedes V1,
+and the bounded Stage W and Stage F source implementations. These facts do not change V2's
 migration / hard-cut / sequencing delta:
 
 ```text
 OWNERLESS_IMPLEMENTATION_MERGE = 87b3e54b1e8d332738663de38d9c6c599760c14a
 OWNERLESS_IMPLEMENTATION_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
-STAGE_W_EXECUTION_ACCEPTED_REVISION = 4718d06cb31d2ecdf62afd8d03ddb138b47ec081
-STAGE_W_EXECUTION_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
-STAGE_W_IMPLEMENTATION_HEAD = d1b508c9bc42bda0171785f58f4ac13172bb78e2
-STAGE_W_IMPLEMENTATION_MERGE = 450a0ecb286cbe5da6e790d3c572fa71218ca9c0
-STAGE_W_IMPLEMENTATION_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+STAGE_W_EXECUTION_V1_DISPOSITION = SUPERSEDED_HISTORICAL_AUTHORITY
+STAGE_W_EXECUTION_V2_ACCEPTED_REVISION = 8df5600e71281860bf0291d704e1e7b24bbdb2b3
+STAGE_W_EXECUTION_V2_BLOB = 8c86d736394d9c98001b019b087d936d367acd80
+STAGE_W_EXECUTION_V2_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+STAGE_W_EXECUTION_V2_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
+STAGE_W_EXECUTION_V2_ALIGNMENT_AMENDMENT_REQUIRED = NO
+STAGE_W_EXECUTION_V2_PRODUCT_SEMANTIC_DELTA_UNDER_MAFV2 = NONE
+FUTURE_STAGE_W_EXECUTION_SEMANTIC_AMENDMENT_PARENT = MINIMAL_AUTH_FOUNDATION_V2 + AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1
+STAGE_F_SOURCE_IMPLEMENTATION_HEAD = 1bdb8c0a8ce111415ede73d0a776777860000553
+STAGE_F_IMPLEMENTATION_MERGE = 3b2ae71c38905c720399a74e038e49f725ceb178
+SOURCE_IMPLEMENTATION_PRESENT_ON_MAIN = YES
+STAGE_F_IMPLEMENTATION_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+STAGE_F_PARENT_AUTHORITY = AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1
+STAGE_F_PRODUCT_SEMANTIC_DELTA_TO_ACCEPTED_PARENT = NONE
+STAGE_F_PRODUCTION_EFFECTIVE = NOT_INFERRED_FROM_SOURCE_MERGE
+STAGE_F_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
+FUTURE_STAGE_F_SEMANTIC_AMENDMENT_PARENT = MINIMAL_AUTH_FOUNDATION_V2 + AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1
 ```
 
-Current main also contains accepted `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1`. Its semantic target
-is compatible with V2, but its exact V1 amendment mechanism is not executable after V2 acceptance:
-V1 bundle / manifest bytes remain historical immutable payload, and the active parent becomes V2.
-This V2 therefore freezes:
+Current main contains accepted `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1`, accepted
+`AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1`, their merged Contract `1.3.0` implementation, and
+runtime support for `1.3.0`. V2 exact-incorporates that executable V1 identity. The exact preserved
+semantics are: Audience `svc-forum`; scopes exactly `forum.read` and `forum.write`; machine-only
+Agent access; continued rejection of wildcard, `forum.admin`, and `forum.moderate`; issuer,
+profile, audience, and scope validation; offline Consumer verification; and the Grant/domain-
+authorization boundary. Therefore:
 
 ```text
-SVC_FORUM_CCR_SEMANTIC_TARGET_COMPATIBILITY = COMPATIBLE
-SVC_FORUM_CCR_REFERENCE_DISPOSITION = ALIGNMENT_AMENDMENT_REQUIRED
-SVC_FORUM_CCR_IMPLEMENTATION_BEFORE_ALIGNMENT = FORBIDDEN_AFTER_V2_ACCEPTANCE
-SVC_FORUM_CCR_ALIGNMENT_TARGET = MINIMAL_AUTH_FOUNDATION_V2 + future V2 bundle / activation model
+SVC_FORUM_CCR_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+SVC_FORUM_CCR_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
+SVC_FORUM_CCR_ALIGNMENT_AMENDMENT_REQUIRED = NO
+SVC_FORUM_VERSION_LINKAGE_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
+SVC_FORUM_PRODUCT_SEMANTIC_DELTA_UNDER_V2 = NONE
+FUTURE_SVC_FORUM_SEMANTIC_AMENDMENT_PARENT = MINIMAL_AUTH_FOUNDATION_V2
 ```
 
-No Contract or Bundle implementation of this CCR exists at evaluated base
-`450a0ecb286cbe5da6e790d3c572fa71218ca9c0`. If such implementation appears before this proposal is
-reviewed or accepted, this disposition is invalidated and MUST be re-evaluated rather than applied.
+This disposition authorizes no new svc-forum product behavior. Future semantic change requires a
+separately reviewed amendment with V2 as parent; the already merged V1 implementation remains an
+exact-incorporated historical constraint.
 
 ### 3.5 V2 Activation Record model
 
@@ -211,7 +237,7 @@ Canonical projection rule:
 - any missing, duplicate, proposed, unreviewed, stale or internally inconsistent record projects
   false and MUST NOT be repaired by editing an accepted Contract literal or frozen manifest.
 
-All lifecycle fields in the frozen V1 1.2.0 manifest are
+All lifecycle fields in the frozen V1 1.3.0 manifest are
 `FREEZE_TIME_HISTORICAL_FACTS`. Production Activation MUST NOT update that manifest in place.
 The Activation Record projects current values for:
 
@@ -234,7 +260,7 @@ Record. This rule does not modify PR #2 in the present PR.
 ### STATE-MAFV2-001 — V1 remains the active architecture at the evaluated base
 
 - Subject: `MINIMAL_AUTH_FOUNDATION_V1` lifecycle and frozen contract set
-- As-of commit / artifact revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
+- As-of commit / artifact revision: `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: `mayf3/auth-service` source repository, `github/main`
 - Observed at: `2026-08-20T22:56:05Z`
 - Basis: `OBS-MAFV2-001`, `CLM-MAFV2-001`, `EVD-MAFV2-001`
@@ -242,39 +268,39 @@ Record. This rule does not modify PR #2 in the present PR.
 ### STATE-MAFV2-002 — Governance is accepted but manually enforced
 
 - Subject: local Development Governance adoption and enforcement state
-- As-of commit / artifact revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
+- As-of commit / artifact revision: `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: repository source and local governance verifier
 - Observed at: `2026-08-20T22:56:05Z`
 - Basis: `OBS-MAFV2-002`, `EVD-MAFV2-002`
 
-### STATE-MAFV2-003 — Round 2 review is historical evidence only
+### STATE-MAFV2-003 — Previous exact-Head ACCEPT review is historical evidence only
 
-- Subject: PR #7 independent semantic Round 2 review of the prior amended Head
-- As-of commit / artifact revision: base `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`, Head `263b0c685a35e9e9299f0470acc38b14b5a9ed10`
+- Subject: PR #7 independent review `4997678886` of the previous exact Base/Head
+- As-of commit / artifact revision: base `450a0ecb286cbe5da6e790d3c572fa71218ca9c0`, Head `93bbcdf78eb726e48f53ffdf435617c0e00f14c3`
 - Environment: persistent GitHub PR #7 review record
-- Observed at: `2026-08-20T14:37:00Z`
-- Basis: `OBS-MAFV2-003`, `CLM-MAFV2-002`, `EVD-MAFV2-003`
+- Observed at: `2026-08-22T02:39:23Z`
+- Basis: `OBS-MAFV2-003`, `CLM-MAFV2-002`, `EVD-MAFV2-003`; result `ACCEPT`, but rebase/reconciliation requires a new exact-Head independent audit
 
 ### STATE-MAFV2-004 — New base preserves the accepted ownerless downstream Spec
 
 - Subject: `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1`
-- As-of commit / artifact revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
+- As-of commit / artifact revision: `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: `mayf3/auth-service` source repository, `github/main`
 - Observed at: `2026-08-20T22:56:05Z`
 - Basis: `OBS-MAFV2-004`, `OBS-MAFV2-005`, `CLM-MAFV2-003`, `EVD-MAFV2-004`
 
-### STATE-MAFV2-005 — Pinned V1 assets have no main-drift delta
+### STATE-MAFV2-005 — Current V1 Contract 1.3.0 identities are pinned
 
-- Subject: V1 normative modules and `contract-bundles/minimal-auth-v1`
-- As-of commit / artifact revision: comparison `1da40d435f44b2a26b1d046e2f2fa234a6a8c9d9..cb0b3d37dfb105c763c9c83ebd65483270b21b81`
+- Subject: V1 root, all normative modules, Contract Bundle `1.3.0`, manifest, registry, and runtime linkage
+- As-of commit / artifact revision: evaluated base `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: clean task worktree, Git object database
-- Observed at: `2026-08-20T22:56:05Z`
-- Basis: `OBS-MAFV2-005`, `CLM-MAFV2-004`, `EVD-MAFV2-005`
+- Observed at: `2026-08-22T02:39:23Z`
+- Basis: `OBS-MAFV2-001`, `OBS-MAFV2-005`, `CLM-MAFV2-004`, `EVD-MAFV2-005`
 
 ### STATE-MAFV2-006 — New base contains accepted Canary Grant authority
 
 - Subject: `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1` lifecycle, parent relation, and bounded scope
-- As-of commit / artifact revision: accepted finalize `1f7fa6378fa44042f3001b4a5813210c0a8313e8`, present in `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
+- As-of commit / artifact revision: accepted finalize `1f7fa6378fa44042f3001b4a5813210c0a8313e8`, present in `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: `mayf3/auth-service` source repository, `github/main`
 - Observed at: `2026-08-20T22:56:05Z`
 - Basis: `OBS-MAFV2-007`, `CLM-MAFV2-007`, `EVD-MAFV2-007`
@@ -290,7 +316,7 @@ Record. This rule does not modify PR #2 in the present PR.
 ### STATE-MAFV2-008 — No effective V2 Activation Record exists
 
 - Subject: `MINIMAL_AUTH_FOUNDATION_V2_ACTIVATION_V1` current source-tree presence and V1 manifest lifecycle facts
-- As-of commit / artifact revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
+- As-of commit / artifact revision: `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: `mayf3/auth-service` source repository, `github/main`
 - Observed at: `2026-08-20T23:45:10Z`
 - Basis: `OBS-MAFV2-009`, `CLM-MAFV2-009`, `EVD-MAFV2-009`
@@ -298,91 +324,91 @@ Record. This rule does not modify PR #2 in the present PR.
 ### STATE-MAFV2-009 — Cut-introduced caller sequencing requires isolated candidate conformance
 
 - Subject: V1 surface availability classes and fixed-SHA caller activation order
-- As-of commit / artifact revision: evaluated base `cb0b3d37dfb105c763c9c83ebd65483270b21b81`; historical PR #2 remains proposed
+- As-of commit / artifact revision: evaluated base `36a11136745bae7a371d21ba62d9617942c41afa`; historical PR #2 remains proposed
 - Environment: source authority graph; no production execution asserted
 - Observed at: `2026-08-20T23:45:10Z`
 - Basis: `OBS-MAFV2-010`, `CLM-MAFV2-010`, `EVD-MAFV2-010`
 
 ### STATE-MAFV2-010 — Current main contains compatible bounded implementations
 
-- Subject: ownerless implementation merge `87b3e54...` and Stage W implementation merge `450a0ec...`
-- As-of commit / artifact revision: `450a0ecb286cbe5da6e790d3c572fa71218ca9c0`
+- Subject: ownerless, Stage W, and Stage F bounded source implementations
+- As-of commit / artifact revision: evaluated base `36a11136745bae7a371d21ba62d9617942c41afa`; Stage F merge `3b2ae71c38905c720399a74e038e49f725ceb178`
 - Environment: `mayf3/auth-service` source repository, `github/main`
-- Observed at: `2026-08-21`
-- Basis: merge-parent file inventories and unchanged CTR-MAFV2-001 objects
+- Observed at: `2026-08-22T02:39:23Z`
+- Basis: merge-parent file inventories, accepted parents, and exact Contract `1.3.0` objects; no production apply inferred
 
-### STATE-MAFV2-011 — Current main contains accepted Stage W Execution authority
+### STATE-MAFV2-011 — Current main contains accepted Stage W Execution V2 authority
 
-- Subject: `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1`
-- As-of commit / artifact revision: accepted `4718d06cb31d2ecdf62afd8d03ddb138b47ec081`, blob `6de180cdd4aad509912dfc9d6864301731f7909f`, present in `450a0ec...`
+- Subject: superseded `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1` and accepted V2 successor
+- As-of commit / artifact revision: acceptance `8df5600e71281860bf0291d704e1e7b24bbdb2b3`; V1 blob `fe6705df1a406464e9344124298bea09d8b85e9b`; V2 blob `8c86d736394d9c98001b019b087d936d367acd80`
 - Environment: `mayf3/auth-service` source repository, `github/main`
-- Observed at: `2026-08-21`
-- Basis: accepted frontmatter, parent references, and implemented exclusive three-file surface
+- Observed at: `2026-08-22T02:39:23Z`
+- Basis: lifecycle frontmatter, whole-Spec supersession, exact Client ID delta, parent references, and implementation boundary
 
-### STATE-MAFV2-012 — svc-forum CCR is accepted but has no Contract/Bundle implementation
+### STATE-MAFV2-012 — svc-forum Contract 1.3.0 and version linkage are merged
 
-- Subject: `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1`
-- As-of commit / artifact revision: accepted `02e1162d6cd9583230df45d121b11df20a8ba034`, blob `78530b1fbfb13d477e65e002185128cf69843942`, present in `450a0ec...`
+- Subject: accepted `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1`, accepted `AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1`, and their 18-file implementation closure
+- As-of commit / artifact revision: CCR blob `78530b1fbfb13d477e65e002185128cf69843942`; linkage blob `ff8dbf9a27002a5e92a171fa249a1371d5c69bda`; implementation merge `953d7475ccdfb3d7afb02352a9ec5db7b5c2b34b`
 - Environment: `mayf3/auth-service` source repository, `github/main`
-- Observed at: `2026-08-21`
-- Basis: accepted CCR and empty `cb0b3d3...450a0ec` path history for `docs/contracts/minimal-auth-v1/**` and `contract-bundles/minimal-auth-v1/**`
+- Observed at: `2026-08-22T02:39:23Z`
+- Basis: Contract `1.3.0` bundle identities, exact audience semantics, and runtime version allowlist
 
 ## 5. Observations
 
-### OBS-MAFV2-001 — V1 lifecycle and object identities
+### OBS-MAFV2-001 — V1 lifecycle and Contract 1.3.0 object identities
 
-- Subject: V1 lifecycle root, normative modules, migration module, and bundle
-- Source revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
+- Subject: V1 lifecycle root, every normative module, Contract Bundle `1.3.0`, manifest, audience registry, and runtime linkage
+- Source revision: `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: clean task worktree, Git object database
-- Observed at: `2026-08-20T22:56:05Z`
-- Method: executed `git rev-parse <base>:<path>` for every item listed in CTR-MAFV2-001 and the lifecycle/migration provenance objects
-- Result: all object identities equal their identities at `1da40d4...`; V1 lifecycle root still advertises frozen/current implementation-authorized state
+- Observed at: `2026-08-22T02:39:23Z`
+- Method: executed `git rev-parse <base>:<path>` for every CTR-MAFV2-001 object, SHA-256 over manifest/registry bytes, the root masked-digest algorithm, and runtime allowlist inspection
+- Result: root masked digest remains exact; all current V1 module and `1.3.0` executable-bundle identities are frozen in CTR-MAFV2-001; runtime supports `1.3.0`
 - Provenance: this PR authoring execution record and CTR-MAFV2-001 table
 
 ### OBS-MAFV2-002 — Governance verifier result
 
 - Subject: vendored governance bytes and accepted adoption metadata
-- Source revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
+- Source revision: `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: clean task worktree, local Python 3 verifier
 - Observed at: `2026-08-20T22:56:05Z`
 - Method: executed `python3 .agents/tools/verify_governance.py --target . --require-accepted`
 - Result: `vendored governance bytes match governance.lock.json and adoption is accepted`
 - Provenance: this PR authoring execution record; `.agents/governance.lock.json`
 
-### OBS-MAFV2-003 — Round 2 independent review
+### OBS-MAFV2-003 — Previous independent exact-Head ACCEPT review
 
-- Subject: PR #7 Round 2 review bound to the prior amended authority Head
-- Source revision: base `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09`, Head `263b0c685a35e9e9299f0470acc38b14b5a9ed10`
+- Subject: PR #7 review `4997678886` bound to the previous authority Base/Head
+- Source revision: base `450a0ecb286cbe5da6e790d3c572fa71218ca9c0`, Head `93bbcdf78eb726e48f53ffdf435617c0e00f14c3`
 - Environment: GitHub PR #7 persistent review record
-- Observed at: `2026-08-20T14:37:00Z`
-- Method: read the submitted exact-Head review through GitHub PR metadata
-- Result: `REVISE`, four core blockers: complete root incorporation, lawful Activation Record transition, Cut-only surface order, and ownerless reference disposition
-- Provenance: `https://github.com/mayf3/auth-service/pull/7` Round 2 review; historical review evidence only
+- Observed at: `2026-08-22T02:39:23Z`
+- Method: inspect the submitted exact-Head review and binding
+- Result: `ACCEPT`; the four earlier core blockers remain closed `4 / 4`; the result is historical evidence only after rebase and authority reconciliation
+- Provenance: `https://github.com/mayf3/auth-service/pull/7#pullrequestreview-4997678886`; new exact Head requires independent audit
 
 ### OBS-MAFV2-004 — Ownerless Spec lifecycle and authority reference
 
 - Subject: `docs/specs/AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1.md`
-- Source revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
+- Source revision: `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: repository source, `github/main`
 - Observed at: `2026-08-20T22:56:05Z`
 - Method: direct source inspection of frontmatter and bounded authorization section
 - Result: `status=accepted`; `implementation_authority=contracts`; external `authority_id=MINIMAL_AUTH_FOUNDATION_V1`, revision `1da40d4...`, relation `constrained_by`; implementation scope is a closed five-file product delta
 - Provenance: accepted Spec at the source path above, lines 1–18 and §5
 
-### OBS-MAFV2-005 — Exact main drift and pinned-scope non-drift
+### OBS-MAFV2-005 — Exact main drift reconciled to current V1 authority
 
-- Subject: source changes from previous evaluated base to current evaluated base
-- Source revision: `e9b6dbccf9779ff8ba7681dba6bbc61bfa5c7e09..cb0b3d37dfb105c763c9c83ebd65483270b21b81`
+- Subject: all authority and implementation changes from old evaluated base to current evaluated base
+- Source revision: `450a0ecb286cbe5da6e790d3c572fa71218ca9c0..36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: clean task worktree, Git object database
-- Observed at: `2026-08-20T22:56:05Z`
-- Method: executed `git diff --name-only` plus scoped `git diff --exit-code` for V1 modules, bundle, ownerless Spec, and vendored governance
-- Result: only `docs/specs/AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1.md` and `docs/specs/README.md` changed; pinned V1 assets, ownerless Spec, and vendored governance bytes did not change
-- Provenance: this PR authoring execution record
+- Observed at: `2026-08-22T02:39:23Z`
+- Method: inspected every commit and changed path, then recomputed all V1 module, bundle, manifest, registry, runtime-linkage, downstream-Spec, Stage W, and Stage F identities
+- Result: current main adds Contract `1.3.0` svc-forum implementation/linkage, Stage F source implementation, and accepted Stage W Execution V2; V2 incorporates these exactly with no product semantic delta and no inferred production apply
+- Provenance: executed Git history, object, digest, and source inspection in this PR authoring record
 
 ### OBS-MAFV2-006 — Downstream reference inventory surface
 
 - Subject: in-repository textual authority references to `MINIMAL_AUTH_FOUNDATION_V1`
-- Source revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
+- Source revision: `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: repository documentation tree
 - Observed at: `2026-08-20T22:56:05Z`
 - Method: repository content search for exact authority ID, followed by frontmatter classification
@@ -392,11 +418,11 @@ Record. This rule does not modify PR #2 in the present PR.
 ### OBS-MAFV2-007 — Accepted Canary Grant dependency semantics
 
 - Subject: `docs/specs/AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1.md` and its V1 Grant dependencies
-- Source revision: accepted finalize `1f7fa6378fa44042f3001b4a5813210c0a8313e8`; source blob `d89bf08c8714f55571ee7d75da017b7cf7237096`; evaluated base `cb0b3d37dfb105c763c9c83ebd65483270b21b81`
+- Source revision: accepted finalize `1f7fa6378fa44042f3001b4a5813210c0a8313e8`; source blob `d89bf08c8714f55571ee7d75da017b7cf7237096`; evaluated base `36a11136745bae7a371d21ba62d9617942c41afa`
 - Environment: repository source and Git object database
 - Observed at: `2026-08-20T22:56:05Z`
 - Method: inspect frontmatter, §1–§3, Decisions/Contracts, Acceptance record; compare `grants-and-audiences.md`, bundle tree, audience registry, and grants schema objects across `e9b6dbc...cb0b3d3`
-- Result: accepted `implementation_authority=contracts`, `governed_by` includes V1; Stage W is two exact workflow Grants, Stage F remains blocked; all depended-on Grant/Audience/Scope/audit/concurrency/forward-only objects and semantics are unchanged by V2
+- Result: accepted `implementation_authority=contracts`, `governed_by` includes V1; Stage W remains two exact workflow Grants; Stage F source implementation supplies only the two accepted forum Grants; all depended-on Grant/Audience/Scope/audit/concurrency/forward-only objects and semantics are exactly incorporated by V2, while production apply remains unproven
 - Provenance: accepted Canary Grant Spec; Git history/object output in this PR authoring record
 
 ### OBS-MAFV2-008 — V1 root masked-body digest
@@ -409,20 +435,20 @@ Record. This rule does not modify PR #2 in the present PR.
 - Result: canonicalized length `10866` bytes; SHA-256 `953085bf7265b0d53870e90771c87be3cea29477eb459ca04cb7c0e744b71468`; root contains the enumerated load-bearing architecture semantics
 - Provenance: executed digest output in this PR authoring record and exact base blob
 
-### OBS-MAFV2-009 — Frozen manifest facts and Activation Record absence
+### OBS-MAFV2-009 — Frozen Contract 1.3.0 manifest facts and Activation Record absence
 
-- Subject: V1 1.2.0 manifest lifecycle fields and V2 Activation Record path
-- Source revision: `cb0b3d37dfb105c763c9c83ebd65483270b21b81`; manifest blob `8557b36de241e39570f478e21a95ff375d11759a`
+- Subject: V1 `1.3.0` manifest lifecycle fields and V2 Activation Record path
+- Source revision: `36a11136745bae7a371d21ba62d9617942c41afa`; manifest blob `60ed66c696fa465c6a850f3a1749df55a19eb65b`; SHA-256 `59edda9ece846c45a5767aa37d76517609762b7815c2a9da6b3068106d6765ab`
 - Environment: clean task worktree and Git object database
-- Observed at: `2026-08-20T23:45:10Z`
-- Method: inspect `contract-manifest.json` lifecycle object and execute exact-path Git object existence check
-- Result: manifest records V1/not-ready/not-started/false freeze-time facts; `MINIMAL_AUTH_FOUNDATION_V2_ACTIVATION_V1.json` is absent
-- Provenance: manifest lines 1–28/`v0_compatibility.supersedes_v0`; executed path check in this PR authoring record
+- Observed at: `2026-08-22T02:39:23Z`
+- Method: inspect `contract-manifest.json` lifecycle/version objects, verify registry/linkage identity, and execute exact-path Git object existence check
+- Result: manifest records Contract `1.3.0` V1/not-ready/not-started/false freeze-time facts; `MINIMAL_AUTH_FOUNDATION_V2_ACTIVATION_V1.json` is absent
+- Provenance: current manifest and audience registry bytes; executed path check in this PR authoring record
 
 ### OBS-MAFV2-010 — Resolution endpoint is Cut-introduced
 
 - Subject: `GET /api/v1/clients/:client_id` implementation availability and proposed Runtime Child sequencing
-- Source revision: evaluated base `cb0b3d37dfb105c763c9c83ebd65483270b21b81`; historical PR #2 is proposed only
+- Source revision: evaluated base `36a11136745bae7a371d21ba62d9617942c41afa`; historical PR #2 is proposed only
 - Environment: source repository and persistent PR #7 Round 2 review record
 - Observed at: `2026-08-20T23:45:10Z`
 - Method: execute Git object existence check for `src/lib/oauth/v1/resolution.ts` and inspect the exact-Head Round 2 review coordinates
@@ -457,7 +483,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Support state: SUPPORTED
 - Supported by evidence: `EVD-MAFV2-005`
 - Contradicted by evidence: none known
-- Uncertainty: result applies only through evaluated base `cb0b3d3...`; later main movement requires re-evaluation
+- Uncertainty: result applies only through evaluated base `36a1113...`; later main movement requires re-evaluation
 
 ### CLM-MAFV2-005 — PRE_CUT migration is compatible with a hard Cut Artifact
 
@@ -478,7 +504,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Support state: SUPPORTED
 - Supported by evidence: `EVD-MAFV2-005`, `EVD-MAFV2-007`
 - Contradicted by evidence: none known
-- Uncertainty: compatibility is bounded to accepted revision `1f7fa637...`, the exact incorporated V1 Grant/bundle identities, and its frozen Stage W/blocked Stage F scope; any future semantic amendment must use V2 as parent
+- Uncertainty: compatibility is bounded to accepted revision `1f7fa637...`, exact incorporated Contract `1.3.0` Grant/bundle identities, Stage W V2, and Stage F source implementation; production Grant apply is not inferred, and any future semantic amendment must use V2 plus the Canary parent
 
 ### CLM-MAFV2-008 — Closed-mask incorporation preserves the complete V1 root meaning
 
@@ -508,7 +534,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Source observations: `OBS-MAFV2-001`
 - Target: `CLM-MAFV2-001`
 - Relation: SUPPORTS
-- Bound coordinates: `mayf3/auth-service@cb0b3d37dfb105c763c9c83ebd65483270b21b81`, source repository, observed `2026-08-20T22:56:05Z`
+- Bound coordinates: `mayf3/auth-service@36a11136745bae7a371d21ba62d9617942c41afa`, source repository, observed `2026-08-20T22:56:05Z`
 - Strength / sufficiency: strong for the current V1 lifecycle representation and exact source identities
 - Limitations: does not itself accept the successor
 - Provenance: Git object results and V1 lifecycle source
@@ -523,14 +549,14 @@ Record. This rule does not modify PR #2 in the present PR.
 - Limitations: verifier does not prove semantic correctness, acceptance, implementation, deployment, or branch protection
 - Provenance: executed verifier output in this PR authoring record
 
-### EVD-MAFV2-003 — Exact prior review supports revision distinction and lifecycle defect
+### EVD-MAFV2-003 — Exact prior ACCEPT review supports closure history and revision distinction
 
 - Source observations: `OBS-MAFV2-003`
 - Target: `CLM-MAFV2-001`, `CLM-MAFV2-002`
 - Relation: SUPPORTS
-- Bound coordinates: PR #7 base `e9b6dbc...`, reviewed Head `263b0c6...`, GitHub review submitted `2026-08-20T14:37:00Z`
-- Strength / sufficiency: strong historical evidence for the four Round 2 blockers and need for a new review
-- Limitations: not authority, not Evidence of this amended Head passing, and not acceptance
+- Bound coordinates: review `4997678886`; PR #7 base `450a0ec...`, reviewed Head `93bbcdf...`; result `ACCEPT`
+- Strength / sufficiency: strong historical evidence that the four Round 2 core blockers were closed at the prior coordinates
+- Limitations: not authority, not evidence that the rebased/reconciled exact Head passes, and not acceptance
 - Provenance: persistent PR #7 review receipt
 
 ### EVD-MAFV2-004 — Accepted ownerless source supports bounded compatibility
@@ -548,8 +574,8 @@ Record. This rule does not modify PR #2 in the present PR.
 - Source observations: `OBS-MAFV2-005`
 - Target: `CLM-MAFV2-003`, `CLM-MAFV2-004`
 - Relation: SUPPORTS
-- Bound coordinates: previous evaluated base `e9b6dbc...`, new base `cb0b3d3...`, Git object database, observed `2026-08-20T22:56:05Z`
-- Strength / sufficiency: exact for the compared tracked bytes and objects
+- Bound coordinates: old evaluated base `450a0ec...`, new base `36a1113...`, Git object database, observed `2026-08-22T02:39:23Z`
+- Strength / sufficiency: exact for the complete base-to-base history, tracked bytes, object identities, and current authority graph
 - Limitations: no claim about runtime deployment or future revisions
 - Provenance: executed scoped Git diff and object-identity output
 
@@ -568,9 +594,9 @@ Record. This rule does not modify PR #2 in the present PR.
 - Source observations: `OBS-MAFV2-005`, `OBS-MAFV2-007`
 - Target: `CLM-MAFV2-006`, `CLM-MAFV2-007`, `STATE-MAFV2-006`
 - Relation: SUPPORTS
-- Bound coordinates: Canary accepted finalize `1f7fa637...`, evaluated base `cb0b3d3...`, V1 Grant blob `277ea7f9...`, bundle tree `796a8b67...`, observed `2026-08-20T22:56:05Z`
-- Strength / sufficiency: exact for accepted lifecycle, parent relation, bounded scope, and object identity; strong semantic match for MachineAccessGrant, Audience/Scope, audit, optimistic concurrency, and forward-only migration/rollback
-- Limitations: does not prove Stage W implementation/conformance or unblock Stage F
+- Bound coordinates: Canary accepted finalize `1f7fa637...`, evaluated base `36a1113...`, V1 Grant blob `2f05c06...`, bundle tree `c477f1b...`, Stage F merge `3b2ae71...`, observed `2026-08-22T02:39:23Z`
+- Strength / sufficiency: exact for accepted lifecycle, parent relation, bounded scope, object identity, and source implementation presence; strong semantic match for MachineAccessGrant, Audience/Scope, audit, optimistic concurrency, and forward-only migration/rollback
+- Limitations: source merge does not prove production Grant apply, database write, deployment, or production effectiveness
 - Provenance: accepted Canary Grant Spec, V1 Grant source, bundle objects, and executed Git object comparison
 
 ### EVD-MAFV2-008 — Masked digest supports full-root incorporation
@@ -588,7 +614,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - Source observations: `OBS-MAFV2-009`
 - Target: `CLM-MAFV2-009`, `STATE-MAFV2-008`
 - Relation: SUPPORTS
-- Bound coordinates: manifest blob `8557b36d...`, evaluated base `cb0b3d3...`, observed `2026-08-20T23:45:10Z`
+- Bound coordinates: Contract `1.3.0` manifest blob `60ed66c...`, evaluated base `36a1113...`, observed `2026-08-22T02:39:23Z`
 - Strength / sufficiency: exact for immutable manifest contents and current record absence
 - Limitations: does not create or accept an Activation Record
 - Provenance: manifest source and executed exact-path existence check
@@ -626,7 +652,7 @@ Record. This rule does not modify PR #2 in the present PR.
 - `DEC-MAFV2-011` — accepted Canary Grant Spec 的 exact V1 parent reference 按
   `GRANDFATHERED_EXACT_V1_CONSTRAINT` 保留，无 alignment amendment；其产品语义无
   delta，任何未来 semantic amendment 必须以 V2 为 parent。
-- `DEC-MAFV2-012` — V1 1.2.0 manifest lifecycle fields 是 freeze-time historical
+- `DEC-MAFV2-012` — V1 1.3.0 manifest lifecycle fields 是 freeze-time historical
   facts；V2 current effectiveness 只由单独、accepted 的 V2 Activation Record 投影。
 - `DEC-MAFV2-013` — Cut-introduced surfaces 必须在 isolated real-process/staging Cut
   candidate 上完成 fixed-SHA caller E2E，然后按 Auth Cut endpoint ready 后 caller activation
@@ -634,17 +660,17 @@ Record. This rule does not modify PR #2 in the present PR.
 - `DEC-MAFV2-014` — accepted ownerless Spec 的 exact V1 constraint 按
   `GRANDFATHERED_EXACT_V1_CONSTRAINT` 保留；alignment amendment 不需要，产品语义 delta
   为零，未来 semantic amendment parent 是 V2。
-- `DEC-MAFV2-015` — main 中 ownerless implementation merge `87b3e54...` 与 Stage W
-  implementation merge `450a0ec...` 均为 `COMPATIBLE_NO_SEMANTIC_DELTA`；它们不修改 V1
-  normative modules/bundle，也不取得 architecture supersession authority。
-- `DEC-MAFV2-016` — accepted Stage W Execution Spec 的 exact V1 parent reference 按
-  `GRANDFATHERED_EXACT_V1_CONSTRAINT` 保留；其封闭三文件实现已合入，但不改变 V2
-  migration / hard-cut / sequencing meaning。
-- `DEC-MAFV2-017` — accepted svc-forum CCR 的 semantic target 为 `COMPATIBLE`，但其要求
-  原位修改 V1 parent Contract/bundle 的 reference disposition 是
-  `ALIGNMENT_AMENDMENT_REQUIRED`。V2 acceptance 后、alignment 前禁止按当前 CCR 实现；未来
-  amendment 必须指向 `MINIMAL_AUTH_FOUNDATION_V2` 与 future V2 bundle / activation model，
-  不得修改 superseded V1 historical payload。
+- `DEC-MAFV2-015` — main 中 ownerless、Stage W 与 Stage F source implementations 均为
+  `COMPATIBLE_NO_SEMANTIC_DELTA`；source merge 不证明 Stage F production Grant apply，也不取得
+  architecture supersession authority。
+- `DEC-MAFV2-016` — Stage W Execution V1 是 `SUPERSEDED_HISTORICAL_AUTHORITY`；accepted V2
+  successor 的 exact V1/Canary constraints 按 `GRANDFATHERED_EXACT_V1_CONSTRAINT` 保留。其唯一
+ 自身 delta 是 `mc_` 加精确 24 位无 padding base64url Client ID，不改变 Minimal Auth V2
+  identity、grant、audience、scope、transaction、audit、migration、hard-cut 或 effectiveness。
+- `DEC-MAFV2-017` — accepted svc-forum CCR、Version Linkage 与 merged Contract `1.3.0`
+  implementation 均被 V2 exact-incorporate，reference disposition 为
+  `GRANDFATHERED_EXACT_V1_CONSTRAINT`，alignment amendment 不需要。该结论不授权任何新
+  svc-forum product behavior；未来 semantic amendment 必须以 V2 为 parent。
 
 ## 9. Contracts
 
@@ -654,23 +680,28 @@ Record. This rule does not modify PR #2 in the present PR.
 body 也被并入；只有 §3.2/CTR-MAFV2-009 的封闭 lifecycle mask 可在 acceptance
 transition 改值，其余 root bytes 必须保持 masked digest identity。
 
-| Content | Object / masked identity @ `cb0b3d3...` |
+| Content | Object / masked identity @ `36a1113...` |
 |---|---|
 | `docs/contracts/minimal-auth-v1/README.md` complete root body | base blob `fbaf7c8986aa367e0f8f43de1872e6d7e6c5ca5f`; masked SHA-256 `953085bf7265b0d53870e90771c87be3cea29477eb459ca04cb7c0e744b71468` |
 | `docs/contracts/minimal-auth-v1/claims-and-profiles.md` | `a51186adacc6b61131dcf7ad0227e372b67e8092` |
 | `docs/contracts/minimal-auth-v1/conformance.md` | `d56c45c514d308e65e698f6b2e78799d079a65ea` |
 | `docs/contracts/minimal-auth-v1/delegation.md` | `f64448ed860143f6e5d566e5dbd729aa4d68b20e` |
-| `docs/contracts/minimal-auth-v1/grants-and-audiences.md` | `277ea7f9cdb26558e196ec9e382430b324ddee32` |
+| `docs/contracts/minimal-auth-v1/grants-and-audiences.md` | `2f05c06a3fb1b61480356be30ef7e0789e09107e` |
 | `docs/contracts/minimal-auth-v1/human-session-refresh.md` | `f9949637b40e1023d917393148d692df26b624af` |
-| `contract-bundles/minimal-auth-v1/` tree | `796a8b670f8617ab5f45c7b8734e124e07934f09` |
-| `contract-bundles/minimal-auth-v1/contract-manifest.json` | `8557b36de241e39570f478e21a95ff375d11759a` |
-| `contract-bundles/minimal-auth-v1/audience-registry.json` | `8ddf67afc2494dddc3c087d19f2f93c71db13d70` |
+| `docs/contracts/minimal-auth-v1/v0-to-v1-migration.md` | `cc33f20cb0068f3346fc5f84669c6deaa5493731` |
+| `contract-bundles/minimal-auth-v1/` Contract `1.3.0` tree | `c477f1b1bd7e4b48c2dc99c047c28aa5358f738e` |
+| `contract-bundles/minimal-auth-v1/contract-manifest.json` | blob `60ed66c696fa465c6a850f3a1749df55a19eb65b`; SHA-256 `59edda9ece846c45a5767aa37d76517609762b7815c2a9da6b3068106d6765ab` |
+| `contract-bundles/minimal-auth-v1/audience-registry.json` | blob `ef7e139ec545471cbb4e84ce84a5fbcc3c48b1d7`; SHA-256 `87ee3e1b239c2d8cc4d200cffb330d72f3f645b037443554f2ed91cc91cd4bf6` |
 | `contract-bundles/minimal-auth-v1/schemas/grants.schema.json` | `f60cd9faf18acfc643bf0330401e9af7364ce2d8` |
+| `src/lib/oauth/v1/contract.ts` runtime linkage | `22dcdb1261db79b1683fc9ca2e86083579f25f8b`; supports `1.3.0` |
 
 ```text
 V1_ROOT_BASE_BLOB = fbaf7c8986aa367e0f8f43de1872e6d7e6c5ca5f
 V1_ROOT_NORMATIVE_BODY = EXACTLY_INCORPORATED_BY_V2
 V1_ROOT_DELTA_OUTSIDE_MASK = 0
+V1_MODULE_BLOB_COUNT = 7
+V1_MODULE_BLOB_MATCH = PASS
+CONTRACT_BUNDLE_1_3_0 = EXACTLY_INCORPORATED_BY_V2
 V1_MIGRATION_MODULE_REPLACED_BLOB_PROVENANCE = 954b661e84697a7b78566fadd09383dd5298b5d4
 ```
 
@@ -728,7 +759,7 @@ every gate below passes at qualified coordinates:
 8. `REMOTE_EXACT_SHA_AUDIT_PASS`
 9. `MAINLINE_RECONFORMANCE_PASS`
 
-The historical V1 field and frozen V1 1.2.0 manifest MUST NOT be updated to represent V2
+The historical V1 field and frozen V1 1.3.0 manifest MUST NOT be updated to represent V2
 effectiveness. V0 frozen contracts continue governing production until a valid record proves every
 gate. This proposed PR declares no production readiness and creates no effective record.
 
@@ -777,14 +808,15 @@ The evaluated inventory is frozen as:
 | Downstream Spec | Status / exact accepted revision | Relationship | Bounded scope | Compatibility | Disposition |
 |---|---|---|---|---|---|
 | `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1` | accepted / `d9dacf6e87dc3f23d8649047a9445e28908e7e6e` (blob `e51f5dc1a1e92469ec773c7f50959a6f356f4355`) | same-repository `external_authorities`: `MINIMAL_AUTH_FOUNDATION_V1@1da40d4...`, `constrained_by` | closed five-file ownerless direct-token/database repair | `COMPATIBLE_NO_SEMANTIC_DELTA`; implementation merge `87b3e54...` compatible with no semantic delta | `GRANDFATHERED_EXACT_V1_CONSTRAINT`; alignment amendment `NO`; future semantic amendment parent `MINIMAL_AUTH_FOUNDATION_V2` |
-| `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1` | accepted / `1f7fa6378fa44042f3001b4a5813210c0a8313e8` (blob `d89bf08c8714f55571ee7d75da017b7cf7237096`) | `governed_by: [MINIMAL_AUTH_FOUNDATION_V1, AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1]` | Stage W: two exact `svc-workflow[workflow.read]` MachineAccessGrant rows; Stage F remains blocked | `COMPATIBLE_NO_SEMANTIC_DELTA` for MachineAccessGrant, Audience/Scope, audit, optimistic concurrency, and forward-only migration/rollback | `GRANDFATHERED_EXACT_V1_CONSTRAINT`; alignment amendment `NO`; future semantic amendment parent `MINIMAL_AUTH_FOUNDATION_V2` |
-| `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1` | accepted / `4718d06cb31d2ecdf62afd8d03ddb138b47ec081` (blob `6de180cdd4aad509912dfc9d6864301731f7909f`) | `governed_by: [MINIMAL_AUTH_FOUNDATION_V1, AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1, AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1]` | exact Stage W executable and exclusive three-file conformance surface | `COMPATIBLE_NO_SEMANTIC_DELTA`; implementation Head `d1b508c...`, merge `450a0ec...` | `GRANDFATHERED_EXACT_V1_CONSTRAINT`; no current alignment amendment; future semantic amendment parent V2 |
-| `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1` | accepted / `02e1162d6cd9583230df45d121b11df20a8ba034` (blob `78530b1fbfb13d477e65e002185128cf69843942`) | `governed_by: [MINIMAL_AUTH_FOUNDATION_V1, AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1]` | register `svc-forum[forum.read,forum.write]`; current text requires parent Contract and bundle mutation | semantic target `COMPATIBLE`; no Contract/Bundle implementation exists at evaluated base | `ALIGNMENT_AMENDMENT_REQUIRED`; after V2 acceptance implementation forbidden before alignment to V2 + future V2 bundle/activation model |
+| `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1` | accepted / `1f7fa6378fa44042f3001b4a5813210c0a8313e8` (blob `d89bf08c8714f55571ee7d75da017b7cf7237096`) | `governed_by: [MINIMAL_AUTH_FOUNDATION_V1, AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1]` | Stage W: two exact workflow Grants; Stage F: two exact forum Grants | `COMPATIBLE_NO_SEMANTIC_DELTA`; Stage F source merge `3b2ae71...`; production apply not inferred | `GRANDFATHERED_EXACT_V1_CONSTRAINT`; future semantic amendment parent V2 + Canary parent |
+| `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1` | superseded / blob `fe6705df1a406464e9344124298bea09d8b85e9b` | superseded by Stage W Execution V2 | historical exact Stage W boundary | historical only | `SUPERSEDED_HISTORICAL_AUTHORITY` |
+| `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V2` | accepted / `8df5600e71281860bf0291d704e1e7b24bbdb2b3` (blob `8c86d736394d9c98001b019b087d936d367acd80`) | `governed_by` V1 + Canary parent; whole-Spec successor of Stage W V1 | exact Stage W boundary; only own delta is `mc_` + exactly 24 unpadded base64url characters | `COMPATIBLE_NO_SEMANTIC_DELTA` under MAFV2 | `GRANDFATHERED_EXACT_V1_CONSTRAINT`; alignment `NO`; future parent V2 + Canary parent |
+| `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1` | accepted / blob `78530b1fbfb13d477e65e002185128cf69843942` | `governed_by` V1 | exact `svc-forum[forum.read,forum.write]`, machine-only Agent semantics and validation boundary | merged Contract `1.3.0` implementation; `COMPATIBLE_NO_SEMANTIC_DELTA` | `GRANDFATHERED_EXACT_V1_CONSTRAINT`; alignment `NO`; future semantic parent V2 |
+| `AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1` | accepted / `29f6a4b6bc7bf9e06c71b0c18d4ed5762a121753` (blob `ff8dbf9a27002a5e92a171fa249a1371d5c69bda`) | child of svc-forum CCR | limited runtime compatibility support for Contract `1.3.0` | merged and exact-incorporated | `GRANDFATHERED_EXACT_V1_CONSTRAINT`; future semantic parent V2 |
 
-All four accepted Specs MUST remain byte-identical in this PR. Their dispositions are V2 Decisions,
-not deferred review prose. Historical PR #2 remains proposed/unmodified and cannot serve as
-authority. Any svc-forum CCR Contract/Bundle implementation appearing after the evaluated base
-invalidates the current CCR conclusion and requires re-evaluation.
+All six downstream Spec files MUST remain byte-identical in this PR. Their dispositions are V2
+Decisions, not deferred review prose. Historical PR #2 remains proposed/unmodified and cannot serve
+as authority. Any later authority or executable-object change requires re-evaluation.
 
 ### CTR-MAFV2-007 — Precedence and ownerless compatibility boundary
 
@@ -859,7 +891,7 @@ legacy_consumers_migrated
 v0_compatibility.supersedes_v0
 ```
 
-All corresponding V1 1.2.0 manifest values remain `FREEZE_TIME_HISTORICAL_FACTS` byte-identical.
+All corresponding V1 1.3.0 manifest values remain `FREEZE_TIME_HISTORICAL_FACTS` byte-identical.
 `MINIMAL_AUTH_FOUNDATION_V1_MAINLINE_EFFECTIVE` remains historical V1 meaning. PR #2's future
 amendment MUST replace any old-manifest mutation obligation with Activation Record creation,
 review and acceptance; this PR does not modify PR #2.
@@ -915,56 +947,66 @@ as parent and receive its own review; no current alignment amendment or implemen
 
 ### CTR-MAFV2-013 — Current-main implementation compatibility
 
-At evaluated base `450a0ecb286cbe5da6e790d3c572fa71218ca9c0`:
+At evaluated base `36a11136745bae7a371d21ba62d9617942c41afa`:
 
 ```text
 OWNERLESS_IMPLEMENTATION_MERGE = 87b3e54b1e8d332738663de38d9c6c599760c14a
 OWNERLESS_IMPLEMENTATION_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
-STAGE_W_IMPLEMENTATION_HEAD = d1b508c9bc42bda0171785f58f4ac13172bb78e2
 STAGE_W_IMPLEMENTATION_MERGE = 450a0ecb286cbe5da6e790d3c572fa71218ca9c0
 STAGE_W_IMPLEMENTATION_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+STAGE_F_SOURCE_IMPLEMENTATION_HEAD = 1bdb8c0a8ce111415ede73d0a776777860000553
+STAGE_F_IMPLEMENTATION_MERGE = 3b2ae71c38905c720399a74e038e49f725ceb178
+SOURCE_IMPLEMENTATION_PRESENT_ON_MAIN = YES
+STAGE_F_IMPLEMENTATION_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+STAGE_F_PARENT_AUTHORITY = AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1
+STAGE_F_PRODUCT_SEMANTIC_DELTA_TO_ACCEPTED_PARENT = NONE
+STAGE_F_PRODUCTION_EFFECTIVE = NOT_INFERRED_FROM_SOURCE_MERGE
+STAGE_F_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
+FUTURE_STAGE_F_SEMANTIC_AMENDMENT_PARENT = MINIMAL_AUTH_FOUNDATION_V2 + AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1
 ```
 
-The ownerless five-file implementation and Stage W exclusive three-file implementation are bounded
-implementations of accepted Specs. Neither changes a CTR-MAFV2-001 V1 module or bundle object,
-changes V2's authority delta, or authorizes sequencing work under this PR. Any later semantic or
-frozen-object delta invalidates these compatibility findings.
+These are bounded implementations of accepted Specs. Stage F supplies only the two accepted forum
+Grants in source; no real Grant apply, production database write, deployment, or production
+effectiveness is asserted or authorized by this PR.
 
-### CTR-MAFV2-014 — Stage W Execution exact-reference disposition
+### CTR-MAFV2-014 — Stage W Execution V1/V2 exact-reference disposition
 
-For accepted
-`AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1@4718d06cb31d2ecdf62afd8d03ddb138b47ec081`:
+For superseded V1 and accepted V2 successor:
 
 ```text
-STAGE_W_EXECUTION_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
-STAGE_W_EXECUTION_ALIGNMENT_AMENDMENT_REQUIRED = NO
-STAGE_W_EXECUTION_PRODUCT_SEMANTIC_DELTA = NONE
-FUTURE_STAGE_W_EXECUTION_SEMANTIC_AMENDMENT_PARENT = MINIMAL_AUTH_FOUNDATION_V2
+STAGE_W_EXECUTION_V1_DISPOSITION = SUPERSEDED_HISTORICAL_AUTHORITY
+STAGE_W_EXECUTION_V2_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+STAGE_W_EXECUTION_V2_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
+STAGE_W_EXECUTION_V2_ALIGNMENT_AMENDMENT_REQUIRED = NO
+STAGE_W_EXECUTION_V2_PRODUCT_SEMANTIC_DELTA_UNDER_MAFV2 = NONE
+FUTURE_STAGE_W_EXECUTION_SEMANTIC_AMENDMENT_PARENT = MINIMAL_AUTH_FOUNDATION_V2 + AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1
+STAGE_W_EXECUTION_V2_ONLY_OWN_DELTA = mc_ + exactly 24 unpadded base64url characters
 ```
 
-This disposition preserves the exact accepted execution boundary and its completed implementation.
-It does not grandfather any scope outside Stage W or grant the Spec architecture supersession
-power. Any future semantic amendment MUST name V2 and receive independent review.
+The V2 delta does not change Minimal Auth V2 identity, grant, audience, scope, transaction, audit,
+migration, hard-cut, or production-effectiveness boundaries. It grants no Stage F or new product
+behavior and does not modify either governing Spec file in this PR.
 
-### CTR-MAFV2-015 — svc-forum CCR alignment boundary
+### CTR-MAFV2-015 — svc-forum CCR and Version Linkage exact-reference disposition
 
-For accepted `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1@02e1162d6cd9583230df45d121b11df20a8ba034`:
+For accepted CCR and accepted Version Linkage, with merged Contract `1.3.0` implementation:
 
 ```text
-SVC_FORUM_CCR_SEMANTIC_TARGET_COMPATIBILITY = COMPATIBLE
-SVC_FORUM_CCR_REFERENCE_DISPOSITION = ALIGNMENT_AMENDMENT_REQUIRED
-SVC_FORUM_CCR_IMPLEMENTATION_BEFORE_ALIGNMENT = FORBIDDEN_AFTER_V2_ACCEPTANCE
-SVC_FORUM_CCR_ALIGNMENT_TARGET = MINIMAL_AUTH_FOUNDATION_V2 + future V2 bundle / activation model
-V1_BUNDLE_AND_MANIFEST = HISTORICAL_IMMUTABLE_PAYLOAD
+SVC_FORUM_CCR_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+SVC_FORUM_CCR_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
+SVC_FORUM_CCR_ALIGNMENT_AMENDMENT_REQUIRED = NO
+SVC_FORUM_VERSION_LINKAGE_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
+SVC_FORUM_PRODUCT_SEMANTIC_DELTA_UNDER_V2 = NONE
+FUTURE_SVC_FORUM_SEMANTIC_AMENDMENT_PARENT = MINIMAL_AUTH_FOUNDATION_V2
+CONTRACT_BUNDLE_1_3_0 = EXACTLY_INCORPORATED_BY_V2
+FROZEN_V1_MANIFEST_MUTATION_REQUIRED = NO
 ```
 
-Before V2 acceptance, V1 remains active and the CCR's current gates remain its authority. After V2
-acceptance, the current CCR MUST NOT authorize direct amendment of superseded V1 Contract, bundle,
-or manifest bytes. An independently reviewed alignment amendment MUST preserve the compatible
-`svc-forum[forum.read,forum.write]` semantic target while retargeting parent, executable bundle, and
-activation mechanics to V2. This Contract is valid only while no svc-forum CCR Contract/Bundle
-implementation exists on main at or after the evaluated coordinate; detecting one is a stop-and-
-re-evaluate condition.
+V2 preserves exactly the `svc-forum` Audience, `forum.read`/`forum.write` scopes, machine-only Agent
+access, wildcard/admin/moderate rejection, issuer/profile/audience/scope validation, offline Consumer
+verification, and Grant/domain-authorization boundary. This grandfathering recognizes already lawful
+V1 mainline semantics; it does not authorize new svc-forum behavior or future mutation of the frozen
+`1.3.0` manifest.
 
 ## 10. Acceptance
 
@@ -1022,7 +1064,7 @@ Head, reviewer/acceptance actor, execution timestamp, and persistent PR review o
 - Method: machine search and human classification of both `governed_by` and same-repository `external_authorities.authority_id` references
 - Environment: evaluated base and exact proposed authority Head
 - Required evidence: full common tuple plus complete path/Spec/status/exact accepted revision/relation/owner/scope/compatibility/disposition table and object comparison for every relied-on V1 Grant/bundle object
-- Expected result: both reference classes are inventoried; all four accepted downstream Specs remain byte-identical; ownerless, Canary, Stage W Execution, and svc-forum CCR dispositions match CTR-MAFV2-006 and CTR-MAFV2-013–015
+- Expected result: both reference classes are inventoried; all six downstream Spec files remain byte-identical; ownerless, Canary, Stage W V1/V2, svc-forum CCR, and Version Linkage dispositions match CTR-MAFV2-006 and CTR-MAFV2-013–015
 - Failure condition: missing class/revision/scope, silent downstream rewrite, changed dependency, unresolved disposition, missed CCR implementation, or any authority conflict
 
 ### ACC-MAFV2-007 — Ownerless compatibility review
@@ -1056,7 +1098,7 @@ Head, reviewer/acceptance actor, execution timestamp, and persistent PR review o
 
 - Contracts: `CTR-MAFV2-010`
 - Method: validate no effective record is created by this PR; review record schema/ownership/projection rules and diff the V1 manifest against its frozen blob
-- Environment: exact proposed V2 Head, V1 manifest blob `8557b36d...`, and future Production Activation acceptance environment
+- Environment: exact proposed V2 Head, Contract `1.3.0` manifest blob `60ed66c...`, and future Production Activation acceptance environment
 - Required evidence: full common tuple plus path absence/presence receipt, nine-gate record matrix, unique-record check, accepted actor receipt, and manifest byte comparison
 - Expected result: absent/invalid record projects false; only a unique accepted record with all evidence projects true; frozen manifest remains byte-identical
 - Failure condition: mutable Contract literal, old-manifest mutation, missing field mapping/owner, proposed/unreviewed record treated effective, duplicate record, or incomplete evidence tuple
@@ -1082,29 +1124,29 @@ Head, reviewer/acceptance actor, execution timestamp, and persistent PR review o
 ### ACC-MAFV2-013 — Current-main implementation compatibility
 
 - Contracts: `CTR-MAFV2-013`
-- Method: inspect both merge-parent diffs, compare every relied-on authority object, and classify product semantics against the accepted bounded Specs
-- Environment: ownerless merge `87b3e54...`, Stage W Head `d1b508c...`, merge/evaluated base `450a0ec...`, and exact proposed V2 Head
-- Required evidence: full common tuple plus two changed-file inventories, accepted Spec revisions, V1 module/bundle object comparison, and semantic compatibility matrix
-- Expected result: both `OWNERLESS_IMPLEMENTATION_COMPATIBILITY` and `STAGE_W_IMPLEMENTATION_COMPATIBILITY` equal `COMPATIBLE_NO_SEMANTIC_DELTA`
-- Failure condition: changed frozen object, implementation outside accepted scope, V2 sequencing delta, unresolved semantic difference, or missing exact merge coordinate
+- Method: inspect ownerless, Stage W, and Stage F merge-parent diffs; compare accepted parents and every relied-on Contract `1.3.0` object; search separately for production-apply evidence
+- Environment: evaluated base `36a1113...`, Stage F source Head `1bdb8c0...`, merge `3b2ae71...`, and exact proposed V2 Head
+- Required evidence: full common tuple, changed-file inventories, accepted parent revisions, V1 object comparison, compatibility matrix, and production-evidence boundary
+- Expected result: all three compatibility values are `COMPATIBLE_NO_SEMANTIC_DELTA`; Stage F source is present; production effectiveness is `NOT_INFERRED_FROM_SOURCE_MERGE`
+- Failure condition: implementation outside accepted scope, V2 sequencing delta, inferred production apply, unresolved semantic difference, or missing exact coordinate
 
-### ACC-MAFV2-014 — Stage W Execution reference disposition
+### ACC-MAFV2-014 — Stage W Execution V1/V2 reference disposition
 
 - Contracts: `CTR-MAFV2-014`
-- Method: compare accepted Stage W execution Spec, parent Canary authority, implemented three-file boundary, and complete incorporated V1 Grant semantics
-- Environment: accepted revision `4718d06...`, implementation Head `d1b508c...`, evaluated base `450a0ec...`, and exact proposed V2 Head
-- Required evidence: full common tuple plus accepted blob identity, parent/reference matrix, implementation file inventory, and V1 dependency comparison
-- Expected result: `STAGE_W_EXECUTION_REFERENCE_DISPOSITION=GRANDFATHERED_EXACT_V1_CONSTRAINT`, no alignment amendment, no product semantic delta
-- Failure condition: Spec byte change, parent conflict, scope expansion, implementation mismatch, unresolved disposition, or wrong future parent
+- Method: compare superseded V1, accepted V2 successor, parent Canary authority, exact Client ID delta, implementation boundary, and incorporated V1 semantics
+- Environment: acceptance `8df5600...`, V2 blob `8c86d73...`, evaluated base `36a1113...`, and exact proposed V2 Head
+- Required evidence: full common tuple, lifecycle/blob identity, parent/reference matrix, exact regex delta, and V1 dependency comparison
+- Expected result: V1 is historical; V2 disposition is `GRANDFATHERED_EXACT_V1_CONSTRAINT`; alignment `NO`; semantic delta under MAFV2 `NONE`
+- Failure condition: accepted/superseded Spec byte change, parent conflict, delta beyond exact base64url Client ID shape, unresolved disposition, or wrong future parents
 
-### ACC-MAFV2-015 — svc-forum CCR alignment disposition
+### ACC-MAFV2-015 — svc-forum CCR and Version Linkage disposition
 
 - Contracts: `CTR-MAFV2-015`
-- Method: inspect accepted CCR requirements, verify no Contract/Bundle implementation exists on main, compare its target semantics with V2, and review post-acceptance mutability constraints
-- Environment: accepted revision `02e1162...`, evaluated base `450a0ec...`, frozen V1 bundle/manifest objects, and exact proposed V2 Head
-- Required evidence: full common tuple plus accepted blob identity, main path-history receipt for V1 Contract/bundle, semantic-target matrix, and V2 alignment/activation mapping
-- Expected result: semantic target `COMPATIBLE`; reference disposition `ALIGNMENT_AMENDMENT_REQUIRED`; implementation before alignment `FORBIDDEN_AFTER_V2_ACCEPTANCE`; target V2 plus future V2 bundle/activation model
-- Failure condition: existing CCR Contract/Bundle implementation, direct mutation of superseded V1 payload, grandfathering current amendment mechanics, incompatible target semantics, or missing independent alignment gate
+- Method: inspect accepted CCR/Linkage, merged Contract `1.3.0` implementation, manifest/registry/runtime linkage, exact forum semantics, and V2 incorporation
+- Environment: evaluated base `36a1113...`, CCR blob `78530b1...`, linkage blob `ff8dbf9...`, bundle tree `c477f1b...`, and exact proposed V2 Head
+- Required evidence: full common tuple, authority blobs, all frozen object identities/digests, semantic matrix, runtime allowlist, and no-new-behavior review
+- Expected result: both references are `GRANDFATHERED_EXACT_V1_CONSTRAINT`; compatibility `COMPATIBLE_NO_SEMANTIC_DELTA`; alignment `NO`; product semantic delta `NONE`
+- Failure condition: object mismatch, omitted issuer/profile/audience/scope/offline/domain boundary, new svc-forum behavior, unresolved reference, or manifest mutation requirement
 
 ### 10.1 Bidirectional coverage table
 
@@ -1167,8 +1209,9 @@ Head, reviewer/acceptance actor, execution timestamp, and persistent PR review o
   delta。Rejected by `DEC-MAFV2-015`; both remain bounded, compatible implementations。
 - `ALT-MAFV2-011` — leave Stage W Execution exact V1 reference unresolved。Rejected by
   `DEC-MAFV2-016`; grandfather the exact accepted constraint without broadening it。
-- `ALT-MAFV2-012` — grandfather svc-forum CCR as direct authority to mutate superseded V1
-  Contract/bundle bytes。Rejected by `DEC-MAFV2-017`; require V2 alignment first。
+- `ALT-MAFV2-012` — retain the old pre-implementation svc-forum alignment requirement after lawful
+  Contract `1.3.0` merge。Rejected by `DEC-MAFV2-017`; grandfather the exact incorporated V1
+  constraint without authorizing new behavior or frozen-manifest mutation。
 
 ## 12. Migration, compatibility, and rollback
 
@@ -1200,12 +1243,21 @@ CANARY_GRANT_ALIGNMENT_AMENDMENT_REQUIRED = NO
 CANARY_GRANT_PRODUCT_SEMANTIC_DELTA = NONE
 FUTURE_CANARY_GRANT_SEMANTIC_AMENDMENT_PARENT = MINIMAL_AUTH_FOUNDATION_V2
 OWNERLESS_IMPLEMENTATION_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
-STAGE_W_EXECUTION_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
-STAGE_W_IMPLEMENTATION_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
-SVC_FORUM_CCR_SEMANTIC_TARGET_COMPATIBILITY = COMPATIBLE
-SVC_FORUM_CCR_REFERENCE_DISPOSITION = ALIGNMENT_AMENDMENT_REQUIRED
-SVC_FORUM_CCR_IMPLEMENTATION_BEFORE_ALIGNMENT = FORBIDDEN_AFTER_V2_ACCEPTANCE
-SVC_FORUM_CCR_ALIGNMENT_TARGET = MINIMAL_AUTH_FOUNDATION_V2 + future V2 bundle / activation model
+CURRENT_MINIMAL_AUTH_CONTRACT_VERSION = 1.3.0
+CONTRACT_BUNDLE_1_3_0 = EXACTLY_INCORPORATED_BY_V2
+STAGE_W_EXECUTION_V1_DISPOSITION = SUPERSEDED_HISTORICAL_AUTHORITY
+STAGE_W_EXECUTION_V2_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+STAGE_W_EXECUTION_V2_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
+STAGE_W_EXECUTION_V2_ALIGNMENT_AMENDMENT_REQUIRED = NO
+STAGE_W_EXECUTION_V2_PRODUCT_SEMANTIC_DELTA_UNDER_MAFV2 = NONE
+STAGE_F_IMPLEMENTATION_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+STAGE_F_PRODUCTION_EFFECTIVE = NOT_INFERRED_FROM_SOURCE_MERGE
+STAGE_F_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
+SVC_FORUM_CCR_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+SVC_FORUM_CCR_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
+SVC_FORUM_CCR_ALIGNMENT_AMENDMENT_REQUIRED = NO
+SVC_FORUM_VERSION_LINKAGE_REFERENCE_DISPOSITION = GRANDFATHERED_EXACT_V1_CONSTRAINT
+SVC_FORUM_PRODUCT_SEMANTIC_DELTA_UNDER_V2 = NONE
 ```
 
 The amended exact Head still requires a new independent semantic review. The previous PR #7 review
