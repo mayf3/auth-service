@@ -61,6 +61,8 @@ MINIMAL_AUTH_FOUNDATION_V2
 
 在 `MINIMAL_AUTH_FOUNDATION_V2` 通过独立 semantic review、Owner accept 并合入 `main` 之前，`MINIMAL_AUTH_FOUNDATION_V1` 仍是该层唯一活动 authority。V1 的明确 lifecycle root 是 `docs/contracts/minimal-auth-v1/README.md`，旧路径 `docs/contracts/MINIMAL_AUTH_FOUNDATION_V1.md` 是 compatibility entry。激活时，同一 acceptance-only docs change 必须按 V2 `CTR-MAFV2-005` 原子更新 V2、V1 lifecycle root、compatibility entry、本文件与 `docs/specs/README.md`：V2 为 `accepted`，V1 为 `superseded` 且 backlink 指向 V2；旧入口不得继续表达 V1 为当前或可直接实施的 architecture authority。除该 Contract 精确列出的 lifecycle/backlink delta 外，不得改写 V1 normative meaning。
 
+V2 当前 proposed revision 以 `main@36a11136745bae7a371d21ba62d9617942c41afa` 的 Minimal Auth Contract `1.3.0` executable bundle 为 exact incorporation 对象，并将已合入的 svc-forum CCR/Version Linkage、accepted Stage W Execution V2 与 Stage F source implementation 作为 grandfathered exact V1 constraints。Stage W V1 仅是 superseded historical authority；Stage F source merge 不证明生产 Grant apply、数据库写入、部署或 production effectiveness。上述 reconciliation 不授权新产品行为，也不改变 V2 的 migration / hard-cut / sequencing-only authority delta。
+
 以下文档不是自动 governing authority：
 
 - `docs/DESIGN.md`：历史设计与现状来源；与后续 frozen contract 冲突时不得覆盖后者；

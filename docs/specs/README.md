@@ -30,7 +30,7 @@ Program 或 governance adoption Spec 使用 `implementation_authority: none` 时
 
 | Spec ID | Kind | Status | Implementation authority | Purpose |
 |---|---|---|---|---|
-| `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1` | implementation | accepted | contracts | 两阶段 canary Grant supply：Stage W（svc-workflow 2 行）合入 main 后可实现；Stage F（svc-forum）被 forum Audience CCR 阻塞 |
+| `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1` | implementation | accepted | contracts | 两阶段 canary Grant supply：Stage W（svc-workflow 2 行）与 Stage F（svc-forum `forum.read` + `forum.write`）source implementation 已在 main；source merge 不证明 production Grant apply |
 | `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1` | implementation | superseded | contracts | 已由 Stage W Execution V2 whole-Spec supersede；保留为历史 accepted authority。 |
 | `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V2` | implementation | accepted | contracts | Stage W Execution V1 的 whole-Spec successor；仅将 Client ID 扩为精确 24 位无 padding base64url。 |
 | `AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1` | invariant | accepted | none | 精确 vendoring 并采用共享开发治理；不改变产品行为 |
