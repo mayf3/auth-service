@@ -1,5 +1,52 @@
 # Change Log
 
+## 1.4.0 — 2026-08-24
+
+- CCR: `AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_AUDIENCE_CCR_V1` (accepted)
+  implemented via `AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V2`
+  (accepted; exact 16-file closure authority; whole-Spec successor to
+  `IMPLEMENTATION_CLOSURE_V1`, which is superseded by it) — registered
+  `agent-core-notification-ingress-v1` into the Minimal Auth V1 Audience Registry.
+- Frozen entry (field-by-field, per CTR-NI-001 / CTR-NIC-002):
+  `audience_id=agent-core-notification-ingress-v1`,
+  `resource_service=agent-core-notification-ingress-v1`,
+  `scope_namespace=notification`, `accepted_principal_types=["service"]`,
+  `human_access_enabled=false`, `machine_access_enabled=true`,
+  `delegated_access_enabled=false`, `registered_scopes=["notification.deliver"]`,
+  `status=active`, `freeze_ready=true`.
+- `notification.send`, `notification.*`, wildcard and any other Scope remain
+  unregistered (forbidden set, CTR-NI-003).
+- Added positive fixture `direct-service-notification-ingress` — the first
+  `principal_type=service` Direct Machine positive fixture (RS256 + tracked
+  fixture kid, iss=auth-service, aud=agent-core-notification-ingress-v1, no
+  `agent_id`, scope=notification.deliver, exact requested-scope equality,
+  grant subset notification.deliver).
+- Added 11 negative cases: agent principal, human principal, delegated/OBO,
+  wrong audience, `auth.identity.provision` foreign scope, unregistered
+  `notification.send`, `*` wildcard, `notification.*` namespace wildcard,
+  grant-exceeding request, cross-Audience Grant reuse (svc-auth +
+  auth.identity.provision), extra requested Scope — every case rejected whole,
+  no downscoping. Dedicated `SCOPE_OUTPUT_MISMATCH` cases are structurally
+  unnecessary for this Audience: with exactly one registered Scope, exact
+  requested/issued equality plus strict registration makes a valid-but-different
+  requested set unrepresentable; mismatch-shaped requests fail earlier as
+  `INVALID_SCOPE_NAMESPACE` (extra-requested-scope case).
+- `validate.mjs` first-wave registry set literal extended with
+  `agent-core-notification-ingress-v1` (validator gate
+  `registry: first-wave Audience set changed`). NOTE: this file is OUTSIDE the
+  accepted Child Spec's frozen 15-file closure and is carried under
+  `OWNER_DECISION_REQUIRED` drift reporting — see PR description; omission makes
+  the validator fail closed while all other gates pass.
+- Version linkage: `contract_version` / `registry_version` promoted
+  1.3.0 → 1.4.0 across manifest, registry, manifest schema const, freeze gates,
+  consumer matrix, positive/negative fixtures, schema instances, ADC scope map
+  and llm-todo candidate; runtime allowlist (`src/lib/oauth/v1/contract.ts`) and
+  candidate loader allowlist + the two version-expectation tests add/expect
+  `1.4.0` (`LIMITED_RUNTIME_COMPATIBILITY_CHANGE`, allowlist-only).
+- No Grant created, modified or enlarged (CTR-NI-004/CTR-NIC-006); no
+  Principal/Client/secret created; no product-code change beyond the frozen
+  allowlist literals; no production apply, deploy or database change.
+
 ## 1.3.0 — 2026-08-21
 
 - CCR: `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1`（accepted）— registered `svc-forum`
