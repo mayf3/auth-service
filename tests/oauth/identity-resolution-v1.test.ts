@@ -1,11 +1,14 @@
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { createServer, type Server } from 'node:http';
-import test from 'node:test';
+import test, { mock } from 'node:test';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import {
+  IDENTITY_RESOLUTION_DEFAULT_TIMEOUT_MS,
   IdentityResolutionError,
+  type ClientResolutionRow,
   type IdentityResolutionDatabase,
+  type PrincipalResolutionRow,
   parseExternalRefQuery,
   resolveClientByExternalRef,
   resolvePrincipalByExternalRef,
@@ -214,14 +217,245 @@ test('database and generic query failures fail loud and never become ABSENT', as
 test('database timeout failures return the explicit timeout error', async () => {
   for (const error of [
     Object.assign(new Error('socket timed out'), { code: 'ETIMEDOUT' }),
+    Object.assign(new Error('query timed out'), { code: 'P1008' }),
     Object.assign(new Error('pool timeout'), { code: 'P2024' }),
+    Object.assign(new Error('lowercase driver code'), { code: 'p1008' }),
+    Object.assign(new Error('lowercase socket code'), { code: 'etimedout' }),
+    Object.assign(new Error('driver TimeoutError'), { name: 'TimeoutError' }),
   ]) {
     await assert.rejects(
       resolvePrincipalByExternalRef(principalRef, database({ principalError: error })),
       expectResolutionError('IDENTITY_RESOLUTION_TIMEOUT', 504),
     );
+    await assert.rejects(
+      resolveClientByExternalRef(clientRef, database({ clientError: error })),
+      expectResolutionError('IDENTITY_RESOLUTION_TIMEOUT', 504),
+    );
   }
 });
+
+// ─── Application-level query deadline ────────────────────────────────────
+
+const SHORT_DEADLINE_MS = 25;
+const DEADLINE_TOLERANCE_MS = 2000;
+
+function deferredRows<T>(): {
+  promise: Promise<T>;
+  resolve: (value: T) => void;
+  reject: (reason?: unknown) => void;
+} {
+  let resolve!: (value: T) => void;
+  let reject!: (reason?: unknown) => void;
+  const promise = new Promise<T>((res, rej) => {
+    resolve = res;
+    reject = rej;
+  });
+  return { promise, resolve, reject };
+}
+
+function pendingDatabase(
+  kind: 'principal' | 'client',
+  pending: Promise<unknown>,
+): IdentityResolutionDatabase {
+  const never = pending as never;
+  return kind === 'principal'
+    ? { machinePrincipal: { findMany: () => never }, machineClient: { findMany: async () => [] } }
+    : { machinePrincipal: { findMany: async () => [] }, machineClient: { findMany: () => never } };
+}
+
+test('application deadline constant is exactly the accepted 5000ms default', () => {
+  assert.equal(IDENTITY_RESOLUTION_DEFAULT_TIMEOUT_MS, 5000);
+});
+
+test('never-resolving principal query ends bounded as 504 via the application deadline', async () => {
+  const startedAt = Date.now();
+  await assert.rejects(
+    resolvePrincipalByExternalRef(principalRef, pendingDatabase('principal', new Promise(() => {})), {
+      timeoutMs: SHORT_DEADLINE_MS,
+    }),
+    expectResolutionError('IDENTITY_RESOLUTION_TIMEOUT', 504),
+  );
+  assert.ok(
+    Date.now() - startedAt < DEADLINE_TOLERANCE_MS,
+    'test must observe the injected short deadline, never the 5s default',
+  );
+});
+
+test('never-resolving client query ends bounded as 504 via the application deadline', async () => {
+  const startedAt = Date.now();
+  await assert.rejects(
+    resolveClientByExternalRef(clientRef, pendingDatabase('client', new Promise(() => {})), {
+      timeoutMs: SHORT_DEADLINE_MS,
+    }),
+    expectResolutionError('IDENTITY_RESOLUTION_TIMEOUT', 504),
+  );
+  assert.ok(Date.now() - startedAt < DEADLINE_TOLERANCE_MS);
+});
+
+test('production resolver enforces the 5000ms default deadline without an explicit override', async () => {
+  const { prisma } = await import('../../src/lib/prisma.js');
+  const delegate = prisma.machinePrincipal as {
+    findMany: (args: unknown) => Promise<PrincipalResolutionRow[]>;
+  };
+  const original = delegate.findMany;
+  delegate.findMany = () => new Promise(() => {});
+  try {
+    mock.timers.enable({ apis: ['setTimeout'] });
+    let caught: unknown;
+    const resolution = resolvePrincipalByExternalRef(principalRef).catch((error: unknown) => {
+      caught = error;
+    });
+    mock.timers.tick(IDENTITY_RESOLUTION_DEFAULT_TIMEOUT_MS - 1);
+    assert.equal(caught, undefined, 'deadline must not fire before the full 5000ms');
+    mock.timers.tick(1);
+    await resolution;
+    assert.ok(caught instanceof IdentityResolutionError, 'deadline must fire exactly at 5000ms');
+    assert.equal((caught as IdentityResolutionError).code, 'IDENTITY_RESOLUTION_TIMEOUT');
+    assert.equal((caught as IdentityResolutionError).status, 504);
+  } finally {
+    mock.timers.reset();
+    delegate.findMany = original;
+  }
+});
+
+test('deadline path performs zero mutations', async () => {
+  const mutations: string[] = [];
+  const reads = { principal: 0, client: 0 };
+  const recordMutation = (method: string) => (): never => {
+    mutations.push(method);
+    throw new Error(`unexpected mutation ${method}`);
+  };
+  const db = {
+    machinePrincipal: {
+      findMany: () => {
+        reads.principal += 1;
+        return new Promise(() => {});
+      },
+      create: recordMutation('principal.create'),
+      update: recordMutation('principal.update'),
+      updateMany: recordMutation('principal.updateMany'),
+      upsert: recordMutation('principal.upsert'),
+      delete: recordMutation('principal.delete'),
+      deleteMany: recordMutation('principal.deleteMany'),
+    },
+    machineClient: {
+      findMany: () => {
+        reads.client += 1;
+        return new Promise(() => {});
+      },
+      create: recordMutation('client.create'),
+      update: recordMutation('client.update'),
+      updateMany: recordMutation('client.updateMany'),
+      upsert: recordMutation('client.upsert'),
+      delete: recordMutation('client.delete'),
+      deleteMany: recordMutation('client.deleteMany'),
+    },
+  } as unknown as IdentityResolutionDatabase;
+
+  await assert.rejects(
+    resolvePrincipalByExternalRef(principalRef, db, { timeoutMs: SHORT_DEADLINE_MS }),
+    expectResolutionError('IDENTITY_RESOLUTION_TIMEOUT', 504),
+  );
+  await assert.rejects(
+    resolveClientByExternalRef(clientRef, db, { timeoutMs: SHORT_DEADLINE_MS }),
+    expectResolutionError('IDENTITY_RESOLUTION_TIMEOUT', 504),
+  );
+  assert.deepEqual(mutations, []);
+  assert.deepEqual(reads, { principal: 1, client: 1 });
+});
+
+test('late query completion and rejection never rewrite the outcome or reject unhandled', async () => {
+  const unhandled: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown) => {
+    unhandled.push(reason);
+  };
+  process.on('unhandledRejection', onUnhandledRejection);
+  const settleAndDrain = async (settle: () => void): Promise<void> => {
+    settle();
+    await new Promise((resolve) => {
+      setTimeout(resolve, 40);
+    });
+  };
+  try {
+    const latePrincipal = deferredRows<PrincipalResolutionRow[]>();
+    await assert.rejects(
+      resolvePrincipalByExternalRef(principalRef, pendingDatabase('principal', latePrincipal.promise), {
+        timeoutMs: SHORT_DEADLINE_MS,
+      }),
+      expectResolutionError('IDENTITY_RESOLUTION_TIMEOUT', 504),
+    );
+    await settleAndDrain(() => latePrincipal.resolve([{
+      id: '10000000-0000-4000-8000-0000000000late',
+      principalType: 'agent',
+      agentId: 'agt_test-agent',
+      externalRef: principalRef,
+    }]));
+
+    const lateClient = deferredRows<ClientResolutionRow[]>();
+    await assert.rejects(
+      resolveClientByExternalRef(clientRef, pendingDatabase('client', lateClient.promise), {
+        timeoutMs: SHORT_DEADLINE_MS,
+      }),
+      expectResolutionError('IDENTITY_RESOLUTION_TIMEOUT', 504),
+    );
+    await settleAndDrain(() => lateClient.reject(new Error('late database failure')));
+
+    assert.deepEqual(unhandled, []);
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
+test('route-level never-resolving resolution returns bounded 504 and late settlement never rewrites it', async () => {
+  const unhandled: unknown[] = [];
+  const onUnhandledRejection = (reason: unknown) => {
+    unhandled.push(reason);
+  };
+  process.on('unhandledRejection', onUnhandledRejection);
+  const latePrincipal = deferredRows<PrincipalResolutionRow[]>();
+  const lateClient = deferredRows<ClientResolutionRow[]>();
+  const dependencies: RouteDependencies = {
+    managementAuth: testManagementAuth,
+    resolvePrincipal: (externalRef) =>
+      resolvePrincipalByExternalRef(externalRef, pendingDatabase('principal', latePrincipal.promise), {
+        timeoutMs: SHORT_DEADLINE_MS,
+      }),
+    resolveClient: (externalRef) =>
+      resolveClientByExternalRef(externalRef, pendingDatabase('client', lateClient.promise), {
+        timeoutMs: SHORT_DEADLINE_MS,
+      }),
+  };
+
+  try {
+    await withRouteServer(dependencies, async (baseUrl) => {
+      const startedAt = Date.now();
+      assert.deepEqual(
+        await jsonRequest(baseUrl, '/api/v1/principals/by-external-ref', `external_ref=${encodeURIComponent(principalRef)}`),
+        { status: 504, body: { error: 'IDENTITY_RESOLUTION_TIMEOUT' } },
+      );
+      assert.deepEqual(
+        await jsonRequest(baseUrl, '/api/v1/clients/by-external-ref', `external_ref=${encodeURIComponent(clientRef)}`),
+        { status: 504, body: { error: 'IDENTITY_RESOLUTION_TIMEOUT' } },
+      );
+      assert.ok(Date.now() - startedAt < DEADLINE_TOLERANCE_MS, 'HTTP handling stays bounded');
+
+      latePrincipal.resolve([{
+        id: '10000000-0000-4000-8000-0000000000late',
+        principalType: 'agent',
+        agentId: 'agt_test-agent',
+        externalRef: principalRef,
+      }]);
+      lateClient.reject(new Error('late database failure'));
+      await new Promise((resolve) => {
+        setTimeout(resolve, 40);
+      });
+      assert.deepEqual(unhandled, []);
+    });
+  } finally {
+    process.off('unhandledRejection', onUnhandledRejection);
+  }
+});
+
 
 test('malformed query results fail as internal query errors, not ABSENT', async () => {
   await assert.rejects(
