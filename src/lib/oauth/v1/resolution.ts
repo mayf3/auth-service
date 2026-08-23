@@ -110,6 +110,46 @@ const defaultDatabase: IdentityResolutionDatabase = {
   },
 };
 
+/**
+ * Bounded wall-clock budget for a single resolution query in the production
+ * resolver. A query that silently never settles must still end HTTP handling
+ * with 504 IDENTITY_RESOLUTION_TIMEOUT instead of hanging forever.
+ */
+export const IDENTITY_RESOLUTION_DEFAULT_TIMEOUT_MS = 5000;
+
+export interface IdentityResolutionOptions {
+  /** Query deadline override; tests inject a short value instead of waiting 5s. */
+  timeoutMs?: number;
+}
+
+/**
+ * Race one resolution query against a wall-clock deadline.
+ *
+ * The deadline only bounds how long this application layer waits before the
+ * HTTP handling fails with 504 IDENTITY_RESOLUTION_TIMEOUT. It does NOT cancel
+ * the underlying database operation: the query promise may settle after the
+ * deadline, so late settlement is absorbed here — it can neither reject
+ * unhandled nor rewrite a response that already timed out.
+ */
+function withQueryDeadline<T>(query: Promise<T>, timeoutMs: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new IdentityResolutionError(504, 'IDENTITY_RESOLUTION_TIMEOUT'));
+    }, timeoutMs);
+    timer.unref?.(); // Don't block process exit
+    query.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (error) => {
+        clearTimeout(timer);
+        reject(error);
+      },
+    );
+  });
+}
+
 function invalid(status: number, code: IdentityResolutionErrorCode): never {
   throw new IdentityResolutionError(status, code);
 }
@@ -164,14 +204,19 @@ export function toIdentityResolutionError(error: unknown): IdentityResolutionErr
 export async function resolvePrincipalByExternalRef(
   externalRef: string,
   database: IdentityResolutionDatabase = defaultDatabase,
+  options: IdentityResolutionOptions = {},
 ): Promise<PrincipalResolution> {
   validateExternalRef(externalRef, 'principal');
+  const timeoutMs = options.timeoutMs ?? IDENTITY_RESOLUTION_DEFAULT_TIMEOUT_MS;
   try {
-    const rows = await database.machinePrincipal.findMany({
-      where: { externalRef },
-      select: PRINCIPAL_SELECT,
-      take: 2,
-    });
+    const rows = await withQueryDeadline(
+      database.machinePrincipal.findMany({
+        where: { externalRef },
+        select: PRINCIPAL_SELECT,
+        take: 2,
+      }),
+      timeoutMs,
+    );
     if (!Array.isArray(rows)) throw new TypeError('Principal resolution query returned a non-array result');
     if (rows.length === 0) return { state: 'ABSENT' };
     if (rows.length > 1) return invalid(409, 'IDENTITY_RESOLUTION_AMBIGUOUS');
@@ -197,14 +242,19 @@ export async function resolvePrincipalByExternalRef(
 export async function resolveClientByExternalRef(
   externalRef: string,
   database: IdentityResolutionDatabase = defaultDatabase,
+  options: IdentityResolutionOptions = {},
 ): Promise<ClientResolution> {
   validateExternalRef(externalRef, 'client');
+  const timeoutMs = options.timeoutMs ?? IDENTITY_RESOLUTION_DEFAULT_TIMEOUT_MS;
   try {
-    const rows = await database.machineClient.findMany({
-      where: { externalRef },
-      select: CLIENT_SELECT,
-      take: 2,
-    });
+    const rows = await withQueryDeadline(
+      database.machineClient.findMany({
+        where: { externalRef },
+        select: CLIENT_SELECT,
+        take: 2,
+      }),
+      timeoutMs,
+    );
     if (!Array.isArray(rows)) throw new TypeError('Client resolution query returned a non-array result');
     if (rows.length === 0) return { state: 'ABSENT' };
     if (rows.length > 1) return invalid(409, 'IDENTITY_RESOLUTION_AMBIGUOUS');
