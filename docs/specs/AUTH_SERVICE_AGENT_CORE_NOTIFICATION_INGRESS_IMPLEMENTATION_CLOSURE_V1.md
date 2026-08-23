@@ -1,9 +1,9 @@
 ---
 spec_id: AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 scope:
   - mayf3/auth-service
   - Minimal Auth Contract Bundle 1.3.0 -> 1.4.0 versioned registration delta closure
@@ -453,4 +453,46 @@ EVIDENCE = §4.1 executed fail-closed runs in an independent worktree, fully res
   and re-verified pristine (MINIMAL_AUTH_V1_BUNDLE_VALID=true at 1.3.0) before
   authoring; no commit of the experiment state, no push of implementation files
 NEXT_TASK = 注册 审计
+```
+
+## 14. Acceptance Record
+
+```text
+ACCEPTED_BY = mayf3
+INDEPENDENT_REVIEW = 注册 审计 = PASS
+REVIEWED_BASE = 45b1b890a0fcd3ca1aeb433dee85a0b3ae283689
+REVIEWED_SPEC_HEAD = 8ba603f8d4397898c09c5bcd17bac67f0022cbc8
+BLOCKERS = NONE
+REQUIRED_FIXES = NONE
+SPEC_PR = mayf3/auth-service#27
+LIFECYCLE_DELTA = status: proposed -> accepted;
+  implementation_authority: none -> contracts
+SEMANTIC_DELTA_AFTER_REVIEW = NONE
+MAIN_AT_REVIEW = 45b1b890a0fcd3ca1aeb433dee85a0b3ae283689 (no new commits; no
+  authority conflict)
+PR_DIFF_AT_REVIEW = exactly one Child Spec file
+```
+
+### Audit rulings recorded verbatim (注册 审计)
+
+```text
+OQ_NIC_001 = CLOSED_KEEP_HISTORICAL_GRANTS_AND_AUDIENCES_LIST_UNCHANGED
+
+含义：
+- docs/contracts/minimal-auth-v1/grants-and-audiences.md
+  继续作为 V2 exact-incorporated 历史快照；
+- 本次 1.4.0 authority 由 accepted parent CCR、
+  accepted Child closure Spec、
+  executable registry 和 change-log 承载；
+- 不把该历史清单加入本轮 closure；
+- 未来若要更新，必须另做 V2-level owner decision。
+
+OQ_NIC_002 = CLOSED_V2_1_3_0_COORDINATES_ARE_HISTORICAL_PROVENANCE
+
+含义：
+- MINIMAL_AUTH_FOUNDATION_V2 中的 1.3.0 coordinates
+  继续保留为当时 exact-incorporation evidence；
+- 不静默改写 V2 历史证据；
+- accepted bounded Child 允许后续 Contract Bundle 1.4.0；
+- V2 refresh 如有需要，属于另一独立任务。
 ```
