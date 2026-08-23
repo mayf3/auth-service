@@ -1,9 +1,9 @@
 ---
 spec_id: AUTH_SERVICE_AGENTCORE_TRUSTED_FLEET_GRANT_SUPPLY_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 scope:
   - mayf3/auth-service
 governed_by:
@@ -341,6 +341,26 @@ AFTER        = acceptance (proposed -> accepted; implementation_authority ->
                execution under CTR-TFS-006..009. Merge of the implementation
                does not itself constitute production apply.
 ```
+
+## 10. Acceptance Record
+
+```text
+REVIEWED_BASE          = 0855dc5161309196ef0cddbf9142e22726961956
+REVIEWED_SPEC_HEAD     = 9f207dd28a01f0a4c4a5120a77da668c786e4d74
+REVIEWER               = 授权 审计
+REVIEW_RESULT          = PASS
+REQUIRED_FIXES         = NONE
+ACCEPTED_BY            = mayf3
+SEMANTIC_DELTA_AFTER_REVIEW = NONE
+LIFECYCLE_TRANSITION   = status: proposed -> accepted;
+                         implementation_authority: none -> contracts
+MAIN_DRIFT_AT_ACCEPT   = NONE (github/main == REVIEWED_BASE)
+```
+
+Acceptance changed only the two lifecycle fields above and added this record.
+The exact 86 mapping, CLIENT_MAPPING_SHA256, GRANT_PLAN_SHA256, Audience/Scope
+targets, and the transaction/audit/NOOP/conflict model are byte-preserved from
+the reviewed head. Production apply remains gated by CTR-TFS-006..009.
 
 ## Appendix A — Exact 86 Client binding (frozen)
 
