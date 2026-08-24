@@ -36,12 +36,21 @@ Program 或 governance adoption Spec 使用 `implementation_authority: none` 时
 | `AUTH_SERVICE_AGENTCORE_IDENTITY_RESOLUTION_V1` | implementation | accepted | contracts（仅 CTR-RES-009 冻结的三文件闭包） | Agent Core deterministic `external_ref` 的 authenticated read-only Principal/Client discovery；exact key、PRESENT/ABSENT、fail-loud、closed projection；不授权 mutation、Grant、deploy 或 production apply |
 | `AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V1` | implementation | accepted | contracts（仅 CTR-NIC-001 冻结的 15 文件闭包） | `agent-core-notification-ingress-v1` Audience 注册（Bundle `1.3.0` -> `1.4.0`）的 exact 15 文件实现闭包子 Spec；4 个 runtime/candidate linkage 文件并入闭包；`LIMITED_RUNTIME_COMPATIBILITY_CHANGE` 仅限 allowlist 追加 `1.4.0`；不创建 Principal/Client/Credential/Grant，不 production apply |
 | `AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1` | invariant | accepted | none | 精确 vendoring 并采用共享开发治理；不改变产品行为 |
+| `AUTH_SERVICE_LEGACY_SURFACE_SHUTDOWN_V1` | program | accepted | none | Legacy 鉴权面硬切 shutdown Program（parent authority：accepted `MINIMAL_AUTH_FOUNDATION_V2`，Contract `1.3.0`）：Human Principal administration（User create / claim / status / enable / disable）已委托给 `AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1`（PR #15），password reset 委托给独立 credential-only child；Program Spec，不直接授权实现，每个 implementation Child 需独立 accepted Child Spec |
 | `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1` | implementation | accepted | contracts（仅 §5 冻结五文件范围） | ownerless agent direct-token profile 与数据库 CHECK 联合修复；封闭五文件实现范围 |
 | `AUTH_SERVICE_AGENTCORE_TRUSTED_FLEET_GRANT_SUPPLY_V1` | implementation | accepted | contracts | exact-86 trusted fleet Grant supply（Phase A 恢复的 86 Client）：每 Client `svc-workflow[workflow.read]` + `svc-forum[forum.read, forum.write]` 一次性完整 grant-set create（v1）；Build-in-Public fleet canary 先行、same-transaction closed-envelope audit、exact rerun NOOP、conflict fail-closed；绑定 CLIENT_MAPPING_SHA256 与 GRANT_PLAN_SHA256 |
 | `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1` | implementation | accepted | contracts（仅 CTR-FR-009 冻结的 13 个 Auth 文件 + 8 个 Forum 文件范围） | 注册 `svc-forum` Audience；仅允许 `forum.read` / `forum.write`，冻结 consumer review、activation gates 与 AC1–AC10 |
 | `AUTH_SERVICE_SVC_FORUM_AUDIENCE_REGISTRY_RECONCILIATION_V1` | implementation | accepted | contracts（仅 CTR-RR-001 冻结的三文件闭包） | svc-forum Audience Registry 离线 reconciliation 子 Spec：生产 `registered_scopes` 单列收敛回 CCR 冻结目标 `[forum.read, forum.write]`；绑定 PR #16 三文件实现闭包与 exact rerun NOOP / conflict fail-closed 语义 |
 | `AUTH_SERVICE_SVC_FORUM_LEGACY_GRANT_NARROWING_V1` | implementation | accepted | contracts（仅 CTR-NG-001 冻结的三文件闭包：`scripts/narrow-svc-forum-legacy-grant-v1.ts`；`scripts/run-svc-forum-legacy-grant-narrowing-v1-conformance.sh`；`tests/oauth/narrow-svc-forum-legacy-grant-v1.test.ts`） | svc-forum 遗留 Grant 最小降权子 Spec；preserved implementation 当前不 conformant、未获 merge authority，production apply 不因 acceptance 自动授权 |
 | `AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1` | implementation | accepted | contracts（仅 CTR-VL-002 冻结的 18 文件闭包） | Minimal Auth Contract `1.3.0` runtime/version linkage 子 Spec；5 个 proven linkage 文件并入 18 文件实现闭包，2 个非必要文件排除 |
+
+Human administration child mapping（PR #2 human authority split amendment，2026-08-22）：
+
+- `AUTH_SERVICE_LEGACY_SURFACE_SHUTDOWN_V1`（PR #2）的 active parent 是 `MINIMAL_AUTH_FOUNDATION_V2`；其不再拥有 Human Principal administration 规范语义；
+- `AUTH_SERVICE_HUMAN_PRINCIPAL_ADMINISTRATION_V1`（PR #15）是唯一 Human Principal administration child：`accepted candidate`，reviewed semantic Head `98ec29a1152bfa9530c572ec5a541ea02df163c4`，final accepted Head `292ca47e9f89c366456fe9f53745bd3d05156b6a`，`OPEN / DRAFT / UNMERGED`，`ACTIVE_ON_MAIN = NO`；`accepted candidate != repository-active authority` 且 `accepted candidate != implementation authorized`，只有完成 final-head recheck 并 merge 到 `main` 后才可成为 active-on-main Child authority，本 index 当前不将其列入 active accepted Spec 表；
+- planned credential-only child `AUTH_SERVICE_HUMAN_CREDENTIAL_LIFECYCLE_V1`（password reset）尚未创建，`planned / not yet an authority`，不得列为 proposed 或 accepted authority；
+- 旧占位名 `AUTH_SERVICE_V1_HUMAN_CREDENTIAL_LIFECYCLE_V1` 是 non-authority historical placeholder（`AUTHORITY_STATUS = NONE`），不是 authority；
+- 除合法 whole-authority supersession 外，不得创建第二份 Human Principal administration child。
 
 ## Architecture authorities outside this directory
 
@@ -63,7 +72,7 @@ V2 accepted 不等于 production effective，也不等于 PR #2 implementation a
 
 `.agents/specs/` 不是 governing location。治理采用生效前已经创建但尚未合并的候选，应 rebase 到包含 accepted governance 的 base、迁移到本目录、补齐 frontmatter 与 stable IDs，并在新 exact head 上重新独立评审。
 
-截至 adoption candidate authoring 时，auth-service PR #2 保持独立 Draft；本 index 不将其视为 accepted 或 active authority。
+截至 adoption candidate authoring 时，auth-service PR #2 保持独立 Draft；本 index 不将其视为 accepted 或 active authority。该候选已完成治理迁移（rebase 到 accepted governance base、移入本目录、补齐 frontmatter 与 stable IDs），其迁移前全部历史 review coordinates 仅为 `HISTORICAL_REVIEW_EVIDENCE_ONLY`，迁移后的 exact Head 仍需新的独立 semantic review 与 Owner acceptance。
 
 ## Records
 
