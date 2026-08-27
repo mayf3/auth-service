@@ -9,16 +9,14 @@ scope:
 governed_by:
   - MINIMAL_AUTH_FOUNDATION_V2
   - AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1
-external_authorities:
-  - repository: mayf3/svc-workflow
-    authority_id: SVC_WORKFLOW_GLOBAL_WORKFLOW_READER_V1
-    revision: 57f0268d76aa975b7d07a78874a1bf69d2ec3c4d
-    relation: interoperates_with
-  - repository: mayf3/dsh-agent-core
-    authority_id: AGENT_CORE_HR_DISPATCHER_V1
-    revision: 57966bb147148a863df267ad38a0881e018ab3ae
-    relation: interoperates_with (proposed; §0.1 dedicated-system-Agent
-      identity model + §4.1 agent_wake grant shape)
+external_authorities: []  # DAG ROOT (auth-service PR #31 -> svc-workflow
+                          # PR #14 -> dsh-agent-core PR #83 -> dsh-agent-core
+                          # PR #87): this Spec pins NO external head and takes
+                          # no authority from any downstream artifact;
+                          # downstream Specs pin THIS Spec's final head,
+                          # never the reverse. Sibling-repo responsibilities
+                          # are described (Non-goals, §1/§6) without
+                          # authority pins.
 supersedes: []
 superseded_by: null
 owners:
@@ -32,20 +30,33 @@ owners:
 > row, and performs no implementation, no identity creation, no database
 > write, no deploy, and no production apply. Creation/apply happen only in
 > a separately owner-authorized execution round after acceptance.
+>
+> **Revision note (2026-08-27, dependency-DAG sync):** this Spec is the ROOT
+> of the four-Spec chain 31 → 14 → 83 → 87. All previous exact-head pins to
+> DOWNSTREAM artifacts (svc-workflow PR #14; dsh-agent-core PR #87) are
+> removed (see this round's commit message for the removed revisions) —
+> downstream artifacts may be described in Non-goals but never pinned as
+> authority here. Downstream Specs pin THIS Spec's final head.
 
 ## 1. Goal
 
 Freeze the exact, fail-closed, one-shot authority for the auth-service side
 of the **dedicated system Agent** `agt_workflow-dispatcher-hr-agent`
 (OWNER_RULING = `DEDICATED_SYSTEM_AGENT_MODEL`): exactly one Principal, one
-Client, an exact minimal grant set, the raw-secret handoff path, exact-rerun
-NOOP semantics, and rollback/revoke. Nothing else — in particular this Spec
-does NOT govern the svc-workflow role grants (governed by
-`SVC_WORKFLOW_GLOBAL_WORKFLOW_READER_V1` — final DUAL_GLOBAL_READER_MODEL:
+Client, an exact minimal grant set (`workflow.read` + `agent.wake`), the
+raw-secret handoff path, exact-rerun NOOP semantics, and revoke / rollback.
+Nothing else — in particular this Spec does NOT govern the svc-workflow
+role grants (governed
+by `SVC_WORKFLOW_GLOBAL_WORKFLOW_READER_V1` — final DUAL_GLOBAL_READER_MODEL:
 the dispatcher and the HR main identity each get the read-only
 GLOBAL_WORKFLOW_READER role; neither gets COORDINATOR), nor the Agent
 definition / runtime directory / scheduler execution / wake path / HR
 scheduler tools (governed by dsh-agent-core `AGENT_CORE_HR_DISPATCHER_V1`).
+Those downstream responsibilities are DESCRIBED here (Non-goals) but never
+DEPENDED on: this Spec takes no authority from, and pins no exact head of,
+any downstream artifact (dependency DAG, frozen: this Spec → svc-workflow
+PR #14 → dsh-agent-core PR #83 → dsh-agent-core PR #87; direction is
+one-way and may not be inverted).
 
 ## 2. Identity model (frozen alignment)
 
@@ -83,12 +94,15 @@ CLIENT (machine_clients)
 GRANTS (machine_access_grants) — exactly two entries, nothing else:
   1. audience svc-workflow   scopes = {workflow.read}
   2. audience agent-wake    scopes = {agent.wake}
-     (EXACT wake grant per the current official agent_wake Audience/Scope
-     authority: dsh-agent-core AGENT_CORE_HR_DISPATCHER_V1 §4.1 @ 57966bb
-     freezes the local capability as resource 'agent-wake' with
-     requiredScopes ['agent.wake'], and the broker gateway's grant check
-     mints a token for resource 'agent-wake' scope 'agent.wake' — so the
-     Auth grant row is audience 'agent-wake', scopes exactly {agent.wake})
+     (EXACT wake grant, frozen HERE — this Spec is the sole authority for
+     the grant shape, and downstream consumers ALIGN to it, never the
+     reverse: the dsh-agent-core dispatcher Spec's `agent_wake` capability
+     is defined with resource 'agent-wake' and requiredScopes
+     ['agent.wake'], and the broker gateway's grant check mints a token for
+     resource 'agent-wake' scope 'agent.wake' — all consistent with, and
+     downstream of, this row. The Auth grant row is therefore audience
+     'agent-wake', scopes exactly {agent.wake}; no downstream exact head is
+     pinned or required by this freeze)
 ```
 
 ### 3.1 PLAN / APPLY / VERIFY (phase discipline)
@@ -223,8 +237,9 @@ new exact-rerun (§5). No data deletion is required or authorized.
 - Grant the global workflow role to the HR main identity — rejected (the
   withdrawn r2-era coordinator draft; HR lineage holds
   workflow.execute-capable credentials; final DUAL_GLOBAL_READER_MODEL
-  gives the HR main identity read-only READER only — svc-workflow Spec §1
-  evidence).
+  gives the HR main identity read-only READER only — that role grant is
+  governed downstream by the svc-workflow Spec; described, not depended
+  on).
 - Reuse an existing fleet client for the dispatcher — rejected: violates
   identity separation and the no-fleet-impact ruling.
 - No-Client token path / shared service token — rejected: no per-identity
@@ -243,5 +258,10 @@ CLIENT_CREATED      = NO
 GRANT_CHANGE        = NONE
 PRODUCTION_CHANGE   = NONE
 SECRET_MATERIALIZED = NO
+DEPENDENCY_POSITION = ROOT of 31 -> 14 -> 83 -> 87
+EXTERNAL_HEAD_PINS  = NONE (zero normative or exact-head dependencies on
+                    PR #14 / PR #83 / PR #87; downstream responsibilities
+                    appear only as Non-goals descriptions)
+CIRCULAR_AUTHORITY_PIN_COUNT (this Spec) = 0
 READY_FOR_INDEPENDENT_REVIEW = YES
 ```
