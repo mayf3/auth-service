@@ -11,8 +11,8 @@ governed_by:
   - AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1
 external_authorities:
   - repository: mayf3/svc-workflow
-    authority_id: SVC_WORKFLOW_HR_DISPATCHER_COORDINATOR_GRANT_V1
-    revision: 5efcd814b981706652dcd3ca6c02471cf256239c
+    authority_id: SVC_WORKFLOW_GLOBAL_WORKFLOW_READER_V1
+    revision: 57f0268d76aa975b7d07a78874a1bf69d2ec3c4d
     relation: interoperates_with
 supersedes: []
 superseded_by: null
@@ -35,8 +35,10 @@ of the **dedicated system Agent** `agt_workflow-dispatcher-hr-agent`
 (OWNER_RULING = `DEDICATED_SYSTEM_AGENT_MODEL`): exactly one Principal, one
 Client, an exact minimal grant set, the raw-secret handoff path, exact-rerun
 NOOP semantics, and rollback/revoke. Nothing else — in particular this Spec
-does NOT govern the svc-workflow coordinator role grant (governed by
-`SVC_WORKFLOW_HR_DISPATCHER_COORDINATOR_GRANT_V1`), nor the Agent
+does NOT govern the svc-workflow role grants (governed by
+`SVC_WORKFLOW_GLOBAL_WORKFLOW_READER_V1` — final DUAL_GLOBAL_READER_MODEL:
+the dispatcher and the HR main identity each get the read-only
+GLOBAL_WORKFLOW_READER role; neither gets COORDINATOR), nor the Agent
 definition / runtime directory / scheduler execution / wake path / HR
 scheduler tools (governed by dsh-agent-core `AGENT_CORE_HR_DISPATCHER_V1`).
 
