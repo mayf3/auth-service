@@ -3,20 +3,28 @@ spec_id: AUTH_SERVICE_AGENTCORE_HR_DISPATCHER_IDENTITY_V1
 status: proposed
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: contracts
+implementation_authority: none
+production_apply_authority: none
 scope:
   - mayf3/auth-service
 governed_by:
   - MINIMAL_AUTH_FOUNDATION_V2
   - AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1
-external_authorities: []  # DAG ROOT (auth-service PR #31 -> svc-workflow
-                          # PR #14 -> dsh-agent-core PR #83 -> dsh-agent-core
-                          # PR #87): this Spec pins NO external head and takes
-                          # no authority from any downstream artifact;
-                          # downstream Specs pin THIS Spec's final head,
-                          # never the reverse. Sibling-repo responsibilities
-                          # are described (Non-goals, §1/§6) without
-                          # authority pins.
+external_authorities:
+  # DAG node 2 of WAKE -> 31 -> 14 -> 83 -> 87. Sole normative dependency =
+  # the agent-wake Audience registration authority (sibling PR in THIS
+  # repository; authority lives on its own branch, not in this PR's base).
+  # Downstream Specs (svc-workflow PR #14, dsh-agent-core PR #83 / PR #87)
+  # may pin THIS Spec's final head, never the reverse; this Spec pins no
+  # downstream head.
+  - repository: mayf3/auth-service
+    authority_id: AUTH_SERVICE_AGENT_WAKE_AUDIENCE_CCR_V1
+    revision: 3a1f5cda2bcffbe4ac58d4c41dfc594e8639ffb3
+    relation: prerequisite_audience_registration (proposed, PR #32 — the
+      machine-only agent-profile audience 'agent-wake' with registered
+      scope 'agent.wake' that grant entry 2 of §3 requires; its
+      acceptance + implementation is a precondition of this Spec's APPLY
+      round, fail-closed per §3.2)
 supersedes: []
 superseded_by: null
 owners:
@@ -31,12 +39,18 @@ owners:
 > write, no deploy, and no production apply. Creation/apply happen only in
 > a separately owner-authorized execution round after acceptance.
 >
-> **Revision note (2026-08-27, dependency-DAG sync):** this Spec is the ROOT
-> of the four-Spec chain 31 → 14 → 83 → 87. All previous exact-head pins to
-> DOWNSTREAM artifacts (svc-workflow PR #14; dsh-agent-core PR #87) are
-> removed (see this round's commit message for the removed revisions) —
-> downstream artifacts may be described in Non-goals but never pinned as
-> authority here. Downstream Specs pin THIS Spec's final head.
+> **Revision note (2026-08-27, round 2 — lifecycle + dependency-DAG sync):**
+> (1) Lifecycle correction: `implementation_authority = none` and
+> `production_apply_authority = none` while proposed — a proposed Spec
+> carries no contracts authority (docs/specs/README.md implementation
+> rule; index row synced). The §3.1 PLAN/APPLY/VERIFY rounds describe the
+> FUTURE execution contract, authorized only after acceptance.
+> (2) Dependency direction, frozen: WAKE → THIS Spec → svc-workflow
+> PR #14 → dsh-agent-core PR #83 → dsh-agent-core PR #87. This Spec's
+> sole normative upstream is the agent-wake Audience authority
+> (`AUTH_SERVICE_AGENT_WAKE_AUDIENCE_CCR_V1`, PR #32); it pins no
+> downstream head, and downstream artifacts appear only as Non-goals
+> descriptions.
 
 ## 1. Goal
 
@@ -54,9 +68,11 @@ definition / runtime directory / scheduler execution / wake path / HR
 scheduler tools (governed by dsh-agent-core `AGENT_CORE_HR_DISPATCHER_V1`).
 Those downstream responsibilities are DESCRIBED here (Non-goals) but never
 DEPENDED on: this Spec takes no authority from, and pins no exact head of,
-any downstream artifact (dependency DAG, frozen: this Spec → svc-workflow
-PR #14 → dsh-agent-core PR #83 → dsh-agent-core PR #87; direction is
-one-way and may not be inverted).
+any downstream artifact (dependency DAG, frozen: agent-wake Audience CCR
+PR #32 → this Spec → svc-workflow PR #14 → dsh-agent-core PR #83 →
+dsh-agent-core PR #87; direction is one-way and may not be inverted). The
+sole normative upstream dependency of this Spec is the agent-wake
+Audience registration authority (§3.2).
 
 ## 2. Identity model (frozen alignment)
 
@@ -122,16 +138,21 @@ GRANTS (machine_access_grants) — exactly two entries, nothing else:
 mint additionally enforces the audience registry and principal profile.
 Grant entry 2 therefore requires a registered, machine-enabled,
 agent-profile audience `agent-wake` whose registered scopes cover
-`agent.wake`. Registering that audience is a **separate authority** (the
-Minimal-Auth audience CCR pattern — same class as
-`AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1` / the notification-ingress CCR)
-and is NOT authorized by this Spec. Fail-closed ruling: if audience
-`agent-wake` is absent at apply time, the precheck aborts the run with
-ZERO writes (no partial apply of grant entry 1 alone, no auto-registration).
-Until such registration exists elsewhere, the `agent_wake` capability stays
-structurally denied for every identity — the acceptable fail-closed status
-quo. Grant entry 1 (`svc-workflow`: registered, agent-profile,
-machine-enabled) has no such dependency.
+`agent.wake`. That registration now has a dedicated authority:
+`AUTH_SERVICE_AGENT_WAKE_AUDIENCE_CCR_V1` (proposed, PR #32 @
+3a1f5cda2bcffbe4ac58d4c41dfc594e8639ffb3) — the Minimal-Auth audience
+CCR pattern, same class as
+`AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1` / the notification-ingress CCR.
+It is this Spec's SOLE normative upstream dependency: its acceptance,
+merged implementation, and the resulting registered audience (bundle
+entry + AuthAudience row) are preconditions of this Spec's APPLY round.
+Fail-closed ruling (unchanged): if audience `agent-wake` is not yet
+registered at apply time, the precheck aborts the run with ZERO writes
+(no partial apply of grant entry 1 alone, no auto-registration, no
+in-place audience improvisation). Until the registration exists, the
+`agent_wake` capability stays structurally denied for every identity —
+the acceptable fail-closed status quo. Grant entry 1 (`svc-workflow`:
+registered, agent-profile, machine-enabled) has no such dependency.
 
 ### 3.3 Audit envelope
 
@@ -253,15 +274,22 @@ new exact-rerun (§5). No data deletion is required or authorized.
 DOCS ONLY — one new spec file + one docs/specs/README.md index row (plus
 this revision round's spec-only amendments; still zero code changes).
 IDENTITY_SPEC_PR    = #31 (this branch)
+SPEC_STATUS         = proposed (no implementation / production authority
+                     while proposed)
+IMPLEMENTATION_AUTHORITY  = none
+PRODUCTION_APPLY_AUTHORITY = none
 IDENTITY_CREATED    = NO
 CLIENT_CREATED      = NO
 GRANT_CHANGE        = NONE
 PRODUCTION_CHANGE   = NONE
 SECRET_MATERIALIZED = NO
-DEPENDENCY_POSITION = ROOT of 31 -> 14 -> 83 -> 87
-EXTERNAL_HEAD_PINS  = NONE (zero normative or exact-head dependencies on
-                    PR #14 / PR #83 / PR #87; downstream responsibilities
-                    appear only as Non-goals descriptions)
+DEPENDENCY_POSITION = node 2 of WAKE -> 31 -> 14 -> 83 -> 87
+UPSTREAM_HEAD_PINS  = AUTH_SERVICE_AGENT_WAKE_AUDIENCE_CCR_V1 only
+                     (mayf3/auth-service PR #32 @
+                     3a1f5cda2bcffbe4ac58d4c41dfc594e8639ffb3)
+DOWNSTREAM_HEAD_PINS = NONE (zero normative or exact-head dependencies on
+                     PR #14 / PR #83 / PR #87; downstream responsibilities
+                     appear only as Non-goals descriptions)
 CIRCULAR_AUTHORITY_PIN_COUNT (this Spec) = 0
-READY_FOR_INDEPENDENT_REVIEW = YES
+READY_FOR_SEQUENTIAL_REVIEW = YES (after WAKE PR #32)
 ```
