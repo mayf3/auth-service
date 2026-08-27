@@ -68,6 +68,29 @@ HUMAN_SESSION_ID_CLAIM_CHANGE = NONE
 
 REVOCATION_MODE = OFFLINE_ONLY
 ACCESS_TOKEN_AFTER_LOGOUT = VALID_UNTIL_EXP
+
+AUTH_UI_COOKIE_PREFIX = __Host-
+AUTH_UI_COOKIE_SECURE = YES
+AUTH_UI_COOKIE_HTTP_ONLY = YES
+AUTH_UI_COOKIE_SAME_SITE = Lax
+AUTH_UI_COOKIE_PATH = /
+AUTH_UI_COOKIE_DOMAIN_ATTRIBUTE = ABSENT
+AUTH_UI_COOKIE_PERSISTENT_CROSS_SESSION = NO
+AUTH_UI_COOKIE_JS_READABLE = NO
+
+AUTH_UI_CSRF_MODE = SERVER_SIDE_SYNCHRONIZER_TOKEN
+CSRF_TOKEN_ENTROPY_MINIMUM = 128_BITS
+CSRF_TOKEN_BOUND_TO = AUTHORIZATION_TRANSACTION_AND_BROWSER_SESSION
+CSRF_TOKEN_DELIVERY = HIDDEN_FORM_FIELD
+CSRF_TOKEN_COMPARISON = CONSTANT_TIME
+CSRF_TOKEN_USE = SINGLE_USE
+CSRF_ORIGIN_POLICY = EXACT_AUTH_PUBLIC_ORIGIN
+CSRF_FAILURE_STATUS = 403
+OAUTH_STATE_SUBSTITUTES_FOR_FORM_CSRF = NO
+
+AUTH_UI_CSP_FRAME_ANCESTORS = 'none'
+AUTH_UI_X_FRAME_OPTIONS = DENY
+AUTH_UI_EMBEDDING = FORBIDDEN
 ```
 
 ## 2. Scope and non-goals
@@ -75,6 +98,8 @@ ACCESS_TOKEN_AFTER_LOGOUT = VALID_UNTIL_EXP
 ### 2.1 In scope
 
 - 第一方浏览器登录 UI 与 verified HTTPS App Link 返回链路；
+- 第一方浏览器登录 UI 的 Cookie 安全边界、credential POST CSRF 防护与
+  clickjacking 防护；
 - Authorization Code + PKCE S256、`state` 与 exact redirect 校验；
 - Native Public Client、Human Audience、HumanAudienceGrant 的目标注册事实；
 - absent/create、exact-existing/NOOP、mismatch/fail-loud 的幂等注册语义；
@@ -315,6 +340,27 @@ amend Human Token schema。若本 Spec 与上级 authority 冲突，以 accepted
 - Reason: 身份与授权注册不能在重跑中静默改写未知状态。
 - Owner decision remaining: NONE。
 
+### DEC-MPO-006 — Browser Login 的 Cookie、CSRF 与 framing 安全边界
+
+- Decision owner: mayf3
+- Decision: 独立审计（PR #30 review comment 5439464906）认定 Browser Login 缺少
+  Cookie、CSRF 与 clickjacking 合同后，Owner 冻结三项补齐：登录/事务 Cookie 统一
+  `__Host-` 前缀 + Secure + HttpOnly + SameSite=Lax + Path=/ 且无 Domain 属性；
+  credential POST 使用服务端单次 synchronizer CSRF Token（绑定 authorization
+  transaction 与浏览器会话、constant-time 比较、Origin 精确为
+  `https://auth.mayf3.com`、失败即 403）；所有 Browser Login / Authorize HTML 响应
+  输出 `Content-Security-Policy: frame-ancestors 'none'` 与
+  `X-Frame-Options: DENY`。SameSite=Lax 只是 defense-in-depth；OAuth `state` 不替代
+  表单 CSRF Token。Authorization Code 的显式短 TTL 上限本轮不冻结，只继承上级
+  authority 的 fail-closed 过期语义（`AUTHORIZATION_CODE_TTL_EXPLICITNESS =
+  FOLLOW_UP_DEBT`）。
+- Rejected alternatives: 以 SameSite 作为唯一 CSRF 防护；以 OAuth `state` 兼任表单
+  CSRF；double-submit cookie；按 client_id、query 或 User-Agent 放宽 framing；本轮
+  顺手冻结 Code TTL 数值。
+- Reason: 三项构成第一方浏览器登录的最小完整安全边界，且不改变既有 token、注册与
+  撤销语义。
+- Owner decision remaining: NONE。
+
 ## 9. Contracts
 
 ### CTR-MPO-001 — 第一方浏览器登录 UI
@@ -331,7 +377,53 @@ amend Human Token schema。若本 Spec 与上级 authority 冲突，以 accepted
 6. 登录完成仅产生绑定 transaction 的单次 Authorization Code，不把 Access Token 或
    Refresh Credential 放入 URL；
 7. 所有含认证结果或错误的响应使用 `Cache-Control: no-store`，不得记录密码、Code、
-   verifier、Refresh Credential 或 Access Token。
+   verifier、Refresh Credential、Access Token、CSRF Token 或 Cookie 值；
+8. Browser Login 安全边界冻结为：
+
+```text
+COOKIE_SECURITY = Secure + HttpOnly + SameSite=Lax + __Host- + Path=/ + no Domain
+FORM_CSRF = server-side synchronizer token + exact Origin
+CLICKJACKING = CSP frame-ancestors 'none' + X-Frame-Options DENY
+```
+
+第 8 项的 Cookie 边界：
+
+- 所有承载浏览器登录会话或授权事务身份的 Cookie 必须使用 `__Host-` 前缀、必须
+  Secure、必须 HttpOnly、必须 SameSite=Lax、Path=/，且不得包含 Domain 属性；
+- 不得使用可被 JavaScript 读取的登录/事务 Cookie；Cookie 生命周期不得超过其
+  Human Session 或授权事务的所有者生命周期；授权事务终止、过期或成功完成后必须
+  失效；
+- 不得把 authorization code、PKCE verifier、Access Token、Refresh Credential 或密码
+  放进 Cookie；Cookie 内容不得写日志；
+- Cookie 不得由 Mobile 或 Gateway 创建、读取或代理；SameSite=Lax 只是
+  defense-in-depth，不得被当作 credential POST 唯一的 CSRF 防护。
+
+第 8 项的 credential POST CSRF 防护：
+
+- `/oauth/authorize/ui` 渲染的 credential form 必须获得服务端生成的高熵 CSRF Token
+  （熵不低于 `CSRF_TOKEN_ENTROPY_MINIMUM`），服务端状态绑定当前 authorization
+  transaction 与当前浏览器会话；
+- Token 只能通过表单隐藏字段提交，不得放进 URL、Referer、日志或持久浏览器历史；
+- credential POST 必须同时验证：Token 存在且原始请求中恰好出现一次；未过期；未
+  使用；与 transaction 和浏览器会话匹配；Origin 精确为
+  `https://auth.mayf3.com`；比较必须 constant-time；
+- 缺失、重复、错误、过期、重放或 Origin 不匹配时立即返回 403：不执行密码验证、
+  不创建 Human Session、不生成 authorization code、不改变 Redirect、Client、
+  Audience 或 Grant；
+- 每次被接受处理的表单 POST 后该 CSRF Token 必须失效；登录凭据错误后重新展示
+  表单必须签发全新 CSRF Token；
+- OAuth `state` 继续保护 App callback 绑定，但不得替代 Browser credential POST 的
+  CSRF Token。
+
+第 8 项的 clickjacking 防护：
+
+- 所有 Browser Login / Authorize HTML 响应必须至少包含
+  `Content-Security-Policy: frame-ancestors 'none'` 与 `X-Frame-Options: DENY`；
+- 登录页不得在 iframe、frame、object 或 embed 中运行；任何允许 Mobile 内嵌
+  WebView 的配置均被禁止；
+- 不得按 User-Agent、query 参数或 client_id 放宽 framing；错误页面与登录成功
+  中间页也必须保持相同 framing 防护；既有 `Cache-Control: no-store`、Referrer 与
+  日志秘密边界保持。
 
 ### CTR-MPO-002 — Authorization request 与 PKCE S256
 
@@ -571,14 +663,54 @@ runtime evidence。
 ### ACC-MPO-001 — Browser UX and credential boundary
 
 - Contracts: `CTR-MPO-001`, `CTR-MPO-004`, `CTR-MPO-014`
-- Method: Android integration test plus auth-service/Gateway request and secret-log audit
+- Method: Android integration test plus auth-service/Gateway request and secret-log audit;
+  cookie attribute and JavaScript readability probe; scripted credential POST matrix over
+  missing, wrong, duplicated, expired, replayed, cross-transaction and cross-session CSRF
+  tokens with exact and non-exact Origin values; framing-header capture for login, error
+  and intermediate pages
 - Environment: non-production environment with verified `auth.mayf3.com` App Link configuration
 - Required evidence: implementation commits, OS domain-verification result, browser trace, direct
-  auth-service request trace, Gateway negative trace, and redacted log/storage scan
+  auth-service request trace, Gateway negative trace, Set-Cookie attribute dump, per-case
+  CSRF/Origin request-response records with post-request transaction/session state, response
+  headers of every Browser Login HTML page, and redacted log/storage scan
 - Expected result: system browser + verified HTTPS App Link succeeds; WebView, native password form,
-  unverified/custom link and Gateway-proxied OAuth all fail; password reaches auth-service only
+  unverified/custom link and Gateway-proxied OAuth all fail; password reaches auth-service only.
+  Browser security sub-cases (future conformance requirements, not executed in this PR):
+  1. every login- or transaction-scoped Cookie is set with `Secure`, `HttpOnly`,
+     `SameSite=Lax`, `Path=/`, no `Domain` attribute, and an `__Host-` prefixed name;
+  2. page JavaScript cannot read any login/transaction Cookie;
+  3. after transaction termination, completion or expiry, the Cookie and its server-side
+     state cannot continue the flow;
+  4. no password, authorization code, verifier, Access Token or Refresh Credential is
+     stored in any Cookie;
+  5. a correct CSRF Token with exact Origin `https://auth.mayf3.com` proceeds into
+     authentication;
+  6. missing Token returns 403 with zero Session and zero authorization code;
+  7. wrong Token returns 403 with zero Session and zero code;
+  8. a duplicated Token field in the raw request returns 403;
+  9. an expired Token returns 403;
+  10. replay of an already-used Token returns 403;
+  11. a Token bound to another authorization transaction returns 403;
+  12. a Token bound to another browser session returns 403;
+  13. a missing Origin, or any Origin other than exact `https://auth.mayf3.com`,
+      returns 403;
+  14. a correct OAuth `state` with a wrong form CSRF Token still returns 403, proving
+      `state` does not substitute for form CSRF;
+  15. the form re-rendered after wrong credentials uses a fresh CSRF Token and the old
+      Token is refused;
+  16. login, error and intermediate pages all return
+      `Content-Security-Policy: frame-ancestors 'none'` plus `X-Frame-Options: DENY`;
+  17. no code path relaxes framing by client_id, query parameter or User-Agent;
+  18. Cookie values, CSRF Tokens, passwords, authorization codes, verifiers and Access
+      Tokens never appear in logs or error responses.
 - Failure condition: any password/Code/verifier/Refresh Credential exposure to Mobile UI or Gateway,
-  or any OAuth route through Gateway, fails acceptance
+  or any OAuth route through Gateway, fails acceptance; any missing Cookie attribute,
+  JavaScript-readable login/transaction Cookie, Cookie still usable after transaction end,
+  secret stored in a Cookie, any CSRF case (missing, duplicated, wrong, expired, replayed,
+  cross-transaction, cross-session, or non-exact Origin) that reaches password verification,
+  creates a Session or mints an authorization code, any missing or relaxed framing header on
+  any Browser Login HTML page, or any disclosure of Cookie values or CSRF Tokens in logs or
+  errors also fails acceptance
 
 ### ACC-MPO-002 — PKCE, state and exact redirect
 
@@ -723,6 +855,9 @@ PARTIAL_SUPERSESSION = NONE
 ```
 
 Non-normative future work remains: choose implementation file closure, implementation mechanism,
+an explicit short upper bound for Authorization Code lifetime (this amendment keeps
+`AUTHORIZATION_CODE_TTL_CHANGE = NONE` and inherits only the governing authority chain's
+fail-closed expiry semantics, so `AUTHORIZATION_CODE_TTL_EXPLICITNESS = FOLLOW_UP_DEBT`),
 production migration identifiers, operator/approval references, deployment coordinates and exact
 consumer candidate revisions. None may change the Decisions or Contracts above without a new
 reviewed authority change。
@@ -757,6 +892,13 @@ REAL_CLIENT_CREATED = NO
 REAL_REDIRECT_CREATED = NO
 REAL_GRANT_CREATED = NO
 MERGE_PERFORMED = NO
+
+AMENDMENT_ID = AUTH_SERVICE_MOBILE_PUBLIC_OAUTH_V1_BROWSER_SECURITY_CLOSURE_V2
+AMENDMENT_PREVIOUS_HEAD = 91f550acdc757093215d666b352b782811bd58c3
+AMENDMENT_REVIEW_COMMENT_ID = 5439464906
+AMENDMENT_SCOPE = CTR-MPO-001 + ACC-MPO-001 browser security closure only
+AUTHORIZATION_CODE_TTL_CHANGE = NONE
+AUTHORIZATION_CODE_TTL_EXPLICITNESS = FOLLOW_UP_DEBT
 
 NEXT_TASK = 认证 审计
 ```
