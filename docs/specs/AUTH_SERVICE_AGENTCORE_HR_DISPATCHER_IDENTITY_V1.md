@@ -14,6 +14,11 @@ external_authorities:
     authority_id: SVC_WORKFLOW_GLOBAL_WORKFLOW_READER_V1
     revision: 57f0268d76aa975b7d07a78874a1bf69d2ec3c4d
     relation: interoperates_with
+  - repository: mayf3/dsh-agent-core
+    authority_id: AGENT_CORE_HR_DISPATCHER_V1
+    revision: 57966bb147148a863df267ad38a0881e018ab3ae
+    relation: interoperates_with (proposed; §0.1 dedicated-system-Agent
+      identity model + §4.1 agent_wake grant shape)
 supersedes: []
 superseded_by: null
 owners:
@@ -77,18 +82,68 @@ CLIENT (machine_clients)
   exactly ONE active client bound to that principal
 GRANTS (machine_access_grants) — exactly two entries, nothing else:
   1. audience svc-workflow   scopes = {workflow.read}
-  2. audience governing the agent_wake broker local capability
-     (per dsh-agent-core AGENT_CORE_HR_DISPATCHER_V1 §4.1)
-     scopes = {agent.wake}
+  2. audience agent-wake    scopes = {agent.wake}
+     (EXACT wake grant per the current official agent_wake Audience/Scope
+     authority: dsh-agent-core AGENT_CORE_HR_DISPATCHER_V1 §4.1 @ 57966bb
+     freezes the local capability as resource 'agent-wake' with
+     requiredScopes ['agent.wake'], and the broker gateway's grant check
+     mints a token for resource 'agent-wake' scope 'agent.wake' — so the
+     Auth grant row is audience 'agent-wake', scopes exactly {agent.wake})
 ```
+
+### 3.1 PLAN / APPLY / VERIFY (phase discipline)
+
+- **PLAN** = §3's exact shape, frozen here; the apply round may not widen,
+  reinterpret, or "normalize" it (shape deviation = §5 fail-closed).
+- **APPLY** = ONE separately owner-authorized one-shot execution round via
+  the existing idempotent machine provisioning seams, only after the §3.2
+  dependency precheck; every real write covered by the §3.3 audit envelope.
+- **VERIFY** = §7 acceptance criteria executed against read-only production
+  evidence before the round is declared done (incl. the AC-4 token probes
+  and the AC-5 before/after fleet diff).
+
+### 3.2 Wake-audience dependency (fail-closed activation gate)
+
+`MachineAccessGrant.audience` is FK-bound to `AuthAudience`, and the token
+mint additionally enforces the audience registry and principal profile.
+Grant entry 2 therefore requires a registered, machine-enabled,
+agent-profile audience `agent-wake` whose registered scopes cover
+`agent.wake`. Registering that audience is a **separate authority** (the
+Minimal-Auth audience CCR pattern — same class as
+`AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1` / the notification-ingress CCR)
+and is NOT authorized by this Spec. Fail-closed ruling: if audience
+`agent-wake` is absent at apply time, the precheck aborts the run with
+ZERO writes (no partial apply of grant entry 1 alone, no auto-registration).
+Until such registration exists elsewhere, the `agent_wake` capability stays
+structurally denied for every identity — the acceptable fail-closed status
+quo. Grant entry 1 (`svc-workflow`: registered, agent-profile,
+machine-enabled) has no such dependency.
+
+### 3.3 Audit envelope
+
+Every real grant write of the apply round is recorded in the same
+serializable transaction as an immutable `grant_change_audits` row using
+exactly the current closed 13-field envelope (authority frozen by
+`AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1`, carried by
+`AUTH_SERVICE_AGENTCORE_TRUSTED_FLEET_GRANT_SUPPLY_V1`; no property outside
+the closed envelope). Principal / Client / secret provisioning writes are
+recorded by the existing machine provisioning audit discipline. Envelope
+rows + receipts are the round's evidence; no secret material ever enters
+any audit row, receipt, log, or artifact (§4 zero disclosure).
 
 Forbidden on this identity — any of these appearing at creation, or later
 by drift, is a BLOCKER (audits verify):
 
 ```text
 workflow.execute = FORBIDDEN      workflow.admin = FORBIDDEN
+workflow transition (any workflow write/mutation scope) = FORBIDDEN
+                                   (structural: zero workflow write scopes)
 scheduler.manage = FORBIDDEN      scheduler.read = FORBIDDEN
                                    (zero scheduler scopes of any kind)
+forum.write = FORBIDDEN           (zero forum scopes/audiences of any kind)
+wildcard = FORBIDDEN              ('*' or any wildcard pattern)
+management scope = FORBIDDEN      (svc-auth auth.identity.provision and any
+                                   auth.* management scope/audience)
 any additional audience/scope    = FORBIDDEN
 reuse of any HR main-identity credential = FORBIDDEN
 ```
@@ -110,6 +165,14 @@ refuses to mint outside the grant (`scope ⊄ grant.scopes → invalid_scope`).
   invalidates the old immediately (no grace); rotation requires the same
   one-shot execution discipline.
 
+```text
+SECRET_ZERO_DISCLOSURE = YES (frozen): raw secret material exists in
+exactly two places — auth-service's stored credential and the one-time
+handoff target above. It never appears in any log, chat, channel, PR,
+issue, report, audit row, receipt, or Spec text — this document included
+(it carries, and can only ever carry, no secret material).
+```
+
 ## 5. Rerun NOOP and conflict fail-closed
 
 - Exact rerun of the creation plan (same agent_id/external_ref/shape) after
@@ -123,7 +186,8 @@ refuses to mint outside the grant (`scope ⊄ grant.scopes → invalid_scope`).
 ## 6. Rollback / revoke (frozen order, each step idempotent)
 
 ```text
-1. svc-workflow coordinator role revoke (governed by the svc-workflow Spec)
+1. svc-workflow GLOBAL_WORKFLOW_READER role revoke (governed by the
+   svc-workflow Spec)
 2. revoke both grant entries (machine_access_grants)
 3. revoke the client (secret immediately invalid)
 4. disable the principal
@@ -146,11 +210,21 @@ new exact-rerun (§5). No data deletion is required or authorized.
 - AC-6: rollback order (§6) executes idempotently in a non-production
   rehearsal; each step auditable.
 - AC-7: this PR itself changes no auth-service code (docs only).
+- AC-8: zero secret disclosure — no artifact, log, receipt, or audit row
+  produced by any round under this Spec contains raw secret material.
+- AC-9: audit envelope — every real write of the apply round is covered
+  same-transaction by a closed 13-field `grant_change_audits` row (grants)
+  or a provisioning audit row (principal/client/secret).
+- AC-10: §3.2 precheck — with audience `agent-wake` unregistered, the apply
+  run aborts with zero writes and never auto-registers an audience.
 
 ## 8. Alternatives and disposition
 
-- Grant coordinator to HR main identity — rejected (HR lineage holds
-  workflow.execute-capable credentials; svc-workflow Spec §3 evidence).
+- Grant the global workflow role to the HR main identity — rejected (the
+  withdrawn r2-era coordinator draft; HR lineage holds
+  workflow.execute-capable credentials; final DUAL_GLOBAL_READER_MODEL
+  gives the HR main identity read-only READER only — svc-workflow Spec §1
+  evidence).
 - Reuse an existing fleet client for the dispatcher — rejected: violates
   identity separation and the no-fleet-impact ruling.
 - No-Client token path / shared service token — rejected: no per-identity
@@ -161,8 +235,13 @@ new exact-rerun (§5). No data deletion is required or authorized.
 ## 9. What this PR changes
 
 ```text
-DOCS ONLY — exactly one new spec file + one docs/specs/README.md index row.
-IDENTITY_CHANGE = NONE
-PRODUCT_CODE_CHANGE = NONE
-PRODUCTION_CHANGE = NONE
+DOCS ONLY — one new spec file + one docs/specs/README.md index row (plus
+this revision round's spec-only amendments; still zero code changes).
+IDENTITY_SPEC_PR    = #31 (this branch)
+IDENTITY_CREATED    = NO
+CLIENT_CREATED      = NO
+GRANT_CHANGE        = NONE
+PRODUCTION_CHANGE   = NONE
+SECRET_MATERIALIZED = NO
+READY_FOR_INDEPENDENT_REVIEW = YES
 ```
