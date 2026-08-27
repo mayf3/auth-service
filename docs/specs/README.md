@@ -42,6 +42,7 @@ Program 或 governance adoption Spec 使用 `implementation_authority: none` 时
 | `AUTH_SERVICE_SVC_FORUM_AUDIENCE_REGISTRY_RECONCILIATION_V1` | implementation | accepted | contracts（仅 CTR-RR-001 冻结的三文件闭包） | svc-forum Audience Registry 离线 reconciliation 子 Spec：生产 `registered_scopes` 单列收敛回 CCR 冻结目标 `[forum.read, forum.write]`；绑定 PR #16 三文件实现闭包与 exact rerun NOOP / conflict fail-closed 语义 |
 | `AUTH_SERVICE_SVC_FORUM_LEGACY_GRANT_NARROWING_V1` | implementation | accepted | contracts（仅 CTR-NG-001 冻结的三文件闭包：`scripts/narrow-svc-forum-legacy-grant-v1.ts`；`scripts/run-svc-forum-legacy-grant-narrowing-v1-conformance.sh`；`tests/oauth/narrow-svc-forum-legacy-grant-v1.test.ts`） | svc-forum 遗留 Grant 最小降权子 Spec；preserved implementation 当前不 conformant、未获 merge authority，production apply 不因 acceptance 自动授权 |
 | `AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1` | implementation | accepted | contracts（仅 CTR-VL-002 冻结的 18 文件闭包） | Minimal Auth Contract `1.3.0` runtime/version linkage 子 Spec；5 个 proven linkage 文件并入 18 文件实现闭包，2 个非必要文件排除 |
+| `AUTH_SERVICE_AGENT_WAKE_AUDIENCE_CCR_V1` | implementation | proposed | none | 注册 `agent-wake` Audience（machine-only、agent-profile、仅 `agent.wake` scope）的 bounded child CCR：冻结 exact entry、versioned registry delta + 版本联动、positive/negative conformance 与 15 文件 exact implementation closure；不创建 Client、不写 Grant、零生产效果。五 Spec 单向依赖链（WAKE → PR #31 identity → svc-workflow PR #14 → dsh-agent-core PR #83 → PR #87）的根节点 |
 
 ## Architecture authorities outside this directory
 
