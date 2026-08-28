@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_MOBILE_PUBLIC_OAUTH_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -24,13 +24,15 @@ Public Client OAuth 登录合同。登录只在第一方外部系统浏览器中
 verified HTTPS App Link 回到 Mobile；Mobile 使用 Authorization Code + PKCE S256
 换取现有 Human Access Token 与旋转式 Refresh Credential。
 
-本轮只创建 proposed Spec，不执行注册、实现、数据库变更、部署或合并：
+本 Spec 已在本 PR 分支由 Owner 接受，但尚未合入 `main`；本轮未执行注册、实现、
+数据库变更、部署或合并：
 
 ```text
 REPOSITORY = mayf3/auth-service
 EXPECTED_BASE = d529bd3c28ece3967149ad793794f8dac2020276
 EXECUTION_BASE_LOCK_MODE = EXACT_COMMIT
-STATUS = proposed
+AUTHORING_STATUS_AT_START = proposed
+CURRENT_SPEC_STATUS = accepted
 IMPLEMENTATION_AUTHORITY = contracts
 PRODUCT_CODE_CHANGE = NONE
 PRISMA_CHANGE = NONE
@@ -39,9 +41,11 @@ PRODUCTION_CHANGE = NONE
 MERGE_PERFORMED = NO
 ```
 
-`status: proposed` 不授权实现或生产变更。只有本 Spec 的 exact content 经授权 actor
-接受并合入 `main` 后，后续实现才可在本 Spec 的 Contracts 范围内另行执行；production
-registration/apply 与 deployment 仍需独立明确授权和证据。
+This Spec has been owner-accepted on this PR branch and becomes active repository
+authority only after merge to main. No product implementation, Browser Login,
+Audience/Client/Redirect/Grant registration, database mutation, production apply,
+deployment, or Acceptance item has been executed. Production registration/apply
+remains separately gated and is not authorized by Spec acceptance.
 
 ### 1.1 Frozen owner values
 
@@ -153,8 +157,8 @@ amend Human Token schema。若本 Spec 与上级 authority 冲突，以 accepted
   `AUTH_SERVICE_MOBILE_PUBLIC_OAUTH_V1` governing Spec；Owner 提供的 mobile-specific
   browser UX、exact Client/Audience/Redirect 与 Gateway boundary 尚无 accepted child Spec。
   Basis: `OBS-MPO-004`、`OBS-MPO-005`、`CLM-MPO-001`、`EVD-MPO-003`。
-- `STATE-MPO-004` — 本任务只授权 docs-only proposed Spec；未授权产品、Prisma、数据库、
-  production 或 merge 操作。
+- `STATE-MPO-004` — authoring-time 任务只授权 docs-only proposed Spec；未授权产品、
+  Prisma、数据库、production 或 merge 操作。
   Basis: `OBS-MPO-005`、`EVD-MPO-004`。
 
 本 Spec 不声明任何 production runtime、deployed revision 或数据库当前值；这些环境本轮
@@ -657,8 +661,8 @@ Family 内部状态。
 
 ## 10. Acceptance
 
-以下均是未来 implementation/conformance 的要求，不是本 proposed docs-only PR 已执行的
-runtime evidence。
+以下均是未来 implementation/conformance 的要求，不是本 owner-accepted docs-only PR
+已执行的 runtime evidence；所有 Acceptance items 仍未执行。
 
 ### ACC-MPO-001 — Browser UX and credential boundary
 
@@ -870,7 +874,8 @@ TASK_TYPE = 执行
 SPEC_GOVERNANCE_MODE = AUTHOR
 SPEC_ID = AUTH_SERVICE_MOBILE_PUBLIC_OAUTH_V1
 SPEC_KIND = implementation
-STATUS = proposed
+AUTHORING_STATUS_AT_START = proposed
+CURRENT_SPEC_STATUS = accepted
 AUTHORITY_LEVEL = governing_spec
 IMPLEMENTATION_AUTHORITY = contracts
 PRIMARY_PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V2
@@ -882,7 +887,7 @@ CONTRACT_COUNT = 15
 CONTRACTS_WITH_ACCEPTANCE = 15
 AUTHORING_READY_FOR_REVIEW = YES
 
-DELIVERABLE = docs-only proposed Spec
+DELIVERABLE = docs-only owner-accepted Spec candidate
 PRODUCT_CODE_CHANGE = NONE
 PRISMA_CHANGE = NONE
 DATABASE_CHANGE = NONE
@@ -900,5 +905,5 @@ AMENDMENT_SCOPE = CTR-MPO-001 + ACC-MPO-001 browser security closure only
 AUTHORIZATION_CODE_TTL_CHANGE = NONE
 AUTHORIZATION_CODE_TTL_EXPLICITNESS = FOLLOW_UP_DEBT
 
-NEXT_TASK = 认证 审计
+NEXT_TASK = 采纳 审计
 ```
