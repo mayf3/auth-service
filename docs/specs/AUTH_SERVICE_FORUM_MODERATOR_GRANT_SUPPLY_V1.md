@@ -858,3 +858,111 @@ PRODUCT_CODE_CHANGE = NONE
 GRANT_CHANGE = NONE
 PRODUCTION_CHANGE = NONE
 ```
+
+---
+
+## 15. Revision record — 2026-08-28 production read-only reconfirmation (授权 执行 R2)
+
+This revision is docs-only and purely additive. §1–§14 are byte-preserved.
+This section records the fresh production read-only reconfirmation that
+`STATE-FMG-005` / `CLM-FMG-004` explicitly deferred, plus a base update.
+
+### 15.1 Base update
+
+The authoring branch was rebased from `d529bd3c` onto current
+`github/main@51a11af57ce39eafac5883e0c32474ea06906b8e` (PR #31 merge). The
+branch's only content is this Spec file; the rebase changed no semantics.
+At `51a11af` the executable bundle is still `registry_version=1.3.0` with
+exactly five audiences and `svc-forum.registered_scopes=[forum.read,
+forum.write]`, so `OBS-FMG-001` / `STATE-FMG-001` / `STATE-FMG-003` remain
+current (Bundle `1.4.0` accepted but still unmerged; PR #29 draft).
+
+### 15.2 Fresh production read-only observation (2026-08-28)
+
+`OBS-FMG-006` — Production Auth state re-read (read-only `SELECT` via the
+read-only database role; no write, no secret or credential material read or
+reproduced; observed 2026-08-28):
+
+```text
+machine_principals: agent_id='agt_course-community-agent-2'
+  -> id = 9f7cf4c5-7b2c-4239-9993-d9b2a2e0df56, display_name='论坛版主',
+     principal_type=agent, status=active
+machine_clients: client_id='mc_hvEfjkJ5BTKA8HZXRmbzNVw0'
+  -> internal id = 7f35380c-f155-4275-b29f-307a3335775a,
+     machine_principal_id = 9f7cf4c5-7b2c-4239-9993-d9b2a2e0df56 (exact bind),
+     status=active, revoked_at=null,
+     external_ref='agentcore:v1:client:agt_course-community-agent-2'
+clients_of_target_principal = exactly 1 row (mc_hvEfjkJ5BTKA8HZXRmbzNVw0)
+machine_access_grants(client):
+  svc-forum  {forum.read, forum.write}   version 1  revoked_at=null
+  svc-workflow {workflow.read}           version 1  revoked_at=null
+auth_audiences: audience_id='svc-forum'
+  -> registered_scopes={forum.read, forum.write}, status=active, version=1
+machine_access_grants rows containing 'forum.moderate' (any client) = 0
+active machine_clients with external_ref LIKE 'agentcore:v1:client:%' = 88
+```
+
+### 15.3 Resolutions recorded
+
+- `STATE-FMG-005` / `CLM-FMG-004` (production Audience source state was an
+  OPEN_ASSUMPTION) are **resolved by `OBS-FMG-006`**: the live production
+  `auth_audiences` row equals the exact `CTR-FMG-008` source state
+  (`[forum.read,forum.write]`, active, version 1). A future plan still MUST
+  re-read live state; this reconfirmation does not substitute for the plan-time
+  read.
+- `CTR-FMG-001` identity closure is reconfirmed with the concrete UUIDs: the
+  exact Principal UUID is `9f7cf4c5-7b2c-4239-9993-d9b2a2e0df56` and the exact
+  Client internal id is `7f35380c-f155-4275-b29f-307a3335775a`; the Client is
+  the **sole** client of that Principal. No identity ambiguity remains on the
+  target tuple.
+- Identity near-collisions exist and are explicitly non-target (recorded so no
+  future resolution step matches them): `course-community-agent-2` **without**
+  the `agt_` prefix (`132ab857-35ab-408b-b909-bc0b1deab55b`, display
+  `论坛版主` — the Principal of the forbidden legacy client
+  `mc_oc_IV5jxnaVRJKwUmMMwQEiOqjd`), `course-community-agent`
+  (`1f5b6d46-4abd-4964-9575-1ccad219a1b2`), and `agt_course-community-agent`
+  (`aaaf53e6-140b-4af4-9e34-82d0e6c92f2d`). Prefix-less and display-name
+  matching remain forbidden by `CTR-FMG-001`'s exact-`external_ref`/`agent_id`
+  resolution.
+- Fleet count drift: the pinned `OBS-FMG-003` snapshot carried the exact-86
+  fleet baseline; live active `agentcore:v1:client:*` count is now 88. This is
+  expected fleet growth, not a conflict: `CTR-FMG-005`'s operative invariant is
+  that **every non-target Client row has Grant writes zero and audit writes
+  zero**; the literal "85" in `CTR-FMG-005` reads as the snapshot-bound count
+  and the future plan counts non-targets dynamically from live state.
+- `CLM-FMG-001` (grant-only implementation fails closed) gains concrete source
+  coordinates in the deployed V1 path: `src/lib/oauth/v1/direct.ts` requires
+  bundle/DB audience equality (`findV1AudienceMismatch` →
+  `audience_registry_mismatch:<field>`) and requires every granted scope to be
+  a member of `runtimeAudience.registeredScopes` (else
+  `machine_grant_state_invalid`, whole-grant fail-closed — a Grant row carrying
+  `forum.moderate` before registration would break even the existing
+  `forum.read`/`forum.write` minting for that Client). This confirms the
+  §CTR-FMG-004 both-fields-together transaction ordering.
+
+### 15.4 Sister-spec linkage
+
+The Agent Core Broker consumer surface that first requires `forum.moderate` is
+specified in `mayf3/dsh-agent-core` proposed Spec
+`AGENT_CORE_FORUM_MODERATION_CAPABILITIES_V1` (branch
+`docs/forum-moderation-capabilities-v1`, same round). Neither spec authorizes
+the other's implementation; both stay `proposed` with
+`implementation_authority: none`.
+
+### 15.5 Revision result
+
+```text
+REVISION_ROUND = 2 (授权 执行 reconfirmation)
+REBASED_BASE = github/main@51a11af (from d529bd3c; spec content unchanged by rebase)
+SPEC_SECTIONS_1_14 = BYTE_PRESERVED
+STATE_FMG_005 = RESOLVED_BY_OBS_FMG_006 (live audience = CTR-FMG-008 source state)
+CLM_FMG_004 = SUPPORTED (was OPEN_ASSUMPTION)
+MODERATOR_PRINCIPAL_UUID = 9f7cf4c5-7b2c-4239-9993-d9b2a2e0df56
+IDENTITY_AMBIGUITY = NONE_ON_TARGET (near-collisions recorded non-target)
+FLEET_LIVE_COUNT = 88 active (snapshot 86; non-target invariant unchanged)
+STATUS = proposed (unchanged)
+AUTHORING_READY_FOR_REVIEW = YES
+PRODUCT_CODE_CHANGE = NONE
+GRANT_CHANGE = NONE
+PRODUCTION_CHANGE = NONE
+```
