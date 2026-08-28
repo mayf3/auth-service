@@ -1,9 +1,9 @@
 ---
 spec_id: AUTH_SERVICE_AGENT_WAKE_AUDIENCE_CCR_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 production_apply_authority: none
 scope:
   - mayf3/auth-service
@@ -786,3 +786,44 @@ DATABASE_CHANGE = NONE
 PRODUCTION_CHANGE = NONE
 MERGE_PERFORMED = NO
 ```
+
+## 15. Acceptance Record
+
+```text
+ACCEPTED_BY = mayf3
+INDEPENDENT_REVIEW = 唤醒 审计 = PASS
+REVIEWED_BASE = d529bd3c28ece3967149ad793794f8dac2020276
+REVIEWED_SPEC_HEAD = b0443bc3a88722b93abd1b12fbe46e177a9ba0b2
+BLOCKERS = NONE
+REQUIRED_FIXES = NONE
+IMPLEMENTATION_CLOSURE = PASS (16 文件封闭集合，含 validate.mjs；CTR-AW-007)
+VERSIONED_DELTA = PASS
+SPEC_PR = mayf3/auth-service#32
+LIFECYCLE_DELTA = status: proposed -> accepted;
+  implementation_authority: none -> contracts
+SEMANTIC_DELTA_AFTER_REVIEW = NONE
+MAIN_AT_REVIEW = d529bd3c28ece3967149ad793794f8dac2020276 (no new commits; no
+  authority conflict)
+PR_DIFF_AT_REVIEW = exactly two files (this Spec + docs/specs/README.md index row)
+```
+
+### Audit history (唤醒 审计)
+
+```text
+ROUND_1 = REVISE — HEAD_DRIFT = NONE / EXACT_AUDIENCE_SCOPE = PASS /
+  VERSIONED_DELTA = PASS；唯一 blocker：IMPLEMENTATION_CLOSURE 15 文件缺
+  contract-bundles/minimal-auth-v1/validate.mjs
+ROUND_1_FIX = reviewed-head revision commit b0443bc — closure 15 -> 16
+  （CTR-AW-007 + OBS-AW-009 + EVD-AW-004）；VALIDATE_MJS_CLASSIFICATION =
+  NOT_NECESSARY -> PROVEN_NECESSARY；validate.mjs 唯一允许语义变化冻结为
+  :395 first-wave Audience 集合字面量追加恰 agent-wake（单行）；其余裁定与
+  §1 冻结 entry byte-preserved
+ROUND_2 = PASS at b0443bc3a88722b93abd1b12fbe46e177a9ba0b2 —
+  IMPLEMENTATION_CLOSURE = PASS / VERSIONED_DELTA = PASS / BLOCKERS = NONE /
+  READY_FOR_ACCEPTANCE_FINALIZE = YES
+```
+
+§14 Frozen summary 保持 authoring-time 历史记录不变（PR #27 §12 先例）；
+本 Record 为唯一 lifecycle authority。Acceptance 不产生任何生产效果
+（CTR-AW-008）：不创建 Audience / Client / Credential / Grant，不
+production apply；AuthAudience 生产行创建与实现 PR 属后续独立轮次。
