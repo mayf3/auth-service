@@ -1,9 +1,9 @@
 ---
 spec_id: AUTH_SERVICE_AGENTCORE_HR_DISPATCHER_IDENTITY_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 production_apply_authority: none
 scope:
   - mayf3/auth-service
@@ -310,3 +310,39 @@ DOWNSTREAM_HEAD_PINS = NONE (zero normative or exact-head dependencies on
 CIRCULAR_AUTHORITY_PIN_COUNT (this Spec) = 0
 READY_FOR_SEQUENTIAL_REVIEW = YES (WAKE PR #32 merged + accepted)
 ```
+
+## 10. Acceptance Record
+
+```text
+ACCEPTED_BY = mayf3
+INDEPENDENT_REVIEW = 调身 审计 = ACCEPT
+REVIEWED_BASE = eb1a1c15488b75c4a1828902f5c65a38178a88ce
+REVIEWED_SPEC_HEAD = 5981fece02b62e62926b5e15de32a3bed16c1d2f
+BLOCKERS = NONE
+REQUIRED_FIXES = NONE
+SPEC_PR = mayf3/auth-service#31
+LIFECYCLE_DELTA = status: proposed -> accepted;
+  implementation_authority: none -> contracts;
+  production_apply_authority 保持 none（acceptance 不授权 production
+  apply；§3.1 APPLY 轮仍需独立 owner 授权）
+SEMANTIC_DELTA_AFTER_REVIEW = NONE
+MAIN_AT_REVIEW = eb1a1c15488b75c4a1828902f5c65a38178a88ce（audited head
+  5981fec 即 base reconciliation merge of this main tip；main 零新
+  commit，无 authority conflict）
+PR_DIFF_AT_REVIEW = exactly two files（this Spec + docs/specs/README.md
+  index row）
+```
+
+头部 PROPOSED blockquote 与 §9 冻结块（含 SPEC_STATUS = proposed /
+IMPLEMENTATION_AUTHORITY = none 等 authoring-time 字段）按 PR #27 §12 /
+WAKE PR #32 §15 先例保持历史记录不变；本 Record 与 frontmatter 为唯一
+lifecycle authority。§1–§9 normative 正文（§2 identity model、§3 exact
+grant shape + forbidden scopes、§3.1–§3.3、§4 secret handoff、§5
+NOOP/conflict、§6 rollback、§7 ACs、§8 alternatives）byte-preserved，
+本次 acceptance 零语义变更。
+
+Acceptance 不产生任何生产效果：不创建 Principal / Client / Secret /
+Grant，无 production apply，无代码变更（AC-7 语义保持 docs-only）。
+identity 创建的 APPLY 轮属后续独立 owner-authorized 执行轮次（§3.1）。
+上游依赖 pin（AUTH_SERVICE_AGENT_WAKE_AUDIENCE_CCR_V1 @ eb1a1c1，
+accepted）保持有效。
