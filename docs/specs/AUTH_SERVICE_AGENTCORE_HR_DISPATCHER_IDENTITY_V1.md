@@ -13,18 +13,19 @@ governed_by:
 external_authorities:
   # DAG node 2 of WAKE -> 31 -> 14 -> 83 -> 87. Sole normative dependency =
   # the agent-wake Audience registration authority (sibling PR in THIS
-  # repository; authority lives on its own branch, not in this PR's base).
+  # repository; accepted and merged to main via PR #32 @ eb1a1c1).
   # Downstream Specs (svc-workflow PR #14, dsh-agent-core PR #83 / PR #87)
   # may pin THIS Spec's final head, never the reverse; this Spec pins no
   # downstream head.
   - repository: mayf3/auth-service
     authority_id: AUTH_SERVICE_AGENT_WAKE_AUDIENCE_CCR_V1
-    revision: 3a1f5cda2bcffbe4ac58d4c41dfc594e8639ffb3
-    relation: prerequisite_audience_registration (proposed, PR #32 — the
-      machine-only agent-profile audience 'agent-wake' with registered
-      scope 'agent.wake' that grant entry 2 of §3 requires; its
-      acceptance + implementation is a precondition of this Spec's APPLY
-      round, fail-closed per §3.2)
+    revision: eb1a1c15488b75c4a1828902f5c65a38178a88ce
+    relation: prerequisite_audience_registration (accepted, PR #32 merged
+      @ eb1a1c1 — the machine-only agent-profile audience 'agent-wake'
+      with registered scope 'agent.wake' that grant entry 2 of §3
+      requires; its merged implementation + the resulting registered
+      audience are preconditions of this Spec's APPLY round, fail-closed
+      per §3.2)
 supersedes: []
 superseded_by: null
 owners:
@@ -51,6 +52,20 @@ owners:
 > (`AUTH_SERVICE_AGENT_WAKE_AUDIENCE_CCR_V1`, PR #32); it pins no
 > downstream head, and downstream artifacts appear only as Non-goals
 > descriptions.
+>
+> **Revision note (2026-08-28, round 3 — upstream acceptance pin sync):**
+> The sole normative upstream `AUTH_SERVICE_AGENT_WAKE_AUDIENCE_CCR_V1`
+> completed its acceptance transaction and merged to main via PR #32
+> (merge commit `eb1a1c15488b75c4a1828902f5c65a38178a88ce`; spec status
+> proposed → accepted, implementation_authority → contracts, §15
+> Acceptance Record: 唤醒 审计 = PASS, BLOCKERS = NONE). This round
+> re-anchors the dependency pin from the proposed branch head (3a1f5cd)
+> to that accepted main head — frontmatter revision/relation, §3.2 and
+> §9 status annotations only. Every frozen field of this Spec (§2
+> identity model, §3 exact grant shape + forbidden scopes, §4 secret
+> handoff, §5 NOOP/conflict, §6 rollback, §7 ACs) is byte-preserved;
+> this round creates no Principal / Client / Secret / Grant and changes
+> no code.
 
 ## 1. Goal
 
@@ -139,13 +154,14 @@ mint additionally enforces the audience registry and principal profile.
 Grant entry 2 therefore requires a registered, machine-enabled,
 agent-profile audience `agent-wake` whose registered scopes cover
 `agent.wake`. That registration now has a dedicated authority:
-`AUTH_SERVICE_AGENT_WAKE_AUDIENCE_CCR_V1` (proposed, PR #32 @
-3a1f5cda2bcffbe4ac58d4c41dfc594e8639ffb3) — the Minimal-Auth audience
+`AUTH_SERVICE_AGENT_WAKE_AUDIENCE_CCR_V1` (accepted, PR #32 merged @
+eb1a1c15488b75c4a1828902f5c65a38178a88ce) — the Minimal-Auth audience
 CCR pattern, same class as
 `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1` / the notification-ingress CCR.
-It is this Spec's SOLE normative upstream dependency: its acceptance,
-merged implementation, and the resulting registered audience (bundle
-entry + AuthAudience row) are preconditions of this Spec's APPLY round.
+It is this Spec's SOLE normative upstream dependency: its acceptance is
+complete (PR #32 merged, status accepted); its merged implementation and
+the resulting registered audience (bundle entry + AuthAudience row)
+remain preconditions of this Spec's APPLY round.
 Fail-closed ruling (unchanged): if audience `agent-wake` is not yet
 registered at apply time, the precheck aborts the run with ZERO writes
 (no partial apply of grant entry 1 alone, no auto-registration, no
@@ -285,11 +301,12 @@ PRODUCTION_CHANGE   = NONE
 SECRET_MATERIALIZED = NO
 DEPENDENCY_POSITION = node 2 of WAKE -> 31 -> 14 -> 83 -> 87
 UPSTREAM_HEAD_PINS  = AUTH_SERVICE_AGENT_WAKE_AUDIENCE_CCR_V1 only
-                     (mayf3/auth-service PR #32 @
-                     3a1f5cda2bcffbe4ac58d4c41dfc594e8639ffb3)
+                     (mayf3/auth-service PR #32 merged @
+                     eb1a1c15488b75c4a1828902f5c65a38178a88ce,
+                     accepted)
 DOWNSTREAM_HEAD_PINS = NONE (zero normative or exact-head dependencies on
                      PR #14 / PR #83 / PR #87; downstream responsibilities
                      appear only as Non-goals descriptions)
 CIRCULAR_AUTHORITY_PIN_COUNT (this Spec) = 0
-READY_FOR_SEQUENTIAL_REVIEW = YES (after WAKE PR #32)
+READY_FOR_SEQUENTIAL_REVIEW = YES (WAKE PR #32 merged + accepted)
 ```
