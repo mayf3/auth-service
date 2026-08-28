@@ -1,9 +1,9 @@
 ---
 spec_id: AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 scope:
   - mayf3/auth-service
   - mayf3/agent-forum consumer compatibility (evidence only; source change forbidden)
@@ -966,3 +966,51 @@ PRODUCT_CODE_CHANGE = NONE
 GRANT_CHANGE = NONE
 PRODUCTION_CHANGE = NONE
 ```
+
+## 16. Acceptance Record
+
+```text
+ACCEPTED_BY = mayf3
+INDEPENDENT_REVIEW = 授权 审计 = PASS
+REVIEW_RESULTS =
+  EXACT_IDENTITY = CONFIRMED
+  BUNDLE_SCOPE_REGISTRATION = LEGAL
+  EXACT_GRANT_DELTA = forum.moderate ONLY
+  BLOCKERS = NONE
+  READY_FOR_ACCEPTANCE_FINALIZE = YES
+REVIEWED_BASE = 51a11af57ce39eafac5883e0c32474ea06906b8e
+REVIEWED_SPEC_HEAD = 37dee362d233a8787a96329cf207cae8e00898b1
+SPEC_PR = mayf3/auth-service#34
+LIFECYCLE_DELTA = status: proposed -> accepted;
+  implementation_authority: none -> contracts (CTR-FMG-018);
+  PRODUCTION_APPLY_AUTHORITY 保持 none（acceptance 不授权 production
+  apply，CTR-FMG-016；apply 需后续独立 exact 授权）
+SEMANTIC_DELTA_AFTER_REVIEW = NONE (github/main tip = 51a11af = merge
+  base；PR head 零漂移，评审后 main 零新 commit；PR diff 仍为恰两文件：
+  this Spec + docs/specs/README.md index row)
+SUPERSEDED_SPECS_UPDATED = YES（§3 / ACC-FMG-010 原子 whole-supersede，
+  同一 acceptance commit 内完成）：
+  AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1            accepted -> superseded
+  AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1          accepted -> superseded
+  AUTH_SERVICE_SVC_FORUM_AUDIENCE_REGISTRY_RECONCILIATION_V1 accepted -> superseded
+  三者 superseded_by backlink = 本 Spec；历史 normative body 全部
+  byte-preserved（各 Spec 仅 frontmatter status + superseded_by 两处变化）
+BUNDLE_CHANGE = NONE
+GRANT_CHANGE = NONE
+PRODUCTION_CHANGE = NONE
+IMPLEMENTATION_BLOCKER = NOTIFICATION_INGRESS_1_4_0_NOT_MERGED
+READY_FOR_IMPLEMENTATION = NO
+```
+
+头部 PROPOSED blockquote、§13 冻结块与 §14/§15 authoring-time 字段（含
+`STATUS = proposed` / `IMPLEMENTATION_AUTHORITY = none`）按 PR #27 §12 /
+WAKE PR #32 §15 / HR dispatcher PR #31 §10 先例保持历史记录不变；本 Record
+与 frontmatter 为唯一 lifecycle authority。§1–§15 normative 正文全部
+byte-preserved，本次 acceptance 零语义变更。
+
+实现前置仍被阻塞：`CTR-FMG-015` 要求实现 base 必须包含已合并、conformant
+的 Bundle `1.4.0`（notification-ingress 前置，PR #29 仍 draft 未合并）。
+因此本轮 `READY_FOR_IMPLEMENTATION = NO`；`forum.moderate` 的 Bundle 注册
+（`1.4.0 -> 1.5.0`）与 Grant apply 均不得开始。Acceptance 不产生任何生产
+效果：不注册 scope、不创建 Principal / Client / Credential / Grant、无
+production apply、无代码变更（ACC-FMG-010 docs-only 语义保持）。
