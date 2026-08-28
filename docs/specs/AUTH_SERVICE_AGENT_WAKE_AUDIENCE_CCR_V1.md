@@ -73,7 +73,7 @@ dependency 或 exact-head pin。
 - 冻结唯一注册 Scope `agent.wake` 及其 auth-service 边界（CTR-AW-002/003）；
 - 冻结 versioned registry delta、版本联动与 runtime 兼容边界（CTR-AW-005）；
 - 冻结 positive / negative conformance（CTR-AW-006）；
-- 冻结 exact implementation closure（15 文件封闭集合，CTR-AW-007）；
+- 冻结 exact implementation closure（16 文件封闭集合，CTR-AW-007）；
 - 冻结未来唯一已规划 Grant requirement 的形态（descriptive，CTR-AW-004）；
 - 冻结 lifecycle 动作零生产效果（CTR-AW-008）与上位文档不修订裁定（CTR-AW-009）。
 
@@ -297,6 +297,37 @@ same-transaction audit grammar；本 Child 只为新的资源服务命名最小 
   - OQ-NIC-001：`grants-and-audiences.md` 历史 Audience 清单默认不逐项追加。
 - Provenance: 本 Spec authoring 审计。
 
+### OBS-AW-009 — NI 实现证据：first-wave Audience 集合 gate 使 validate.mjs 成为必要第 16 文件
+
+- Subject: `contract-bundles/minimal-auth-v1/validate.mjs` :391-395
+  first-wave Audience 集合字面量；NI 注册实现 draft
+  `3c5b293a79a96a652f30add9017e4210c488e251`（branch
+  `implement/notification-ingress-bundle-1.4.0`，2026-08-24；截至本修订
+  轮未合入 main，main registry 仍 `1.3.0`——与 OBS-AW-008 一致）
+- Source revision: `auth-service@3c5b293`（实现 draft；evidence 坐标，
+  非 authority pin）
+- Observed at: 2026-08-28（唤醒 修订轮）
+- Method: 只读 `git show` 审计。
+- Result:
+  - validate.mjs :391-395 将 registry Audience 精确集合硬编码为
+    `['adc-v2', 'svc-auth', 'svc-forum', 'svc-okr', 'svc-workflow']`
+    并以 `registry: first-wave Audience set changed` 为失败信息——新增
+    任何 Audience 而不改该行必然触发此 gate；
+  - NI 实现 diff = 恰 16 文件 = accepted NI closure 冻结的 15 文件
+    （OBS-AW-008）+ validate.mjs；validate.mjs 的唯一变更 = 该集合字面量
+    单行追加 `agent-core-notification-ingress-v1`；
+  - 该实现冻结的机械证据：不修改 validate.mjs 时，candidate bundle 的
+    validator 失败 = `registry: first-wave Audience set changed`（唯一）；
+    加入集合变化后 `MINIMAL_AUTH_V1_BUNDLE_VALID=true`，且其余 blocker
+    计数与 1.3.0 基线一致（FREEZE 0 / PRODUCTION 1 / CONSUMER 2 parity）；
+  - 含义：NI closure §4.3 对 validate.mjs 的 NOT_NECESSARY 分类（论据 =
+    service profile 已强制、validator 未触碰即通过）遗漏了 first-wave
+    集合 gate，被该实现证伪；OBS-AW-008 记录的 15 文件闭包作为「NI
+    closure Spec 冻结了什么」的历史事实保持准确，但新 Audience 注册的
+    executable truth = 16 文件。本 CTR 若不改闭包，机械上无法满足
+    CTR-AW-005(5) 的 `MINIMAL_AUTH_V1_BUNDLE_VALID=true`。
+- Provenance: 唤醒 审计 blocker 闭合的只读实现证据审计（2026-08-28）。
+
 ## 6. Claims and assumptions
 
 ### CLM-AW-001 — 一个 bounded child CCR 是必需且足够的注册权威
@@ -358,6 +389,19 @@ same-transaction audit grammar；本 Child 只为新的资源服务命名最小 
 - Limitations: 未来实现若发现缺口，溢出闭包 = OWNER_DECISION_REQUIRED
 - Provenance: accepted authority source
 
+### EVD-AW-004 — NI 实现证据支持闭包修正（15 → 16 文件）
+
+- Source observations: `OBS-AW-009`
+- Target: `CTR-AW-007`（validate.mjs = PROVEN_NECESSARY 第 16 文件与
+  单行冻结边界）、`ACC-AW-004`（validate.mjs gate 双侧判定）
+- Relation: SUPPORTS
+- Bound coordinates: `mayf3/auth-service@3c5b293`（实现 draft evidence
+  坐标；非 authority pin，未合入 main）
+- Strength/sufficiency: 实现级机械证明（omission = 唯一 validator 失败；
+  addition = VALID=true 且 blocker 计数与基线一致）
+- Limitations: 仅证明第 16 文件的必要性；不授权任何第 17 文件
+- Provenance: 只读 git 审计（2026-08-28 修订轮）
+
 ## 8. Decisions
 
 ### DEC-AW-001 — 注册唯一专用 agent Audience，字面量 `agent-wake`
@@ -406,8 +450,9 @@ same-transaction audit grammar；本 Child 只为新的资源服务命名最小 
   implementation closure（CTR-AW-005..007），避免 NI 路径中 parent/closure
   两轮拆分带来的中间状态。
 - Rejected alternative: 语义与闭包分两个 Spec。
-- Reason: NI closure 先例已把 15 文件闭包与版本边界机械定型，本 CCR 可
-  直接镜像；拆分无新信息增益。
+- Reason: NI closure 先例已把闭包形状与版本边界机械定型，本 CCR 可直接
+  镜像（闭包计数经 OBS-AW-009 实现证据修正为 16 文件）；拆分无新信息
+  增益。
 - 边界: 若独立评审发现闭包需要超出本 CCR 的 runtime 兼容面，溢出部分
   = OWNER_DECISION_REQUIRED，不得自行扩权。
 
@@ -521,10 +566,10 @@ fixture 语义）：
   复用（`workflow.read` / `forum.read` 对本 Audience）；超出 Grant 的
   extra scope（整请求拒绝）；namespace 违例（无前缀/错误前缀 scope）。
 
-### CTR-AW-007 — Exact implementation closure（15 文件封闭集合）
+### CTR-AW-007 — Exact implementation closure（16 文件封闭集合）
 
-accept 后的实现 PR MAY 修改且仅 MAY 修改以下文件（NI closure §4.3 同构；
-首个集合外文件 = `OWNER_DECISION_REQUIRED`）：
+accept 后的实现 PR MAY 修改且仅 MAY 修改以下文件（NI closure §4.3 同构
++ OBS-AW-009 实现证据修正；首个集合外文件 = `OWNER_DECISION_REQUIRED`）：
 
 ```text
 contract-bundles/minimal-auth-v1/audience-registry.json
@@ -538,14 +583,26 @@ contract-bundles/minimal-auth-v1/metadata/consumer-verification-matrix.json
 contract-bundles/minimal-auth-v1/metadata/adc-v2-scope-map.json
 contract-bundles/minimal-auth-v1/metadata/llm-todo-authorization-candidate.json
 contract-bundles/minimal-auth-v1/metadata/change-log.md
+contract-bundles/minimal-auth-v1/validate.mjs
 src/lib/oauth/v1/contract.ts
 tests/helpers/load-candidate-snapshot.ts
 tests/oauth/candidate-contract.test.ts
 tests/oauth/contract-runtime-v1.test.ts
 ```
 
+（构成 = 12 bundle + 4 runtime 兼容联动。）
+
+`validate.mjs` 的分类 = **PROVEN_NECESSARY**（OBS-AW-009；修正 NI closure
+§4.3 镜像继承的 NOT_NECESSARY 分类）。该文件唯一允许的语义变化 =
+:395 first-wave Audience 集合字面量追加恰 `agent-wake`（单行；两侧排序仍
+由 `.sort(asciiCompare)` 机械决定）。除此之外，实现 MUST NOT 修改该文件的：
+validator 其他规则、blocker 计数逻辑、principal profile 校验、scope 校验、
+digest / version 校验、其他 Audience 字面量、其他错误语义。
+
 无 wildcard、目录、generated 输出或"相关文件"授权；实现若发现路径
-rename/move，按 OWNER_DECISION 重新映射，不得模糊匹配。
+rename/move，按 OWNER_DECISION 重新映射，不得模糊匹配。NI 实现证据
+（OBS-AW-009）证明同一 Audience 集合 gate 必须修改 validate.mjs，但
+MUST NOT 据此扩大闭包到任何第 17 个文件（EXTRA_FILE_COUNT = 0）。
 
 ### CTR-AW-008 — Lifecycle 零生产效果
 
@@ -597,11 +654,19 @@ authority 由 accepted CCR + executable registry + change-log 携带）。
 
 ### ACC-AW-004 — 版本与联动
 
-- Contracts: `CTR-AW-005`
+- Contracts: `CTR-AW-005`、`CTR-AW-007`
 - Method: `npm run contract:v1:validate` 在实现分支与合并后 main 执行；
-  检查恰一次 minor 晋升与全部联动文件一致性。
-- Expected result: `MINIMAL_AUTH_V1_BUNDLE_VALID=true`；无原地伪装。
-- Failure condition: validator 报错、版本算术偏离或联动文件不一致。
+  检查恰一次 minor 晋升与全部联动文件一致性。validate.mjs gate 双侧
+  判定（OBS-AW-009 同构）：不修改 validate.mjs 的 candidate bundle
+  （其余 delta 齐备）必须确定性失败
+  `registry: first-wave Audience set changed`；随后加入恰
+  `agent-wake` 集合变化（CTR-AW-007 冻结的单行 delta）重新执行。
+- Expected result: `MINIMAL_AUTH_V1_BUNDLE_VALID=true`；无原地伪装；
+  其余 validator blocker 计数与未注册前基线一致（NI 先例 parity：
+  FREEZE 0 / PRODUCTION 1 / CONSUMER 2）。
+- Failure condition: validator 报错、版本算术偏离、联动文件不一致、
+  blocker 计数漂移，或 validate.mjs 出现 CTR-AW-007 冻结边界之外的
+  任何变更。
 
 ### ACC-AW-005 — Runtime 兼容边界
 
@@ -615,7 +680,7 @@ authority 由 accepted CCR + executable registry + change-log 携带）。
 
 - Contracts: `CTR-AW-008`
 - Method: 实现 PR diff + operational record 审计。
-- Expected result: 仅 15 文件闭包内变更；零 DB 写、零 credential、零
+- Expected result: 仅 16 文件闭包内变更；零 DB 写、零 credential、零
   Grant、零 deploy。
 - Failure condition: 任何被禁止动作发生，或 lifecycle 被声称生产生效。
 
@@ -707,7 +772,11 @@ DEPENDENCY_POSITION = ROOT of WAKE -> 31 -> 14 -> 83 -> 87
 EXTERNAL_HEAD_PINS  = NONE
 CIRCULAR_AUTHORITY_PIN_COUNT (this Spec) = 0
 
-IMPLEMENTATION_CLOSURE_FILES = 15 (CTR-AW-007)
+IMPLEMENTATION_CLOSURE_FILES = 16 (CTR-AW-007; 12 bundle + 4 runtime)
+IMPLEMENTATION_CLOSURE_COUNT = 16
+VALIDATE_MJS_INCLUDED = YES
+VALIDATE_MJS_CLASSIFICATION = PROVEN_NECESSARY (OBS-AW-009)
+EXTRA_FILE_COUNT = 0
 VERSION_RULE = exactly one additive minor above then-current registry_version
 PRODUCTION_GRANT_CHANGE = NONE
 CREDENTIAL_CREATED = NO
