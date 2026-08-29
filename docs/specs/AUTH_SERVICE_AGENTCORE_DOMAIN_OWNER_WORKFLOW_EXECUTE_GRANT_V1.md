@@ -45,7 +45,10 @@ PARTIAL_SUPERSESSION = NONE
 EVALUATED_BASE = 7110463636693b3c2eced9d97ccb186adf46907d
 ORIGINAL_AUTHORING_BASE = 325e781982c01a09d438e9d65df8079396e1520e
 PREVIOUS_EVALUATED_BASE = b88512881135dd8a0d382e8ca76650059df33725
-PREVIOUS_SPEC_HEAD = 29348f7f523d18ab0a7de710a6a48f1ff5f3e2b3
+PREVIOUS_SPEC_HEAD = 7ae1d771bf1ecb3ed7b183c0279eeb85c617600a
+REVIEW_ID = 5058012449
+REVIEW_RESULT = REVISE
+REVIEW_BLOCKERS_ADDRESSED = 5 / 5
 MAIN_SYNC_REASON = NOTIFICATION_INGRESS_CONTRACT_BUNDLE_1_4_0_COMPATIBLE_NO_SEMANTIC_DELTA
 CURRENT_MINIMAL_AUTH_CONTRACT_VERSION = 1.4.0
 SVC_WORKFLOW_AUDIENCE_SEMANTICS_UNCHANGED = YES
@@ -129,23 +132,26 @@ uses `PREFLIGHT_MODE = NEW`, with no partial supersession.
 
 ### 3.2 Forum sibling isolation
 
-The accepted `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` is an active sibling
-later-delta authority. It remains accepted and is neither superseded nor changed
-by this Child. In its own independently authorized apply path it may change the
-exact moderator Client's Forum scopes to:
+At reviewed base `7110463636693b3c2eced9d97ccb186adf46907d`,
+`AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` is an accepted sibling authority
+whose own independent apply path may produce the exact moderator Forum state
+`[forum.moderate, forum.read, forum.write]`. That is a time-indexed repository
+fact, not a lifecycle invariant owned by this Workflow Child.
+
+This PR and its eventual acceptance transaction make zero change to that sibling
+file/parentage and zero Forum Grant write. This Child does not include Forum
+state in its target, does not supersede/reparent the sibling, and makes no claim
+about the sibling's future lifecycle or any future Forum permission model.
 
 ```text
-[forum.moderate, forum.read, forum.write]
-```
-
-This Child makes no statement that all 86 Forum rows must forever remain
-read/write-only and does not block, amend, reparent, or authorize that sibling.
-
-```text
+AT_REVIEWED_BASE = 7110463636693b3c2eced9d97ccb186adf46907d
+ACTIVE_SIBLING_AUTHORITY_AT_REVIEWED_BASE = AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1
+ACTIVE_SIBLING_STATUS_AT_REVIEWED_BASE = accepted
+THIS_PR_CHANGE_TO_FORUM_SIBLING = NONE
+THIS_PR_CHANGE_TO_FORUM_GRANTS = NONE
 FORUM_AUTHORITY = OUT_OF_SCOPE
 FORUM_GRANT_WRITES = 0
-ACTIVE_SIBLING_AUTHORITY = AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1
-FORUM_MODERATOR_AUTHORITY_SUPERSEDED = NO
+FUTURE_FORUM_AUTHORITY_LIFECYCLE = NOT_GOVERNED_BY_THIS_SPEC
 ```
 
 ### 3.3 HR dispatcher separation
@@ -258,36 +264,48 @@ Pin semantics:
 ### STATE-DOWE-003 — Execute dependency and use are present
 
 - Subject: current Domain Owner workflow responsibility.
-- Environment: Workflow Assistance and workflow-instance operations;
-  owner-held use evidence.
+- Environment: current svc-workflow production database/audit records through a
+  transaction-read-only query with final action `ROLLBACK`.
+- Observed at: `2026-08-29T12:17:01.066779Z`.
+- Evidence artifact:
+  `AUTH_SERVICE_PR36_DOMAIN_OWNER_WORKFLOW_EXECUTE_USE_EVIDENCE_V1@2026-08-29T12:17:01.066779Z#sha256:de3b707ce06f16be3be45bdb302218a3a92879cb175afec3cadc879139e7fff7`.
 - Result: dependency `PRESENT`; used since grant `YES`, covering Workflow
-  Assistance resolve, Workflow instance cancel, and Domain Owner handling of
-  in-domain assistance cases.
+  Assistance resolve, Workflow instance cancel, and both current enabled Domain
+  Owner relationships.
 - Basis: `OBS-DOWE-003`, `CLM-DOWE-003`, `EVD-DOWE-003`.
 
 ### STATE-DOWE-004 — Historical apply lacked governing Spec authority
 
-- Subject: migration `agentcore-owner-wf-execute-grant-v1`, applied on
-  2026-08-26 under owner authority.
+- Subject: migration `agentcore-owner-wf-execute-grant-v1`, applied under owner
+  authority and represented by two immutable Grant audit rows.
+- Environment: current auth-service production audit database through role
+  `auth_ro`, `transaction_read_only=on`, final action `ROLLBACK`.
+- Observed at: `2026-08-29T12:17:29.913903Z`.
+- Evidence artifact:
+  `AUTH_SERVICE_PR36_HISTORICAL_OWNER_APPLY_AUTHORITY_GAP_V1@2026-08-29T12:17:29.913903Z#sha256:9f1f7e77e1666b23dd0cacdb3c9cdd42107f1f064f3944025771ef0e199e02c2`.
 - Source coordinate:
   `mayf3/dsh-agent-core@b5ab589d0aeaa7a28e04bd4e665d27317db0b2d7`.
 - Result: `OWNER_APPLY_ONLY`; governing Spec `NONE`; source commit content was
-  unrelated to the Grant and was not authority.
+  unrelated to the Grant and was not authority; retroactive authorization `NO`.
 - Basis: `OBS-DOWE-004`, `CLM-DOWE-004`, `EVD-DOWE-004`.
 
-### STATE-DOWE-005 — Re-evaluated authority base is exact
+### STATE-DOWE-005 — Current re-evaluated authority base is exact
 
 - Subject: `mayf3/auth-service` authority graph and governed paths at the
   current evaluated base.
-- As-of commit: `github/main@b88512881135dd8a0d382e8ca76650059df33725`.
-- Environment: fresh dedicated V2 authority-pin sync worktree.
-- Observed at: 2026-08-29 authority-pin sync round.
-- Result: drift from the original authoring base
-  `325e781982c01a09d438e9d65df8079396e1520e` is exactly three unrelated
-  Notification Ingress docs files; Fleet V1, Forum Moderator, and HR
-  Dispatcher blobs are byte-identical across the drift range; the previous
-  head `47f42d51da1aff14e74b71243fa3752c5cc32dca` was linearly rebased onto
-  the new base with zero merge commits.
+- As-of commit:
+  `github/main@7110463636693b3c2eced9d97ccb186adf46907d`.
+- Environment: fresh dedicated PR #36 review-amendment worktree.
+- Observed at: 2026-08-29 review-blocker amendment round.
+- Result: two historical sync rounds are fully classified. Round 1 advanced
+  `325e781982c01a09d438e9d65df8079396e1520e` to historical intermediate
+  `b88512881135dd8a0d382e8ca76650059df33725` through Notification Ingress
+  docs-only drift. Round 2 advanced that intermediate to current
+  `7110463636693b3c2eced9d97ccb186adf46907d` through Notification Ingress
+  Contract Bundle `1.4.0` implementation. Neither round changes the
+  `svc-workflow` Audience/Scope vocabulary, this Child, Fleet V1, Forum
+  Moderator, HR Dispatcher, Minimal Auth architecture, Grant schema/audit
+  envelope, or either external authority pin.
 - Basis: `OBS-DOWE-008`, `CLM-DOWE-001`, `EVD-DOWE-007`.
 
 ## 5. Observations
@@ -357,49 +375,84 @@ GRANT_WRITES = 0
   than publishing a session UUID. Independent review MUST inspect that private
   locator and mechanically reproduce all three separately named digests.
 
-### OBS-DOWE-003 — Owner-supplied execute dependency/use record
+### OBS-DOWE-003 — Canonical owner-held execute dependency/use evidence
 
-- Subject: uses after the historical grant.
-- Environment: current Workflow Assistance and workflow-instance records.
-- Observed at: owner evidence current as of 2026-08-28; the independent review
-  receipt MUST bind exact event coordinates and timestamps.
-- Stable private evidence reference:
-  `OWNER_HELD_WORKFLOW_DOMAIN_OWNER_EXECUTE_USE_SINCE_GRANT_20260828`.
-- Method: inspect owner-held case/instance records for each required use class;
-  this PR publishes no sensitive case content.
+- Subject: post-grant use plus current Domain Owner responsibility for both exact
+  identities.
+- Environment: current svc-workflow production database and audit records;
+  `transaction_read_only=on`; final action `ROLLBACK`.
+- Observed at: `2026-08-29T12:17:01.066779Z`.
+- Public safe evidence reference:
+  `AUTH_SERVICE_PR36_DOMAIN_OWNER_WORKFLOW_EXECUTE_USE_EVIDENCE_V1@2026-08-29T12:17:01.066779Z#sha256:de3b707ce06f16be3be45bdb302218a3a92879cb175afec3cadc879139e7fff7`.
+- Method: resolve each target Principal without publishing its UUID; select one
+  completed Assistance resolve by `agt_hr-agent` and one completed instance
+  cancel by `agt_build-in-public-agent`; join only safe Domain Owner enabled
+  state, domain relationship state, result status, and pinned route/scope
+  authority coordinates; serialize as sorted-key compact UTF-8 JSON with no
+  trailing newline. The true artifact/query locators are bound only in the
+  owner-held local evidence index and Reviewer private input.
 - Result:
 
 ```text
+USE_EVIDENCE_BINDING = PASS
+USE_EVIDENCE_ARTIFACT_SHA256 = de3b707ce06f16be3be45bdb302218a3a92879cb175afec3cadc879139e7fff7
+USE_EVIDENCE_ARTIFACT_PREIMAGE_CLASS = SAFE_TWO_EVENT_DOMAIN_OWNER_USE_PROJECTION
+USE_EVIDENCE_ARTIFACT_LENGTH_BYTES = 1196
+USE_EVIDENCE_ARTIFACT_TRAILING_NEWLINE = NO
+USE_EVIDENCE_EVENT_COUNT = 2
+USE_EVIDENCE_OPERATION_CLASSES = WORKFLOW_ASSISTANCE_RESOLVE + WORKFLOW_INSTANCE_CANCEL
+USE_EVIDENCE_OBSERVED_AT = 2026-08-29T12:17:01.066779Z
+CURRENT_DOMAIN_OWNER_ENABLED_COUNT = 2
+CURRENT_DOMAIN_OWNER_RELATIONSHIP_MATCH_COUNT = 2
 CURRENT_WORKFLOW_EXECUTE_DEPENDENCY = PRESENT
 WORKFLOW_EXECUTE_USED_SINCE_GRANT = YES
-USE_CLASS_1 = Workflow Assistance resolve
-USE_CLASS_2 = Workflow instance cancel
-USE_CLASS_3 = Domain Owner handling of in-domain assistance cases
+DATABASE_WRITES = 0
+GRANT_WRITES = 0
 ```
 
-- Privacy/provenance: evidence contents remain owner-held. Independent review
-  MUST inspect the private reference and bind its artifact digest, exact event
-  coordinates, and timestamps without publishing sensitive case data.
+- Privacy/provenance: the public Spec excludes event/audit IDs, Domain refs,
+  session UUIDs, tool sequence, complete local paths, payloads, public Client
+  IDs, tokens, secrets, and connection data. The local canonical artifact
+  contains only the permitted safe event fields; the owner-held index binds the
+  real locator and read-only query digest for reproducible private review.
 
-### OBS-DOWE-004 — Historical provenance classification
+### OBS-DOWE-004 — Canonical historical owner-apply authority-gap evidence
 
-- Subject: historical Grant migration and authority chain.
-- Environment: production auth-service immutable Grant audit and owner execution
-  record for 2026-08-26.
-- Observed at: owner evidence current as of 2026-08-28; independent review MUST
-  bind exact audit-row and execution-receipt timestamps.
-- Stable private evidence reference:
-  `OWNER_HELD_AUTH_AUDIT_AGENTCORE_OWNER_WF_EXECUTE_GRANT_V1_20260826`.
-- Method: owner-provided execution/audit provenance review, including migration
-  ID, closed audit envelope, source-repository coordinate, and authority chain;
-  independently query the exact GitHub commit object for source-content scope.
-- GitHub source-object result: exact commit exists in `mayf3/dsh-agent-core` and
+- Subject: historical Grant migration, exact two immutable audit coordinates,
+  source provenance, and authority chain.
+- Environment: current auth-service production audit database through role
+  `auth_ro`; `transaction_read_only=on`; final action `ROLLBACK`.
+- Observed at: `2026-08-29T12:17:29.913903Z`.
+- Public safe evidence reference:
+  `AUTH_SERVICE_PR36_HISTORICAL_OWNER_APPLY_AUTHORITY_GAP_V1@2026-08-29T12:17:29.913903Z#sha256:9f1f7e77e1666b23dd0cacdb3c9cdd42107f1f064f3944025771ef0e199e02c2`.
+- Method: select the two audit rows only by exact migration ID; join target
+  `agent_id` without publishing Client ID; project only the permitted safe
+  migration/version/scope/operator/approval/audit-coordinate/timestamp/source
+  and authority-class fields; serialize as sorted-key compact UTF-8 JSON with no
+  trailing newline. Independently query the exact GitHub source commit, which
   changes only `docs/specs/AGENT_CORE_LARK_UX_PHASE1_V2.md`, a Feishu UX
-  docs-only Spec unrelated to this Grant.
+  docs-only Spec unrelated to the Grant. True artifact/query locators remain in
+  the owner-held local evidence index and Reviewer private input.
 - Result:
 
 ```text
+HISTORICAL_APPLY_EVIDENCE_BINDING = PASS
+HISTORICAL_APPLY_EVIDENCE_ARTIFACT_SHA256 = 9f1f7e77e1666b23dd0cacdb3c9cdd42107f1f064f3944025771ef0e199e02c2
+HISTORICAL_APPLY_EVIDENCE_PREIMAGE_CLASS = SAFE_TWO_AUDIT_AUTHORITY_GAP_PROJECTION
+HISTORICAL_APPLY_EVIDENCE_ARTIFACT_LENGTH_BYTES = 1636
+HISTORICAL_APPLY_EVIDENCE_ARTIFACT_TRAILING_NEWLINE = NO
+HISTORICAL_APPLY_SAFE_AUDIT_COORDINATE_COUNT = 2
+HISTORICAL_APPLY_OBSERVED_AT = 2026-08-29T12:17:29.913903Z
+HISTORICAL_APPLY_ROW_1_APPLIED_AT = 2026-08-27T04:20:03.878000Z
+HISTORICAL_APPLY_ROW_2_APPLIED_AT = 2026-08-27T04:20:04.050000Z
 HISTORICAL_APPLY_MIGRATION_ID = agentcore-owner-wf-execute-grant-v1
+HISTORICAL_APPLY_TARGET_ROW_COUNT = 2
+HISTORICAL_APPLY_OPERATION = replace
+HISTORICAL_APPLY_EXPECTED_VERSION = 1
+HISTORICAL_APPLY_RESULTING_VERSION = 2
+HISTORICAL_APPLY_BEFORE_SCOPES = [workflow.read]
+HISTORICAL_APPLY_AFTER_SCOPES = [workflow.execute, workflow.read]
+HISTORICAL_APPLY_OPERATOR_ID = mayf3
 HISTORICAL_APPLY_AUTHORITY_CLASS = OWNER_APPLY_ONLY
 HISTORICAL_GOVERNING_SPEC = NONE
 SOURCE_GIT_COMMIT = b5ab589d0aeaa7a28e04bd4e665d27317db0b2d7
@@ -407,7 +460,14 @@ SOURCE_COMMIT_REPOSITORY = mayf3/dsh-agent-core
 SOURCE_COMMIT_CONTENT_RELATED_TO_GRANT = NO
 SOURCE_COMMIT_IS_AUTHORITY = NO
 RETROACTIVE_AUTHORIZATION = NO
+DATABASE_WRITES = 0
+GRANT_WRITES = 0
 ```
+
+- Privacy/provenance: the public Spec excludes audit row IDs, raw approval
+  reference, Client IDs, complete local paths, tokens, secrets, credentials, and
+  full database rows. Those reproducibility coordinates exist only in the
+  canonical local artifact/index and independent Reviewer private input.
 
 ### OBS-DOWE-005 — Spec five-field Grant-shape digest
 
@@ -467,46 +527,59 @@ five-field two-row Grant-shape digest. Post-merge read-only conformance MUST
 again derive the observed 84-row digest and require equality, active unique
 Principal/Client bindings, anomaly count zero, and duplicate count zero.
 
-### OBS-DOWE-007 — Active Forum sibling disposition
+### OBS-DOWE-007 — Forum sibling fact at reviewed base
 
-- Subject: `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` at evaluated base.
-- Method: inspect accepted frontmatter and exact scope/non-goals/parent relation.
-- Result: accepted bounded later delta for one Forum moderator Client; Workflow
-  Grant mutation is forbidden; production apply remains separate; fleet V1 is
-  preserved as completed baseline.
-- Provenance: accepted Spec at `github/main@325e781...` (original authoring
-  base; blob `7e661da3096043b16015473a9bc308121fc3ea72` byte-identical at the
-  current evaluated base per `OBS-DOWE-008`).
+- Subject: `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` at current evaluated
+  base `7110463636693b3c2eced9d97ccb186adf46907d`.
+- Method: inspect exact sibling blob/frontmatter/scope and compare this PR diff.
+- Result: sibling status is accepted at the reviewed base; blob
+  `7e661da3096043b16015473a9bc308121fc3ea72`; this PR changes neither the
+  sibling file/authority relationship nor any Forum Grant; Forum target remains
+  absent from this Child.
+- Limitation: this is a reviewed-base non-interference fact only. Future Forum
+  lifecycle and permission models are not governed here.
+- Provenance: current-base blob plus PR base-to-head changed-file inventory.
 
-### OBS-DOWE-008 — V2 main-sync coordinate gate and drift classification
+### OBS-DOWE-008 — Complete two-round main-sync coordinate gate
 
-- Subject: authority-pin sync round repository coordinates and main drift.
-- Method: fresh `git fetch github`; exact `github/main` resolution; commit and
-  file inventory of `325e781982c01a09d438e9d65df8079396e1520e..b88512881135dd8a0d382e8ca76650059df33725`;
-  fresh dedicated V2 worktree; linear rebase of the exact previous head
-  `47f42d51da1aff14e74b71243fa3752c5cc32dca` onto the new base with zero merge
-  commits; blob comparison of every authority this Child depends on across the
-  drift range.
+- Subject: current evaluated repository coordinates plus both historical sync
+  rounds from original authoring base to current main.
+- Method: fresh `git fetch github`; exact `github/main` and PR #36 base/head
+  resolution; commit/file inventories for both drift ranges; blob comparison of
+  this Child's parent/sibling/dispatcher/architecture, Grant schema/audit
+  authority, `svc-workflow` Audience/Scope vocabulary, and both fixed external
+  authority pins.
 - Result:
 
 ```text
-GITHUB_MAIN = b88512881135dd8a0d382e8ca76650059df33725
-PREVIOUS_SPEC_HEAD = 47f42d51da1aff14e74b71243fa3752c5cc32dca
-MAIN_DRIFT_CLASSIFICATION = UNRELATED_NOTIFICATION_INGRESS_DOCS_ONLY
+CURRENT_EVALUATED_BASE = 7110463636693b3c2eced9d97ccb186adf46907d
+PREVIOUS_EVALUATED_BASE = b88512881135dd8a0d382e8ca76650059df33725
+ORIGINAL_AUTHORING_BASE = 325e781982c01a09d438e9d65df8079396e1520e
+ROUND_1 = 325e781982c01a09d438e9d65df8079396e1520e -> b88512881135dd8a0d382e8ca76650059df33725
+ROUND_1_CLASSIFICATION = UNRELATED_NOTIFICATION_INGRESS_DOCS_ONLY
+ROUND_1_FILES = M AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V1 + A AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V2 + M docs/specs/README.md
+ROUND_2 = b88512881135dd8a0d382e8ca76650059df33725 -> 7110463636693b3c2eced9d97ccb186adf46907d
+ROUND_2_CLASSIFICATION = NOTIFICATION_INGRESS_CONTRACT_BUNDLE_1_4_0_IMPLEMENTATION
+ROUND_2_CHANGED_FILE_COUNT = 15
+ROUND_2_SVC_WORKFLOW_AUDIENCE_SCOPE_SEMANTIC_DELTA = NONE
+ROUND_2_GRANT_SCHEMA_DELTA = NONE
+ROUND_2_GRANT_AUDIT_ENVELOPE_DELTA = NONE
 MAIN_DRIFT_AUTHORITY_OVERLAP = NONE
-MAIN_DRIFT_INDEX_OVERLAP = README_ONLY
-DRIFT_FILES = M docs/specs/AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V1.md + A docs/specs/AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V2.md + M docs/specs/README.md
-FLEET_V1_BLOB_ACROSS_DRIFT = 649a468f6145cce8653a6e473f07c9d28eca0360 unchanged
-FORUM_MODERATOR_BLOB_ACROSS_DRIFT = 7e661da3096043b16015473a9bc308121fc3ea72 unchanged
-HR_DISPATCHER_BLOB_ACROSS_DRIFT = fbf3a1283f04d8264d026ae96bc14c354562c611 unchanged
-README_RESOLUTION = main Notification Ingress V1 superseded row and V2 accepted row fully preserved; only this Child's proposed index row re-added
-REBASE_MERGE_COMMITS = 0
+FLEET_V1_BLOB_ACROSS_BOTH_ROUNDS = 649a468f6145cce8653a6e473f07c9d28eca0360 unchanged
+FORUM_MODERATOR_BLOB_ACROSS_BOTH_ROUNDS = 7e661da3096043b16015473a9bc308121fc3ea72 unchanged
+HR_DISPATCHER_BLOB_ACROSS_BOTH_ROUNDS = fbf3a1283f04d8264d026ae96bc14c354562c611 unchanged
+MINIMAL_AUTH_V2_BLOB_ROUND_2 = 576b7a75e4be278f20fee71ee4ba5e263bd958c7 unchanged
+GRANTS_SCHEMA_BLOB_ROUND_2 = f60cd9faf18acfc643bf0330401e9af7364ce2d8 unchanged
+EXTERNAL_AUTHORITY_PINS_CHANGED = NO
+HISTORICAL_B885_REFERENCE_CLASSIFICATION = INTERMEDIATE_ONLY
 ```
 
-- Observed at: 2026-08-29 authority-pin sync round; a fresh fetch immediately
-  before push re-confirmed the same coordinates.
-- Provenance: V2 sync command record in the dedicated worktree
-  `/private/tmp/auth-service-domain-owner-workflow-authority-pin-v2`.
+- Observed at: 2026-08-29 review-blocker amendment round; a fresh fetch before
+  commit and another immediately before push MUST re-confirm current main and
+  remote PR head.
+- Provenance: command record in the fresh dedicated PR #36 review-amendment
+  worktree. The historical Round-1 sync record remains provenance only; this
+  observation is the sole typed current-base projection.
 
 ### OBS-DOWE-009 — External authority exact-pin verification
 
@@ -623,35 +696,59 @@ EXTERNAL_AUTHORITY_DRIFT = NO
 - Provenance: owner-held read-only query receipt plus the full-state,
   `OBS-DOWE-005`, and `OBS-DOWE-006` canonicalization procedures.
 
-### EVD-DOWE-003 — Operational records support dependency/use
+### EVD-DOWE-003 — Canonical operational evidence supports dependency/use
 
 - Source observations: `OBS-DOWE-003`.
 - Target: `STATE-DOWE-003`, `CLM-DOWE-003`.
 - Relation: SUPPORTS.
-- Bound coordinates: Workflow Assistance and workflow-instance records after migration `agentcore-owner-wf-execute-grant-v1`; private reference `OWNER_HELD_WORKFLOW_DOMAIN_OWNER_EXECUTE_USE_SINCE_GRANT_20260828`; evidence current as of 2026-08-28.
-- Strength/sufficiency: covers dependency and all three required use classes.
-- Limitations: sensitive case details remain private; review must bind event coordinates/timestamps and artifact digest.
-- Provenance: owner-held Workflow Assistance resolve, Workflow instance cancel, and in-domain assistance case records.
+- Bound coordinates: current svc-workflow production database/audit records;
+  `transaction_read_only=on`; final action `ROLLBACK`; observed
+  `2026-08-29T12:17:01.066779Z`; public safe reference
+  `AUTH_SERVICE_PR36_DOMAIN_OWNER_WORKFLOW_EXECUTE_USE_EVIDENCE_V1@2026-08-29T12:17:01.066779Z#sha256:de3b707ce06f16be3be45bdb302218a3a92879cb175afec3cadc879139e7fff7`.
+- Strength/sufficiency: a reproducible 1196-byte, two-event safe projection
+  proves one completed Assistance resolve, one completed instance cancel, both
+  exact Agent IDs, both current enabled Domain Owner relationships, HTTP 200 /
+  completed results, and exact pinned route/scope coordinates.
+- Limitations: event/audit IDs, Domain refs, true local locator, and query locator
+  remain owner-held; independent review receives them privately and MUST
+  reproduce the artifact hash without exposing payload or session data.
+- Provenance: local-only canonical artifact and owner-held evidence index binding
+  the real locator plus read-only query digest.
 
-### EVD-DOWE-004 — Provenance supports historical-gap classification
+### EVD-DOWE-004 — Canonical audit evidence supports historical-gap classification
 
 - Source observations: `OBS-DOWE-004`.
 - Target: `STATE-DOWE-004`, `CLM-DOWE-004`.
 - Relation: SUPPORTS.
-- Bound coordinates: production migration `agentcore-owner-wf-execute-grant-v1` on 2026-08-26; private reference `OWNER_HELD_AUTH_AUDIT_AGENTCORE_OWNER_WF_EXECUTE_GRANT_V1_20260826`; `mayf3/dsh-agent-core@b5ab589d0aeaa7a28e04bd4e665d27317db0b2d7`.
-- Strength/sufficiency: explicit migration, repository, exact source commit, changed-file result, and authority classification.
-- Limitations: source code is provenance, not governing authority; review must bind private audit/receipt digests and exact timestamps.
-- Provenance: owner-held immutable Grant audit/execution receipt and GitHub commit API result showing only `docs/specs/AGENT_CORE_LARK_UX_PHASE1_V2.md` changed.
+- Bound coordinates: auth-service production audit database through `auth_ro`;
+  `transaction_read_only=on`; final action `ROLLBACK`; observed
+  `2026-08-29T12:17:29.913903Z`; exact migration
+  `agentcore-owner-wf-execute-grant-v1`; public safe reference
+  `AUTH_SERVICE_PR36_HISTORICAL_OWNER_APPLY_AUTHORITY_GAP_V1@2026-08-29T12:17:29.913903Z#sha256:9f1f7e77e1666b23dd0cacdb3c9cdd42107f1f064f3944025771ef0e199e02c2`;
+  `mayf3/dsh-agent-core@b5ab589d0aeaa7a28e04bd4e665d27317db0b2d7`.
+- Strength/sufficiency: a reproducible 1636-byte two-audit projection binds
+  exact replace/version/scope/operator/timestamps/source fields and the honest
+  `OWNER_APPLY_ONLY` / governing Spec `NONE` / no-retroactive-authorization
+  classification; GitHub proves the source commit is content-unrelated.
+- Limitations: audit row IDs, raw approval coordinate, true local locator, and
+  query locator remain owner-held; source code is provenance, not authority.
+- Provenance: local-only canonical artifact/evidence index, immutable Grant audit
+  query receipt, and GitHub commit API changed-file result.
 
-### EVD-DOWE-005 — Forum sibling supports isolated later-delta model
+### EVD-DOWE-005 — Forum sibling supports reviewed-base non-interference
 
 - Source observations: `OBS-DOWE-007`.
 - Target: `CLM-DOWE-001`.
 - Relation: SUPPORTS.
-- Bound coordinates: `mayf3/auth-service@325e781982c01a09d438e9d65df8079396e1520e`, accepted `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1`, inspected 2026-08-28.
-- Strength/sufficiency: accepted same-repository precedent that preserves Fleet V1 baseline while governing a later bounded delta.
-- Limitations: Forum behavior itself remains out of this Child's scope.
-- Provenance: accepted sibling frontmatter and §§1–3 at the evaluated base.
+- Bound coordinates:
+  `mayf3/auth-service@7110463636693b3c2eced9d97ccb186adf46907d`,
+  accepted `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` blob
+  `7e661da3096043b16015473a9bc308121fc3ea72`, inspected 2026-08-29.
+- Strength/sufficiency: exact current fact plus base-to-head proof that this PR
+  changes no sibling authority/file and performs zero Forum Grant write.
+- Limitations: Forum behavior and every future Forum lifecycle transition remain
+  outside this Child's authority.
+- Provenance: reviewed-base sibling blob/frontmatter and PR changed-file record.
 
 ### EVD-DOWE-006 — Fleet V1 projection supports the other-84 baseline
 
@@ -663,15 +760,24 @@ EXTERNAL_AUTHORITY_DRIFT = NO
 - Limitations: independent review and future conformance must re-establish current equality at their own exact UTC query coordinates.
 - Provenance: Fleet V1 Appendix A, owner-held read-only query receipt, and the `OBS-DOWE-006` canonicalization procedure.
 
-### EVD-DOWE-007 — Main-sync coordinates support the re-evaluated base
+### EVD-DOWE-007 — Two-round main-sync evidence supports current base
 
 - Source observations: `OBS-DOWE-008`.
 - Target: `STATE-DOWE-005`, `CLM-DOWE-001`.
 - Relation: SUPPORTS.
-- Bound coordinates: `mayf3/auth-service@b88512881135dd8a0d382e8ca76650059df33725` (current evaluated base); previous head `47f42d51da1aff14e74b71243fa3752c5cc32dca`; original authoring base `325e781982c01a09d438e9d65df8079396e1520e`; observed 2026-08-29.
-- Strength/sufficiency: exact drift file inventory, linear rebase, and unchanged dependent-authority blobs across the drift range.
-- Limitations: main commits after `b88512881135dd8a0d382e8ca76650059df33725` are not covered and require re-evaluation.
-- Provenance: V2 sync `git fetch` / `git rev-parse` / `git diff --name-status` and blob-comparison command record.
+- Bound coordinates: current evaluated base
+  `mayf3/auth-service@7110463636693b3c2eced9d97ccb186adf46907d`;
+  historical intermediate
+  `b88512881135dd8a0d382e8ca76650059df33725`; original authoring base
+  `325e781982c01a09d438e9d65df8079396e1520e`; observed 2026-08-29.
+- Strength/sufficiency: exact commit/file inventories for both sync rounds,
+  unchanged dependent-authority and Grant-schema blobs, zero `svc-workflow`
+  vocabulary delta, and unchanged fixed external pins.
+- Limitations: main commits after
+  `7110463636693b3c2eced9d97ccb186adf46907d` are not covered and require the
+  overlap-sensitive gate in this Spec.
+- Provenance: fresh review-amendment `git fetch` / `git rev-parse` /
+  `git diff --name-status` / protected-blob comparison command record.
 
 ### EVD-DOWE-008 — Pinned external authorities support the authority chain
 
@@ -697,11 +803,13 @@ EXTERNAL_AUTHORITY_DRIFT = NO
 ### DEC-DOWE-002 — Isolate Forum authority completely
 
 - Decision owner: `mayf3`.
-- Decision: Forum authority is out of scope; preserve the accepted Forum
-  Moderator sibling and its independent future apply path.
-- Rejected alternative: freeze 86/86 Forum rows as a permanent invariant here.
-- Reason: doing so would conflict with the accepted sibling and exceed the
-  Workflow-only authority repair.
+- Decision: Forum authority is out of scope; this PR/acceptance transaction makes
+  zero change to the Forum Moderator sibling or Forum Grants. The sibling's
+  accepted status is recorded only as a reviewed-base fact; its future lifecycle
+  is not governed here.
+- Rejected alternative: freeze 86/86 Forum rows or the sibling's future status as
+  a permanent invariant here.
+- Reason: either would exceed this Workflow-only authority repair.
 
 ### DEC-DOWE-003 — Accept current necessary state prospectively
 
@@ -728,6 +836,20 @@ EXTERNAL_AUTHORITY_DRIFT = NO
   authority. This Spec authorizes neither implementation nor mutation.
 - Rejected alternative: silently reinterpret the current invariant.
 - Reason: authorization changes are non-mechanical and independently reviewable.
+
+### DEC-DOWE-006 — Retire blocked narrowing PR #33 without reuse
+
+- Decision owner: `mayf3`.
+- Decision: `mayf3/auth-service#33` at exact head
+  `2df29a7f5e2a6774600eef67f3c369f6b887c6ad` remains hold-only while this Child
+  is pre-merge. After this Child is accepted and merged, close PR #33 unmerged
+  while preserving its remote branch/history. It may never be reopened or
+  reused as a future authority vehicle.
+- Rejected alternative: rebase, amend, review, accept, merge, implement, revive,
+  or reuse PR #33's exact head.
+- Reason: its narrowing direction (`execute+read` → `read`) contradicts the
+  current dependency/use evidence. Any later narrowing requires fresh evidence,
+  Owner decision, new governing Spec, and new PR.
 
 ## 9. Contracts
 
@@ -776,13 +898,16 @@ any Forum row, Audience, Scope, version, audit, implementation, or apply.
 `FORUM_GRANT_WRITES = 0`. Forum state MUST NOT be included in this Child's
 conformance result except to prove that this Child performed no Forum write.
 
-### CTR-DOWE-006 — Forum Moderator sibling is preserved
+### CTR-DOWE-006 — Exact reviewed-base Forum non-interference
 
-`AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` MUST remain accepted, unsuperseded,
-unamended, and un-reparented. Its independent authority may later produce the
-exact moderator Forum state `[forum.moderate, forum.read, forum.write]` under
-its own implementation/apply gates. This Child MUST neither authorize nor block
-that path.
+At reviewed base `7110463636693b3c2eced9d97ccb186adf46907d`, the accepted
+sibling fact is `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` at blob
+`7e661da3096043b16015473a9bc308121fc3ea72`. This PR and its acceptance
+transaction MUST modify neither that sibling file nor its parentage, MUST NOT
+supersede/reparent it, MUST write zero Forum Grant rows, and MUST exclude Forum
+state from this Child's target. This Contract does not constrain the sibling's
+future status, supersession, lifecycle, apply outcome, or any future Forum
+permission model: `FUTURE_FORUM_AUTHORITY_LIFECYCLE = NOT_GOVERNED_BY_THIS_SPEC`.
 
 ### CTR-DOWE-007 — Historical authority gap remains honest
 
@@ -848,17 +973,34 @@ After acceptance and merge, an independent actor MUST perform a read-only audit
 binding the exact accepted Spec head, full-state artifact digest and field set,
 two agent IDs/external refs, five-field two-row Grant-shape observed/target
 digests, active relationship, duplicate count, dependency/use evidence,
-other-84 observed/expected digests and zero delta, Forum isolation, sibling
-preservation, and zero unauthorized surface. The audit MUST write zero rows and
+other-84 observed/expected digests and zero delta, Forum isolation,
+reviewed-base sibling non-interference, and zero unauthorized surface. The audit MUST write zero rows and
 MUST fail closed on drift. The three digest roles MUST remain separately named.
 
-### CTR-DOWE-016 — Authoring file and lifecycle boundary
+### CTR-DOWE-016 — Phase-scoped file and lifecycle boundary
 
-This authoring PR MUST change only this Spec and `docs/specs/README.md`, remain
-Open/Draft/Unmerged, and leave Fleet V1, Forum Moderator, HR Dispatcher, every
-other accepted authority, `.agents/**`, Prisma, scripts, tests, and source
-byte-identical. Review, acceptance, merge, conformance, implementation, and
-production apply remain distinct phases.
+The PR base-to-head diff MUST contain only this Spec and `docs/specs/README.md`;
+this review-blocker amendment relative to previous head
+`7ae1d771bf1ecb3ed7b183c0279eeb85c617600a` MUST change only this Spec. Fleet
+V1, Forum Moderator, HR Dispatcher, every other accepted authority, `.agents/**`,
+Prisma, scripts, tests, and source MUST remain byte-identical.
+
+Lifecycle is phase-scoped, never contradictory:
+
+```text
+AUTHORING_AND_SEMANTIC_REVIEW_PHASE = OPEN / DRAFT / UNMERGED
+OWNER_ACCEPTANCE_FINALIZE_PHASE = OPEN / DRAFT / UNMERGED
+FINAL_ACCEPTED_HEAD_RECHECK_REQUIRED = YES
+MERGE_EXECUTION_ALLOWED_ONLY_AFTER = accepted lifecycle transition + final accepted-head recheck PASS + blockers 0
+MERGE_PHASE = PR may transition Ready and merge
+POST_MERGE_PHASE = independent read-only conformance audit required
+DRAFT_OPEN_UNMERGED_IS_PERPETUAL_INVARIANT = NO
+```
+
+Review and owner acceptance finalize MUST occur before merge. The future merge
+phase may begin only after all three merge prerequisites pass. Only after the PR
+is merged may `CTR-DOWE-015` post-merge conformance run. No Acceptance item may
+simultaneously require the PR to be both unmerged and merged.
 
 ### CTR-DOWE-017 — Exact Product Direction authority pin
 
@@ -941,6 +1083,31 @@ moved, and `OWNER_IMPLEMENTATION_SNAPSHOT`
 (`efcf0f515ec29600c459e660ce8aa84546c5aee3`) MUST NOT be reclassified as the
 Contract authority revision.
 
+### CTR-DOWE-023 — Blocked narrowing PR #33 has one-way close-only disposition
+
+The following disposition is mandatory and executable:
+
+```text
+BLOCKED_NARROWING_PR = mayf3/auth-service#33
+BLOCKED_NARROWING_HEAD = 2df29a7f5e2a6774600eef67f3c369f6b887c6ad
+PROPOSAL_DIRECTION = [workflow.execute, workflow.read] -> [workflow.read]
+REJECTION_REASON = CURRENT_WORKFLOW_EXECUTE_DEPENDENCY_PRESENT + WORKFLOW_EXECUTE_USED_SINCE_GRANT
+PRE_CHILD_MERGE_ACTION = HOLD_ONLY
+FORBIDDEN_PRE_CHILD_ACTIONS = rebase + amend + review + accept + merge + implement
+CLOSE_TRIGGER = this bounded Child accepted and merged into main
+CLOSE_METHOD = CLOSE_UNMERGED + preserve remote branch/history
+PR33_REOPEN_ALLOWED = NO
+FUTURE_NARROWING_REQUIRES = fresh dependency-absent evidence + fresh use review + Owner decision + new governing Spec + new PR
+PR33_EXACT_HEAD_REUSE_AS_FUTURE_AUTHORITY_VEHICLE = FORBIDDEN
+```
+
+Before the close trigger, PR #33 MUST remain exactly Open/Draft/Unmerged at its
+frozen head and receive no action beyond hold. After the trigger, an authorized
+actor MUST close it unmerged and preserve its remote branch/history. It MUST NOT
+be reopened, rebased, amended, reviewed, accepted, merged, implemented, revived,
+or reused. Closure is a repository-governance action, not a Grant/database write
+and not authority for any product mutation.
+
 ## 10. Acceptance
 
 Every Acceptance result MUST bind the exact evaluated base, exact Spec head,
@@ -957,19 +1124,19 @@ use evidence may remain private but MUST be independently inspectable.
 
 ### ACC-DOWE-002 — Current execute dependency
 - Contracts: `CTR-DOWE-003`.
-- Method: independent review of owner-held dependency evidence.
-- Environment: current Workflow Assistance and workflow-instance operational records.
-- Required evidence: exact Spec head; private reference digest; exact event coordinates/timestamps; reviewer finding that current duties require execute.
-- Expected result: `CURRENT_WORKFLOW_EXECUTE_DEPENDENCY = PRESENT`.
-- Failure condition: evidence missing, stale, or inconsistent with responsibility.
+- Method: reproduce the canonical owner-held use artifact from the privately supplied read-only query/locator, verify its digest, and evaluate current Domain Owner enabled/relationship fields against pinned product/runtime authority.
+- Environment: current svc-workflow production database/audit records; transaction read-only; final rollback.
+- Required evidence: exact Spec head; public safe ref `AUTH_SERVICE_PR36_DOMAIN_OWNER_WORKFLOW_EXECUTE_USE_EVIDENCE_V1@2026-08-29T12:17:01.066779Z#sha256:de3b707ce06f16be3be45bdb302218a3a92879cb175afec3cadc879139e7fff7`; 1196-byte/no-newline canonical artifact; private true locator/query digest; exact query and event timestamps; two enabled Principals/Domains/DOMAIN_OWNER relationships; zero-write receipt.
+- Expected result: artifact hash/length/preimage class match; current owner/relationship counts are 2/2; `CURRENT_WORKFLOW_EXECUTE_DEPENDENCY = PRESENT`.
+- Failure condition: unresolved locator, digest/preimage/timestamp mismatch, disabled/missing relationship, stale evidence, write, or responsibility inconsistency.
 
 ### ACC-DOWE-003 — Real use evidence
 - Contracts: `CTR-DOWE-003`.
-- Method: privately inspect post-grant evidence for all three required use classes.
-- Environment: owner-held post-2026-08-26 Workflow Assistance and workflow-instance records.
-- Required evidence: exact Spec head; private artifact digest; one bound record for resolve, cancel, and in-domain assistance handling; timestamps after grant.
-- Expected result: `WORKFLOW_EXECUTE_USED_SINCE_GRANT = YES`.
-- Failure condition: no post-grant use or any required class unsupported.
+- Method: privately inspect and independently reproduce both safe event projections without reading/publishing payload bodies.
+- Environment: owner-held post-grant svc-workflow Assistance/event/receipt records through a read-only transaction ending in rollback.
+- Required evidence: exact Spec head; same public safe evidence ref/digest; private event/audit coordinates; exactly one completed `WORKFLOW_ASSISTANCE_RESOLVE` for `agt_hr-agent` and one completed `WORKFLOW_INSTANCE_CANCEL` for `agt_build-in-public-agent`; HTTP 200/completed status; pinned route/scope coordinates; exact timestamps; zero-write receipt.
+- Expected result: `USE_EVIDENCE_EVENT_COUNT = 2`, both operation classes match, and `WORKFLOW_EXECUTE_USED_SINCE_GRANT = YES`.
+- Failure condition: unresolved binding, digest mismatch, payload/secret exposure, no post-grant use, wrong actor/route/scope/result, or either operation class unsupported.
 
 ### ACC-DOWE-004 — Other 84 Workflow rows unchanged
 - Contracts: `CTR-DOWE-004`.
@@ -987,29 +1154,29 @@ use evidence may remain private but MUST be independently inspectable.
 - Expected result: no permanent Forum invariant and Forum writes 0.
 - Failure condition: Forum target/conformance freeze or any Forum mutation.
 
-### ACC-DOWE-006 — Moderator sibling unaffected
+### ACC-DOWE-006 — Reviewed-base Forum non-interference
 - Contracts: `CTR-DOWE-006`.
-- Method: exact object/frontmatter comparison and authority-flow review.
-- Environment: evaluated base and exact proposed Spec head.
-- Required evidence: sibling blob/frontmatter/status comparison; changed-file list; authority graph showing no supersede/amend/reparent/block.
-- Expected result: sibling accepted, unsuperseded, unamended, un-reparented.
-- Failure condition: sibling file/authority/apply path changed or blocked.
+- Method: compare the current-base sibling blob/frontmatter with this PR and its future acceptance-only diff; inspect Forum Grant write counts.
+- Environment: evaluated base `7110463636693b3c2eced9d97ccb186adf46907d`, exact reviewed Spec/PR head, and this PR/acceptance transaction only.
+- Required evidence: reviewed-base sibling status/blob; base-to-head and acceptance diffs; authority graph proving no this-PR supersede/reparent; Forum Grant/audit write counts 0; scope-target inventory excluding Forum.
+- Expected result: `THIS_PR_CHANGE_TO_FORUM_SIBLING = NONE`, `THIS_PR_CHANGE_TO_FORUM_GRANTS = NONE`, `FORUM_AUTHORITY = OUT_OF_SCOPE`; no finding about future Forum lifecycle is required or permitted.
+- Failure condition: this PR/acceptance changes the sibling/parentage, writes Forum state, adds Forum to target, or asserts a permanent future sibling status.
 
 ### ACC-DOWE-007 — Historical authority gap
 - Contracts: `CTR-DOWE-007`.
-- Method: historical migration/provenance/authority-chain audit.
-- Environment: owner-held 2026-08-26 execution/audit record and GitHub `mayf3/dsh-agent-core` source object.
-- Required evidence: migration ID; private audit/receipt digests and timestamps; exact source commit API result/changed file; historical governing-authority inventory.
-- Expected result: owner-only apply, governing Spec none, source commit content-unrelated and non-authoritative.
-- Failure condition: invented historical governing authority or omitted gap.
+- Method: reproduce the canonical two-audit artifact from the private read-only locator/query and independently verify exact source-commit changed-file scope and historical authority inventory.
+- Environment: auth-service production audit DB via `auth_ro`/read-only/rollback plus GitHub `mayf3/dsh-agent-core` exact source object.
+- Required evidence: exact Spec head; public safe ref `AUTH_SERVICE_PR36_HISTORICAL_OWNER_APPLY_AUTHORITY_GAP_V1@2026-08-29T12:17:29.913903Z#sha256:9f1f7e77e1666b23dd0cacdb3c9cdd42107f1f064f3944025771ef0e199e02c2`; 1636-byte/no-newline safe artifact; private true locator/query digest; two safe audit coordinates; exact applied/query timestamps; replace 1→2 and scope snapshots; operator/approval coordinate; source API result; zero-write receipt.
+- Expected result: evidence binding/hash/preimage/count/timestamps match; `OWNER_APPLY_ONLY`; governing Spec `NONE`; source commit content-unrelated and non-authoritative.
+- Failure condition: unresolved locator, digest/preimage/count/timestamp/source mismatch, invented historical authority, secret/full-row exposure, write, or omitted gap.
 
 ### ACC-DOWE-008 — No retroactive authorization
 - Contracts: `CTR-DOWE-008`.
-- Method: contradiction search over Spec, PR body, historical evidence, and future acceptance record.
-- Environment: exact reviewed Spec/PR head and immutable historical audit record.
-- Required evidence: search output; reviewer authority timeline; audit byte/digest comparison; statement that no compensating row was appended.
-- Expected result: prospective governance only; history/audits unchanged.
-- Failure condition: backdated authority, compensating audit, or history rewrite.
+- Method: contradiction search over exact Spec/PR body, canonical historical artifact, authority timeline, immutable audit rows, and future acceptance record.
+- Environment: exact reviewed Spec/PR head and the privately reproduced historical evidence from `ACC-DOWE-007`.
+- Required evidence: public safe evidence ref/digest; reviewer authority timeline; immutable audit-coordinate comparison; no compensating audit row; contradiction-search output.
+- Expected result: `RETROACTIVE_AUTHORIZATION = NO`; prospective governance only; historical audit facts unchanged.
+- Failure condition: backdated authority, compensating audit, history rewrite, or current acceptance represented as 2026-08-26 authority.
 
 ### ACC-DOWE-009 — Current DB already conforms
 - Contracts: `CTR-DOWE-001`, `CTR-DOWE-002`, `CTR-DOWE-009`.
@@ -1060,20 +1227,20 @@ use evidence may remain private but MUST be independently inspectable.
 - Failure condition: implementation or expansion inferred from acceptance.
 
 ### ACC-DOWE-015 — Post-merge read-only conformance
-- Contracts: `CTR-DOWE-015`.
-- Method: independent audit after accepted Spec reaches `main`.
-- Environment: `github/main` at exact accepted merge plus current auth-service production DB read-only seam.
-- Required evidence: independent actor identity; accepted head/merge; all ACC-DOWE-001–014 relevant read-only receipts; zero-write audit; persistent conformance record.
-- Expected result: all frozen positive/negative checks pass with writes 0.
-- Failure condition: self-review, stale coordinates, write, or fail-open repair.
+- Contracts: `CTR-DOWE-015`, `CTR-DOWE-016`.
+- Method: run only after the accepted exact head has merged; verify the merge on `main`, then execute the independent read-only conformance audit.
+- Environment: post-merge `github/main` at the exact accepted merge plus current auth-service production DB read-only seam.
+- Required evidence: independent actor identity; accepted final head/recheck PASS/blockers 0; merged PR/main coordinates; all relevant read-only receipts; zero-write audit; persistent conformance record.
+- Expected result: PR is merged only in this phase; exact accepted head is on `main`; all frozen positive/negative checks pass with writes 0.
+- Failure condition: audit before merge, self-review, wrong/stale head, missing merge prerequisite, write, or fail-open repair.
 
-### ACC-DOWE-016 — Dispatcher separation and lifecycle/file boundary
+### ACC-DOWE-016 — Dispatcher, files, and phase-scoped lifecycle
 - Contracts: `CTR-DOWE-012`, `CTR-DOWE-016`.
-- Method: HR dispatcher authority comparison, final Git diff, and PR-state check.
-- Environment: evaluated base, exact proposed head, GitHub Draft PR, and accepted HR Dispatcher Spec.
-- Required evidence: dispatcher grant-shape comparison; exact two-file diff; protected-authority blob checks; GitHub Open/Draft/Unmerged state.
-- Expected result: dispatcher remains read+wake only; Draft/Open/Unmerged; only two allowed docs files changed.
-- Failure condition: dispatcher substitution, extra file, acceptance, merge, or apply.
+- Method: verify dispatcher authority and exact diffs once, then record separate lifecycle results at authoring/review, owner acceptance finalize, and final pre-merge recheck; do not apply post-merge expectations in those phases.
+- Environment: evaluated base, exact reviewed head, GitHub PR #36, accepted HR Dispatcher Spec, and later exact accepted final head.
+- Required evidence: dispatcher grant-shape comparison; amendment one-file diff; PR base-to-head two-file diff; protected-authority blob checks; (A) authoring/review Open/Draft/Unmerged receipt; (B) owner acceptance-finalize Open/Draft/Unmerged receipt; (C) final accepted-head recheck PASS and blockers 0 immediately before any Ready/merge transition. Post-merge evidence belongs only to `ACC-DOWE-015`.
+- Expected result: dispatcher remains read+wake only; A and B each pass while unmerged; C gates the future merge phase; `DRAFT_OPEN_UNMERGED_IS_PERPETUAL_INVARIANT = NO`; file scopes pass.
+- Failure condition: dispatcher substitution, extra file, a phase checked against another phase's state, Ready/merge before all prerequisites, acceptance/merge in this amendment round, or production apply.
 
 ### ACC-DOWE-017 — Product Direction authority pin is exact
 - Contracts: `CTR-DOWE-017`.
@@ -1123,6 +1290,14 @@ use evidence may remain private but MUST be independently inspectable.
 - Expected result: all pins exact; pinned blobs unchanged upstream; no revision advanced to current main.
 - Failure condition: any pin / blob / status / kind / version / digest mismatch, upstream pinned-blob drift, or a silently absorbed external authority change.
 
+### ACC-DOWE-023 — PR #33 one-way close-only disposition
+- Contracts: `CTR-DOWE-023`.
+- Method: record two non-simultaneous phase results: before this Child merges, query PR #33 exact object/head and verify hold-only; after this Child merges, close PR #33 unmerged, then query PR/branch/history and verify no merge/reopen/reuse.
+- Environment: GitHub `mayf3/auth-service#33`, this Child's exact accepted/merged coordinates when available, and repository branch/history records.
+- Required evidence: pre-trigger PR #33 number/head `2df29a7f5e2a6774600eef67f3c369f6b887c6ad`/Open/Draft/Unmerged receipt; current canonical dependency/use evidence refs; accepted-and-merged Child trigger; post-trigger Closed/Unmerged receipt; preserved remote branch/history; merge commit absence; negative action/reopen/reuse audit.
+- Expected result: before trigger `PRE_CHILD_MERGE_ACTION = HOLD_ONLY`; after trigger `CLOSE_METHOD = CLOSE_UNMERGED + preserve remote branch/history`; `PR33_REOPEN_ALLOWED = NO`; exact head is never reused as a future authority vehicle.
+- Failure condition: pre-trigger rebase/amend/review/accept/merge/implement, wrong head/state, missing post-trigger closure, deleted history, PR merge, reopen, revival, or reuse without a fresh governing Spec and new PR.
+
 ### 10.1 Bidirectional Contract ↔ Acceptance mapping
 
 | Contract | Acceptance coverage |
@@ -1142,13 +1317,14 @@ use evidence may remain private but MUST be independently inspectable.
 | `CTR-DOWE-013` | `ACC-DOWE-013` |
 | `CTR-DOWE-014` | `ACC-DOWE-014` |
 | `CTR-DOWE-015` | `ACC-DOWE-015` |
-| `CTR-DOWE-016` | `ACC-DOWE-010`, `ACC-DOWE-016` |
+| `CTR-DOWE-016` | `ACC-DOWE-010`, `ACC-DOWE-015`, `ACC-DOWE-016` |
 | `CTR-DOWE-017` | `ACC-DOWE-017` |
 | `CTR-DOWE-018` | `ACC-DOWE-018`, `ACC-DOWE-021` |
 | `CTR-DOWE-019` | `ACC-DOWE-019` |
 | `CTR-DOWE-020` | `ACC-DOWE-020` |
 | `CTR-DOWE-021` | `ACC-DOWE-022` |
 | `CTR-DOWE-022` | `ACC-DOWE-021`, `ACC-DOWE-022` |
+| `CTR-DOWE-023` | `ACC-DOWE-023` |
 
 | Acceptance | Contract coverage |
 |---|---|
@@ -1166,7 +1342,7 @@ use evidence may remain private but MUST be independently inspectable.
 | `ACC-DOWE-012` | `CTR-DOWE-011` |
 | `ACC-DOWE-013` | `CTR-DOWE-013` |
 | `ACC-DOWE-014` | `CTR-DOWE-014` |
-| `ACC-DOWE-015` | `CTR-DOWE-015` |
+| `ACC-DOWE-015` | `CTR-DOWE-015`, `CTR-DOWE-016` |
 | `ACC-DOWE-016` | `CTR-DOWE-012`, `CTR-DOWE-016` |
 | `ACC-DOWE-017` | `CTR-DOWE-017` |
 | `ACC-DOWE-018` | `CTR-DOWE-018` |
@@ -1174,6 +1350,7 @@ use evidence may remain private but MUST be independently inspectable.
 | `ACC-DOWE-020` | `CTR-DOWE-020` |
 | `ACC-DOWE-021` | `CTR-DOWE-018`, `CTR-DOWE-022` |
 | `ACC-DOWE-022` | `CTR-DOWE-021`, `CTR-DOWE-022` |
+| `ACC-DOWE-023` | `CTR-DOWE-023` |
 
 ## 11. Alternatives and disposition
 
@@ -1181,8 +1358,9 @@ use evidence may remain private but MUST be independently inspectable.
   operation remains accepted and completed.
 - `ALT-DOWE-002` — partially amend Fleet V1: **rejected**; accepted stable IDs
   remain unchanged and the later obligation has a new Spec identity.
-- `ALT-DOWE-003` — freeze all Forum rows here: **rejected**; Forum is out of
-  scope and the accepted Moderator sibling must remain operable.
+- `ALT-DOWE-003` — freeze all Forum rows or the sibling's future lifecycle here:
+  **rejected**; Forum is out of scope and this PR guarantees only reviewed-base
+  non-interference.
 - `ALT-DOWE-004` — infer Domain Owner replacement from HR dispatcher:
   **rejected**; dispatcher is a separate read+wake identity.
 - `ALT-DOWE-005` — rerun Fleet V1 or append an authority-repair audit:
@@ -1191,6 +1369,9 @@ use evidence may remain private but MUST be independently inspectable.
   it is content-unrelated provenance only.
 - `ALT-DOWE-007` — allow silent future narrowing/expansion: **rejected**; each
   authorization change requires new accepted authority.
+- `ALT-DOWE-008` — revive/rebase/reuse PR #33 for later narrowing: **rejected**;
+  close it unmerged after this Child merges and require fresh evidence, Owner
+  decision, new governing Spec, and a new PR.
 
 ## 12. Migration, compatibility, and rollback
 
@@ -1231,11 +1412,14 @@ PRODUCT_FILES_CHANGED = 0
 This synchronization adds no stable normative primitive; it updates only
 coordinates and non-normative compatibility provenance.
 
-### 12.2 Evidence reconciliation amendment (non-normative)
+### 12.2 Independent-review blocker amendment provenance (non-normative)
 
-This evidence-only amendment separates and accurately binds three different
-canonical preimages without changing the product target, authority graph,
-acceptance semantics, or database state:
+This docs-only amendment closes Review `5058012449`'s five blockers: current-base
+typed provenance, two new canonical private evidence bindings, phase-scoped
+lifecycle, exact Forum non-interference, and typed PR #33 close-only disposition.
+It preserves the product target, database/Grant state, and external pins. It adds
+`DEC-DOWE-006` / `CTR-DOWE-023` / `ACC-DOWE-023` and clarifies existing typed
+primitives without product semantic delta:
 
 ```text
 EVIDENCE_RECONCILIATION = PASS
@@ -1246,8 +1430,15 @@ SPEC_TARGET_GRANT_SHAPE_SHA256 = 70e54c7b4af4f5c567853f96678910d84934efb901d409a
 OBSERVED_OTHER_84_WORKFLOW_SHA256 = cdf8265689f139e07c5415fbd206cea5e548c3b086906fc6444f627ca17ac7cf
 EXPECTED_OTHER_84_BASELINE_SHA256 = cdf8265689f139e07c5415fbd206cea5e548c3b086906fc6444f627ca17ac7cf
 DB_OBSERVED_AT = 2026-08-29T08:26:20.706381Z
+USE_EVIDENCE_REF = AUTH_SERVICE_PR36_DOMAIN_OWNER_WORKFLOW_EXECUTE_USE_EVIDENCE_V1@2026-08-29T12:17:01.066779Z#sha256:de3b707ce06f16be3be45bdb302218a3a92879cb175afec3cadc879139e7fff7
+USE_EVIDENCE_ARTIFACT_SHA256 = de3b707ce06f16be3be45bdb302218a3a92879cb175afec3cadc879139e7fff7
+USE_EVIDENCE_BINDING = PASS
+HISTORICAL_APPLY_EVIDENCE_REF = AUTH_SERVICE_PR36_HISTORICAL_OWNER_APPLY_AUTHORITY_GAP_V1@2026-08-29T12:17:29.913903Z#sha256:9f1f7e77e1666b23dd0cacdb3c9cdd42107f1f064f3944025771ef0e199e02c2
+HISTORICAL_APPLY_EVIDENCE_ARTIFACT_SHA256 = 9f1f7e77e1666b23dd0cacdb3c9cdd42107f1f064f3944025771ef0e199e02c2
+HISTORICAL_APPLY_EVIDENCE_BINDING = PASS
 DIGEST_ROLE_COLLISION_COUNT = 0
 STALE_CURRENT_EVIDENCE_ALIAS_COUNT = 0
+STALE_CURRENT_BASE_REFERENCE_COUNT = 0
 DOMAIN_OWNER_COUNT = 2
 CURRENT_GRANT_VERSION = 2
 OTHER_WORKFLOW_ROW_COUNT = 84
@@ -1255,13 +1446,16 @@ OTHER_WORKFLOW_ROWS = [workflow.read] @ version 1
 CURRENT_WORKFLOW_EXECUTE_DEPENDENCY = PRESENT
 WORKFLOW_EXECUTE_USED_SINCE_GRANT = YES
 FORUM_AUTHORITY = OUT_OF_SCOPE
+FUTURE_FORUM_AUTHORITY_LIFECYCLE = NOT_GOVERNED_BY_THIS_SPEC
 HISTORICAL_APPLY_AUTHORITY = OWNER_APPLY_ONLY
 HISTORICAL_GOVERNING_SPEC = NONE
 RETROACTIVE_AUTHORIZATION = NO
+PR33_TYPED_DISPOSITION = PASS (DEC-DOWE-006 / CTR-DOWE-023 / ACC-DOWE-023)
 PR33_FINAL_DISPOSITION = CLOSE_AFTER_BOUNDED_CHILD_MERGE
-NORMATIVE_PRIMITIVE_DELTA = 0
-CONTRACT_COUNT = 22
-CONTRACTS_WITH_ACCEPTANCE = 22
+PR33_REOPEN_ALLOWED = NO
+NORMATIVE_PRIMITIVE_DELTA = DEC-DOWE-006 + CTR-DOWE-023 + ACC-DOWE-023; phase/evidence/Forum clarifications to existing primitives
+CONTRACT_COUNT = 23
+CONTRACTS_WITH_ACCEPTANCE = 23
 CONTRACT_COVERAGE = PASS
 PRODUCT_SEMANTIC_DELTA = NONE
 DATABASE_WRITES = 0
@@ -1278,8 +1472,10 @@ Consequently their digest values MUST NOT be exchanged or collapsed.
 
 No migration occurs. Current DB already conforms. Review/acceptance/merge write
 zero database, Grant, audit, identity, credential, legacy, or Forum rows. The old
-fleet supply MUST NOT be rerun. After acceptance and merge, the only next action
-under this authority is an independent read-only conformance audit.
+fleet supply MUST NOT be rerun. After acceptance and merge, exactly two
+non-product governance actions remain: close PR #33 unmerged under
+`CTR-DOWE-023`, and execute the independent read-only conformance audit under
+`CTR-DOWE-015`. Neither action authorizes a production mutation.
 
 Forum Moderator authority remains compatible because it owns a different
 Audience and explicitly forbids Workflow mutation. HR dispatcher authority
@@ -1297,11 +1493,19 @@ OPEN_OWNER_DECISIONS = NONE
 NORMATIVE_TBD = NONE
 UNRESOLVED_AUTHORITY_CONFLICT = NONE
 PARTIAL_SUPERSESSION = NONE
-NORMATIVE_PRIMITIVE_DELTA = 0
-CONTRACT_COUNT = 22
-CONTRACTS_WITH_ACCEPTANCE = 22
+NORMATIVE_PRIMITIVE_DELTA = DEC-DOWE-006 + CTR-DOWE-023 + ACC-DOWE-023; phase/evidence/Forum clarifications to existing primitives
+CONTRACT_COUNT = 23
+CONTRACTS_WITH_ACCEPTANCE = 23
 CONTRACT_COVERAGE = PASS
 ACCEPTANCE_REFERENCES_VALID = PASS
+STALE_CURRENT_BASE_REFERENCE_COUNT = 0
+HISTORICAL_B885_REFERENCE_CLASSIFICATION = PASS
+USE_EVIDENCE_BINDING = PASS
+HISTORICAL_APPLY_EVIDENCE_BINDING = PASS
+LIFECYCLE_CONTRADICTION_COUNT = 0
+FORUM_FUTURE_LIFECYCLE_CONSTRAINT_COUNT = 0
+PR33_TYPED_DISPOSITION = PASS
+PR33_REOPEN_AUTHORITY_PATH = FORBIDDEN
 EXTERNAL_AUTHORITY_COUNT = 2
 EXTERNAL_AUTHORITY_DRIFT = NO
 AUTHORING_READY_FOR_REVIEW = YES
