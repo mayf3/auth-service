@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "registry_version": "1.3.0",
+  "registry_version": "1.4.0",
   "status": "frozen",
   "audiences": [
     {
@@ -67,6 +67,19 @@
       "status": "active",
       "freeze_ready": true,
       "notes": "Registered by AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1; machine-only agent access via standard OAuth2 client_credentials."
+    },
+    {
+      "audience_id": "agent-core-notification-ingress-v1",
+      "resource_service": "agent-core-notification-ingress-v1",
+      "scope_namespace": "notification",
+      "accepted_principal_types": ["service"],
+      "human_access_enabled": false,
+      "machine_access_enabled": true,
+      "delegated_access_enabled": false,
+      "registered_scopes": ["notification.deliver"],
+      "status": "active",
+      "freeze_ready": true,
+      "notes": "Registered by AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_AUDIENCE_CCR_V1 via AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V1; machine-only service access for Agent Core Notification Ingress POST /v1/deliver."
     }
   ]
 }

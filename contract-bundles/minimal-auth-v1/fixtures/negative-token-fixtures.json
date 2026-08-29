@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.3.0",
+  "contract_version": "1.4.0",
   "cases": [
     {
       "name": "human-forbidden-scope",
@@ -277,6 +277,97 @@
         }
       ],
       "expected_error": "MISSING_REQUIRED_CLAIM"
+    },
+    {
+      "name": "direct-notification-agent-principal-rejected",
+      "base_fixture": "direct-service-notification-ingress",
+      "mutations": [
+        { "op": "set", "path": "/claims/principal_type", "value": "agent" },
+        { "op": "set", "path": "/claims/agent_id", "value": "agent-notification-attempt" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "direct-notification-human-access-rejected",
+      "base_fixture": "human-svc-okr",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "agent-core-notification-ingress-v1" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "direct-notification-obo-delegation-rejected",
+      "base_fixture": "obo-adc-v2-to-svc-workflow",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "agent-core-notification-ingress-v1" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "direct-notification-wrong-audience",
+      "base_fixture": "direct-service-notification-ingress",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "notification-ingress" }
+      ],
+      "expected_error": "UNKNOWN_AUDIENCE"
+    },
+    {
+      "name": "direct-notification-foreign-scope-rejected",
+      "base_fixture": "direct-service-notification-ingress",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "auth.identity.provision" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-notification-unregistered-scope-rejected",
+      "base_fixture": "direct-service-notification-ingress",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "notification.send" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-notification-wildcard-scope-rejected",
+      "base_fixture": "direct-service-notification-ingress",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "*" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-notification-namespace-wildcard-scope-rejected",
+      "base_fixture": "direct-service-notification-ingress",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "notification.*" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-notification-partial-grant-rejected",
+      "base_fixture": "direct-service-notification-ingress",
+      "mutations": [
+        { "op": "set", "path": "/authorization_context/machine_access_grants/agent-core-notification-ingress-v1", "value": [] }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "direct-notification-cross-audience-grant-reuse",
+      "base_fixture": "direct-service-notification-ingress",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "svc-auth" },
+        { "op": "set", "path": "/claims/scope", "value": "auth.identity.provision" },
+        { "op": "set", "path": "/authorization_context/requested_scope", "value": "auth.identity.provision" }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "direct-notification-extra-requested-scope-rejected",
+      "base_fixture": "direct-service-notification-ingress",
+      "mutations": [
+        { "op": "set", "path": "/authorization_context/requested_scope", "value": "notification.deliver notification.send" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
     }
   ],
   "signature_cases": [
