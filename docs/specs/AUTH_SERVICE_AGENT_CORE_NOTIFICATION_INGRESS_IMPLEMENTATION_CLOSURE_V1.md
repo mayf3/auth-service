@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V1
-status: accepted
+status: superseded
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -13,7 +13,8 @@ governed_by:
   - AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1
 external_authorities: []
 supersedes: []
-superseded_by: null
+superseded_by:
+  - AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V2
 owners:
   - mayf3
 ---
