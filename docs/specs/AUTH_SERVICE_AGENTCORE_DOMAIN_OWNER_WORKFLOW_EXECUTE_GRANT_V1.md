@@ -42,10 +42,14 @@ CHANGE_CLASS = NON_MECHANICAL
 AUTHORITY_REPAIR_MECHANISM = BOUNDED_LATER_DELTA_CHILD
 WHOLE_AUTHORITY_SUCCESSOR_REQUIRED = NO
 PARTIAL_SUPERSESSION = NONE
-EVALUATED_BASE = b88512881135dd8a0d382e8ca76650059df33725
+EVALUATED_BASE = 7110463636693b3c2eced9d97ccb186adf46907d
 ORIGINAL_AUTHORING_BASE = 325e781982c01a09d438e9d65df8079396e1520e
-PREVIOUS_SPEC_HEAD = 47f42d51da1aff14e74b71243fa3752c5cc32dca
-MAIN_SYNC_REASON = UNRELATED_NOTIFICATION_INGRESS_DOCS_ONLY
+PREVIOUS_EVALUATED_BASE = b88512881135dd8a0d382e8ca76650059df33725
+PREVIOUS_SPEC_HEAD = 29348f7f523d18ab0a7de710a6a48f1ff5f3e2b3
+MAIN_SYNC_REASON = NOTIFICATION_INGRESS_CONTRACT_BUNDLE_1_4_0_COMPATIBLE_NO_SEMANTIC_DELTA
+CURRENT_MINIMAL_AUTH_CONTRACT_VERSION = 1.4.0
+SVC_WORKFLOW_AUDIENCE_SEMANTICS_UNCHANGED = YES
+WORKFLOW_SCOPE_VOCABULARY_UNCHANGED = YES
 IMPLEMENTATION_AUTHORITY = none
 PRODUCTION_APPLY_AUTHORITY = none
 ```
@@ -1132,6 +1136,45 @@ use evidence may remain private but MUST be independently inspectable.
 
 ## 12. Migration, compatibility, and rollback
 
+### 12.1 Main-sync compatibility provenance (non-normative)
+
+The evaluated base advanced from `b88512881135dd8a0d382e8ca76650059df33725`
+to `7110463636693b3c2eced9d97ccb186adf46907d` solely through merged PR #29,
+the Notification Ingress Minimal Auth Contract Bundle `1.4.0` implementation.
+That drift added the separate `agent-core-notification-ingress-v1` Audience with
+`[notification.deliver]`; it did not change the `svc-workflow` Audience, its
+principal/access flags, or its registered scope vocabulary. Notification Ingress
+is outside this Child's governance scope. The two external authority pins and
+their exact blobs/digest remain unchanged and are not advanced.
+
+```text
+MAIN_DRIFT_CLASSIFICATION = NOTIFICATION_INGRESS_CONTRACT_BUNDLE_1_4_0_IMPLEMENTATION
+GOVERNING_AUTHORITY_OVERLAP = NONE
+OLD_REGISTRY_VERSION = 1.3.0
+NEW_REGISTRY_VERSION = 1.4.0
+NEW_AUDIENCE = agent-core-notification-ingress-v1
+NEW_AUDIENCE_SCOPES = [notification.deliver]
+SVC_WORKFLOW_AUDIENCE_SEMANTICS_UNCHANGED = YES
+WORKFLOW_SCOPE_VOCABULARY_UNCHANGED = YES
+DOMAIN_OWNER_EXECUTE_AUTHORITY_COMPATIBILITY = COMPATIBLE_NO_SEMANTIC_DELTA
+DOMAIN_OWNER_COUNT = 2
+DOMAIN_OWNER_SCOPES = [workflow.execute, workflow.read]
+CURRENT_GRANT_VERSION = 2
+OTHER_WORKFLOW_ROWS_UNCHANGED = 84
+FORUM_AUTHORITY = OUT_OF_SCOPE
+HISTORICAL_APPLY_AUTHORITY = OWNER_APPLY_ONLY
+RETROACTIVE_AUTHORIZATION = NO
+CURRENT_DB_ALREADY_CONFORMS = YES
+PR33_FINAL_DISPOSITION = CLOSE_AFTER_BOUNDED_CHILD_MERGE
+PRODUCT_SEMANTIC_DELTA_FROM_PREVIOUS_HEAD = NONE
+PRODUCT_FILES_CHANGED = 0
+```
+
+This synchronization adds no stable normative primitive; it updates only
+coordinates and non-normative compatibility provenance.
+
+### 12.2 No migration or rollback authority
+
 No migration occurs. Current DB already conforms. Review/acceptance/merge write
 zero database, Grant, audit, identity, credential, legacy, or Forum rows. The old
 fleet supply MUST NOT be rerun. After acceptance and merge, the only next action
@@ -1153,8 +1196,10 @@ OPEN_OWNER_DECISIONS = NONE
 NORMATIVE_TBD = NONE
 UNRESOLVED_AUTHORITY_CONFLICT = NONE
 PARTIAL_SUPERSESSION = NONE
+NORMATIVE_PRIMITIVE_DELTA = 0
 CONTRACT_COUNT = 22
 CONTRACTS_WITH_ACCEPTANCE = 22
+CONTRACT_COVERAGE = PASS
 ACCEPTANCE_REFERENCES_VALID = PASS
 EXTERNAL_AUTHORITY_COUNT = 2
 EXTERNAL_AUTHORITY_DRIFT = NO
