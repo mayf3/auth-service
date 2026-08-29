@@ -4,13 +4,23 @@ status: proposed
 spec_kind: invariant
 authority_level: governing_spec
 implementation_authority: none
+production_apply_authority: none
 scope:
   - mayf3/auth-service
 governed_by:
   - MINIMAL_AUTH_FOUNDATION_V2
   - AUTH_SERVICE_AGENTCORE_TRUSTED_FLEET_GRANT_SUPPLY_V1
   - AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1
-external_authorities: []
+external_authorities:
+  - repository: mayf3/svc-workflow
+    authority_id: SVC_WORKFLOW_PRODUCT_BOUNDARY_V4
+    revision: f4bfbb7cbc1dbcdb29c1caa472408adc41378fbf
+    relation: constrained_by
+
+  - repository: mayf3/svc-workflow
+    authority_id: WORKFLOW_HTTP_CONTRACT_V1
+    revision: 68c78bb01bd088883048edb481df02214e596be7
+    relation: constrained_by
 supersedes: []
 superseded_by: null
 owners:
@@ -32,7 +42,10 @@ CHANGE_CLASS = NON_MECHANICAL
 AUTHORITY_REPAIR_MECHANISM = BOUNDED_LATER_DELTA_CHILD
 WHOLE_AUTHORITY_SUCCESSOR_REQUIRED = NO
 PARTIAL_SUPERSESSION = NONE
-EVALUATED_BASE = 325e781982c01a09d438e9d65df8079396e1520e
+EVALUATED_BASE = b88512881135dd8a0d382e8ca76650059df33725
+ORIGINAL_AUTHORING_BASE = 325e781982c01a09d438e9d65df8079396e1520e
+PREVIOUS_SPEC_HEAD = 47f42d51da1aff14e74b71243fa3752c5cc32dca
+MAIN_SYNC_REASON = UNRELATED_NOTIFICATION_INGRESS_DOCS_ONLY
 IMPLEMENTATION_AUTHORITY = none
 PRODUCTION_APPLY_AUTHORITY = none
 ```
@@ -146,15 +159,81 @@ HR_MAIN_IDENTITY_UNTOUCHED = YES
 The dispatcher has no `workflow.execute` and cannot replace the two Domain Owner
 identities' execution responsibility.
 
+### 3.4 External authority chain and ownership boundary
+
+This Child is constrained by two exact external authorities in
+`mayf3/svc-workflow`. Their revisions are fixed pins, not floating branches.
+
+```text
+EXTERNAL_AUTHORITY_COUNT = 2
+PRODUCT_DIRECTION_AUTHORITY = SVC_WORKFLOW_PRODUCT_BOUNDARY_V4
+PRODUCT_DIRECTION_REVISION = f4bfbb7cbc1dbcdb29c1caa472408adc41378fbf
+PRODUCT_DIRECTION_PATH = docs/product/SVC_WORKFLOW_PRODUCT_BOUNDARY_V4.md
+PRODUCT_DIRECTION_BLOB = c688593ac8986686c48553fb292b468b3225f06b
+PRODUCT_DIRECTION_REVISION_ROLE = V4 merge commit
+RUNTIME_CONTRACT_AUTHORITY = WORKFLOW_HTTP_CONTRACT_V1
+CONTRACT_DELIVERY_REVISION = 68c78bb01bd088883048edb481df02214e596be7
+CONTRACT_PATH = contracts/workflow-http/v1/contract.md
+CONTRACT_BLOB = 9d81acb167567d9309846da504af2a5b73b86390
+MANIFEST_PATH = contracts/workflow-http/v1/manifest.json
+MANIFEST_BLOB = 067d09b326d8a09ac6c90d9d7b900b2278124bb8
+CONTRACT_VERSION = 1.5.0
+BUNDLE_DIGEST = f7ce39b6f053f8665139c4594c4d24322bfbafc35c0284bb18218a21ed834e89
+OWNER_IMPLEMENTATION_SNAPSHOT = efcf0f515ec29600c459e660ce8aa84546c5aee3
+OWNER_IMPLEMENTATION_SNAPSHOT_IS_AUTHORITY_REVISION = NO
+CURRENT_SVC_WORKFLOW_MAIN = bf875c265843b3e07570a96b734051e9cfe27a43
+CURRENT_MAIN_ROLE = PINNED_BLOB_NON_DRIFT_PROOF_ONLY
+EXTERNAL_AUTHORITY_DRIFT = NO
+```
+
+Ownership is exact and non-overlapping:
+
+```text
+SVC_WORKFLOW_PRODUCT_BOUNDARY_V4_OWNS = Domain and Domain Owner product responsibility and authorization boundary
+WORKFLOW_HTTP_CONTRACT_V1_OWNS = exact Assistance routes and the workflow.read / workflow.execute wire-level scope requirement
+AUTH_SERVICE_CHILD_OWNS = the Grant end state of the two exact Clients (CTR-DOWE-001/002)
+```
+
+`SVC_WORKFLOW_PRODUCT_BOUNDARY_V4` (frontmatter `status: accepted`,
+`authority_kind: product_direction`) owns what Domains and Domain Owners are
+product-wise, including which product responsibility justifies their
+authorization boundary. `WORKFLOW_HTTP_CONTRACT_V1` owns the exact Assistance
+routes and the wire-level requirement that Assistance write routes require
+`workflow.execute` and Assistance read routes require `workflow.read`. This
+Child owns only the Grant end state of the two exact Clients. Runtime logs,
+database usage records, and Grant audit rows support current-state claims
+(`SUPPORT_CURRENT_STATE_CLAIMS = YES`) but never create or modify
+`svc-workflow` product authority
+(`CREATE_SVC_WORKFLOW_PRODUCT_AUTHORITY = NO`).
+
+Pin semantics:
+
+- The Product Direction authority revision is fixed to the V4 merge commit
+  `f4bfbb7cbc1dbcdb29c1caa472408adc41378fbf`.
+- The Runtime Contract authority revision is fixed to the Contract Bundle
+  delivery commit `68c78bb01bd088883048edb481df02214e596be7`.
+- `OWNER_IMPLEMENTATION_SNAPSHOT` `efcf0f515ec29600c459e660ce8aa84546c5aee3`
+  (the Workflow Assistance V1 implementation, recorded as `owner_head_sha` in
+  the pinned manifest) is an implementation snapshot only and is NOT the
+  Contract authority revision; the manifest itself declares it is not the
+  Contract Bundle delivery commit.
+- `CURRENT_SVC_WORKFLOW_MAIN` is resolved only to prove the pinned blobs have
+  not drifted upstream. The pins MUST NOT be advanced to the current main
+  commit merely because upstream main moved.
+
 ## 4. Current State
 
 ### STATE-DOWE-001 — Repository authority base is exact
 
 - Subject: `mayf3/auth-service` authority graph and governed paths.
-- As-of commit: `github/main@325e781982c01a09d438e9d65df8079396e1520e`.
+- As-of commit: `github/main@325e781982c01a09d438e9d65df8079396e1520e`
+  (`ORIGINAL_AUTHORING_BASE`, 2026-08-28 authoring round).
 - Environment: fresh dedicated authoring worktree.
 - Observed at: 2026-08-28 authoring round.
 - Basis: `OBS-DOWE-001`, `CLM-DOWE-001`, `EVD-DOWE-001`.
+- Provenance note: this block records the original authoring base and is
+  preserved as historical provenance; the current evaluated base is bound by
+  `STATE-DOWE-005`.
 
 ### STATE-DOWE-002 — Exact two current rows already conform
 
@@ -185,6 +264,21 @@ identities' execution responsibility.
 - Result: `OWNER_APPLY_ONLY`; governing Spec `NONE`; source commit content was
   unrelated to the Grant and was not authority.
 - Basis: `OBS-DOWE-004`, `CLM-DOWE-004`, `EVD-DOWE-004`.
+
+### STATE-DOWE-005 — Re-evaluated authority base is exact
+
+- Subject: `mayf3/auth-service` authority graph and governed paths at the
+  current evaluated base.
+- As-of commit: `github/main@b88512881135dd8a0d382e8ca76650059df33725`.
+- Environment: fresh dedicated V2 authority-pin sync worktree.
+- Observed at: 2026-08-29 authority-pin sync round.
+- Result: drift from the original authoring base
+  `325e781982c01a09d438e9d65df8079396e1520e` is exactly three unrelated
+  Notification Ingress docs files; Fleet V1, Forum Moderator, and HR
+  Dispatcher blobs are byte-identical across the drift range; the previous
+  head `47f42d51da1aff14e74b71243fa3752c5cc32dca` was linearly rebased onto
+  the new base with zero merge commits.
+- Basis: `OBS-DOWE-008`, `CLM-DOWE-001`, `EVD-DOWE-007`.
 
 ## 5. Observations
 
@@ -333,7 +427,72 @@ also verify active unique Principal/Client bindings and duplicate count zero.
 - Result: accepted bounded later delta for one Forum moderator Client; Workflow
   Grant mutation is forbidden; production apply remains separate; fleet V1 is
   preserved as completed baseline.
-- Provenance: accepted Spec at `github/main@325e781...`.
+- Provenance: accepted Spec at `github/main@325e781...` (original authoring
+  base; blob `7e661da3096043b16015473a9bc308121fc3ea72` byte-identical at the
+  current evaluated base per `OBS-DOWE-008`).
+
+### OBS-DOWE-008 — V2 main-sync coordinate gate and drift classification
+
+- Subject: authority-pin sync round repository coordinates and main drift.
+- Method: fresh `git fetch github`; exact `github/main` resolution; commit and
+  file inventory of `325e781982c01a09d438e9d65df8079396e1520e..b88512881135dd8a0d382e8ca76650059df33725`;
+  fresh dedicated V2 worktree; linear rebase of the exact previous head
+  `47f42d51da1aff14e74b71243fa3752c5cc32dca` onto the new base with zero merge
+  commits; blob comparison of every authority this Child depends on across the
+  drift range.
+- Result:
+
+```text
+GITHUB_MAIN = b88512881135dd8a0d382e8ca76650059df33725
+PREVIOUS_SPEC_HEAD = 47f42d51da1aff14e74b71243fa3752c5cc32dca
+MAIN_DRIFT_CLASSIFICATION = UNRELATED_NOTIFICATION_INGRESS_DOCS_ONLY
+MAIN_DRIFT_AUTHORITY_OVERLAP = NONE
+MAIN_DRIFT_INDEX_OVERLAP = README_ONLY
+DRIFT_FILES = M docs/specs/AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V1.md + A docs/specs/AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V2.md + M docs/specs/README.md
+FLEET_V1_BLOB_ACROSS_DRIFT = 649a468f6145cce8653a6e473f07c9d28eca0360 unchanged
+FORUM_MODERATOR_BLOB_ACROSS_DRIFT = 7e661da3096043b16015473a9bc308121fc3ea72 unchanged
+HR_DISPATCHER_BLOB_ACROSS_DRIFT = fbf3a1283f04d8264d026ae96bc14c354562c611 unchanged
+README_RESOLUTION = main Notification Ingress V1 superseded row and V2 accepted row fully preserved; only this Child's proposed index row re-added
+REBASE_MERGE_COMMITS = 0
+```
+
+- Observed at: 2026-08-29 authority-pin sync round; a fresh fetch immediately
+  before push re-confirmed the same coordinates.
+- Provenance: V2 sync command record in the dedicated worktree
+  `/private/tmp/auth-service-domain-owner-workflow-authority-pin-v2`.
+
+### OBS-DOWE-009 — External authority exact-pin verification
+
+- Subject: the two pinned `mayf3/svc-workflow` authorities.
+- Method: in a current `mayf3/svc-workflow` clone after `git fetch github`,
+  resolve each pinned revision's authority document blob with
+  `git rev-parse <revision>:<path>`; read the V4 frontmatter and the Contract
+  manifest at the pinned revisions; resolve the same paths at current
+  `github/main` to prove pinned-blob non-drift.
+- Result:
+
+```text
+PRODUCT_DIRECTION_BLOB_AT_f4bfbb7 = c688593ac8986686c48553fb292b468b3225f06b (match)
+PRODUCT_DIRECTION_STATUS = accepted
+PRODUCT_DIRECTION_AUTHORITY_KIND = product_direction
+CONTRACT_BLOB_AT_68c78bb = 9d81acb167567d9309846da504af2a5b73b86390 (match)
+MANIFEST_BLOB_AT_68c78bb = 067d09b326d8a09ac6c90d9d7b900b2278124bb8 (match)
+MANIFEST_CONTRACT_ID = WORKFLOW_HTTP_CONTRACT_V1
+MANIFEST_CONTRACT_VERSION = 1.5.0
+MANIFEST_BUNDLE_DIGEST = f7ce39b6f053f8665139c4594c4d24322bfbafc35c0284bb18218a21ed834e89
+MANIFEST_OWNER_HEAD_SHA = efcf0f515ec29600c459e660ce8aa84546c5aee3 (implementation snapshot; manifest self-declares NOT the Contract Bundle delivery commit)
+CURRENT_SVC_WORKFLOW_MAIN = bf875c265843b3e07570a96b734051e9cfe27a43
+CURRENT_MAIN_PRODUCT_DIRECTION_BLOB = c688593ac8986686c48553fb292b468b3225f06b (match)
+CURRENT_MAIN_CONTRACT_BLOB = 9d81acb167567d9309846da504af2a5b73b86390 (match)
+CURRENT_MAIN_MANIFEST_BLOB = 067d09b326d8a09ac6c90d9d7b900b2278124bb8 (match)
+EXTERNAL_AUTHORITY_DRIFT = NO
+```
+
+- Observed at: 2026-08-29 authority-pin sync round; independent review and
+  every later conformance round MUST re-execute this resolution at the exact
+  pinned revisions and fail closed on any mismatch.
+- Provenance: `git fetch github` plus `git rev-parse`/`git show` command
+  record in the current `mayf3/svc-workflow` clone.
 
 ## 6. Claims and assumptions
 
@@ -375,6 +534,15 @@ also verify active unique Principal/Client bindings and duplicate count zero.
 - Contradicted by: none known.
 - Uncertainty: current observed equality is deferred to independent read-only
   conformance; the authority baseline itself is exact at the evaluated V1 blob.
+
+### CLM-DOWE-006 — The external authority chain is exactly pinned and undrifted
+
+- Support state: SUPPORTED.
+- Supported by: `EVD-DOWE-008`.
+- Contradicted by: none known.
+- Uncertainty: upstream `mayf3/svc-workflow` may advance; that never moves
+  these pins, and drift of the pinned blobs themselves fails closed under
+  `CTR-DOWE-021`.
 
 ## 7. Evidence relations
 
@@ -437,6 +605,26 @@ also verify active unique Principal/Client bindings and duplicate count zero.
 - Strength/sufficiency: exact V1 Appendix A subtraction and canonical 84-row digest at the evaluated source blob.
 - Limitations: current observed equality is established only by the future independent read-only conformance audit.
 - Provenance: Fleet V1 Appendix A and the `OBS-DOWE-006` canonicalization procedure.
+
+### EVD-DOWE-007 — Main-sync coordinates support the re-evaluated base
+
+- Source observations: `OBS-DOWE-008`.
+- Target: `STATE-DOWE-005`, `CLM-DOWE-001`.
+- Relation: SUPPORTS.
+- Bound coordinates: `mayf3/auth-service@b88512881135dd8a0d382e8ca76650059df33725` (current evaluated base); previous head `47f42d51da1aff14e74b71243fa3752c5cc32dca`; original authoring base `325e781982c01a09d438e9d65df8079396e1520e`; observed 2026-08-29.
+- Strength/sufficiency: exact drift file inventory, linear rebase, and unchanged dependent-authority blobs across the drift range.
+- Limitations: main commits after `b88512881135dd8a0d382e8ca76650059df33725` are not covered and require re-evaluation.
+- Provenance: V2 sync `git fetch` / `git rev-parse` / `git diff --name-status` and blob-comparison command record.
+
+### EVD-DOWE-008 — Pinned external authorities support the authority chain
+
+- Source observations: `OBS-DOWE-009`.
+- Target: `STATE-DOWE-005`, `CLM-DOWE-006`.
+- Relation: SUPPORTS.
+- Bound coordinates: `mayf3/svc-workflow` pinned revisions `f4bfbb7cbc1dbcdb29c1caa472408adc41378fbf` and `68c78bb01bd088883048edb481df02214e596be7`; current upstream main `bf875c265843b3e07570a96b734051e9cfe27a43`; observed 2026-08-29.
+- Strength/sufficiency: exact blob identities at both pinned revisions plus current-main equality for all three pinned blobs.
+- Limitations: current-main equality proves non-drift only as of this round; later upstream movement is governed by `CTR-DOWE-021` / `CTR-DOWE-022`.
+- Provenance: `git rev-parse` / `git show` command record in the current `mayf3/svc-workflow` clone.
 
 ## 8. Decisions
 
@@ -610,6 +798,87 @@ other accepted authority, `.agents/**`, Prisma, scripts, tests, and source
 byte-identical. Review, acceptance, merge, conformance, implementation, and
 production apply remain distinct phases.
 
+### CTR-DOWE-017 — Exact Product Direction authority pin
+
+The upstream product-direction authority for this Child is exactly
+`SVC_WORKFLOW_PRODUCT_BOUNDARY_V4` in repository `mayf3/svc-workflow`, pinned
+at revision `f4bfbb7cbc1dbcdb29c1caa472408adc41378fbf` (the V4 merge commit),
+authority document `docs/product/SVC_WORKFLOW_PRODUCT_BOUNDARY_V4.md`, blob
+`c688593ac8986686c48553fb292b468b3225f06b`, with authority frontmatter
+`status: accepted` and `authority_kind: product_direction`. The Spec
+frontmatter `external_authorities` MUST carry exactly this pin with relation
+`constrained_by`.
+
+### CTR-DOWE-018 — Exact Runtime Contract authority pin
+
+The upstream runtime-contract authority for this Child is exactly
+`WORKFLOW_HTTP_CONTRACT_V1` in repository `mayf3/svc-workflow`, pinned at the
+Contract Bundle delivery revision
+`68c78bb01bd088883048edb481df02214e596be7`, with
+`contracts/workflow-http/v1/contract.md` blob
+`9d81acb167567d9309846da504af2a5b73b86390`,
+`contracts/workflow-http/v1/manifest.json` blob
+`067d09b326d8a09ac6c90d9d7b900b2278124bb8`, `contract_version` exactly
+`1.5.0`, and `bundle_digest` exactly
+`f7ce39b6f053f8665139c4594c4d24322bfbafc35c0284bb18218a21ed834e89`. The Spec
+frontmatter `external_authorities` MUST carry exactly this pin with relation
+`constrained_by`.
+
+### CTR-DOWE-019 — External ownership boundary is exact
+
+`SVC_WORKFLOW_PRODUCT_BOUNDARY_V4` owns the Domain and Domain Owner product
+responsibility and authorization boundary. `WORKFLOW_HTTP_CONTRACT_V1` owns
+the exact Assistance routes and the `workflow.read` / `workflow.execute`
+wire-level scope requirement. This Child owns only the Grant end state of the
+two exact Clients (`CTR-DOWE-001`/`CTR-DOWE-002`). Runtime logs, database
+usage records, and Grant audit rows support current-state claims
+(`SUPPORT_CURRENT_STATE_CLAIMS = YES`) but MUST NOT be treated as creating or
+modifying `svc-workflow` product authority
+(`CREATE_SVC_WORKFLOW_PRODUCT_AUTHORITY = NO`). This Child MUST NOT author,
+edit, or reclassify any authority document in `mayf3/svc-workflow`.
+
+### CTR-DOWE-020 — Domain Owner Assistance responsibility matches the pinned Contract
+
+Under the pinned `WORKFLOW_HTTP_CONTRACT_V1`, the Domain Owner is the actor
+responsible for Assistance resolve and escalate; the Assistance write routes
+(`POST /internal/v1/workflow-instances/{workflowInstanceId}/assistance-cases`,
+`POST /internal/v1/assistance-cases/{assistanceCaseId}/escalate-to-human`,
+`POST /internal/v1/assistance-cases/{assistanceCaseId}/resolve`) require
+`workflow.execute`, and the Assistance read routes
+(`GET /internal/v1/assistance-cases/owner-inbox`,
+`GET /internal/v1/assistance-cases/human-required`,
+`GET /internal/v1/assistance-cases/requested-by-me`,
+`GET /internal/v1/assistance-cases/{assistanceCaseId}`) require
+`workflow.read`. The exact two-row end state of `CTR-DOWE-002` MUST remain
+consistent with exactly these wire-level scope requirements; neither more
+(`workflow.admin`, wildcard) nor less (read-only) is authorized for the two
+Domain Owners.
+
+### CTR-DOWE-021 — Pinned-blob drift fails closed
+
+Review and conformance MUST re-resolve every pinned revision and blob
+identifier in `mayf3/svc-workflow`, and may additionally resolve the current
+upstream main only to prove the pinned blobs have not drifted. Any authority
+ID, revision, blob, status, authority kind, contract version, or bundle digest
+mismatch MUST FAIL closed. A failure MUST NOT be repaired by silently
+re-pinning, advancing the pin to the moved upstream main, or absorbing the
+change into this Child; repair requires a new independently reviewed docs-only
+authority amendment.
+
+### CTR-DOWE-022 — Future external authority change is never silently absorbed
+
+A future `SVC_WORKFLOW_PRODUCT_BOUNDARY` successor, a new
+`WORKFLOW_HTTP_CONTRACT` version or delivery revision, or any other upstream
+`mayf3/svc-workflow` change MUST NOT alter this Child's pinned authority chain
+implicitly. Advancing a pin requires a new docs-only amendment that records
+the old and new coordinates, the drift classification, and the reason, and
+that receives independent review. The external authority revision MUST NOT be
+advanced to `CURRENT_SVC_WORKFLOW_MAIN`
+(`bf875c265843b3e07570a96b734051e9cfe27a43`) merely because upstream main
+moved, and `OWNER_IMPLEMENTATION_SNAPSHOT`
+(`efcf0f515ec29600c459e660ce8aa84546c5aee3`) MUST NOT be reclassified as the
+Contract authority revision.
+
 ## 10. Acceptance
 
 Every Acceptance result MUST bind the exact evaluated base, exact Spec head,
@@ -744,6 +1013,54 @@ use evidence may remain private but MUST be independently inspectable.
 - Expected result: dispatcher remains read+wake only; Draft/Open/Unmerged; only two allowed docs files changed.
 - Failure condition: dispatcher substitution, extra file, acceptance, merge, or apply.
 
+### ACC-DOWE-017 — Product Direction authority pin is exact
+- Contracts: `CTR-DOWE-017`.
+- Method: resolve the pinned revision and blob in `mayf3/svc-workflow` and inspect the authority frontmatter.
+- Environment: current `mayf3/svc-workflow` clone; exact Spec frontmatter at the reviewed head.
+- Required evidence: `git rev-parse f4bfbb7cbc1dbcdb29c1caa472408adc41378fbf:docs/product/SVC_WORKFLOW_PRODUCT_BOUNDARY_V4.md` equals `c688593ac8986686c48553fb292b468b3225f06b`; frontmatter `authority_id: SVC_WORKFLOW_PRODUCT_BOUNDARY_V4`, `status: accepted`, `authority_kind: product_direction`; Spec `external_authorities` pin with relation `constrained_by`.
+- Expected result: authority ID, revision, blob, accepted status, and `product_direction` kind all match the pin exactly.
+- Failure condition: any authority-ID / revision / blob / status / kind mismatch or missing frontmatter pin.
+
+### ACC-DOWE-018 — Runtime Contract authority pin is exact
+- Contracts: `CTR-DOWE-018`.
+- Method: resolve the pinned delivery revision's contract and manifest blobs and read the manifest fields.
+- Environment: current `mayf3/svc-workflow` clone; exact Spec frontmatter at the reviewed head.
+- Required evidence: `git rev-parse 68c78bb01bd088883048edb481df02214e596be7:contracts/workflow-http/v1/contract.md` equals `9d81acb167567d9309846da504af2a5b73b86390`; the same revision's `contracts/workflow-http/v1/manifest.json` equals `067d09b326d8a09ac6c90d9d7b900b2278124bb8`; manifest `contract_id: WORKFLOW_HTTP_CONTRACT_V1`, `contract_version: 1.5.0`, `bundle_digest: f7ce39b6f053f8665139c4594c4d24322bfbafc35c0284bb18218a21ed834e89`; Spec `external_authorities` pin with relation `constrained_by`.
+- Expected result: contract ID, delivery revision, both blobs, version `1.5.0`, and bundle digest all match exactly.
+- Failure condition: any contract-ID / revision / blob / version / digest mismatch or missing frontmatter pin.
+
+### ACC-DOWE-019 — Ownership boundary is respected
+- Contracts: `CTR-DOWE-019`.
+- Method: authority-flow review of §3.4 against the two pinned upstream authorities and the Child's own scope.
+- Environment: exact proposed Spec/PR head and the two pinned upstream revisions.
+- Required evidence: §3.4 ownership table; Child scope limited to the two-row Grant end state; changed-file inventory showing no write into `mayf3/svc-workflow` and no upstream authority edit; run logs / DB usage records / Grant audit classified as current-state support only.
+- Expected result: `SVC_WORKFLOW_PRODUCT_BOUNDARY_V4` owns Domain and Domain Owner product responsibility; `WORKFLOW_HTTP_CONTRACT_V1` owns the exact Assistance routes and wire-level scopes; this Child owns only the two-Client Grant end state; `CREATE_SVC_WORKFLOW_PRODUCT_AUTHORITY = NO`.
+- Failure condition: ownership overlap, upstream authority created or edited, or run logs / DB records / Grant audit treated as product authority.
+
+### ACC-DOWE-020 — Assistance route and scope alignment
+- Contracts: `CTR-DOWE-020`.
+- Method: read the Assistance route and scope requirements from the pinned contract at `68c78bb01bd088883048edb481df02214e596be7` and compare with the Child's exact end state.
+- Environment: pinned contract text plus the exact two-row state evidence of `ACC-DOWE-001`.
+- Required evidence: pinned contract route table showing the Domain Owner responsible for Assistance resolve/escalate; write routes gated by `workflow.execute`; read routes gated by `workflow.read`; two-row state `[workflow.execute, workflow.read]@v2` equal to exactly the required scope union.
+- Expected result: Domain Owner responsible for Assistance resolve/escalate; write routes require `workflow.execute`; read routes require `workflow.read`; end state consistent with exactly these requirements.
+- Failure condition: route/scope mismatch, missing execute or read for the two Owners, or any extra scope justified by the contract.
+
+### ACC-DOWE-021 — Implementation snapshot is not the authority revision
+- Contracts: `CTR-DOWE-018`, `CTR-DOWE-022`.
+- Method: compare the manifest `owner_head_sha`/`owner_tree_sha` provenance with the Contract delivery revision, and scan the Spec for any snapshot-as-authority or current-main-as-authority classification.
+- Environment: pinned manifest at `68c78bb01bd088883048edb481df02214e596be7` and the exact proposed Spec head.
+- Required evidence: manifest self-declaration that `owner_head_sha` `efcf0f515ec29600c459e660ce8aa84546c5aee3` is an implementation snapshot and NOT the Contract Bundle delivery commit; `CONTRACT_DELIVERY_REVISION = 68c78bb01bd088883048edb481df02214e596be7`; negative scan result over Spec and PR body.
+- Expected result: `OWNER_IMPLEMENTATION_SNAPSHOT_IS_AUTHORITY_REVISION = NO` everywhere; the delivery revision is `68c78bb01bd088883048edb481df02214e596be7`.
+- Failure condition: the snapshot or the current upstream main reclassified as an authority revision.
+
+### ACC-DOWE-022 — External authority drift check fails closed
+- Contracts: `CTR-DOWE-021`, `CTR-DOWE-022`.
+- Method: re-resolve both pinned revisions and all three pinned blobs, additionally resolve the current upstream main and compare the same paths, and scan the Spec/PR for silent re-pin.
+- Environment: current `mayf3/svc-workflow` clone at review/conformance time; exact reviewed Spec head.
+- Required evidence: blob results at `f4bfbb7cbc1dbcdb29c1caa472408adc41378fbf` and `68c78bb01bd088883048edb481df02214e596be7`; current-main (at this round `bf875c265843b3e07570a96b734051e9cfe27a43`) equality for the product-direction / contract / manifest blobs; frontmatter pins unchanged; `EXTERNAL_AUTHORITY_DRIFT = NO`.
+- Expected result: all pins exact; pinned blobs unchanged upstream; no revision advanced to current main.
+- Failure condition: any pin / blob / status / kind / version / digest mismatch, upstream pinned-blob drift, or a silently absorbed external authority change.
+
 ### 10.1 Bidirectional Contract ↔ Acceptance mapping
 
 | Contract | Acceptance coverage |
@@ -764,6 +1081,12 @@ use evidence may remain private but MUST be independently inspectable.
 | `CTR-DOWE-014` | `ACC-DOWE-014` |
 | `CTR-DOWE-015` | `ACC-DOWE-015` |
 | `CTR-DOWE-016` | `ACC-DOWE-010`, `ACC-DOWE-016` |
+| `CTR-DOWE-017` | `ACC-DOWE-017` |
+| `CTR-DOWE-018` | `ACC-DOWE-018`, `ACC-DOWE-021` |
+| `CTR-DOWE-019` | `ACC-DOWE-019` |
+| `CTR-DOWE-020` | `ACC-DOWE-020` |
+| `CTR-DOWE-021` | `ACC-DOWE-022` |
+| `CTR-DOWE-022` | `ACC-DOWE-021`, `ACC-DOWE-022` |
 
 | Acceptance | Contract coverage |
 |---|---|
@@ -783,6 +1106,12 @@ use evidence may remain private but MUST be independently inspectable.
 | `ACC-DOWE-014` | `CTR-DOWE-014` |
 | `ACC-DOWE-015` | `CTR-DOWE-015` |
 | `ACC-DOWE-016` | `CTR-DOWE-012`, `CTR-DOWE-016` |
+| `ACC-DOWE-017` | `CTR-DOWE-017` |
+| `ACC-DOWE-018` | `CTR-DOWE-018` |
+| `ACC-DOWE-019` | `CTR-DOWE-019` |
+| `ACC-DOWE-020` | `CTR-DOWE-020` |
+| `ACC-DOWE-021` | `CTR-DOWE-018`, `CTR-DOWE-022` |
+| `ACC-DOWE-022` | `CTR-DOWE-021`, `CTR-DOWE-022` |
 
 ## 11. Alternatives and disposition
 
@@ -824,9 +1153,11 @@ OPEN_OWNER_DECISIONS = NONE
 NORMATIVE_TBD = NONE
 UNRESOLVED_AUTHORITY_CONFLICT = NONE
 PARTIAL_SUPERSESSION = NONE
-CONTRACT_COUNT = 16
-CONTRACTS_WITH_ACCEPTANCE = 16
+CONTRACT_COUNT = 22
+CONTRACTS_WITH_ACCEPTANCE = 22
 ACCEPTANCE_REFERENCES_VALID = PASS
+EXTERNAL_AUTHORITY_COUNT = 2
+EXTERNAL_AUTHORITY_DRIFT = NO
 AUTHORING_READY_FOR_REVIEW = YES
 AUTHORITY_ACCEPTANCE_REQUIRES_DB_WRITE = NO
 AUTHORITY_MERGE_REQUIRES_GRANT_WRITE = NO
