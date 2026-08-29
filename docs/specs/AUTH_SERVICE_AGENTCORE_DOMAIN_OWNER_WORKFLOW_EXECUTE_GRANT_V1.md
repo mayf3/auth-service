@@ -243,11 +243,17 @@ Pin semantics:
 
 - Subject: exact Domain Owner `svc-workflow` rows and deterministic identity
   relationships.
-- Environment: current auth-service database; owner-held read-only evidence
-  supplied to this authoring round.
-- Result: two rows, scopes `[workflow.execute, workflow.read]`, version `2`;
-  Principal active; Client active; relationship `MATCH`; duplicate count `0`.
-- Basis: `OBS-DOWE-002`, `CLM-DOWE-002`, `EVD-DOWE-002`.
+- Environment: current auth-service database through database role `auth_ro`,
+  with `transaction_read_only=on` and final action `ROLLBACK`.
+- Observed at: `2026-08-29T08:26:20.706381Z`.
+- Evidence artifact: `AUTH_SERVICE_PR36_DOMAIN_OWNER_WORKFLOW_EXECUTE_OWNER_HELD_EVIDENCE_V1@2026-08-29T07:59:33.968375Z#sha256:e9a134bfcf0c9e2960eeb04769e491b9aef55273c2222bab1450677452cf28bd`.
+- Result: fleet count `86`; two target rows, scopes
+  `[workflow.execute, workflow.read]`, version `2`; Principal active; Client
+  active; relationship `MATCH`; target anomaly count `0`; target duplicate
+  count `0`; the other 84 rows equal the Fleet V1 baseline with anomaly and
+  duplicate counts `0`; database and Grant writes `0`.
+- Basis: `OBS-DOWE-002`, `OBS-DOWE-005`, `OBS-DOWE-006`, `CLM-DOWE-002`,
+  `EVD-DOWE-002`.
 
 ### STATE-DOWE-003 — Execute dependency and use are present
 
@@ -296,34 +302,60 @@ Pin semantics:
   drift review was required. A fresh worktree and fresh branch were created.
 - Provenance: authoring command record.
 
-### OBS-DOWE-002 — Owner-supplied current DB projection
+### OBS-DOWE-002 — Owner-held full-state DB evidence artifact
 
-- Subject: exact two Domain Owner rows.
-- Environment: current auth-service production database, read-only projection.
-- Observed at: owner evidence current as of 2026-08-28; the independent review
-  receipt MUST bind its exact UTC query timestamp.
-- Stable private evidence reference:
-  `OWNER_HELD_AUTH_DB_DOMAIN_OWNER_WF_EXECUTE_20260828`.
+- Subject: exact two Domain Owner rows plus the read-only fleet reconciliation
+  coordinate.
+- Environment: current auth-service production database; database role
+  `auth_ro`; `transaction_read_only=on`; final action `ROLLBACK`.
+- Observed at: `2026-08-29T08:26:20.706381Z`.
+- Current normative evidence reference:
+  `AUTH_SERVICE_PR36_DOMAIN_OWNER_WORKFLOW_EXECUTE_OWNER_HELD_EVIDENCE_V1@2026-08-29T07:59:33.968375Z#sha256:e9a134bfcf0c9e2960eeb04769e491b9aef55273c2222bab1450677452cf28bd`.
+- Historical alias: `OWNER_HELD_AUTH_DB_DOMAIN_OWNER_WF_EXECUTE_20260828` is
+  retained only as non-normative provenance and MUST NOT be used as the current
+  evidence binding.
 - Method: exact-agent + deterministic Client external-ref lookup, safe leaf-field
-  projection, active Principal/Client relationship join, duplicate count, and
-  canonical JSON digest; this PR performed no database access or mutation.
-- Result:
+  projection, active Principal/Client relationship join, duplicate/anomaly
+  counts, and canonical digest calculation. The evidence query and this docs-only
+  amendment performed no database or Grant mutation.
+- Full-state artifact definition and result:
 
 ```text
-ROW_COUNT = 2
-SCOPES = [workflow.execute, workflow.read]
-VERSION = 2
-PRINCIPAL = active
-CLIENT = active
-RELATIONSHIP = MATCH
-DUPLICATE = 0
-OBSERVED_DOMAIN_OWNER_WORKFLOW_TWO_ROW_SHA256 = 70e54c7b4af4f5c567853f96678910d84934efb901d409ae5ea65ac21cb6cdc5
+OWNER_HELD_EVIDENCE_ARTIFACT_SHA256 = e9a134bfcf0c9e2960eeb04769e491b9aef55273c2222bab1450677452cf28bd
+EVIDENCE_ARTIFACT_PREIMAGE_CLASS = FULL_STATE_PROJECTION
+EVIDENCE_ARTIFACT_LENGTH_BYTES = 495
+EVIDENCE_ARTIFACT_TRAILING_NEWLINE = NO
+FULL_STATE_FIELDS = agent_id, client_active, client_external_ref, duplicate_count, principal_active, relationship_match, scopes, version
+FULL_STATE_PROJECTION_CONTAINS_AUDIENCE = NO
+FULL_STATE_DIGEST_IS_GRANT_SHAPE_DIGEST = NO
+FLEET_COUNT = 86
+TARGET_COUNT = 2
+TARGET_ANOMALY_COUNT = 0
+TARGET_DUPLICATE_COUNT = 0
+OTHER_WORKFLOW_ROW_COUNT = 84
+OTHER_84_ANOMALY_COUNT = 0
+OTHER_84_DUPLICATE_COUNT = 0
+PRINCIPAL_ACTIVE = CONFIRMED
+CLIENT_ACTIVE = CONFIRMED
+RELATIONSHIP_MATCH = CONFIRMED
+DATABASE_WRITES = 0
+GRANT_WRITES = 0
 ```
 
-- Privacy/provenance: complete query receipt, mapping, and client IDs remain
-  owner-held and are not repeated in PR prose. Independent review MUST inspect
-  the private reference, record its artifact digest and exact timestamp in the
-  persistent review receipt, and independently reproduce the observed digest.
+- Digest-role boundary: the `e9a134...28bd` value is the digest of the
+  495-byte eight-field full-state artifact. It is not the five-field Grant-shape
+  digest in `OBS-DOWE-005` and not the other-84 baseline digest in
+  `OBS-DOWE-006`.
+- Privacy/provenance: the complete query receipt, complete tool result, public
+  Client IDs, full 86-Agent roster, database connection information, and any
+  secret/token/password remain owner-held and MUST NOT appear in public GitHub
+  content. The exact private locator is distributed only through the owner-held
+  local evidence index, independent Reviewer's private task input, and final
+  private audit worksheet. If repository governance requires public disclosure
+  of that locator, the operation MUST stop with
+  `SENSITIVE_OPERATIONAL_METADATA_DISCLOSURE = OWNER_DECISION_REQUIRED` rather
+  than publishing a session UUID. Independent review MUST inspect that private
+  locator and mechanically reproduce all three separately named digests.
 
 ### OBS-DOWE-003 — Owner-supplied execute dependency/use record
 
@@ -377,13 +409,15 @@ SOURCE_COMMIT_IS_AUTHORITY = NO
 RETROACTIVE_AUTHORIZATION = NO
 ```
 
-### OBS-DOWE-005 — Exact two-row digest
+### OBS-DOWE-005 — Spec five-field Grant-shape digest
 
-- Subject: the two exact current/required Workflow rows.
+- Subject: the two exact current/required Workflow rows, projected only to the
+  five-field Grant shape.
 - Method: canonical UTF-8 JSON array ordered by `agent_id`, with object keys
   sorted, separators exactly `(',', ':')`, `ensure_ascii=false`; each object
   contains exactly `agent_id`, `client_external_ref`, `audience`, `scopes`, and
   `version`; scopes are unsigned-ASCII sorted.
+- Field set: `agent_id`, `client_external_ref`, `audience`, `scopes`, `version`.
 - Canonical document:
 
 ```json
@@ -393,15 +427,17 @@ RETROACTIVE_AUTHORIZATION = NO
 - Result:
 
 ```text
-TARGET_DOMAIN_OWNER_WORKFLOW_TWO_ROW_SHA256 = 70e54c7b4af4f5c567853f96678910d84934efb901d409ae5ea65ac21cb6cdc5
-OBSERVED_DOMAIN_OWNER_WORKFLOW_TWO_ROW_SHA256 = 70e54c7b4af4f5c567853f96678910d84934efb901d409ae5ea65ac21cb6cdc5
-OBSERVED_EQUALS_TARGET = YES
+SPEC_TARGET_GRANT_SHAPE_SHA256 = 70e54c7b4af4f5c567853f96678910d84934efb901d409ae5ea65ac21cb6cdc5
+OBSERVED_GRANT_SHAPE_TWO_ROW_SHA256 = 70e54c7b4af4f5c567853f96678910d84934efb901d409ae5ea65ac21cb6cdc5
+OBSERVED_EQUALS_SPEC_TARGET = YES
 ```
 
 The target digest is computed from the canonical document above. The observed
-digest is the independently reproducible projection reported by `OBS-DOWE-002`;
-its equality MUST be re-established from the private DB evidence during review
-and post-merge conformance rather than inferred from this literal.
+digest is independently reproduced by projecting the private DB evidence to
+this exact five-field shape. It deliberately differs in preimage class and
+field set from the full-state artifact digest in `OBS-DOWE-002`; equality MUST
+be re-established during review and post-merge conformance rather than inferred
+from this literal.
 
 ### OBS-DOWE-006 — Other-84 Fleet V1 Workflow baseline digest
 
@@ -417,12 +453,19 @@ and post-merge conformance rather than inferred from this literal.
 
 ```text
 OTHER_WORKFLOW_ROW_COUNT = 84
-OTHER_WORKFLOW_BASELINE_SHA256 = cdf8265689f139e07c5415fbd206cea5e548c3b086906fc6444f627ca17ac7cf
+EXPECTED_OTHER_84_BASELINE_SHA256 = cdf8265689f139e07c5415fbd206cea5e548c3b086906fc6444f627ca17ac7cf
+OBSERVED_OTHER_84_WORKFLOW_SHA256 = cdf8265689f139e07c5415fbd206cea5e548c3b086906fc6444f627ca17ac7cf
+OTHER_84_EQUALS_BASELINE = YES
+OTHER_84_ANOMALY_COUNT = 0
+OTHER_84_DUPLICATE_COUNT = 0
 ```
 
-This is the authority baseline digest. Post-merge read-only conformance MUST
-independently derive the observed 84-row digest and require equality; it MUST
-also verify active unique Principal/Client bindings and duplicate count zero.
+The expected value is the Fleet V1 authority baseline digest. The observed value
+is independently derived from the fresh read-only query bound in
+`OBS-DOWE-002`. It is neither the two-row full-state artifact digest nor the
+five-field two-row Grant-shape digest. Post-merge read-only conformance MUST
+again derive the observed 84-row digest and require equality, active unique
+Principal/Client bindings, anomaly count zero, and duplicate count zero.
 
 ### OBS-DOWE-007 — Active Forum sibling disposition
 
@@ -534,10 +577,11 @@ EXTERNAL_AUTHORITY_DRIFT = NO
 ### CLM-DOWE-005 — Fleet V1 defines an exact other-84 Workflow baseline
 
 - Support state: SUPPORTED.
-- Supported by: `EVD-DOWE-006`.
+- Supported by: `EVD-DOWE-002`, `EVD-DOWE-006`.
 - Contradicted by: none known.
-- Uncertainty: current observed equality is deferred to independent read-only
-  conformance; the authority baseline itself is exact at the evaluated V1 blob.
+- Uncertainty: fresh read-only observed equality is established as of
+  `2026-08-29T08:26:20.706381Z`; independent review and later conformance must
+  reproduce it at their own exact coordinates.
 
 ### CLM-DOWE-006 — The external authority chain is exactly pinned and undrifted
 
@@ -562,13 +606,22 @@ EXTERNAL_AUTHORITY_DRIFT = NO
 
 ### EVD-DOWE-002 — Current state supports zero-write acceptance
 
-- Source observations: `OBS-DOWE-002`, `OBS-DOWE-005`.
+- Source observations: `OBS-DOWE-002`, `OBS-DOWE-005`, `OBS-DOWE-006`.
 - Target: `STATE-DOWE-002`, `CLM-DOWE-002`.
 - Relation: SUPPORTS.
-- Bound coordinates: current auth-service production database; private reference `OWNER_HELD_AUTH_DB_DOMAIN_OWNER_WF_EXECUTE_20260828`; target projection at this exact Spec revision; evidence current as of 2026-08-28.
-- Strength/sufficiency: exact two-row shape plus independently reproducible observed/target digest equality; sufficient for authoring.
-- Limitations: independent review must bind the private artifact digest and exact UTC query timestamp.
-- Provenance: owner-held read-only query receipt and `OBS-DOWE-005` canonicalization procedure.
+- Bound coordinates: current auth-service production database; database role
+  `auth_ro`; `transaction_read_only=on`; final action `ROLLBACK`; observed at
+  `2026-08-29T08:26:20.706381Z`; normative evidence reference
+  `AUTH_SERVICE_PR36_DOMAIN_OWNER_WORKFLOW_EXECUTE_OWNER_HELD_EVIDENCE_V1@2026-08-29T07:59:33.968375Z#sha256:e9a134bfcf0c9e2960eeb04769e491b9aef55273c2222bab1450677452cf28bd`.
+- Strength/sufficiency: exact 495-byte eight-field full-state artifact, exact
+  independently reproduced five-field two-row Grant-shape equality, and exact
+  observed/expected other-84 baseline equality; target and other-84 anomaly and
+  duplicate counts are zero; sufficient for authoring.
+- Limitations: the exact private locator remains outside public GitHub content;
+  independent review must receive it through private task input, inspect the
+  artifact, and mechanically reproduce all three role-separated digests.
+- Provenance: owner-held read-only query receipt plus the full-state,
+  `OBS-DOWE-005`, and `OBS-DOWE-006` canonicalization procedures.
 
 ### EVD-DOWE-003 — Operational records support dependency/use
 
@@ -606,9 +659,9 @@ EXTERNAL_AUTHORITY_DRIFT = NO
 - Target: `CLM-DOWE-005`.
 - Relation: SUPPORTS.
 - Bound coordinates: `mayf3/auth-service@325e781982c01a09d438e9d65df8079396e1520e`, Fleet V1 blob `649a468f6145cce8653a6e473f07c9d28eca0360`, canonical projection derived 2026-08-28.
-- Strength/sufficiency: exact V1 Appendix A subtraction and canonical 84-row digest at the evaluated source blob.
-- Limitations: current observed equality is established only by the future independent read-only conformance audit.
-- Provenance: Fleet V1 Appendix A and the `OBS-DOWE-006` canonicalization procedure.
+- Strength/sufficiency: exact V1 Appendix A subtraction and canonical 84-row expected digest at the evaluated source blob; the fresh read-only evidence bound by `EVD-DOWE-002` independently produces the same observed digest.
+- Limitations: independent review and future conformance must re-establish current equality at their own exact UTC query coordinates.
+- Provenance: Fleet V1 Appendix A, owner-held read-only query receipt, and the `OBS-DOWE-006` canonicalization procedure.
 
 ### EVD-DOWE-007 — Main-sync coordinates support the re-evaluated base
 
@@ -692,8 +745,10 @@ MUST be zero. No public Client ID is required in PR prose.
 Each exact identity in `CTR-DOWE-001` MUST have one `svc-workflow` row with
 scopes exactly `[workflow.execute, workflow.read]` in unsigned-ASCII order and
 version exactly `2`. Independently derived observed and target canonical
-projections MUST both equal `TARGET_DOMAIN_OWNER_WORKFLOW_TWO_ROW_SHA256` from
-`OBS-DOWE-005`; equality MUST NOT be inferred from the target literal alone.
+projections MUST both equal the separately named
+`OBSERVED_GRANT_SHAPE_TWO_ROW_SHA256` and `SPEC_TARGET_GRANT_SHAPE_SHA256` from
+`OBS-DOWE-005`; equality MUST NOT be inferred from the target literal or from
+`OWNER_HELD_EVIDENCE_ARTIFACT_SHA256`.
 
 ### CTR-DOWE-003 — Execute dependency and real use
 
@@ -709,8 +764,9 @@ For the other 84 Fleet V1 identities, this Child's authority delta MUST be zero.
 The exact set is V1 Appendix A minus the two `CTR-DOWE-001` identities. Each
 MUST retain one active unique Principal/Client binding and exactly one
 `svc-workflow[workflow.read]@v1` row, duplicate count zero. The canonical
-84-row projection MUST equal `OTHER_WORKFLOW_BASELINE_SHA256` from
-`OBS-DOWE-006`. This Child MUST NOT add, remove, rewrite, re-version, audit, or
+84-row projection MUST make `OBSERVED_OTHER_84_WORKFLOW_SHA256` equal
+`EXPECTED_OTHER_84_BASELINE_SHA256` from `OBS-DOWE-006`. This Child MUST NOT
+add, remove, rewrite, re-version, audit, or
 otherwise mutate any of those rows.
 
 ### CTR-DOWE-005 — Forum authority is completely out of scope
@@ -789,10 +845,12 @@ Spec's `implementation_authority` remains `none` after acceptance.
 ### CTR-DOWE-015 — Post-merge conformance is independent and read-only
 
 After acceptance and merge, an independent actor MUST perform a read-only audit
-binding the exact accepted Spec head, two agent IDs/external refs, two-row
-digest, active relationship, duplicate count, dependency/use evidence, other-84
-zero delta, Forum isolation, sibling preservation, and zero unauthorized
-surface. The audit MUST write zero rows and MUST fail closed on drift.
+binding the exact accepted Spec head, full-state artifact digest and field set,
+two agent IDs/external refs, five-field two-row Grant-shape observed/target
+digests, active relationship, duplicate count, dependency/use evidence,
+other-84 observed/expected digests and zero delta, Forum isolation, sibling
+preservation, and zero unauthorized surface. The audit MUST write zero rows and
+MUST fail closed on drift. The three digest roles MUST remain separately named.
 
 ### CTR-DOWE-016 — Authoring file and lifecycle boundary
 
@@ -891,11 +949,11 @@ use evidence may remain private but MUST be independently inspectable.
 
 ### ACC-DOWE-001 — Exact two Domain Owner identities
 - Contracts: `CTR-DOWE-001`, `CTR-DOWE-002`.
-- Method: read-only exact external-ref join and canonical digest comparison.
+- Method: read-only exact external-ref join, full-state artifact verification, and independent five-field Grant-shape canonical digest comparison.
 - Environment: current auth-service production DB through an independently controlled read-only seam.
-- Required evidence: exact accepted Spec head; private DB receipt/digest/timestamp; safe two-row projection; independent digest reproduction; Principal/Client relationship and duplicate results.
-- Expected result: exactly two active matching rows, version 2, execute+read, duplicates 0, digest `70e54c7b...6cdc5`.
-- Failure condition: any identity, relationship, count, version, scope, or digest mismatch.
+- Required evidence: exact accepted Spec head; private DB receipt and exact UTC query timestamp; normative `EVIDENCE_REF`; 495-byte/no-trailing-newline eight-field full-state artifact and SHA-256; independently derived five-field observed and Spec-target Grant-shape projections; Principal/Client relationship and anomaly/duplicate results; database role, read-only transaction state, final rollback, and zero-write receipt.
+- Expected result: full-state artifact SHA-256 `e9a134bf...52cf28bd`; exactly two active matching rows, version 2, execute+read, anomalies 0, duplicates 0; observed and Spec-target five-field Grant-shape SHA-256 both `70e54c7b...6cdc5`; digest-role collision count 0.
+- Failure condition: any identity, relationship, count, field-set, preimage-class, version, scope, digest-role, digest, read-only, rollback, or zero-write mismatch.
 
 ### ACC-DOWE-002 — Current execute dependency
 - Contracts: `CTR-DOWE-003`.
@@ -915,11 +973,11 @@ use evidence may remain private but MUST be independently inspectable.
 
 ### ACC-DOWE-004 — Other 84 Workflow rows unchanged
 - Contracts: `CTR-DOWE-004`.
-- Method: subtract the two targets from exact Fleet V1 Appendix A, perform a read-only active Principal/Client/Workflow join, check uniqueness/duplicates, and independently derive the canonical 84-row digest.
+- Method: subtract the two targets from exact Fleet V1 Appendix A, perform a read-only active Principal/Client/Workflow join, check uniqueness/anomalies/duplicates, and independently derive the canonical observed 84-row digest.
 - Environment: Fleet V1 blob at evaluated base plus current auth-service production DB read-only seam.
-- Required evidence: exact Fleet V1 blob; subtraction output; safe 84-row projection; observed digest; active-binding and duplicate-count receipt; zero-write receipt.
-- Expected result: 84/84 exact identities remain `svc-workflow[workflow.read]@v1`, active matching bindings, duplicates 0, observed digest `cdf82656...ca17ac7cf`, and writes 0.
-- Failure condition: identity/count/binding/version/scope/digest mismatch, duplicate, or Child-attributable mutation.
+- Required evidence: exact Fleet V1 blob; subtraction output; safe 84-row projection; separately named expected-baseline and observed digest calculations; active-binding, anomaly-count, and duplicate-count receipt; zero-write receipt.
+- Expected result: 84/84 exact identities remain `svc-workflow[workflow.read]@v1`, active matching bindings, anomalies 0, duplicates 0; `OBSERVED_OTHER_84_WORKFLOW_SHA256` and `EXPECTED_OTHER_84_BASELINE_SHA256` both equal `cdf82656...ca17ac7cf`; writes 0.
+- Failure condition: identity/count/binding/version/scope/digest-role/digest mismatch, anomaly, duplicate, or Child-attributable mutation.
 
 ### ACC-DOWE-005 — Forum authority completely out of scope
 - Contracts: `CTR-DOWE-005`.
@@ -955,11 +1013,11 @@ use evidence may remain private but MUST be independently inspectable.
 
 ### ACC-DOWE-009 — Current DB already conforms
 - Contracts: `CTR-DOWE-001`, `CTR-DOWE-002`, `CTR-DOWE-009`.
-- Method: independent current read-only conformance.
+- Method: independent current read-only conformance with explicit transaction rollback.
 - Environment: current auth-service production DB through read-only credentials after exact Spec acceptance/merge coordinates are known.
-- Required evidence: accepted Spec head; query receipt/digest/timestamp; two-row observed/target digest equality; zero-write statement and database audit.
-- Expected result: exact target already present; no apply required.
-- Failure condition: any mismatch or attempted repair under this Spec.
+- Required evidence: accepted Spec head; query receipt and exact timestamp; full-state artifact digest/class/length/field set; separately derived two-row observed/Spec-target Grant-shape digest equality; separately derived other-84 observed/expected digest equality; target and other-84 anomaly/duplicate counts; read-only role/transaction/final-action coordinates; zero-write statement and database audit.
+- Expected result: exact two-row target and other-84 baseline already present; all three digest roles bind accurately; no apply required; database and Grant writes 0.
+- Failure condition: any mismatch, digest-role collision, stale current-evidence alias, write, or attempted repair under this Spec.
 
 ### ACC-DOWE-010 — Acceptance and merge write zero
 - Contracts: `CTR-DOWE-009`, `CTR-DOWE-010`, `CTR-DOWE-016`.
@@ -1173,7 +1231,50 @@ PRODUCT_FILES_CHANGED = 0
 This synchronization adds no stable normative primitive; it updates only
 coordinates and non-normative compatibility provenance.
 
-### 12.2 No migration or rollback authority
+### 12.2 Evidence reconciliation amendment (non-normative)
+
+This evidence-only amendment separates and accurately binds three different
+canonical preimages without changing the product target, authority graph,
+acceptance semantics, or database state:
+
+```text
+EVIDENCE_RECONCILIATION = PASS
+OWNER_HELD_EVIDENCE_ARTIFACT_SHA256 = e9a134bfcf0c9e2960eeb04769e491b9aef55273c2222bab1450677452cf28bd
+EVIDENCE_ARTIFACT_CLASS = FULL_STATE_PROJECTION
+OBSERVED_GRANT_SHAPE_TWO_ROW_SHA256 = 70e54c7b4af4f5c567853f96678910d84934efb901d409ae5ea65ac21cb6cdc5
+SPEC_TARGET_GRANT_SHAPE_SHA256 = 70e54c7b4af4f5c567853f96678910d84934efb901d409ae5ea65ac21cb6cdc5
+OBSERVED_OTHER_84_WORKFLOW_SHA256 = cdf8265689f139e07c5415fbd206cea5e548c3b086906fc6444f627ca17ac7cf
+EXPECTED_OTHER_84_BASELINE_SHA256 = cdf8265689f139e07c5415fbd206cea5e548c3b086906fc6444f627ca17ac7cf
+DB_OBSERVED_AT = 2026-08-29T08:26:20.706381Z
+DIGEST_ROLE_COLLISION_COUNT = 0
+STALE_CURRENT_EVIDENCE_ALIAS_COUNT = 0
+DOMAIN_OWNER_COUNT = 2
+CURRENT_GRANT_VERSION = 2
+OTHER_WORKFLOW_ROW_COUNT = 84
+OTHER_WORKFLOW_ROWS = [workflow.read] @ version 1
+CURRENT_WORKFLOW_EXECUTE_DEPENDENCY = PRESENT
+WORKFLOW_EXECUTE_USED_SINCE_GRANT = YES
+FORUM_AUTHORITY = OUT_OF_SCOPE
+HISTORICAL_APPLY_AUTHORITY = OWNER_APPLY_ONLY
+HISTORICAL_GOVERNING_SPEC = NONE
+RETROACTIVE_AUTHORIZATION = NO
+PR33_FINAL_DISPOSITION = CLOSE_AFTER_BOUNDED_CHILD_MERGE
+NORMATIVE_PRIMITIVE_DELTA = 0
+CONTRACT_COUNT = 22
+CONTRACTS_WITH_ACCEPTANCE = 22
+CONTRACT_COVERAGE = PASS
+PRODUCT_SEMANTIC_DELTA = NONE
+DATABASE_WRITES = 0
+GRANT_WRITES = 0
+```
+
+`STALE_CURRENT_EVIDENCE_ALIAS_COUNT = 0` means no normative current-evidence
+binding uses the historical 2026-08-28 alias; its single explicitly marked
+historical mention in `OBS-DOWE-002` is retained only for provenance. The
+full-state artifact does not contain `audience`; the two-row Grant-shape does.
+Consequently their digest values MUST NOT be exchanged or collapsed.
+
+### 12.3 No migration or rollback authority
 
 No migration occurs. Current DB already conforms. Review/acceptance/merge write
 zero database, Grant, audit, identity, credential, legacy, or Forum rows. The old
