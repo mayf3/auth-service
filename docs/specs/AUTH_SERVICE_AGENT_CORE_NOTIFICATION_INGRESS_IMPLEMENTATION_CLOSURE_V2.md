@@ -1,9 +1,9 @@
 ---
 spec_id: AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V2
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 scope:
   - mayf3/auth-service
   - Minimal Auth Contract Bundle 1.3.0 -> 1.4.0 versioned registration delta closure
@@ -778,3 +778,44 @@ VALIDATE_MJS_INCLUDED = YES
 EXTRA_FILE_COUNT = 0
 OTHER_SEMANTIC_DRIFT = NONE
 ```
+
+## 16. Acceptance Record
+
+```text
+ACCEPTED_BY = mayf3
+INDEPENDENT_REVIEW = 注册 审计 = PASS
+  WHOLE_SPEC_SUCCESSOR = YES
+  OLD_ELABORATION_WITHDRAWN = YES
+  V1_BYTE_PRESERVED = YES
+  IMPLEMENTATION_CLOSURE = PASS
+  VALIDATE_MJS_DELTA = PASS
+  MECHANICAL_EVIDENCE = PASS
+  BLOCKERS = NONE
+  READY_FOR_ACCEPTANCE_FINALIZE = YES
+REVIEWED_BASE = 325e781982c01a09d438e9d65df8079396e1520e
+REVIEWED_SPEC_HEAD = 69e4f8fb5e22aa6d50346ddbca4e195e16263b59
+SPEC_PR = mayf3/auth-service#35
+SEMANTIC_DELTA_AFTER_REVIEW = NONE
+  (reviewed head 69e4f8f has no new commits after review; the acceptance
+  transaction below is this docs-only lifecycle commit itself)
+PR_DIFF_AT_REVIEW = exactly one new successor Spec + docs/specs/README.md
+  index row swap (elaboration row deleted in-branch; nets to nothing vs main)
+```
+
+This acceptance transaction atomically performs exactly §14.2 and nothing else:
+
+```text
+V2.status: proposed -> accepted
+V2.implementation_authority: none -> contracts
+V1.status: accepted -> superseded
+V1.superseded_by: null -> AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V2
+docs/specs/README.md = lifecycle states updated consistently
+```
+
+V1's normative body outside frontmatter is byte-preserved (historical accepted
+authority). The authoring-time frozen blocks (header, §12, §14) remain
+historical records; this §16 Record plus frontmatter are the only lifecycle
+authority. `implementation_authority: contracts` grants only the exact 16-file
+closure of §4.3 / CTR-NIC2-001; it creates no Principal, Client, Credential, or
+Grant, and authorizes no production apply. Implementation PR #29 remains
+DRAFT / NOT FOR MERGE pending the independent implementation audit.
