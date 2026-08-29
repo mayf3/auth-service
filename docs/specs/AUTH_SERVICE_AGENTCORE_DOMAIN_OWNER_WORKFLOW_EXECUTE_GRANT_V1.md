@@ -280,13 +280,17 @@ Pin semantics:
   authority and represented by two immutable Grant audit rows.
 - Environment: current auth-service production audit database through role
   `auth_ro`, `transaction_read_only=on`, final action `ROLLBACK`.
-- Observed at: `2026-08-29T12:17:29.913903Z`.
+- Observed at: `2026-08-29T13:56:00.945357Z`.
 - Evidence artifact:
-  `AUTH_SERVICE_PR36_HISTORICAL_OWNER_APPLY_AUTHORITY_GAP_V1@2026-08-29T12:17:29.913903Z#sha256:9f1f7e77e1666b23dd0cacdb3c9cdd42107f1f064f3944025771ef0e199e02c2`.
+  `AUTH_SERVICE_PR36_HISTORICAL_OWNER_APPLY_AUTHORITY_GAP_V2@2026-08-29T13:56:00.945357Z#sha256:45fc9d390c0903c701cb15ba49b2199921ec6f14c9d5d5bea4f471470577379f`.
 - Source coordinate:
   `mayf3/dsh-agent-core@b5ab589d0aeaa7a28e04bd4e665d27317db0b2d7`.
 - Result: `OWNER_APPLY_ONLY`; governing Spec `NONE`; source commit content was
   unrelated to the Grant and was not authority; retroactive authorization `NO`.
+  The raw `timestamp without time zone` values are interpreted under the
+  `Asia/Shanghai` database/data convention and normalize to
+  `2026-08-26T12:20:03.878Z` and `2026-08-26T12:20:04.050Z`; timestamp
+  normalization `PASS`.
 - Basis: `OBS-DOWE-004`, `CLM-DOWE-004`, `EVD-DOWE-004`.
 
 ### STATE-DOWE-005 — Current re-evaluated authority base is exact
@@ -396,9 +400,14 @@ GRANT_WRITES = 0
 ```text
 USE_EVIDENCE_BINDING = PASS
 USE_EVIDENCE_ARTIFACT_SHA256 = de3b707ce06f16be3be45bdb302218a3a92879cb175afec3cadc879139e7fff7
-USE_EVIDENCE_ARTIFACT_PREIMAGE_CLASS = SAFE_TWO_EVENT_DOMAIN_OWNER_USE_PROJECTION
+USE_EVIDENCE_ARTIFACT_PREIMAGE_CLASS = DOMAIN_OWNER_EXECUTE_USE_SAFE_PROJECTION
 USE_EVIDENCE_ARTIFACT_LENGTH_BYTES = 1196
 USE_EVIDENCE_ARTIFACT_TRAILING_NEWLINE = NO
+USE_EVIDENCE_QUERY_SHA256 = 063bb814bc3b2b150ff0c4308e52d9568f26bb68d1f89bc56fa664b413caa9dc
+USE_EVIDENCE_RESULT_SHA256 = de3b707ce06f16be3be45bdb302218a3a92879cb175afec3cadc879139e7fff7
+PRIVATE_REVIEW_PACKAGE_REQUIRED = YES
+PRIVATE_REVIEW_PACKAGE_PUBLICATION = FORBIDDEN
+ABSENCE_OF_PRIVATE_PACKAGE = ACCEPTANCE_FAIL
 USE_EVIDENCE_EVENT_COUNT = 2
 USE_EVIDENCE_OPERATION_CLASSES = WORKFLOW_ASSISTANCE_RESOLVE + WORKFLOW_INSTANCE_CANCEL
 USE_EVIDENCE_OBSERVED_AT = 2026-08-29T12:17:01.066779Z
@@ -422,29 +431,50 @@ GRANT_WRITES = 0
   source provenance, and authority chain.
 - Environment: current auth-service production audit database through role
   `auth_ro`; `transaction_read_only=on`; final action `ROLLBACK`.
-- Observed at: `2026-08-29T12:17:29.913903Z`.
+- Observed at: `2026-08-29T13:56:00.945357Z`.
 - Public safe evidence reference:
-  `AUTH_SERVICE_PR36_HISTORICAL_OWNER_APPLY_AUTHORITY_GAP_V1@2026-08-29T12:17:29.913903Z#sha256:9f1f7e77e1666b23dd0cacdb3c9cdd42107f1f064f3944025771ef0e199e02c2`.
+  `AUTH_SERVICE_PR36_HISTORICAL_OWNER_APPLY_AUTHORITY_GAP_V2@2026-08-29T13:56:00.945357Z#sha256:45fc9d390c0903c701cb15ba49b2199921ec6f14c9d5d5bea4f471470577379f`.
 - Method: select the two audit rows only by exact migration ID; join target
-  `agent_id` without publishing Client ID; project only the permitted safe
+  `agent_id` without publishing Client ID; verify the source column is
+  `timestamp without time zone`, the database session/data convention is
+  `Asia/Shanghai`, and the raw source values are `2026-08-26 20:20:03.878` and
+  `2026-08-26 20:20:04.050`; interpret those local values in `Asia/Shanghai`
+  before converting them to UTC. Project only the permitted safe
   migration/version/scope/operator/approval/audit-coordinate/timestamp/source
   and authority-class fields; serialize as sorted-key compact UTF-8 JSON with no
   trailing newline. Independently query the exact GitHub source commit, which
   changes only `docs/specs/AGENT_CORE_LARK_UX_PHASE1_V2.md`, a Feishu UX
   docs-only Spec unrelated to the Grant. True artifact/query locators remain in
-  the owner-held local evidence index and Reviewer private input.
+  the owner-held local evidence index and Reviewer private input. The V1
+  artifact hash `9f1f7e77...e02c2` is retained owner-held only as superseded
+  evidence and MUST NOT be used as current normative evidence.
 - Result:
 
 ```text
 HISTORICAL_APPLY_EVIDENCE_BINDING = PASS
-HISTORICAL_APPLY_EVIDENCE_ARTIFACT_SHA256 = 9f1f7e77e1666b23dd0cacdb3c9cdd42107f1f064f3944025771ef0e199e02c2
-HISTORICAL_APPLY_EVIDENCE_PREIMAGE_CLASS = SAFE_TWO_AUDIT_AUTHORITY_GAP_PROJECTION
-HISTORICAL_APPLY_EVIDENCE_ARTIFACT_LENGTH_BYTES = 1636
+HISTORICAL_APPLY_EVIDENCE_ARTIFACT_SHA256 = 45fc9d390c0903c701cb15ba49b2199921ec6f14c9d5d5bea4f471470577379f
+HISTORICAL_APPLY_EVIDENCE_PREIMAGE_CLASS = SAFE_TWO_AUDIT_AUTHORITY_GAP_TIMESTAMP_NORMALIZED_PROJECTION
+HISTORICAL_APPLY_EVIDENCE_ARTIFACT_LENGTH_BYTES = 2200
 HISTORICAL_APPLY_EVIDENCE_ARTIFACT_TRAILING_NEWLINE = NO
+HISTORICAL_APPLY_QUERY_SHA256 = cfda08adc3625367e956133a4e3ca0c9ecfa514da5ffbfb297f2757fb03333af
+HISTORICAL_APPLY_RESULT_SHA256 = 45fc9d390c0903c701cb15ba49b2199921ec6f14c9d5d5bea4f471470577379f
 HISTORICAL_APPLY_SAFE_AUDIT_COORDINATE_COUNT = 2
-HISTORICAL_APPLY_OBSERVED_AT = 2026-08-29T12:17:29.913903Z
-HISTORICAL_APPLY_ROW_1_APPLIED_AT = 2026-08-27T04:20:03.878000Z
-HISTORICAL_APPLY_ROW_2_APPLIED_AT = 2026-08-27T04:20:04.050000Z
+HISTORICAL_APPLY_OBSERVED_AT = 2026-08-29T13:56:00.945357Z
+SOURCE_TIMESTAMP_TYPE = timestamp without time zone
+SOURCE_LOCAL_TIME_ZONE = Asia/Shanghai
+SOURCE_LOCAL_ROW_1 = 2026-08-26 20:20:03.878
+SOURCE_LOCAL_ROW_2 = 2026-08-26 20:20:04.050
+TIMESTAMP_NORMALIZATION_RULE = interpret source timestamp without time zone as Asia/Shanghai, then convert to UTC
+TIMESTAMP_INTERPRETATION_AUTHORITY = AUTH_SERVICE_DATABASE_SESSION_TIMEZONE_AND_OWNER_DATA_CONVENTION
+HISTORICAL_APPLY_ROW_1_APPLIED_AT = 2026-08-26T12:20:03.878Z
+HISTORICAL_APPLY_ROW_2_APPLIED_AT = 2026-08-26T12:20:04.050Z
+HISTORICAL_TIMESTAMP_NORMALIZATION = PASS
+SUPERSEDED_ARTIFACT_SHA256 = 9f1f7e77e1666b23dd0cacdb3c9cdd42107f1f064f3944025771ef0e199e02c2
+SUPERSEDED_ARTIFACT_STATUS = SUPERSEDED_DUE_TO_TIMESTAMP_NORMALIZATION_ERROR
+SUPERSEDED_ARTIFACT_CURRENT_NORMATIVE_EVIDENCE = NO
+PRIVATE_REVIEW_PACKAGE_REQUIRED = YES
+PRIVATE_REVIEW_PACKAGE_PUBLICATION = FORBIDDEN
+ABSENCE_OF_PRIVATE_PACKAGE = ACCEPTANCE_FAIL
 HISTORICAL_APPLY_MIGRATION_ID = agentcore-owner-wf-execute-grant-v1
 HISTORICAL_APPLY_TARGET_ROW_COUNT = 2
 HISTORICAL_APPLY_OPERATION = replace
@@ -560,7 +590,9 @@ ROUND_1_CLASSIFICATION = UNRELATED_NOTIFICATION_INGRESS_DOCS_ONLY
 ROUND_1_FILES = M AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V1 + A AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V2 + M docs/specs/README.md
 ROUND_2 = b88512881135dd8a0d382e8ca76650059df33725 -> 7110463636693b3c2eced9d97ccb186adf46907d
 ROUND_2_CLASSIFICATION = NOTIFICATION_INGRESS_CONTRACT_BUNDLE_1_4_0_IMPLEMENTATION
-ROUND_2_CHANGED_FILE_COUNT = 15
+ROUND_2_CHANGED_FILE_COUNT = 16
+ROUND_2_FILE_INVENTORY_COUNT = 16
+ROUND_2_FILE_COUNT_MISMATCH = 0
 ROUND_2_SVC_WORKFLOW_AUDIENCE_SCOPE_SEMANTIC_DELTA = NONE
 ROUND_2_GRANT_SCHEMA_DELTA = NONE
 ROUND_2_GRANT_AUDIT_ENVELOPE_DELTA = NONE
@@ -705,10 +737,12 @@ EXTERNAL_AUTHORITY_DRIFT = NO
   `transaction_read_only=on`; final action `ROLLBACK`; observed
   `2026-08-29T12:17:01.066779Z`; public safe reference
   `AUTH_SERVICE_PR36_DOMAIN_OWNER_WORKFLOW_EXECUTE_USE_EVIDENCE_V1@2026-08-29T12:17:01.066779Z#sha256:de3b707ce06f16be3be45bdb302218a3a92879cb175afec3cadc879139e7fff7`.
-- Strength/sufficiency: a reproducible 1196-byte, two-event safe projection
-  proves one completed Assistance resolve, one completed instance cancel, both
-  exact Agent IDs, both current enabled Domain Owner relationships, HTTP 200 /
-  completed results, and exact pinned route/scope coordinates.
+- Strength/sufficiency: a reproducible 1196-byte, two-event
+  `DOMAIN_OWNER_EXECUTE_USE_SAFE_PROJECTION` with artifact/result SHA-256
+  `de3b707c...fff7` and query SHA-256 `063bb814...9dc` proves one completed
+  Assistance resolve, one completed instance cancel, both exact Agent IDs, both
+  current enabled Domain Owner relationships, HTTP 200 / completed results, and
+  exact pinned route/scope coordinates.
 - Limitations: event/audit IDs, Domain refs, true local locator, and query locator
   remain owner-held; independent review receives them privately and MUST
   reproduce the artifact hash without exposing payload or session data.
@@ -722,14 +756,18 @@ EXTERNAL_AUTHORITY_DRIFT = NO
 - Relation: SUPPORTS.
 - Bound coordinates: auth-service production audit database through `auth_ro`;
   `transaction_read_only=on`; final action `ROLLBACK`; observed
-  `2026-08-29T12:17:29.913903Z`; exact migration
+  `2026-08-29T13:56:00.945357Z`; exact migration
   `agentcore-owner-wf-execute-grant-v1`; public safe reference
-  `AUTH_SERVICE_PR36_HISTORICAL_OWNER_APPLY_AUTHORITY_GAP_V1@2026-08-29T12:17:29.913903Z#sha256:9f1f7e77e1666b23dd0cacdb3c9cdd42107f1f064f3944025771ef0e199e02c2`;
+  `AUTH_SERVICE_PR36_HISTORICAL_OWNER_APPLY_AUTHORITY_GAP_V2@2026-08-29T13:56:00.945357Z#sha256:45fc9d390c0903c701cb15ba49b2199921ec6f14c9d5d5bea4f471470577379f`;
   `mayf3/dsh-agent-core@b5ab589d0aeaa7a28e04bd4e665d27317db0b2d7`.
-- Strength/sufficiency: a reproducible 1636-byte two-audit projection binds
-  exact replace/version/scope/operator/timestamps/source fields and the honest
-  `OWNER_APPLY_ONLY` / governing Spec `NONE` / no-retroactive-authorization
-  classification; GitHub proves the source commit is content-unrelated.
+- Strength/sufficiency: a reproducible 2200-byte timestamp-normalized two-audit
+  projection with artifact/result SHA-256 `45fc9d39...379f` and query SHA-256
+  `cfda08ad...3af` binds exact replace/version/scope/operator/raw-local and
+  normalized-UTC timestamp/source fields and the honest `OWNER_APPLY_ONLY` /
+  governing Spec `NONE` / no-retroactive-authorization classification; GitHub
+  proves the source commit is content-unrelated. The source type is `timestamp
+  without time zone`; `Asia/Shanghai` interpretation followed by UTC conversion
+  yields `2026-08-26T12:20:03.878Z` and `2026-08-26T12:20:04.050Z`.
 - Limitations: audit row IDs, raw approval coordinate, true local locator, and
   query locator remain owner-held; source code is provenance, not authority.
 - Provenance: local-only canonical artifact/evidence index, immutable Grant audit
@@ -1126,17 +1164,17 @@ use evidence may remain private but MUST be independently inspectable.
 - Contracts: `CTR-DOWE-003`.
 - Method: reproduce the canonical owner-held use artifact from the privately supplied read-only query/locator, verify its digest, and evaluate current Domain Owner enabled/relationship fields against pinned product/runtime authority.
 - Environment: current svc-workflow production database/audit records; transaction read-only; final rollback.
-- Required evidence: exact Spec head; public safe ref `AUTH_SERVICE_PR36_DOMAIN_OWNER_WORKFLOW_EXECUTE_USE_EVIDENCE_V1@2026-08-29T12:17:01.066779Z#sha256:de3b707ce06f16be3be45bdb302218a3a92879cb175afec3cadc879139e7fff7`; 1196-byte/no-newline canonical artifact; private true locator/query digest; exact query and event timestamps; two enabled Principals/Domains/DOMAIN_OWNER relationships; zero-write receipt.
-- Expected result: artifact hash/length/preimage class match; current owner/relationship counts are 2/2; `CURRENT_WORKFLOW_EXECUTE_DEPENDENCY = PRESENT`.
-- Failure condition: unresolved locator, digest/preimage/timestamp mismatch, disabled/missing relationship, stale evidence, write, or responsibility inconsistency.
+- Required evidence: exact Spec head; public safe ref `AUTH_SERVICE_PR36_DOMAIN_OWNER_WORKFLOW_EXECUTE_USE_EVIDENCE_V1@2026-08-29T12:17:01.066779Z#sha256:de3b707ce06f16be3be45bdb302218a3a92879cb175afec3cadc879139e7fff7`; 1196-byte/no-newline `DOMAIN_OWNER_EXECUTE_USE_SAFE_PROJECTION`; artifact/result SHA-256 `de3b707c...fff7`; query SHA-256 `063bb814...9dc`; privately delivered V2 package/index and true relative locator; exact query and event timestamps; two enabled Principals/Domains/DOMAIN_OWNER relationships; zero-write receipt.
+- Expected result: artifact hash/length/preimage class and query/result digests match; current owner/relationship counts are 2/2; `CURRENT_WORKFLOW_EXECUTE_DEPENDENCY = PRESENT`; private package/index validation passes.
+- Failure condition: absent private package, unresolved locator, digest/preimage/timestamp mismatch, disabled/missing relationship, stale evidence, write, publication of the package, or responsibility inconsistency.
 
 ### ACC-DOWE-003 — Real use evidence
 - Contracts: `CTR-DOWE-003`.
 - Method: privately inspect and independently reproduce both safe event projections without reading/publishing payload bodies.
 - Environment: owner-held post-grant svc-workflow Assistance/event/receipt records through a read-only transaction ending in rollback.
-- Required evidence: exact Spec head; same public safe evidence ref/digest; private event/audit coordinates; exactly one completed `WORKFLOW_ASSISTANCE_RESOLVE` for `agt_hr-agent` and one completed `WORKFLOW_INSTANCE_CANCEL` for `agt_build-in-public-agent`; HTTP 200/completed status; pinned route/scope coordinates; exact timestamps; zero-write receipt.
-- Expected result: `USE_EVIDENCE_EVENT_COUNT = 2`, both operation classes match, and `WORKFLOW_EXECUTE_USED_SINCE_GRANT = YES`.
-- Failure condition: unresolved binding, digest mismatch, payload/secret exposure, no post-grant use, wrong actor/route/scope/result, or either operation class unsupported.
+- Required evidence: exact Spec head; same public safe evidence ref, artifact/result digest, query digest, preimage class, and private V2 package/index; private event/audit coordinates; exactly one completed `WORKFLOW_ASSISTANCE_RESOLVE` for `agt_hr-agent` and one completed `WORKFLOW_INSTANCE_CANCEL` for `agt_build-in-public-agent`; HTTP 200/completed status; pinned route/scope coordinates; exact timestamps; zero-write receipt.
+- Expected result: `USE_EVIDENCE_EVENT_COUNT = 2`, both operation classes match, `WORKFLOW_EXECUTE_USED_SINCE_GRANT = YES`, and `PRIVATE_INDEX_VALIDATION = PASS`.
+- Failure condition: absent private package, unresolved binding, digest mismatch, payload/secret exposure, package publication, no post-grant use, wrong actor/route/scope/result, or either operation class unsupported.
 
 ### ACC-DOWE-004 — Other 84 Workflow rows unchanged
 - Contracts: `CTR-DOWE-004`.
@@ -1166,9 +1204,9 @@ use evidence may remain private but MUST be independently inspectable.
 - Contracts: `CTR-DOWE-007`.
 - Method: reproduce the canonical two-audit artifact from the private read-only locator/query and independently verify exact source-commit changed-file scope and historical authority inventory.
 - Environment: auth-service production audit DB via `auth_ro`/read-only/rollback plus GitHub `mayf3/dsh-agent-core` exact source object.
-- Required evidence: exact Spec head; public safe ref `AUTH_SERVICE_PR36_HISTORICAL_OWNER_APPLY_AUTHORITY_GAP_V1@2026-08-29T12:17:29.913903Z#sha256:9f1f7e77e1666b23dd0cacdb3c9cdd42107f1f064f3944025771ef0e199e02c2`; 1636-byte/no-newline safe artifact; private true locator/query digest; two safe audit coordinates; exact applied/query timestamps; replace 1→2 and scope snapshots; operator/approval coordinate; source API result; zero-write receipt.
-- Expected result: evidence binding/hash/preimage/count/timestamps match; `OWNER_APPLY_ONLY`; governing Spec `NONE`; source commit content-unrelated and non-authoritative.
-- Failure condition: unresolved locator, digest/preimage/count/timestamp/source mismatch, invented historical authority, secret/full-row exposure, write, or omitted gap.
+- Required evidence: exact Spec head; public safe ref `AUTH_SERVICE_PR36_HISTORICAL_OWNER_APPLY_AUTHORITY_GAP_V2@2026-08-29T13:56:00.945357Z#sha256:45fc9d390c0903c701cb15ba49b2199921ec6f14c9d5d5bea4f471470577379f`; 2200-byte/no-newline timestamp-normalized safe artifact; artifact/result SHA-256 `45fc9d39...379f`; query SHA-256 `cfda08ad...3af`; private V2 package/index and true relative locator; two safe audit coordinates; source type `timestamp without time zone`; raw local values, `Asia/Shanghai` interpretation authority, exact normalized applied/query timestamps; replace 1→2 and scope snapshots; operator/approval coordinate; source API result; zero-write receipt.
+- Expected result: evidence binding/hash/preimage/count/timestamps match; normalization yields `2026-08-26T12:20:03.878Z` and `2026-08-26T12:20:04.050Z`; `HISTORICAL_TIMESTAMP_NORMALIZATION = PASS`; `OWNER_APPLY_ONLY`; governing Spec `NONE`; source commit content-unrelated and non-authoritative; old `9f1f7e77...e02c2` artifact is superseded and not normative.
+- Failure condition: absent private package, unresolved locator, digest/preimage/count/timestamp/source mismatch, old artifact treated as current, invented historical authority, secret/full-row exposure, package publication, write, or omitted gap.
 
 ### ACC-DOWE-008 — No retroactive authorization
 - Contracts: `CTR-DOWE-008`.
@@ -1432,10 +1470,25 @@ EXPECTED_OTHER_84_BASELINE_SHA256 = cdf8265689f139e07c5415fbd206cea5e548c3b08690
 DB_OBSERVED_AT = 2026-08-29T08:26:20.706381Z
 USE_EVIDENCE_REF = AUTH_SERVICE_PR36_DOMAIN_OWNER_WORKFLOW_EXECUTE_USE_EVIDENCE_V1@2026-08-29T12:17:01.066779Z#sha256:de3b707ce06f16be3be45bdb302218a3a92879cb175afec3cadc879139e7fff7
 USE_EVIDENCE_ARTIFACT_SHA256 = de3b707ce06f16be3be45bdb302218a3a92879cb175afec3cadc879139e7fff7
+USE_EVIDENCE_ARTIFACT_LENGTH_BYTES = 1196
+USE_EVIDENCE_PREIMAGE_CLASS = DOMAIN_OWNER_EXECUTE_USE_SAFE_PROJECTION
+USE_EVIDENCE_QUERY_SHA256 = 063bb814bc3b2b150ff0c4308e52d9568f26bb68d1f89bc56fa664b413caa9dc
+USE_EVIDENCE_RESULT_SHA256 = de3b707ce06f16be3be45bdb302218a3a92879cb175afec3cadc879139e7fff7
 USE_EVIDENCE_BINDING = PASS
-HISTORICAL_APPLY_EVIDENCE_REF = AUTH_SERVICE_PR36_HISTORICAL_OWNER_APPLY_AUTHORITY_GAP_V1@2026-08-29T12:17:29.913903Z#sha256:9f1f7e77e1666b23dd0cacdb3c9cdd42107f1f064f3944025771ef0e199e02c2
-HISTORICAL_APPLY_EVIDENCE_ARTIFACT_SHA256 = 9f1f7e77e1666b23dd0cacdb3c9cdd42107f1f064f3944025771ef0e199e02c2
+HISTORICAL_APPLY_EVIDENCE_REF = AUTH_SERVICE_PR36_HISTORICAL_OWNER_APPLY_AUTHORITY_GAP_V2@2026-08-29T13:56:00.945357Z#sha256:45fc9d390c0903c701cb15ba49b2199921ec6f14c9d5d5bea4f471470577379f
+HISTORICAL_APPLY_EVIDENCE_ARTIFACT_SHA256 = 45fc9d390c0903c701cb15ba49b2199921ec6f14c9d5d5bea4f471470577379f
+HISTORICAL_APPLY_EVIDENCE_ARTIFACT_LENGTH_BYTES = 2200
+HISTORICAL_APPLY_EVIDENCE_PREIMAGE_CLASS = SAFE_TWO_AUDIT_AUTHORITY_GAP_TIMESTAMP_NORMALIZED_PROJECTION
+HISTORICAL_APPLY_QUERY_SHA256 = cfda08adc3625367e956133a4e3ca0c9ecfa514da5ffbfb297f2757fb03333af
+HISTORICAL_APPLY_RESULT_SHA256 = 45fc9d390c0903c701cb15ba49b2199921ec6f14c9d5d5bea4f471470577379f
+HISTORICAL_TIMESTAMP_NORMALIZATION = PASS
 HISTORICAL_APPLY_EVIDENCE_BINDING = PASS
+PRIVATE_REVIEW_PACKAGE_REQUIRED = YES
+PRIVATE_REVIEW_PACKAGE_PUBLICATION = FORBIDDEN
+ABSENCE_OF_PRIVATE_PACKAGE = ACCEPTANCE_FAIL
+ROUND_2_CHANGED_FILE_COUNT = 16
+ROUND_2_FILE_INVENTORY_COUNT = 16
+ROUND_2_FILE_COUNT_MISMATCH = 0
 DIGEST_ROLE_COLLISION_COUNT = 0
 STALE_CURRENT_EVIDENCE_ALIAS_COUNT = 0
 STALE_CURRENT_BASE_REFERENCE_COUNT = 0
@@ -1467,6 +1520,15 @@ binding uses the historical 2026-08-28 alias; its single explicitly marked
 historical mention in `OBS-DOWE-002` is retained only for provenance. The
 full-state artifact does not contain `audience`; the two-row Grant-shape does.
 Consequently their digest values MUST NOT be exchanged or collapsed.
+
+Independent review MUST receive the owner-held V2 private package and receipt as
+private task input, validate its index, relative locators, artifact lengths,
+artifact/query/result digests, and timestamp normalization, and fail acceptance
+if the package is absent. The package MUST NOT be committed, uploaded, copied
+into this Spec, PR body, GitHub comment, or public Review. How the Reviewer
+receives the package is operational task input and is intentionally not defined
+in this public Spec; no private absolute path, session UUID, tool sequence,
+Client ID, full event body, roster, or database connection coordinate is public.
 
 ### 12.3 No migration or rollback authority
 
@@ -1500,8 +1562,17 @@ CONTRACT_COVERAGE = PASS
 ACCEPTANCE_REFERENCES_VALID = PASS
 STALE_CURRENT_BASE_REFERENCE_COUNT = 0
 HISTORICAL_B885_REFERENCE_CLASSIFICATION = PASS
+ROUND_2_CHANGED_FILE_COUNT = 16
+ROUND_2_FILE_INVENTORY_COUNT = 16
+ROUND_2_FILE_COUNT_MISMATCH = 0
 USE_EVIDENCE_BINDING = PASS
 HISTORICAL_APPLY_EVIDENCE_BINDING = PASS
+HISTORICAL_TIMESTAMP_NORMALIZATION = PASS
+PRIVATE_REVIEW_PACKAGE_REQUIRED = YES
+PRIVATE_REVIEW_PACKAGE_PUBLICATION = FORBIDDEN
+ABSENCE_OF_PRIVATE_PACKAGE = ACCEPTANCE_FAIL
+PRIVATE_INDEX_VALIDATION = PASS
+PUBLIC_PRIVATE_BOUNDARY = PASS
 LIFECYCLE_CONTRADICTION_COUNT = 0
 FORUM_FUTURE_LIFECYCLE_CONSTRAINT_COUNT = 0
 PR33_TYPED_DISPOSITION = PASS
