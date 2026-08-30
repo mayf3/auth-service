@@ -1,9 +1,9 @@
 ---
 spec_id: AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_SERVICE_CREDENTIAL_GRANT_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 production_apply_authority: none
 scope:
   - mayf3/auth-service
@@ -20,16 +20,17 @@ owners:
 
 # AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_SERVICE_CREDENTIAL_GRANT_V1
 
-> **PROPOSED — DOCS / AUTHORITY ONLY.** This focused amendment restates and
-> corrects the never-accepted proposal from auth-service PR #28 at
-> `87edae60bfa5d30b60526668814052725d843692`. A proposed authority is amended,
-> not superseded: PR #28 never became active authority, so no supersession
-> metadata or backlink is created. This proposal grants neither implementation
-> nor production-apply authority.
+> **ACCEPTED — CONTRACT IMPLEMENTATION AUTHORITY; PRODUCTION APPLY NONE.** This
+> focused amendment restates and corrects the never-accepted proposal from
+> auth-service PR #28 at `87edae60bfa5d30b60526668814052725d843692`. A
+> proposed authority was amended, not superseded: PR #28 never became active
+> authority, so no supersession metadata or backlink is created. Acceptance
+> authorizes only the exact implementation Contracts and three-file closure in
+> this Spec; `production_apply_authority` remains `none`.
 >
-> This PR creates documentation only. It does not implement, accept, merge,
-> deploy, connect to a production database, register an Audience, create a
-> Principal or Client, generate or hand off a secret, or write a Grant.
+> This acceptance PR creates documentation only. It does not implement, deploy,
+> connect to a production database, register an Audience, create a Principal or
+> Client, generate or hand off a secret, or write a Grant.
 
 ## 1. Goal
 
@@ -102,8 +103,8 @@ PRODUCTION_APPLY_AUTHORITY = none
 
 The accepted Audience CCR and its accepted implementation closure authorize a
 versioned source registration. They do not authorize a production Audience row,
-Client, credential, or Grant write. Conversely, this proposed Client/Grant Spec
-does not authorize or absorb Audience registration.
+Client, credential, or Grant write. Conversely, this Client/Grant Spec does not
+authorize or absorb Audience registration.
 
 A future implementation round may start only after an authorized acceptance
 transaction changes the exact final reviewed Spec head to `status: accepted`
@@ -384,11 +385,11 @@ before the first write.
 
 Phase A and Phase B MUST NOT be combined into one production write transaction,
 runner, or approval inference unless a future accepted authority explicitly
-owns that combined transaction. As of this proposed Spec:
+owns that combined transaction. As of this accepted Spec:
 
 ```text
 PHASE_A_PRODUCTION_APPLY_AUTHORITY = none granted by this Spec
-PHASE_B_IMPLEMENTATION_AUTHORITY = none
+PHASE_B_IMPLEMENTATION_AUTHORITY = contracts (only CTR-NSC-006 exact closure)
 PHASE_B_PRODUCTION_APPLY_AUTHORITY = none
 COMBINED_PRODUCTION_WRITE_AUTHORITY = none
 ```
@@ -660,9 +661,9 @@ READY_FOR_INDEPENDENT_REVIEW = YES
 ```text
 SPEC_GOVERNANCE_MODE = AUTHOR
 SPEC_ID = AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_SERVICE_CREDENTIAL_GRANT_V1
-STATUS = proposed
+STATUS = accepted
 GOVERNANCE_VEHICLE = AMEND_PROPOSED_SPEC
-IMPLEMENTATION_AUTHORITY = none
+IMPLEMENTATION_AUTHORITY = contracts
 PRODUCTION_APPLY_AUTHORITY = none
 TARGET_COMMIT = 7110463636693b3c2eced9d97ccb186adf46907d
 AUDIENCE_GRANT_PHASE_SEPARATION = REQUIRED_FAIL_CLOSED
@@ -672,16 +673,43 @@ EXACT_IMPLEMENTATION_CLOSURE_COUNT = 3
 PRODUCT_CODE_CHANGE = NONE
 PRODUCTION_CHANGE = NONE
 WIP_RUNNER = BLOCKED_UNCHANGED
-READY_FOR_INDEPENDENT_REVIEW = YES
-NEXT_TASK = 注册 审计
+INDEPENDENT_REVIEW = PASS
+READY_FOR_IMPLEMENTATION = YES_AFTER_ACCEPTED_SPEC_MERGED_TO_MAIN
+READY_FOR_PRODUCTION_APPLY = NO
+NEXT_TASK = 注册 执行
 ```
 
-## 16. Acceptance provenance
+## 16. Acceptance Record
 
 ```text
-ACCEPTED_BY = pending independent review and authorized acceptance
+ACCEPTED_BY = mayf3
+ACCEPTED_AT = 2026-08-30T16:50:31Z
+INDEPENDENT_REVIEW = 注册 审计 = PASS
 REVIEWED_BASE_COMMIT = 7110463636693b3c2eced9d97ccb186adf46907d
-REVIEWED_SPEC_COMMIT = pending
-REVIEW_VERDICT = pending
-FINAL_ACCEPTED_HEAD = pending
+REVIEWED_SPEC_COMMIT = 8bfb767db16546449084a1ecfc8a9884ac343309
+REVIEW_VERDICT = PASS
+REQUIRED_FIXES = NONE
+BLOCKERS = NONE
+SPEC_PR = mayf3/auth-service#38
+LIFECYCLE_DELTA = status: proposed -> accepted;
+  implementation_authority: none -> contracts;
+  production_apply_authority: none -> none
+SEMANTIC_DELTA_AFTER_REVIEW = NONE
+FINAL_ACCEPTED_HEAD = this lifecycle acceptance commit
+  (a Git commit cannot embed its own SHA; the exact commit is the final PR head
+  immediately before the merge commit recorded by GitHub)
+PRODUCTION_APPLY_AUTHORITY = none
+PRODUCT_CODE_CHANGE = NONE
+PRODUCTION_CHANGE = NONE
 ```
+
+This acceptance transaction changes only lifecycle metadata, the matching
+summary/index mirrors, and this Acceptance Record. Sections 1–14, including all
+Decisions, Contracts, Acceptance criteria, phase separation, exact three-file
+closure, rollback semantics, and the blocked WIP-runner boundary, retain the
+reviewed meaning at `8bfb767db16546449084a1ecfc8a9884ac343309`.
+
+`implementation_authority: contracts` becomes active only after this accepted
+snapshot is merged into `main`, and authorizes only the exact closure frozen by
+`CTR-NSC-006`. It does not authorize production APPLY, database connectivity,
+Audience registration, Principal/Client/secret creation, or Grant writes.
