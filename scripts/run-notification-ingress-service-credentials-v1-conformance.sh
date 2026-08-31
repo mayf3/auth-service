@@ -67,10 +67,23 @@ DATABASE_URL_INTERNAL="postgresql://postgres@127.0.0.1:${HOST_PORT}/${DATABASE}?
   DATABASE_URL="$DATABASE_URL_INTERNAL" npx prisma db push --skip-generate >/dev/null
 )
 
-# Conformance-only failure injection may create/drop triggers. The canonical schema remains unmodified.
+# Install the production-style append-only audit control after schema creation. Tests may
+# add/drop their own fault triggers, but must never disable or drop this immutable trigger.
+/usr/local/bin/docker exec -i "$CONTAINER_ID" psql -v ON_ERROR_STOP=1 -U postgres -d "$DATABASE" <<'SQL'
+CREATE OR REPLACE FUNCTION reject_nsc_audit_mutation() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN RAISE EXCEPTION 'auth audit records are immutable'; END;
+$$;
+CREATE TRIGGER grant_change_audits_immutable
+  BEFORE UPDATE OR DELETE ON grant_change_audits
+  FOR EACH ROW EXECUTE FUNCTION reject_nsc_audit_mutation();
+SQL
+IMMUTABLE_TRIGGER_COUNT="$(/usr/local/bin/docker exec "$CONTAINER_ID" psql -At -U postgres -d "$DATABASE" -c "SELECT count(*) FROM pg_trigger WHERE tgname='grant_change_audits_immutable' AND NOT tgisinternal")"
+[[ "$IMMUTABLE_TRIGGER_COUNT" == 1 ]] || { echo 'FATAL: immutable audit trigger missing' >&2; exit 2; }
+echo 'NSC_IMMUTABLE_AUDIT_TRIGGER=installed'
+
 DESCRIPTOR="$(node -e '
 const [containerId,nonce,url,root,uid]=process.argv.slice(1);
-process.stdout.write(JSON.stringify({schema_version:1,container_id:containerId,nonce,database_url:url,environment:"disposable-conformance",destination_root:root,expected_uid:Number(uid),marker_path:root+"/.recovery-marker-v1.json",fault_injection:"none"}));
+process.stdout.write(JSON.stringify({schema_version:1,container_id:containerId,nonce,database_url:url,environment:"disposable-conformance",destination_root:root,expected_uid:Number(uid),marker_path:root+"/.recovery-journal-v2.json",fault_injection:"none"}));
 ' "$CONTAINER_ID" "$NONCE" "$DATABASE_URL_INTERNAL" "$TEMP_DEST" "$(id -u)")"
 
 (
