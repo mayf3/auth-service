@@ -193,7 +193,8 @@ The builder MUST use a clean checkout of `57258ec...`, generate the runtime
 Contract twice reproducibly, run the accepted bundle validators/tests, and seal
 the complete snapshot, candidate plist payload, exact file manifest, source
 commit, runtime digest, DB-row manifest, rollback snapshot/plist, and operator
-wrapper under hashes. The production snapshot closure is exactly the clean
+wrapper under hashes. The `NON_SECRET_ARTIFACT_CATALOG` and the non-secret
+portion of the production snapshot are exactly the clean
 `git ls-files` tree at `57258ec...` plus reproducibly generated `dist/`,
 `generated/`, and the `package-lock.json`-resolved `node_modules/`; it excludes
 `.git`, `.env`, all other untracked paths, caches, logs, and build workspaces.
@@ -217,16 +218,28 @@ snapshot path MUST be exactly
 `/Users/yanfenma/workspace/project/production-auth-service-57258ec33700af8057ab2ed63fd8e52b3225e749`.
 Its root and ordinary directories MUST be `root:staff 0755`; ordinary non-secret
 files MUST be `root:staff 0444`; executable files MUST be `root:staff 0555`;
-symlinks are allowed only when enumerated by the manifest with an exact relative
+symlinks are allowed only when enumerated by `NON_SECRET_ARTIFACT_CATALOG` with an exact relative
 target that remains inside the snapshot. Every catalog row MUST bind relative
 path, type, link target or null, SHA-256 or null, bytes, owner, group, and mode.
-Any extra path, special file, external/absolute symlink, or metadata mismatch
-MUST stop.
+The runtime `TARGET_CATALOG` is closed as
+`NON_SECRET_ARTIFACT_CATALOG` plus exactly one `.env` custody row and no other
+path. Any extra path, special file, external/absolute symlink, or metadata
+mismatch under that definition MUST stop.
 
-The artifact MUST NOT contain `.env`. Under the production lock, the root helper
-MAY copy only the existing snapshot's `.env` directly to the new snapshot as
-`authsvc:authsvc 0600`; it MUST compare a redacted SHA-256 before/after without
-emitting bytes or values. That secret-bearing file is never a staged artifact.
+The artifact and `NON_SECRET_ARTIFACT_CATALOG` MUST NOT contain `.env`. As the
+sole in-scope secret-file exception, under the production lock the root helper
+MAY custody-copy only the existing snapshot's `.env` directly to the new
+snapshot. Source MUST be a no-follow regular non-symlink `authsvc:authsvc 0600`
+file; target MUST become the same type/owner/group/mode. The helper compares
+content in-process and records only `content_equal=true`, never content, hash,
+bytes, value, or environment projection. The `.env` `TARGET_CATALOG` row binds
+only path/type/owner/group/mode, source file identity, and that equality boolean;
+its SHA/bytes fields are explicitly `REDACTED_NOT_RECORDED`. This custody copy
+is not a credential value/semantic change and is never a staged artifact.
+Rollback may delete the candidate tree only after it is unreferenced and its
+non-secret rows exactly equal `NON_SECRET_ARTIFACT_CATALOG` while its sole `.env`
+row still matches the custody metadata and `content_equal=true` against the
+unchanged source. Mismatch stops deletion as `outcome_unknown`.
 
 ### CTR-SD17-002 — Exact Scheduler Audience row
 
@@ -468,12 +481,14 @@ must merge before artifact construction or production apply begins.
 
 - Contracts: `CTR-SD17-001`
 - Method: two clean builds, manifest/hash comparison, full accepted validation
-  suite, secret scan, complete type/link/hash/bytes/owner/group/mode catalog
-  comparison, snapshot/plist/rollback inspection, and isolated `.env` copy test
+  suite, secret scan, complete `NON_SECRET_ARTIFACT_CATALOG` comparison, exact
+  `TARGET_CATALOG = non-secret + one custody row`, snapshot/plist/rollback
+  inspection, and isolated no-follow `.env` copy/deletion-predicate test
 - Pass: identical sealed outputs from `57258ec...`, exact 1.7.0 scheduler face,
   zero later-main/forum delta, zero secret in artifact, exact root/file/dir/helper
   and plist metadata, only contained manifest-declared symlinks, and `.env`
-  copied only live-to-candidate as `authsvc:authsvc 0600` with equal redacted hash
+  copied only live-to-candidate as `authsvc:authsvc 0600` with only an equality
+  boolean recorded; rollback predicate distinguishes both catalogs exactly
 - Fail: any nondeterminism, extra source/file, mutable input, missing rollback,
   validation failure, or secret.
 - Execution environment/evidence: two separately created clean local worktrees
