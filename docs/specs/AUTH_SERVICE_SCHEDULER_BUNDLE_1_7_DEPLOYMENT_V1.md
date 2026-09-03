@@ -82,6 +82,18 @@ IMPLEMENTATION_MERGE = 57258ec33700af8057ab2ed63fd8e52b3225e749
 PRODUCTION_AUTH_PID = 60318
 PRODUCTION_SCHEDULER_AUDIENCE = ABSENT
 PRODUCTION_SCHEDULER_GRANTS = ZERO
+PRODUCTION_DB_ENDPOINT = 127.0.0.1:5432 / database agent_dev_center
+LIVE_SNAPSHOT = /Users/yanfenma/workspace/project/production-auth-service-4d383ee02d298eebeb15470a5328b7345ed140e9
+CANDIDATE_SNAPSHOT = /Users/yanfenma/workspace/project/production-auth-service-57258ec33700af8057ab2ed63fd8e52b3225e749
+LIVE_PLIST = /Library/LaunchDaemons/com.auth-service.plist
+LAUNCHD_TARGET = system/com.auth-service
+SERVICE_ORIGIN = http://127.0.0.1:4001
+GLOBAL_MUTATION_LOCK = /var/run/auth-service-production-mutation.lock
+SOURCE_AGENT_ID = agt_efficiency-agent
+SOURCE_PRINCIPAL_UUID = b21ddb23-42f6-47c4-a27f-bc44950e554c
+SOURCE_CLIENT_ID = mc_cF81DF-XND9Zmzao4F08rOK_
+SOURCE_CLIENT_UUID = 695d1eeb-3547-4cbd-a72b-915f4ebf25a4
+CREDENTIAL_STORE = /usr/local/libexec/agent-core/config/agent-credentials.json
 ```
 
 - `STATE-SD17-001` — Auth source: scheduler 1.7.0 implementation is merged at
@@ -215,6 +227,18 @@ accepted by fallback. The helper MUST acquire one auth-service deployment lock,
 fresh-read target snapshot/plist/DB preimages under that lock, and fail before
 mutation on drift, concurrent operation, bad ownership/mode/type, symlink, or
 unsealed input.
+The lock is exactly `/var/run/auth-service-production-mutation.lock`; every
+auth-service production DB mutation vehicle (Audience, Grant, Principal,
+Client, Session, credential metadata, or migration) and every snapshot/plist
+deployment vehicle MUST acquire this same exclusive lock before its first
+preimage read. This operation holds it continuously through DB commit, restart,
+post-restart proof, compensation if needed, and terminal receipt publication.
+The Audience write MUST run at PostgreSQL `SERIALIZABLE` isolation with explicit
+row/table guards and no automatic retry. Database target identity is exactly
+TCP `127.0.0.1:5432`, database `agent_dev_center`; the secret-bearing connection
+string is read only inside the sealed root helper from the active snapshot's
+root-readable `.env`, is never accepted as an argument/environment override,
+and is never logged or persisted.
 
 ### CTR-SD17-004 — Bounded apply and exactly one restart
 
@@ -224,6 +248,14 @@ The transaction MUST install a new immutable snapshot rooted at exact source
 `com.auth-service` exactly once. It MUST prove old PID termination, a fresh PID,
 health `ok=true`, Contract version `1.7.0`, the artifact-pinned runtime digest,
 and DB-to-registry exact equality for all eight audiences.
+The live snapshot, candidate snapshot, plist, launchd target, and service origin
+are exactly the coordinates frozen in §3. Candidate snapshot pre-absence is a
+hard Gate. Lock acquisition is bounded to 30 seconds, the native authorization
+dialog to 120 seconds, DB lock/statement/whole-transaction time to 5/10/30
+seconds, launchd stop and start to 30 seconds each, and health/readback to 60
+seconds with at most one request per second. Any timeout is a failure: before
+mutation it exits unchanged; after mutation it enters compensation and may not
+be treated as success or blindly retried.
 
 ### CTR-SD17-005 — Negative-only post-deploy proof
 
@@ -232,6 +264,17 @@ receive no token for exact `scheduler/scheduler.admin`; wrong scope, alias,
 wildcard, human/service/delegated, and foreign-audience forms MUST also fail.
 No positive scheduler issuance may occur in this round. Sanitized evidence may
 record error classes and claim-shape hashes but no credential or token bytes.
+The source identity is exactly Agent `agt_efficiency-agent`, Principal
+`b21ddb23-42f6-47c4-a27f-bc44950e554c`, public client ID
+`mc_cF81DF-XND9Zmzao4F08rOK_`, and client UUID
+`695d1eeb-3547-4cbd-a72b-915f4ebf25a4`; there is no operator selection.
+The sealed root helper reads only that Agent's entry from
+`/usr/local/libexec/agent-core/config/agent-credentials.json`, requires its
+public client ID to match, uses the secret only in process for one bounded
+request to `http://127.0.0.1:4001/oauth/token`, redacts request authorization
+and response bodies, persists no token/secret, and zeroizes the in-memory
+binding after the negative matrix. Missing, mismatched, unsafe-mode, symlinked,
+or unreadable credential storage fails closed.
 
 ### CTR-SD17-006 — Equal-face compensation
 
@@ -242,6 +285,14 @@ once into the old snapshot, and prove the original 1.6.0 digest, seven-audience
 DB equality, scheduler absence, zero scheduler Grants, and unrelated-state
 invariants. Ambiguous DB or restart outcome fails closed for manual recovery;
 the helper MUST NOT retry an ambiguous mutation.
+If the candidate snapshot was absent at the frozen preimage, compensation MUST
+also remove exactly that newly installed candidate tree and every
+transaction-created staging node after the old service is healthy, then prove
+their absence. It MUST preserve the separately sealed artifact and durable
+receipt. HUP/INT/TERM received after the first mutation MUST be recorded and
+deferred until compensation and the terminal receipt finish; repeated signals
+cannot abort compensation. A second signal changes neither target nor action,
+and the helper exits nonzero only after the restored face is durably recorded.
 
 ### CTR-SD17-007 — Durable receipt and no overclaim
 
@@ -271,6 +322,10 @@ before artifact construction or production apply begins.
   zero later-main/forum delta, zero secret
 - Fail: any nondeterminism, extra source/file, mutable input, missing rollback,
   validation failure, or secret.
+- Execution environment/evidence: two separately created clean local worktrees
+  on the production Mac, each detached at `57258ec...`; record `observed_at` in
+  UTC, toolchain versions, both build transcripts, manifest/runtime/plist hashes,
+  accepted-test results, and secret-scan result in the sealed artifact receipt.
 
 ### ACC-SD17-002 — Prestate and data transaction
 
@@ -281,6 +336,11 @@ before artifact construction or production apply begins.
   authorization identity, one-row/audit write plan only
 - Fail: drift, existing scheduler row/Grant, non-native path, bad seal, broader
   DB plan, or any preflight mutation.
+- Execution environment/evidence: production Mac root helper targeting exact
+  `127.0.0.1:5432/agent_dev_center`, live snapshot/plist, and
+  `system/com.auth-service`; record UTC `observed_at`, lock inode/owner,
+  transaction isolation, full sanitized seven-row projection, zero-row counts,
+  frozen target hashes, and dry-run write counters.
 
 ### ACC-SD17-003 — Apply and runtime proof
 
@@ -291,6 +351,11 @@ before artifact construction or production apply begins.
   zero scheduler Grants, negative-only matrix PASS, durable receipt
 - Fail: partial face, extra restart/write, positive issuance, retained mismatch,
   unrelated drift, missing/ambiguous receipt, or overclaim.
+- Execution environment/evidence: production Mac sealed root transaction against
+  `system/com.auth-service` and `http://127.0.0.1:4001`; record UTC
+  `observed_at`, old/new PID plus process start time, source/runtime/manifest
+  hashes, plist/snapshot identities, DB correlation/readback, negative result
+  classes, request count, and terminal receipt hash.
 
 ### ACC-SD17-004 — Rollback rehearsal and real compensation
 
@@ -302,6 +367,11 @@ before artifact construction or production apply begins.
   face with one rollback restart and terminal receipt
 - Fail: mixed face, deletion beyond the correlated scheduler row, retry of an
   ambiguous mutation, missing audit evidence, or unproven baseline.
+- Execution environment/evidence: isolated disposable local harness with fake
+  DB, launchd/process, filesystem, credential store, signals, and clock; record
+  UTC `observed_at`, harness/source hashes and per-boundary transcripts. The
+  production environment records the same coordinates only if a real authorized
+  failure invokes compensation, including candidate/staging absence proof.
 
 ### ACC-GSD17-001 — Authority lifecycle
 
@@ -311,6 +381,9 @@ before artifact construction or production apply begins.
 - Pass: accepted merged exact head, zero semantic drift after review, no
   production action before merge
 - Fail: missing identity/provenance, changed head, non-doc delta, or early apply.
+- Execution environment/evidence: clean auth-service governance worktree; record
+  UTC `observed_at`, reviewed base/spec/final-head commits, reviewer and Owner
+  identities, lifecycle-only diff, verifier transcript, and merge ancestry.
 
 ## 9. Alternatives
 
