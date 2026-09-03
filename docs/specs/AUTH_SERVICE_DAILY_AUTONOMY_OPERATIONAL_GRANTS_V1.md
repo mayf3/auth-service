@@ -99,7 +99,7 @@ CREDENTIAL_STORE = /usr/local/libexec/agent-core/config/agent-credentials.json
 
 - Subject/revision/environment/time: auth production identity census bound to
   `github/main@ff9e1bec7d364568a92be91f6ffbd49d1d2101de`, production DB
-  `127.0.0.1:5432/agent_dev_center`, observed `2026-09-03T16:34:41Z`
+  `127.0.0.1:5432/agent_dev_center`, observed `2026-09-03T16:41:01Z`
 - Method/query/result: read-only exact-key projection of `machine_principals` and
   `machine_clients` by frozen UUID/public client ID, including status, principal
   type, agent ID, ownership, and active-client count; the active client UUID/ID
