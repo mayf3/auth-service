@@ -365,6 +365,8 @@ FORWARD_SWITCHED_NOT_STARTED
   exact row + new plist bytes + loaded old arguments + old PID/digest
 FORWARD_OLD_STOPPED
   exact row + new plist bytes + no loaded service/PID + exact candidate present
+FORWARD_NEW_EXITED
+  exact row + new loaded arguments + no live PID + exact candidate present
 FORWARD_NEW_UNVERIFIED
   exact row + new loaded arguments + fresh PID + health absent, unavailable, or wrong
 FORWARD_ACTIVE
@@ -382,9 +384,10 @@ zero restart. `FORWARD_DB_ONLY` deletes only the exact correlated scheduler row,
 appends one rollback audit row, then removes the exact unreferenced candidate,
 with zero restart. `FORWARD_SWITCHED_NOT_STARTED` restores the exact old plist,
 deletes only that row, appends the audit, removes the exact candidate, and uses
-zero restart because no process generation changed. `FORWARD_OLD_STOPPED` and
-`FORWARD_NEW_UNVERIFIED` restore the old plist, delete only that row, append the
-audit, and perform exactly one rollback start/restart into the old snapshot;
+zero restart because no process generation changed. `FORWARD_OLD_STOPPED`,
+`FORWARD_NEW_EXITED`, and `FORWARD_NEW_UNVERIFIED` restore the old plist and
+loaded job, delete only that row, append the audit, and perform exactly one
+rollback start/restart into the old snapshot;
 after old health succeeds they remove the exact candidate. `FORWARD_ACTIVE`
 is forward success only after every `CTR-SD17-007` proof passes; if any later
 proof fails it follows the same exactly-one-restart compensation as
