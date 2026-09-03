@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.4.0",
+  "contract_version": "1.6.0",
   "now": 1784300000,
   "fixtures": [
     {
@@ -239,6 +239,37 @@
         }
       },
       "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI2MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1jb3JlLW5vdGlmaWNhdGlvbi1pbmdyZXNzLXYxIiwicHJpbmNpcGFsX3R5cGUiOiJzZXJ2aWNlIiwiY2xpZW50X2lkIjoic2VydmljZS1jbGllbnQtbm90aWZpY2F0aW9uLWluZ3Jlc3MiLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJ0eXBlIjoiYWNjZXNzIiwidmVyc2lvbiI6InYxIiwic2NvcGUiOiJub3RpZmljYXRpb24uZGVsaXZlciIsImp0aSI6ImRpcmVjdC1qdGktbm90aWZpY2F0aW9uLWluZ3Jlc3MtMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.rzvWfvZN_hN89sJDGD66GAxD7INag-pYYuxXA_Rldme1B9fSYOcTQ5Or-ZdAkSdrt5IB1C7QGuooozgWxIfTy-3kWfv8TicbhXIxeFThHn1JQqrAF0Rc8UMnqfIfhFufT_C18a8pUml4YgDHaE76D2F-9isVZ0Px0Hbvpek6198tU331UP_B3JXjUeZ2O6rSNvZ41tWimh7qCinDBdHzjRRIwhfBXWTNsP8vZLhrH9n2C6GvkWwYQ9py0VWAJnWG1nCwHV_5wsMRBQOi2-ARhwMdCYBTeIAdvSPdTPvlwSs-TriOodiHyZk-bnI27DtJmbJZjaI3wk-6Xdxo7SDsTQ"
+    },
+    {
+      "name": "direct-agent-session-messaging",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-svc-okr-canary-20260719"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "70000000-0000-4000-8000-000000000001",
+        "aud": "agent-session-messaging",
+        "principal_type": "agent",
+        "client_id": "agent-client-session-messaging",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "agent.session.send",
+        "agent_id": "agent-session-messenger",
+        "jti": "direct-jti-session-messaging-00001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "agent.session.send",
+        "machine_access_grants": {
+          "agent-session-messaging": ["agent.session.send"]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI3MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1zZXNzaW9uLW1lc3NhZ2luZyIsInByaW5jaXBhbF90eXBlIjoiYWdlbnQiLCJjbGllbnRfaWQiOiJhZ2VudC1jbGllbnQtc2Vzc2lvbi1tZXNzYWdpbmciLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJ0eXBlIjoiYWNjZXNzIiwidmVyc2lvbiI6InYxIiwic2NvcGUiOiJhZ2VudC5zZXNzaW9uLnNlbmQiLCJhZ2VudF9pZCI6ImFnZW50LXNlc3Npb24tbWVzc2VuZ2VyIiwianRpIjoiZGlyZWN0LWp0aS1zZXNzaW9uLW1lc3NhZ2luZy0wMDAwMSIsImlhdCI6MTc4NDMwMDAwMCwibmJmIjoxNzg0MzAwMDAwLCJleHAiOjE3ODQzMDA2MDB9.YCsVIBBllGyrlBwSc3gzGZ70t87_-OB9Lg_SZXr7_ya8n1qcrLDSvft87OR-YwHeazVJDO97PoM539QSudxp2OauN_ILM3NCjk2psLPLbKhj4lL0XUE6hkRFxtLBwcxNn-wwVJfvpJePVYTxeTnoSfLZh91UkanR96nUXrjgMl6r8-qxcpOpDQ09LJHgfT7l9bDCjN-EZlKNokaWotQevhKsQCc1nAMCzlhM476lwH3Ote6PHGz2_d5HtFb-cssNEeWkI8sRYd2G7dtP3UYYcn-UeWnLfqXpfd0M6evOEGflvQDQ88VKU4baUj8Vd1_dj3h4R8pwAtbp547APzCCSw"
     }
   ]
 }
