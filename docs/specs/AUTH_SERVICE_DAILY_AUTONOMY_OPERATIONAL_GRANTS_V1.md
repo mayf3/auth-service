@@ -28,8 +28,12 @@ external_authorities:
     relation: constrained_by
   - repository: mayf3/dsh-agent-core
     authority_id: AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2
-    revision: e6a70b733c121eb913277df1cc9289e7911c7f06
+    revision: e225d7b22e90d09f5658e267edb7c871c808434a
     relation: prerequisite
+  - repository: mayf3/dsh-agent-core
+    authority_id: AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1
+    revision: 0b23a4385b8487050b6cb9a693c420b63f0db600
+    relation: downstream_consumer
 supersedes: []
 superseded_by: null
 owners: [mayf3]
@@ -87,8 +91,8 @@ ASM_AUDIENCE_AUTHORITY = accepted @ 34ca9c6f2d677096a7c2b17a6ed023fa62c0da2e
 ASM_TEMP_GRANT_AUTHORITY = accepted/current @ 95f8ea9275b0184416d2ac7a1043746c58fe5f57
 SCHEDULER_AUDIENCE_AUTHORITY = accepted @ 687c3b1eb3c671b1b4edf343fe96c07e9f00f92a
 SCHEDULER_AUTH_DEPLOYMENT = AUTH_SERVICE_SCHEDULER_BUNDLE_1_7_DEPLOYMENT_V1 semantic head 15d246f2b17cffc6d8cc343d3bb148d8034d0493 (must be accepted at this exact reviewed content, merged, final-head PASS, production PASS)
-ASM_DEPLOYMENT = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2 semantic head e6a70b733c121eb913277df1cc9289e7911c7f06 (must be accepted at this exact reviewed content, merged, final-head PASS, Stage B/D/E PASS)
-SCHEDULER_RUNTIME_DEPLOYMENT = dsh-agent-core AGENT_CORE_CROSS_AGENT_SCHEDULER_DEPLOYMENT_V1 (must be accepted at its exact reviewed content, merged, final-head PASS, production PASS)
+ASM_DEPLOYMENT = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2 semantic head e225d7b22e90d09f5658e267edb7c871c808434a (must be accepted at this exact reviewed content, merged, final-head PASS, Stage B/D/E PASS)
+DOWNSTREAM_SCHEDULER_RUNTIME = dsh-agent-core AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1 semantic head 0b23a4385b8487050b6cb9a693c420b63f0db600 (must run only after Phase C reaches C_ACTIVE)
 PRODUCTION_DB_ENDPOINT = 127.0.0.1:5432 / database agent_dev_center
 AUTH_ORIGIN = http://127.0.0.1:4001
 GLOBAL_MUTATION_LOCK = /var/run/auth-service-production-mutation.lock
@@ -209,7 +213,7 @@ global/foreign history requirement must establish separate evidence/authority.
 ### CTR-DAG-001 — Hard prerequisites and fail-closed preimage
 
 Phase B MUST begin only after: (1) this Spec is accepted and merged; (2) Session
-Messaging Deployment V2 is byte-equivalent to semantic head `e6a70b733c121eb913277df1cc9289e7911c7f06`
+Messaging Deployment V2 is byte-equivalent to semantic head `e225d7b22e90d09f5658e267edb7c871c808434a`
 apart from its declared lifecycle-only acceptance, is merged, and its deployment
 plus D/E real A2A canary are PASS; (3) the temporary ASM Grant is terminally
 compensated with one preserved exact-scope row having non-null `revoked_at`,
@@ -222,11 +226,13 @@ Phase C MUST begin only after the Phase-B receipt is terminal `B_ACTIVE`, its
 ASM row and a fresh token remain exact, and `LANE_B=PRODUCTION_READY`. It also
 requires: (1) Scheduler Auth deployment byte-equivalent to semantic head
 `15d246f2b17cffc6d8cc343d3bb148d8034d0493` apart from lifecycle-only acceptance,
-merged and production PASS at the pinned 1.7.0 digest; (2) the separately
-accepted exact-head dsh-agent-core Scheduler runtime deployment is merged and
-production PASS; and (3) the Scheduler Audience is active/exact and the source
+merged and production PASS at the pinned 1.7.0 digest; and (2) the Scheduler
+Audience is active/exact and the source
 client has no Scheduler row. Phase C MUST NOT begin earlier. Any normative drift,
 unmerged/unaccepted authority, or preimage mismatch stops without mutation.
+Only after Phase C reaches terminal `C_ACTIVE` may the downstream
+`AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1@0b23a438...` be repinned to this
+final reviewed Grant head, accepted/merged, deployed, and canaried.
 
 Each phase's locked preflight MUST prove that production
 `machine_access_grants.revoked_at` exists as nullable
@@ -343,22 +349,22 @@ The Phase-B state machine is closed:
 
 | Readback face | Permitted action/outcome |
 |---|---|
-| exact ASM tombstone + no B correlation audit | `B_NOT_COMMITTED`; stop unchanged, no retry |
-| exact ASM live v2 + exact B forward audit | `B_COMMITTED`; continue verification, never replay |
-| any other ASM/audit face | no forward retry; compensate only when exact key/preimage/correlation makes the transition unique, otherwise `MANUAL_RECOVERY_REQUIRED` |
-| exact restored ASM tombstone + exact B forward/compensation audits | deny fresh ASM issuance, quarantine any issued B token, then `B_RESTORED` |
-| unknown face after B compensation attempt | no compensation retry; `MANUAL_RECOVERY_REQUIRED` |
+| exact ASM tombstone + no B correlation audit | internal `B_NOT_COMMITTED`; publish `B_FAILED_UNCHANGED`, stop, no retry |
+| exact ASM live v2 + exact B forward audit | internal `B_COMMITTED`; publish no intermediate receipt, continue verification, never replay |
+| any other ASM/audit face | no forward retry; compensate only when exact key/preimage/correlation makes the transition unique, otherwise publish `B_MANUAL_RECOVERY_REQUIRED` |
+| exact restored ASM tombstone + exact B forward/compensation audits | deny fresh ASM issuance; publish `B_RESIDUAL_AUTHORIZATION` if an issued B token remains unexpired, otherwise `B_RESTORED` |
+| unknown face after B compensation attempt | no compensation retry; publish `B_MANUAL_RECOVERY_REQUIRED` |
 
 The Phase-C state machine is closed and always hashes/asserts the terminal
 Phase-B row before and after every action:
 
 | Readback face | Permitted action/outcome |
 |---|---|
-| exact ASM live v2 + Scheduler absent + no C correlation audit | `C_NOT_COMMITTED`; stop unchanged, no retry |
-| exact ASM unchanged + Scheduler live v1 + exact C forward audit | `C_COMMITTED`; continue verification, never replay |
-| any Scheduler/audit mismatch with ASM unchanged | no forward retry; compensate only when exact key/preimage/correlation makes the C transition unique, otherwise `MANUAL_RECOVERY_REQUIRED` |
-| exact ASM unchanged + Scheduler absent + exact C forward/compensation audits | deny fresh Scheduler issuance, quarantine any issued C token, then `C_RESTORED` |
-| any ASM drift or unknown face after C compensation attempt | no write and no compensation retry; `MANUAL_RECOVERY_REQUIRED` |
+| exact ASM live v2 + Scheduler absent + no C correlation audit | internal `C_NOT_COMMITTED`; publish `C_FAILED_UNCHANGED`, stop, no retry |
+| exact ASM unchanged + Scheduler live v1 + exact C forward audit | internal `C_COMMITTED`; publish no intermediate receipt, continue verification, never replay |
+| any Scheduler/audit mismatch with ASM unchanged | no forward retry; compensate only when exact key/preimage/correlation makes the C transition unique, otherwise publish `C_MANUAL_RECOVERY_REQUIRED` |
+| exact ASM unchanged + Scheduler absent + exact C forward/compensation audits | deny fresh Scheduler issuance; publish `C_RESIDUAL_AUTHORIZATION` if an issued C token remains unexpired, otherwise `C_RESTORED` |
+| any ASM drift or unknown face after C compensation attempt | no write and no compensation retry; publish `C_MANUAL_RECOVERY_REQUIRED` |
 
 After Phase-B compensation, fresh ASM issuance MUST be non-200. After Phase-C
 compensation, fresh Scheduler issuance MUST be non-200 while fresh ASM issuance
@@ -368,6 +374,12 @@ latest token whose authority was compensated expires (TTL at most 600 seconds),
 and only then may the phase become `B_RESTORED` or `C_RESTORED`. Before expiry
 the honest outcome is `RESIDUAL_AUTHORIZATION`; unknown expiry is
 `MANUAL_RECOVERY_REQUIRED`, never restored.
+Each residual receipt is immutable. After the latest compensated token expiry,
+a later read-only reconciliation invocation MUST re-prove the restored DB/audit/
+denial face and publish a new no-clobber `B_RESTORED` or `C_RESTORED` receipt
+whose `parent_receipt_sha256` binds the residual receipt; it never replaces or
+edits the residual receipt. Before expiry it emits no new receipt. Unknown or
+drifted state publishes the phase-prefixed manual-recovery outcome.
 
 ### CTR-DAG-006 — Exact immutable audit envelopes
 
@@ -421,12 +433,17 @@ phase's root directory with exactly: `schema_version`, `phase`, `outcome`,
 `sealed_inputs_sha256`, `authorization_method`, `operator_id`, `approval_ref`,
 `db_identity`, `lock_identity`, `preimage_sha256`, `postimage_sha256`,
 `unrelated_rows_sha256`, `audit_ids`, `request_counts`, `sanitized_result_classes`,
-`token_expiries`, `signal_events`, and `evidence_sha256`. Closed outcomes are
-`B_STOPPED_PREMUTATION|B_ACTIVE|B_RESTORED|B_RESIDUAL_AUTHORIZATION|B_OUTCOME_UNKNOWN|B_MANUAL_RECOVERY_REQUIRED`
+`token_expiries`, `signal_events`, `parent_receipt_sha256`, and
+`evidence_sha256`. Closed outcomes are
+`B_STOPPED_PREMUTATION|B_FAILED_UNCHANGED|B_ACTIVE|B_RESTORED|B_RESIDUAL_AUTHORIZATION|B_OUTCOME_UNKNOWN|B_MANUAL_RECOVERY_REQUIRED`
 for Phase B and the same `C_*` forms for Phase C. Only `B_ACTIVE` and `C_ACTIVE`
 are forward success; residual/unknown/manual outcomes are nonterminal for Goal
 readiness. A Gate, dialog, row count, token, or receipt alone is not operational
 readiness.
+For a quarantine-clear reconciliation receipt, `parent_receipt_sha256` is the
+required parent digest; it MUST be null for every other outcome. The
+new terminal receipt is published no-clobber and the parent residual receipt
+remains byte- and inode-identical.
 Lock acquisition is bounded to 30 seconds, native authorization dialog to 120
 seconds, DB lock/statement/whole-transaction time to 5/10/30 seconds, and the
 complete token/readback matrix to 60 seconds with each request bounded to 5
@@ -564,7 +581,7 @@ business revocation of either permanent permission is outside this Spec.
 
 ```text
 OPEN_OWNER_DECISIONS = EXACT_HEAD_ACCEPTANCE
-NORMATIVE_TBD = SCHEDULER_RUNTIME_DEPLOYMENT_EXACT_HEAD
+NORMATIVE_TBD = NONE
 ARTIFACT_STATE = NOT_BUILT
 PRODUCTION_STATE = UNCHANGED
 PHASE_B = NOT_STARTED
@@ -582,12 +599,12 @@ AUTHORITY_LEVEL = governing_spec
 IMPLEMENTATION_AUTHORITY = contracts
 PRODUCTION_APPLY_AUTHORITY = contracts (inactive until accepted and merged)
 PRIMARY_PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V2
-EXTERNAL_AUTHORITIES = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V1@d6c781696b1c30d482ac5d32023afe5edc7226a9; AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2@e6a70b733c121eb913277df1cc9289e7911c7f06; AGENT_CORE_SELF_SERVICE_SCHEDULER_TOOLS_V2@4c0a62382cabb9641dbf512a8d5f8ce8a9fed1f2; AGENT_CORE_CROSS_AGENT_SCHEDULER_DEPLOYMENT_V1@PENDING_EXACT_HEAD
+EXTERNAL_AUTHORITIES = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V1@d6c781696b1c30d482ac5d32023afe5edc7226a9; AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2@e225d7b22e90d09f5658e267edb7c871c808434a; AGENT_CORE_SELF_SERVICE_SCHEDULER_TOOLS_V2@4c0a62382cabb9641dbf512a8d5f8ce8a9fed1f2; AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1@0b23a4385b8487050b6cb9a693c420b63f0db600 (downstream)
 OPEN_OWNER_DECISIONS = EXACT_HEAD_ACCEPTANCE
-NORMATIVE_TBD = SCHEDULER_RUNTIME_DEPLOYMENT_EXACT_HEAD
+NORMATIVE_TBD = NONE
 PARTIAL_SUPERSESSION = NONE
 CONTRACT_COUNT = 8
 CONTRACTS_WITH_ACCEPTANCE = 8
-AUTHORING_READY_FOR_REVIEW = NO_PENDING_SCHEDULER_RUNTIME_HEAD
+AUTHORING_READY_FOR_REVIEW = YES
 PRODUCTION_CHANGE_THIS_ROUND = NONE
 ```
