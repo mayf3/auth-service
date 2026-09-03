@@ -1,11 +1,16 @@
 ---
 spec_id: AUTH_SERVICE_SCHEDULER_AUDIENCE_CCR_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 production_apply_authority: none
 date: 2026-09-03
+accepted_date: 2026-09-03
+accepted_by: mayf3
+accepted_reviewed_base: 05fcf4074fe15d7f29ce1ef0f68767fbbebd54de
+accepted_reviewed_spec_commit: 6ca830e7d3a8414c1341d62647fd952eb472e0e7
+acceptance_review_verdict: PASS
 scope:
   - mayf3/auth-service
   - Cross-Agent Scheduler OAuth audience and scope registration authority
@@ -30,10 +35,12 @@ owners:
 
 # AUTH_SERVICE_SCHEDULER_AUDIENCE_CCR_V1
 
-> **PROPOSED / NOT ACCEPTED.** 本文件只提出 Cross-Agent Scheduler 所需的最小
-> auth-service Audience/Scope 注册 Authority（docs-only）。在独立审计 PASS、
-> Owner 接受 exact head 并翻转 lifecycle 字段之前，本 Spec 无任何实现或生产
-> 效力；authoring 轮不得修改 bundle/registry/代码/数据库/生产。
+> **ACCEPTED / AUDIENCE-REGISTRATION AUTHORITY.** Owner、exact reviewed head
+> 与 PASS verdict 只取本文件 frontmatter 的 accepted_by、
+> accepted_reviewed_spec_commit 与 acceptance_review_verdict。本 acceptance
+> 仅授权 CTR-SCH-004 冻结的 16 文件实现闭包与 CTR-SCH-005 的版本判定；
+> Grant supply、DB backfill、deployment 与一切生产效果均为 separately
+> authorized 轮次（CTR-SCH-007/009）。
 
 ## 1. Goal
 
