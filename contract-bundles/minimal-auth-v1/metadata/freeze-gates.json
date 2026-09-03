@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.4.0",
+  "contract_version": "1.6.0",
   "contract_bundle_freeze_allowed": true,
   "gates": [
     {

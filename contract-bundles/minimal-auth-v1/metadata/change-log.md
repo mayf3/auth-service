@@ -1,5 +1,73 @@
 # Change Log
 
+## 1.6.0 — 2026-09-03
+
+- CCR: `AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1` (accepted @
+  e5a1b8b5ea7801ac9aa6d7fd1170ffa7c5d654e6, PR #41) — registered
+  `agent-session-messaging` into the Minimal Auth V1 Audience Registry as the
+  auth-service root authority of the downstream
+  `AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V1` (dsh-agent-core) chain —
+  pinned by its CTR-DEP-002 as the Phase-A accepted prerequisite; implementation
+  closure = the CTR-ASM-004 frozen 16-file set (NI closure V2
+  CTR-NIC2-001 isomorphic, `EXTRA_FILE_COUNT = 0`).
+- Frozen entry (field-by-field, per CTR-ASM-001):
+  `audience_id=agent-session-messaging`,
+  `resource_service=agent-session-messaging`, `scope_namespace=agent`,
+  `accepted_principal_types=["agent"]`, `human_access_enabled=false`,
+  `machine_access_enabled=true`, `delegated_access_enabled=false`,
+  `registered_scopes=["agent.session.send"]`, `status=active`,
+  `freeze_ready=true`.
+- Forbidden set unchanged and unregistered (CTR-ASM-002): `agent.session.read`,
+  `agent.session.*`/wildcards, `agent.wake`, `agent.definition.write`, any
+  `workflow.*` / `forum.*` / `scheduler.*` / `notification.*` / `okr.*` /
+  `adc.*` / `auth.*` new literal, human or delegated access. `agent.session.send`
+  carries no semantics beyond send.
+- Version judgment (CTR-ASM-005): additive minor promotion based on the
+  implementation-time `registry_version`. `1.4.0` was already OCCUPIED by the
+  landed NI closure; `1.5.0` is RESERVED by accepted
+  `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` (its implementation PR #37
+  still draft, version not yet occupied) → implementation value = `1.6.0`
+  (skip of accepted-reserved versions per DEC-ASM-002). Registry/manifest/
+  fixtures promoted in place 1.4.0 → 1.6.0; no in-place disguise.
+- Added positive fixture `direct-agent-session-messaging` — a machine-only
+  `principal_type=agent` Direct Machine positive fixture (RS256 + tracked
+  fixture kid `fixture-key-v1-svc-okr-canary-20260719`, iss=auth-service,
+  aud=agent-session-messaging, agent_id=agent-session-messenger,
+  client_id=agent-client-session-messaging, scope=`agent.session.send`, exact
+  requested-scope equality, grant subset `agent.session.send`).
+- Added 11 negative cases (NI family isomorphic): service principal,
+  human principal, delegated/OBO, wrong audience (`agent-session-send`),
+  wrong-namespace `session.send`, alias `agent.session.read`, `*` wildcard,
+  `agent.*` namespace wildcard, emptied (over-scope) Grant, cross-Audience
+  Grant reuse (svc-workflow + workflow.read with no such Grant), extra
+  requested Scope (`agent.session.read agent.session.send`) — every case
+  rejected whole, no downscoping, no positive issuance in any negative phase.
+  Dedicated DB/registry-mismatch cases are structurally unrepresentable in the
+  Bundle fixture harness (fail-closed `audience_registry_mismatch` /
+  `machine_grant_state_invalid` live in the runtime Grant lookup, not in the
+  fixture validator); `SCOPE_OUTPUT_MISMATCH` cases are structurally
+  unnecessary for this Audience: with exactly one registered Scope, exact
+  requested/issued equality plus strict registration makes a valid-but-
+  different requested set unrepresentable; mismatch-shaped requests fail
+  earlier as `INVALID_SCOPE_NAMESPACE` (extra-requested-scope case).
+- `validate.mjs` first-wave Audience set literal extended with
+  `agent-session-messaging` (6 → 7 entries; validator gate
+  `registry: first-wave Audience set changed`) — the single allowed validator
+  delta per CTR-ASM-005(4).
+- Version linkage: `contract_version` / `registry_version` promoted
+  1.4.0 → 1.6.0 across manifest (incl. `audience_registry_version`), registry,
+  manifest schema const, freeze gates, consumer matrix, positive/negative
+  fixtures, schema instances, ADC scope map and llm-todo candidate; runtime
+  allowlist (`src/lib/oauth/v1/contract.ts`) and candidate loader allowlist +
+  the two version-expectation tests add/expect `1.6.0`
+  (`LIMITED_RUNTIME_COMPATIBILITY_CHANGE`, allowlist-only).
+- No Grant created, modified or enlarged (CTR-ASM-007 descriptive only; future
+  single disposable-source Grant + terminal compensation is downstream
+  CTR-DEP-006, separately authorized); no Principal/Client/secret created; no
+  product-code change beyond the frozen allowlist literals; no production
+  apply, deploy or database change (CTR-ASM-009; AuthAudience data row creation
+  remains a separate operator backfill round).
+
 ## 1.4.0 — 2026-08-24
 
 - CCR: `AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_AUDIENCE_CCR_V1` (accepted)
