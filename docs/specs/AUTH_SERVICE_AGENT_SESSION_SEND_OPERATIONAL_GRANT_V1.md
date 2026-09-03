@@ -1,11 +1,16 @@
 ---
 spec_id: AUTH_SERVICE_AGENT_SESSION_SEND_OPERATIONAL_GRANT_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 production_apply_authority: none
 date: 2026-09-04
+accepted_date: 2026-09-04
+accepted_by: mayf3
+accepted_reviewed_base: 73c0ed165857fe4e3db2c1782f42ba30c1c8f0cd
+accepted_reviewed_spec_commit: 12a46f9722ea04fd2ad074f7ecc10695faae6bbf
+acceptance_review_verdict: PASS
 scope: [mayf3/auth-service, permanent operational agent.session.send Grant for the frozen daily A2A orchestrator]
 governed_by: [MINIMAL_AUTH_FOUNDATION_V2, AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1, AUTH_SERVICE_AGENT_SESSION_MESSAGING_TEMP_GRANT_V1]
 external_authorities: []
@@ -16,9 +21,13 @@ owners: [mayf3]
 
 # AUTH_SERVICE_AGENT_SESSION_SEND_OPERATIONAL_GRANT_V1
 
-> **PROPOSED / NOT ACCEPTED.** 本文件提出把 A2A 日常运营发送权从 TEMPORARY canary Grant
-> 转为 PERMANENT operational Grant 的最小 Authority（docs-only；apply 为 separately
-> executed operator step）。Owner 接受 exact head 前无任何效力。
+> **ACCEPTED (2026-09-04).** Owner exact-head acceptance @
+> `12a46f9722ea04fd2ad074f7ecc10695faae6bbf`（independent audit @ `155ed2d` FAIL
+> [F1 tombstone-PK collision / F2 attribution] → one-shot fix `12a46f9` → re-audit PASS
+> [BLOCKER_UNION_RESIDUAL=none] → SAFE_TO_ACCEPT_AFTER_FIXES=YES → Owner accepted via
+> in-session decision with explicit exact-head binding）。冻结 tuple 见 §1；apply 为
+> separately executed operator step（Owner native gate + apply 工具 Gate），顺序冻结为
+> Lane B canary → mandatory TEMP revoke → 本 Authority 的 operational apply。
 
 ## 0. Authorization basis (activation successor of the temporary grant, per CTR-DEP-006)
 
