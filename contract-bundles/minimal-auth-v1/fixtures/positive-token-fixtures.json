@@ -211,6 +211,37 @@
       "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI1MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJzdmMtZm9ydW0iLCJwcmluY2lwYWxfdHlwZSI6ImFnZW50IiwiY2xpZW50X2lkIjoiYWdlbnQtY2xpZW50LXN2Yy1mb3J1bSIsInRva2VuX3VzZSI6ImFjY2VzcyIsInR5cGUiOiJhY2Nlc3MiLCJ2ZXJzaW9uIjoidjEiLCJzY29wZSI6ImZvcnVtLnJlYWQgZm9ydW0ud3JpdGUiLCJhZ2VudF9pZCI6ImFnZW50LWZvcnVtLXBhcnRpY2lwYW50IiwianRpIjoiZGlyZWN0LWp0aS1zdmMtZm9ydW0tMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.Gv0AImOTxwbrJbMwqHnK-CFH-e9Y2iLkHfzYLFNYB2JyOT9V0jZU5CLBfvvyIhQroa7Wqb420IKSOdn1Y_0Q1YEImyHh6-NDkcmRI8-QWC3ArWw9MS6fNcd6pqJf6RhX15_iXVLZkoz_9yJ50ZyqM75Xalapr-TH4eLBj93Fy3TRIw57CJyAv44Kue6Ex51HrLN7xC0Tw7E-5Unhbr6_wkhTpT93TFg-lb_biGFPg0pxuhvrIUf2yFgaevmF_tmxqOjPRQopT93lvizE2ypl2sPXAVUKxXhdGej66sL0ZJPVPhCDPasGtG90VH5AmDNFwNCdJcGBsiEwXQULqbP2uA"
     },
     {
+      "name": "direct-agent-svc-forum-moderator",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-svc-okr-canary-20260719"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "50000000-0000-4000-8000-000000000002",
+        "aud": "svc-forum",
+        "principal_type": "agent",
+        "client_id": "agent-client-svc-forum-moderator",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "forum.moderate forum.read forum.write",
+        "agent_id": "agent-forum-moderator",
+        "jti": "direct-jti-svc-forum-moderator-0001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "forum.moderate forum.read forum.write",
+        "machine_access_grants": {
+          "svc-forum": ["forum.moderate", "forum.read", "forum.write"]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI1MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDIiLCJhdWQiOiJzdmMtZm9ydW0iLCJwcmluY2lwYWxfdHlwZSI6ImFnZW50IiwiY2xpZW50X2lkIjoiYWdlbnQtY2xpZW50LXN2Yy1mb3J1bS1tb2RlcmF0b3IiLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJ0eXBlIjoiYWNjZXNzIiwidmVyc2lvbiI6InYxIiwic2NvcGUiOiJmb3J1bS5tb2RlcmF0ZSBmb3J1bS5yZWFkIGZvcnVtLndyaXRlIiwiYWdlbnRfaWQiOiJhZ2VudC1mb3J1bS1tb2RlcmF0b3IiLCJqdGkiOiJkaXJlY3QtanRpLXN2Yy1mb3J1bS1tb2RlcmF0b3ItMDAwMSIsImlhdCI6MTc4NDMwMDAwMCwibmJmIjoxNzg0MzAwMDAwLCJleHAiOjE3ODQzMDA2MDB9.dr3gc4btGJaLAmjuT2NyfnkgXZW9_tjrUPki2XEZxAnAcL5GLmC6_awQFIOzzKzNPtrboIAbTbUEfE2BurKw2uPlKn2hnnT6daYR47aZLe6-_F_K2FxCxpSgnj1UpCsvUg67eAbfszN1gJJQVs9azmwfvAqTFRuV3xeC0W9A2dIFqNqZgwcvFMhxBtkE0f-jiAAr3UYJXA5nENisB5zksPb8J0UXjYhF6T_uhlgSvOMZ0LZz2cCOF-lwHu2boO4pShEh5n3FtnN4vNXXTopeMox3_byI4aiboXF8PaG7WXyG8Z_vAm-De2Ck28BzSOa-2ixV5eZ7DjNtxzoQn8Y8-Q"
+    },
+    {
       "name": "direct-service-notification-ingress",
       "profile": "direct_machine_access",
       "header": {

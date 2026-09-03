@@ -156,6 +156,58 @@
   product-code change beyond the frozen allowlist literals; no production
   apply, deploy or database change (CTR-ASM-009; AuthAudience data row creation
   remains a separate operator backfill round).
+## 1.5.0 — 2026-08-29
+
+- Spec: `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` (accepted; whole-successor
+  of `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1`,
+  `AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1` and
+  `AUTH_SERVICE_SVC_FORUM_AUDIENCE_REGISTRY_RECONCILIATION_V1`; PR #34 @
+  325e781) — the sole semantic increment is registering `forum.moderate` for
+  `svc-forum` (CTR-FMG-002/DEC-FMG-001), based on the merged conformant
+  `1.4.0` notification-ingress result (CTR-FMG-015).
+- `svc-forum.registered_scopes` = exactly
+  `["forum.moderate","forum.read","forum.write"]`; every other Audience entry
+  and Scope stays byte-identical. `forum.admin`, `forum.*`, `*` and any other
+  Scope remain unregistered (negative fixtures retained, CTR-FMG-002).
+- Added positive fixture `direct-agent-svc-forum-moderator` (RS256 + tracked
+  fixture kid, iss=auth-service, aud=svc-forum, principal_type=agent,
+  agent_id=agent-forum-moderator, scope="forum.moderate forum.read
+  forum.write", exact requested-scope equality, grant subset). Removed the
+  obsolete negative case `direct-svc-forum-unregistered-scope-moderate` —
+  `forum.moderate` is registered at 1.5.0, so that case is semantically
+  unrepresentable; the `forum.admin`, `*` and `forum.*` negative cases remain.
+- Consumer evidence re-pinned per Spec §3.1:
+  `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279ccfb` (tree
+  `cc7e38363297bf4b7339e0c88d9f2869e9df1cde`, `origin/main`,
+  `fixed_remote_sha=true`, migration_status stays `completed`) — the deployed
+  consumer that enforces `forum.moderate` on pin/feature, soft-delete, report
+  queue/handling and admin-unread routes (OBS-FMG-005); resolve/archive remain
+  server-`forum.write`.
+- Grant supply implementation (CTR-FMG-014 closed 18-file closure, files
+  16–18): `scripts/supply-forum-moderator-grant-v1.ts`,
+  `scripts/run-forum-moderator-grant-supply-v1-conformance.sh`,
+  `tests/oauth/supply-forum-moderator-grant-v1.test.ts` — canonical
+  APPLY/EXACT_RERUN_NOOP plan documents with SHA-256 digests (CTR-FMG-003),
+  one Serializable transaction updating only the `svc-forum` audience
+  registered_scopes plus the exact Client's Grant 1→2 with the closed 13-field
+  `grant_change_audits` envelope (CTR-FMG-004/007/010), exact rerun NOOP and
+  fail-closed conflict semantics (CTR-FMG-008/009), reviewed non-target Grant
+  digest binding, read-only `OUTCOME_UNKNOWN` reconciliation with no blind
+  retry, and the exact frozen identity tuple `agt_course-community-agent-2` /
+  `9f7cf4c5-7b2c-4239-9993-d9b2a2e0df56` /
+  `mc_hvEfjkJ5BTKA8HZXRmbzNVw0` (CTR-FMG-001). `PRODUCTION_APPLY_AUTHORITY = none` — `--apply` refuses
+  before any database connection (CTR-FMG-016); the legacy OpenClaw
+  `mc_oc_*` family is never queried, resolved or mutated (CTR-FMG-013).
+- Version linkage: `contract_version` / `registry_version` promoted
+  1.4.0 → 1.5.0 across manifest, registry, manifest schema const, freeze gates,
+  consumer matrix, positive/negative fixtures, schema instances, ADC scope map
+  and llm-todo candidate; runtime allowlist (`src/lib/oauth/v1/contract.ts`)
+  and candidate loader allowlist + the two version-expectation tests add/expect
+  `1.5.0` (`LIMITED_RUNTIME_COMPATIBILITY_CHANGE`, allowlist-only).
+- No Grant created, modified or enlarged by this source change
+  (CTR-FMG-015: source merge creates no database change); no
+  Principal/Client/secret created; no production apply, deploy or database
+  change.
 
 ## 1.4.0 — 2026-08-24
 
