@@ -88,7 +88,7 @@ ASM_TEMP_GRANT_AUTHORITY = accepted/current @ 95f8ea9275b0184416d2ac7a1043746c58
 SCHEDULER_AUDIENCE_AUTHORITY = accepted @ 687c3b1eb3c671b1b4edf343fe96c07e9f00f92a
 SCHEDULER_AUTH_DEPLOYMENT = AUTH_SERVICE_SCHEDULER_BUNDLE_1_7_DEPLOYMENT_V1 semantic head c708b37cbfa1e577f80da40439bf18cfc259c84d (must be accepted at this exact reviewed content, merged, final-head PASS, production PASS)
 ASM_DEPLOYMENT = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2 semantic head e225d7b22e90d09f5658e267edb7c871c808434a (must be accepted at this exact reviewed content, merged, final-head PASS, Stage B/D/E PASS)
-SCHEDULER_RUNTIME_COORDINATION = dsh-agent-core AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1 semantic body 0b23a4385b8487050b6cb9a693c420b63f0db600 (deployment before Phase C; its sole cross-Agent canary only after C_ACTIVE; repin/re-review required)
+SCHEDULER_RUNTIME_COORDINATION = dsh-agent-core AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1 semantic body 90a1ec893486ad078c7a9a30273bc14a91d1754e (deployment before Phase C; its sole cross-Agent canary only after C_ACTIVE; repin/re-review required)
 PRODUCTION_DB_ENDPOINT = 127.0.0.1:5432 / database agent_dev_center
 AUTH_ORIGIN = http://127.0.0.1:4001
 GLOBAL_MUTATION_LOCK = /var/run/auth-service-production-mutation.lock
@@ -235,10 +235,10 @@ with its business canary still unrun. Phase C MUST NOT begin earlier. Any normat
 unmerged/unaccepted authority, or preimage mismatch stops without mutation.
 Only after Phase C reaches terminal `C_ACTIVE` may the already deployed
 `AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1` run its one cross-Agent canary.
-Its current coordination pin is semantic body `0b23a438...`; it MUST be repinned
-to the exact post-review heads and independently re-reviewed before either
-runtime deployment or canary. This pin is downstream coordination, not a
-governing frontmatter authority.
+Its coordination pin is semantic body `90a1ec893486ad078c7a9a30273bc14a91d1754e`;
+that body and this Grant head MUST each receive independent exact-head PASS
+before either runtime deployment or canary. This pin is downstream coordination,
+not a governing frontmatter authority.
 
 Each phase's locked preflight MUST prove that production
 `machine_access_grants.revoked_at` exists as nullable
@@ -632,7 +632,7 @@ IMPLEMENTATION_AUTHORITY = contracts
 PRODUCTION_APPLY_AUTHORITY = contracts (inactive until accepted and merged)
 PRIMARY_PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V2
 EXTERNAL_AUTHORITIES = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V1@d6c781696b1c30d482ac5d32023afe5edc7226a9; AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2@e225d7b22e90d09f5658e267edb7c871c808434a; AGENT_CORE_SELF_SERVICE_SCHEDULER_TOOLS_V2@4c0a62382cabb9641dbf512a8d5f8ce8a9fed1f2
-DOWNSTREAM_COORDINATION_PIN = dsh-agent-core AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1 semantic body 0b23a4385b8487050b6cb9a693c420b63f0db600 (repin and re-review before execution)
+DOWNSTREAM_COORDINATION_PIN = dsh-agent-core AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1 semantic body 90a1ec893486ad078c7a9a30273bc14a91d1754e (exact-head PASS required before execution)
 OPEN_OWNER_DECISIONS = EXACT_HEAD_ACCEPTANCE
 NORMATIVE_TBD = NONE
 PARTIAL_SUPERSESSION = NONE
