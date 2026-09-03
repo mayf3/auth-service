@@ -88,7 +88,7 @@ ASM_TEMP_GRANT_AUTHORITY = accepted/current @ 95f8ea9275b0184416d2ac7a1043746c58
 SCHEDULER_AUDIENCE_AUTHORITY = accepted @ 687c3b1eb3c671b1b4edf343fe96c07e9f00f92a
 SCHEDULER_AUTH_DEPLOYMENT = AUTH_SERVICE_SCHEDULER_BUNDLE_1_7_DEPLOYMENT_V1 semantic head c708b37cbfa1e577f80da40439bf18cfc259c84d (must be accepted at this exact reviewed content, merged, final-head PASS, production PASS)
 ASM_DEPLOYMENT = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2 semantic head e225d7b22e90d09f5658e267edb7c871c808434a (must be accepted at this exact reviewed content, merged, final-head PASS, Stage B/D/E PASS)
-SCHEDULER_RUNTIME_COORDINATION = dsh-agent-core AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1 semantic body 90a1ec893486ad078c7a9a30273bc14a91d1754e (deployment before Phase C; its sole cross-Agent canary only after C_ACTIVE; repin/re-review required)
+SCHEDULER_RUNTIME_COORDINATION = dsh-agent-core AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1 (resolve current accepted merged authority and terminal FORWARD_ACTIVE receipt at Phase-C Gate; deployment before Phase C; sole cross-Agent canary only after C_ACTIVE)
 PRODUCTION_DB_ENDPOINT = 127.0.0.1:5432 / database agent_dev_center
 AUTH_ORIGIN = http://127.0.0.1:4001
 GLOBAL_MUTATION_LOCK = /var/run/auth-service-production-mutation.lock
@@ -218,9 +218,9 @@ Principal/Client and ASM Audience are active/exact. Scheduler Auth/runtime is
 not a Phase-B prerequisite. Any missing, duplicate, live, differently scoped,
 or differently versioned ASM row stops without mutation.
 The locked Phase-B preflight also proves the source has zero Scheduler Grant
-rows. The locked Phase-C preflight proves the source has zero `svc-okr` Grant
-rows while the `svc-okr` Audience is active, machine-enabled, and registers
-`okr.read`; drift stops rather than selecting another foreign audience.
+rows. Both phase preflights prove the source has zero `svc-okr` Grant rows while
+the `svc-okr` Audience is active, machine-enabled, and registers `okr.read`;
+drift stops rather than selecting another foreign audience.
 
 Phase C MUST begin only after the Phase-B receipt is terminal `B_ACTIVE`, its
 ASM row and a fresh token remain exact, and `LANE_B=PRODUCTION_READY`. It also
@@ -230,15 +230,17 @@ merged and production PASS at the pinned 1.7.0 digest; and (2) the Scheduler
 Audience is active/exact and the source
 client has no Scheduler row; and (3) downstream Scheduler Runtime deployment
 authority, after its exact-head acceptance/merge/final-head PASS, has a terminal
-`FORWARD_ACTIVE` deployment receipt at the exact semantic body pinned below,
+`FORWARD_ACTIVE` deployment receipt at the resolved accepted authority,
 with its business canary still unrun. Phase C MUST NOT begin earlier. Any normative drift,
 unmerged/unaccepted authority, or preimage mismatch stops without mutation.
 Only after Phase C reaches terminal `C_ACTIVE` may the already deployed
 `AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1` run its one cross-Agent canary.
-Its coordination pin is semantic body `90a1ec893486ad078c7a9a30273bc14a91d1754e`;
-that body and this Grant head MUST each receive independent exact-head PASS
-before either runtime deployment or canary. This pin is downstream coordination,
-not a governing frontmatter authority.
+The Phase-C Gate resolves the current merged Spec by stable ID, requires accepted
+lifecycle metadata with exact reviewed base/head and PASS/zero blockers, proves
+that accepted head is an ancestor of current dsh `main`, and requires the
+terminal deployment receipt's `authority_spec` and `authority_accepted_head` to
+match it. This downstream receipt Gate, not an Auth-side exact SHA pin, fails
+closed on any replacement or unreviewed successor and breaks revision chasing.
 
 Each phase's locked preflight MUST prove that production
 `machine_access_grants.revoked_at` exists as nullable
@@ -312,10 +314,10 @@ exactly five requests: `(agent-session-messaging,agent.session.send)` MUST be
 HTTP 200 and decode to the exact source principal/agent/client/audience/scope;
 `(agent-session-messaging,agent.session.read)`,
 `(agent-session-messaging,agent_session_send)`,
-`(agent-session-messaging,*)`, and `(scheduler,scheduler.admin)` MUST each be
+`(agent-session-messaging,*)`, and `(svc-okr,okr.read)` MUST each be
 HTTP 400 `{error:"invalid_scope"}`. The last request is a source-authenticated
-foreign-audience denial because the locked preflight proves the source has no
-Scheduler row.
+foreign-audience denial because the locked preflight proves the active
+registered Audience and no source Grant row.
 
 Phase C runs exactly seven requests: `(scheduler,scheduler.admin)` and the ASM
 continuity tuple `(agent-session-messaging,agent.session.send)` MUST each be HTTP
@@ -632,7 +634,7 @@ IMPLEMENTATION_AUTHORITY = contracts
 PRODUCTION_APPLY_AUTHORITY = contracts (inactive until accepted and merged)
 PRIMARY_PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V2
 EXTERNAL_AUTHORITIES = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V1@d6c781696b1c30d482ac5d32023afe5edc7226a9; AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2@e225d7b22e90d09f5658e267edb7c871c808434a; AGENT_CORE_SELF_SERVICE_SCHEDULER_TOOLS_V2@4c0a62382cabb9641dbf512a8d5f8ce8a9fed1f2
-DOWNSTREAM_COORDINATION_PIN = dsh-agent-core AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1 semantic body 90a1ec893486ad078c7a9a30273bc14a91d1754e (exact-head PASS required before execution)
+DOWNSTREAM_COORDINATION_GATE = resolve accepted merged dsh-agent-core AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1 by stable ID and match its exact accepted head to the FORWARD_ACTIVE receipt; no Auth-side SHA pin
 OPEN_OWNER_DECISIONS = EXACT_HEAD_ACCEPTANCE
 NORMATIVE_TBD = NONE
 PARTIAL_SUPERSESSION = NONE
