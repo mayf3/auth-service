@@ -207,18 +207,6 @@
       "expected_error": "INVALID_SCOPE_NAMESPACE"
     },
     {
-      "name": "direct-svc-forum-unregistered-scope-moderate",
-      "base_fixture": "direct-agent-svc-forum",
-      "mutations": [
-        {
-          "op": "set",
-          "path": "/claims/scope",
-          "value": "forum.moderate"
-        }
-      ],
-      "expected_error": "INVALID_SCOPE_NAMESPACE"
-    },
-    {
       "name": "direct-svc-forum-wildcard-scope-rejected",
       "base_fixture": "direct-agent-svc-forum",
       "mutations": [

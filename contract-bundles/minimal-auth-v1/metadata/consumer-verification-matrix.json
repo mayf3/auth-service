@@ -41,8 +41,8 @@
     {
       "id": "svc-forum",
       "kind": "machine-resource-consumer",
-      "git_sha": "1cccdd54554c0bde13572273401f19f294334e46",
-      "git_tree": "7ee57577f3d1cbe5aa83cc2c2ead9ee7ce88f99d",
+      "git_sha": "502cfca5a180d6c49fe75dfc270fd117f279ccfb",
+      "git_tree": "cc7e38363297bf4b7339e0c88d9f2869e9df1cde",
       "remote_ref": "origin/main",
       "fixed_remote_sha": true,
       "contract_bundle_scope": true,
