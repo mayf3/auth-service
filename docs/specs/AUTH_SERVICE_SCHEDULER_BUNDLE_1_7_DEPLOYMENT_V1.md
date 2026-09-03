@@ -227,14 +227,32 @@ accepted by fallback. The helper MUST acquire one auth-service deployment lock,
 fresh-read target snapshot/plist/DB preimages under that lock, and fail before
 mutation on drift, concurrent operation, bad ownership/mode/type, symlink, or
 unsealed input.
-The lock is exactly `/var/run/auth-service-production-mutation.lock`; every
-auth-service production DB mutation vehicle (Audience, Grant, Principal,
-Client, Session, credential metadata, or migration) and every snapshot/plist
-deployment vehicle MUST acquire this same exclusive lock before its first
-preimage read. This operation holds it continuously through DB commit, restart,
-post-restart proof, compensation if needed, and terminal receipt publication.
-The Audience write MUST run at PostgreSQL `SERIALIZABLE` isolation with explicit
-row/table guards and no automatic retry. Database target identity is exactly
+The lock is exactly `/var/run/auth-service-production-mutation.lock`. Its owned
+participant set is closed to the three operator transactions serialized by
+`CORE_RUNTIME_DAILY_AUTONOMY_OVERNIGHT_V1`: this scheduler bundle deployment,
+the accepted temporary ASM Grant apply/revoke vehicle at
+`/Users/yanfenma/workspace/deployment-artifacts/agent-session-messaging-temp-grant-v1`,
+and the later permanent daily-autonomy Grant vehicle governed by
+`AUTH_SERVICE_DAILY_AUTONOMY_OPERATIONAL_GRANTS_V1`. The Goal coordinator MUST
+wrap each participant from first preimage read through terminal receipt with
+this lock and MUST schedule no overlap. This Spec does not claim to govern or
+retrofit every historical/runtime Auth writer.
+
+Before mutation, the Owner transaction MUST prove from the Goal transaction
+ledger, process census, participant receipt/marker census, and native Owner
+attestation that none of the other two participants or any other Auth
+production mutation is authorized, scheduled, active, or outcome-ambiguous in
+the window. Any competing/unknown writer or unfinished receipt stops. An
+isolated contention test MUST hold the lock in each participant wrapper and
+prove the other two reject before DB/file access. This operation holds the lock
+continuously through DB commit, restart, post-restart proof, compensation if
+needed, and terminal receipt publication.
+
+The Audience write MUST run at PostgreSQL `SERIALIZABLE` isolation and lock
+`auth_audiences`, `machine_access_grants`, and `auth_security_audits` against
+concurrent writes before the guarded census/write. Lock timeout or any changed
+pre/post unrelated digest stops or compensates; there is no automatic retry.
+Database target identity is exactly
 TCP `127.0.0.1:5432`, database `agent_dev_center`; the secret-bearing connection
 string is read only inside the sealed root helper from the active snapshot's
 root-readable `.env`, is never accepted as an argument/environment override,
@@ -340,7 +358,9 @@ before artifact construction or production apply begins.
   `127.0.0.1:5432/agent_dev_center`, live snapshot/plist, and
   `system/com.auth-service`; record UTC `observed_at`, lock inode/owner,
   transaction isolation, full sanitized seven-row projection, zero-row counts,
-  frozen target hashes, and dry-run write counters.
+  frozen target hashes, Goal ledger/process/participant-marker census, Owner
+  no-concurrency attestation, three-wrapper contention transcript, exact table
+  locks, and dry-run write counters.
 
 ### ACC-SD17-003 — Apply and runtime proof
 
