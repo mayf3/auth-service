@@ -90,7 +90,7 @@ AUTH_MAIN_BASE = ff9e1bec7d364568a92be91f6ffbd49d1d2101de
 ASM_AUDIENCE_AUTHORITY = accepted @ 34ca9c6f2d677096a7c2b17a6ed023fa62c0da2e
 ASM_TEMP_GRANT_AUTHORITY = accepted/current @ 95f8ea9275b0184416d2ac7a1043746c58fe5f57
 SCHEDULER_AUDIENCE_AUTHORITY = accepted @ 687c3b1eb3c671b1b4edf343fe96c07e9f00f92a
-SCHEDULER_AUTH_DEPLOYMENT = AUTH_SERVICE_SCHEDULER_BUNDLE_1_7_DEPLOYMENT_V1 semantic head 15d246f2b17cffc6d8cc343d3bb148d8034d0493 (must be accepted at this exact reviewed content, merged, final-head PASS, production PASS)
+SCHEDULER_AUTH_DEPLOYMENT = AUTH_SERVICE_SCHEDULER_BUNDLE_1_7_DEPLOYMENT_V1 semantic head c708b37cbfa1e577f80da40439bf18cfc259c84d (must be accepted at this exact reviewed content, merged, final-head PASS, production PASS)
 ASM_DEPLOYMENT = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2 semantic head e225d7b22e90d09f5658e267edb7c871c808434a (must be accepted at this exact reviewed content, merged, final-head PASS, Stage B/D/E PASS)
 DOWNSTREAM_SCHEDULER_RUNTIME = dsh-agent-core AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1 semantic head 0b23a4385b8487050b6cb9a693c420b63f0db600 (must run only after Phase C reaches C_ACTIVE)
 PRODUCTION_DB_ENDPOINT = 127.0.0.1:5432 / database agent_dev_center
@@ -225,7 +225,7 @@ or differently versioned ASM row stops without mutation.
 Phase C MUST begin only after the Phase-B receipt is terminal `B_ACTIVE`, its
 ASM row and a fresh token remain exact, and `LANE_B=PRODUCTION_READY`. It also
 requires: (1) Scheduler Auth deployment byte-equivalent to semantic head
-`15d246f2b17cffc6d8cc343d3bb148d8034d0493` apart from lifecycle-only acceptance,
+`c708b37cbfa1e577f80da40439bf18cfc259c84d` apart from lifecycle-only acceptance,
 merged and production PASS at the pinned 1.7.0 digest; and (2) the Scheduler
 Audience is active/exact and the source
 client has no Scheduler row. Phase C MUST NOT begin earlier. Any normative drift,
