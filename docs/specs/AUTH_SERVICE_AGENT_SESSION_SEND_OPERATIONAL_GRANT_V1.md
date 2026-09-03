@@ -20,16 +20,18 @@ owners: [mayf3]
 > 转为 PERMANENT operational Grant 的最小 Authority（docs-only；apply 为 separately
 > executed operator step）。Owner 接受 exact head 前无任何效力。
 
-## 0. Authorization basis (whole-successor of the temporary grant, per its own §6/CTR-DEP-006)
+## 0. Authorization basis (activation successor of the temporary grant, per CTR-DEP-006)
 
 Accepted `AUTH_SERVICE_AGENT_SESSION_MESSAGING_TEMP_GRANT_V1`（auth PR #46 @ `d759265f`，
-merged `8c7fb01`；§3 经 PR #47 `ff9e1be` amended）明确规定：temporary grant 在 canary 完成
-或 D/E 失败时必须 terminal revoke，且 "retention requires a later separate accepted
-activation authority naming the principal and purpose"。本 Spec 即该 separate accepted
-activation authority：同一 frozen identity tuple 的 PERMANENT 化，purpose = 日常 A2A
-orchestration（Cross-Agent Scheduler 触发的 Agent 间任务交接与 `agent_session_send`
-日常使用）。Accepted `AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V1` CTR-DEP-006 的
-"separately accepted Grant-supply authority + Owner gate" 由本 Spec 的 acceptance 满足。
+merged `8c7fb01`；§3 经 PR #47 `ff9e1be` amended）规定：temporary grant 在 canary 完成
+或 D/E 失败时必须 terminal revoke（tombstone 行永久留痕，不得 DELETE）。其授权链上游
+`AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V1` 的 **CTR-DEP-006** 明确要求：
+"retention requires a later separate accepted activation authority naming the principal
+and purpose"（保留须以此类单独 accepted activation authority 为前提，且须指名 principal
+与 purpose）。本 Spec 即该 separate accepted activation authority：同一 frozen identity
+tuple 的 PERMANENT 化，purpose = 日常 A2A orchestration（Cross-Agent Scheduler 触发的
+Agent 间任务交接与 `agent_session_send` 日常使用）。CTR-DEP-006 的 "separately accepted
+Grant-supply authority + Owner gate" 由本 Spec 的 acceptance 满足。
 
 ## 1. Frozen grant tuple (single row, single client — identical identity to the canary)
 
@@ -58,16 +60,26 @@ credential store 以 mc_cF81DF 呈现。无第二合法候选，故按 goal 规�
 ## 2. Apply (one production mutation, after accepted authority + Owner native gate)
 
 Vehicle = `agent-session-messaging-temp-grant-v1` 制品同族工具的 `--apply-operational`
-模式（snapshot prisma client + .env，root 运行），single serializable transaction：
-1. STOP if a live row already exists for (SOURCE_CLIENT uuid, agent-session-messaging)
-   —— one-shot guard（含 TEMP_GRANT canary 行未 revoke 的情形：必须先完成 canary 终偿）；
-2. INSERT machine_access_grants(machine_client_id=<uuid>, audience_id='agent-session-messaging',
-   scopes='{agent.session.send}', version=1)；
-3. INSERT auth_security_audits(event_type='grant.operational_created', result='success',
-   request_correlation_id=<migration_id>, details={tuple, kind='PERMANENT_OPERATIONAL',
-   purpose='daily A2A orchestration', operator, approval_ref})。
-Readback: row live with exact scopes/version；target agents hold ZERO
-agent-session-messaging rows；audience 总行数 +1。
+模式（snapshot prisma client + raw SQL，root 运行），single serializable transaction：
+1. GUARD：live row（revoked_at IS NULL）已存在 → STOP（one-shot；含 TEMP_GRANT canary
+   行未 revoke 的情形：必须先完成 canary 终偿）。
+2. REACTIVATION-SAFE UPSERT（F1 修正，2026-09-04 audit）：TEMP_GRANT §3（amended）禁止
+   DELETE——canary revoke 后 tombstone 行（revoked_at 非空 + version=0）**永久占据 PK
+   (machine_client_id, audience_id)**。故 insert 路径必须显式声明冲突语义：
+   `INSERT … ON CONFLICT (machine_client_id, audience_id) DO UPDATE SET
+   scopes='{agent.session.send}', version=1, revoked_at=NULL`（fresh INSERT 与 tombstone
+   reactivation 两条路径都可达目的；部署版 `assertGrantState` 以 version<1 fail-closed，
+   reactivation 后立即恢复签发资格）。
+3. INSERT auth_security_audits(event_type=<'grant.operational_created' | 'grant.operational_reactivated'>,
+   result='success', request_correlation_id=<migration_id>, details={tuple,
+   kind='PERMANENT_OPERATIONAL', reactivated=<bool>, purpose='daily A2A orchestration',
+   operator, approval_ref})。
+Readback: row live with exact scopes/version（reactivation 路径下 audience 总行数不变、
+fresh 路径 +1——两种结局都记入 receipt）；target agents hold ZERO
+agent-session-messaging rows。
+Sequencing consequence（converse note）：若在本 canary 之前（0-row 状态）先行 apply 本
+Authority，TEMP_GRANT 的 canary 将因 one-shot guard 永远无法执行——故强制顺序为：
+canary → revoke → operational apply。
 
 ## 3. Persistence semantics
 
