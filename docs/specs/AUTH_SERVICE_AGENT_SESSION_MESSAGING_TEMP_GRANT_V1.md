@@ -66,10 +66,26 @@ Readback: row live with exact scopes；target agents hold ZERO agent-session-mes
 
 ## 3. Terminal compensation (REQUIRED, after canary)
 
-同一脚本家族 `--revoke`：UPDATE ... SET revoked_at=now() WHERE <tuple> AND revoked_at IS NULL
-（单行）+ auth_security_audits('grant.temporary_revoked')；readback：live rows for
-(mc_cF81DF-XND9Zmzao4F08rOK_, agent-session-messaging) == 0；blog-agent/agt_blog-agent 仍 0。
+同一脚本家族 `--revoke`：UPDATE ... SET revoked_at=now(), version=0 WHERE <tuple> AND
+revoked_at IS NULL（单行）+ auth_security_audits('grant.temporary_revoked')；readback：live
+rows for (mc_cF81DF-XND9Zmzao4F08rOK_, agent-session-messaging) == 0；revoked row preserved
+（revoked_at set exactly once + version=0 tombstone）；blog-agent/agt_blog-agent 仍 0。
 不得 DELETE 历史（保留审计）；revoked 行永久留痕。
+POST-REVOKE ENFORCEMENT PROOF（REQUIRED，terminal 真实性证明）：revoke 后以 source client
+credentials 请求 agent-session-messaging token 必须 FAIL（非 200）——部署版 V1 路径的
+assertGrantState 对 version<1 抛 machine_grant_state_invalid，version=0 tombstone 使授权立即
+终止。已签发/已缓存 token 的残余窗口由 TTL 上界 600s 约束（broker token cache per
+clientId|audience|scope，expiresAt=issuance+expires_in，DEFAULT_TTL=600）。
+
+> **§3.1 AMENDMENT 2026-09-03 — ENFORCEMENT-GAP FIX（独立复核 NEW_EVIDENCE）。**
+> 首版 §3 仅 UPDATE revoked_at。复核实证：`src/lib/oauth/v1/direct.ts` 与 `exchange.ts` 的
+> grant 查询（`accessGrants: { where: { audienceId } }` + assertGrantState）**不过滤/不检查
+> revokedAt**；生产 machine_access_grants 573 行历史上 0 行 revoked——该列从未被行使，
+> UPDATE-only revoke 在部署版 1.6.0 上对授权零效果（TEMP_A2A_GRANT_TERMINALLY_REVOKED 将只有
+> DB 记录、无真实终止 = required terminal truth 无法建立）。最小修复 = revoke 事务同时置
+> version=0（tombstone，被部署版 assertGrantState 立即强制，行保留、无 DELETE、revoked_at
+> exactly-once 语义不变）。durable 代码修复（direct/exchange 签发路径过滤 revokedAt）=
+> FOLLOW_UP_DEBT，随下一次 auth 快照部署生效，不阻塞本临时 Grant 的 terminal 补偿。
 
 ## 4. Verification proofs
 
