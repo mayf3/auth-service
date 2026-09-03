@@ -21,9 +21,7 @@ owners: [mayf3]
 
 # AUTH_SERVICE_AGENT_SESSION_MESSAGING_TEMP_GRANT_V1
 
-> **PROPOSED / NOT ACCEPTED.** 本文件只提出 ONE named source Agent 的 TEMPORARY
-> canary Grant Authority（docs-only；apply/verify/revoke 为 separately executed
-> operator steps）。Owner 接受 exact head 前无任何效力。
+> **ACCEPTED (2026-09-03).** Owner exact-head acceptance @ `d759265f003e7fdfe4f31341251bd6b452bb05d8`（independent review REVISE [wrong source client] → one-shot fix → re-audit PASS → SAFE_TO_ACCEPT = YES）。冻结 tuple 见 §1；apply/verify/revoke 仍为 separately executed operator steps（Owner native gate + apply-script Gate）。
 
 ## 1. Frozen grant tuple (single row, single client)
 
