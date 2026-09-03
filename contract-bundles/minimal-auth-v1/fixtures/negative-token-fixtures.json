@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.4.0",
+  "contract_version": "1.6.0",
   "cases": [
     {
       "name": "human-forbidden-scope",
@@ -366,6 +366,96 @@
       "base_fixture": "direct-service-notification-ingress",
       "mutations": [
         { "op": "set", "path": "/authorization_context/requested_scope", "value": "notification.deliver notification.send" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-session-messaging-service-principal-rejected",
+      "base_fixture": "direct-service-notification-ingress",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "agent-session-messaging" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "direct-session-messaging-human-access-rejected",
+      "base_fixture": "human-svc-okr",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "agent-session-messaging" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "direct-session-messaging-obo-delegation-rejected",
+      "base_fixture": "obo-adc-v2-to-svc-workflow",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "agent-session-messaging" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "direct-session-messaging-wrong-audience",
+      "base_fixture": "direct-agent-session-messaging",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "agent-session-send" }
+      ],
+      "expected_error": "UNKNOWN_AUDIENCE"
+    },
+    {
+      "name": "direct-session-messaging-foreign-namespace-scope-rejected",
+      "base_fixture": "direct-agent-session-messaging",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "session.send" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-session-messaging-alias-scope-rejected",
+      "base_fixture": "direct-agent-session-messaging",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "agent.session.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-session-messaging-wildcard-scope-rejected",
+      "base_fixture": "direct-agent-session-messaging",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "*" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-session-messaging-namespace-wildcard-scope-rejected",
+      "base_fixture": "direct-agent-session-messaging",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "agent.*" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-session-messaging-partial-grant-rejected",
+      "base_fixture": "direct-agent-session-messaging",
+      "mutations": [
+        { "op": "set", "path": "/authorization_context/machine_access_grants/agent-session-messaging", "value": [] }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "direct-session-messaging-cross-audience-grant-reuse",
+      "base_fixture": "direct-agent-session-messaging",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "svc-workflow" },
+        { "op": "set", "path": "/claims/scope", "value": "workflow.read" },
+        { "op": "set", "path": "/authorization_context/requested_scope", "value": "workflow.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "direct-session-messaging-extra-requested-scope-rejected",
+      "base_fixture": "direct-agent-session-messaging",
+      "mutations": [
+        { "op": "set", "path": "/authorization_context/requested_scope", "value": "agent.session.read agent.session.send" }
       ],
       "expected_error": "INVALID_SCOPE_NAMESPACE"
     }
