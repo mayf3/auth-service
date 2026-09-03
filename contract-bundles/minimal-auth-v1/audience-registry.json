@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "registry_version": "1.6.0",
+  "registry_version": "1.7.0",
   "status": "frozen",
   "audiences": [
     {
@@ -93,6 +93,19 @@
       "status": "active",
       "freeze_ready": true,
       "notes": "Registered by AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1; machine-only agent access for the canonical agent_session_send resource consumed by dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V1."
+    },
+    {
+      "audience_id": "scheduler",
+      "resource_service": "scheduler",
+      "scope_namespace": "scheduler",
+      "accepted_principal_types": ["agent"],
+      "human_access_enabled": false,
+      "machine_access_enabled": true,
+      "delegated_access_enabled": false,
+      "registered_scopes": ["scheduler.admin", "scheduler.audit"],
+      "status": "active",
+      "freeze_ready": true,
+      "notes": "Registered by AUTH_SERVICE_SCHEDULER_AUDIENCE_CCR_V1; machine-only agent access for cross-agent scheduler job mutation/control (scheduler.admin) and global/foreign execution history read (scheduler.audit), semantics frozen by accepted AGENT_CORE_SCHEDULER_RUN_HISTORY_V1 R8."
     }
   ]
 }
