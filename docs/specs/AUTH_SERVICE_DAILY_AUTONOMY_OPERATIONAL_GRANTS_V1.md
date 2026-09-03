@@ -29,11 +29,7 @@ external_authorities:
   - repository: mayf3/dsh-agent-core
     authority_id: AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2
     revision: e225d7b22e90d09f5658e267edb7c871c808434a
-    relation: prerequisite
-  - repository: mayf3/dsh-agent-core
-    authority_id: AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1
-    revision: 0b23a4385b8487050b6cb9a693c420b63f0db600
-    relation: downstream_consumer
+    relation: depends_on
 supersedes: []
 superseded_by: null
 owners: [mayf3]
@@ -60,7 +56,7 @@ GRANT_1 = agent-session-messaging / {agent.session.send} / permanent / version 2
 GRANT_2 = scheduler / {scheduler.admin} / permanent / version 1
 
 PHASE_B = reactivate GRANT_1 after the temporary A2A canary is terminally compensated
-PHASE_C = create GRANT_2 only after Lane B is terminal and Scheduler Auth/runtime are production-live
+PHASE_C = create GRANT_2 only after Lane B is terminal, Scheduler Auth is production-live, and Scheduler Runtime deployment is terminal FORWARD_ACTIVE
 ```
 
 `scheduler.audit` is deliberately absent: daily autonomy requires cross-Agent
@@ -92,7 +88,7 @@ ASM_TEMP_GRANT_AUTHORITY = accepted/current @ 95f8ea9275b0184416d2ac7a1043746c58
 SCHEDULER_AUDIENCE_AUTHORITY = accepted @ 687c3b1eb3c671b1b4edf343fe96c07e9f00f92a
 SCHEDULER_AUTH_DEPLOYMENT = AUTH_SERVICE_SCHEDULER_BUNDLE_1_7_DEPLOYMENT_V1 semantic head c708b37cbfa1e577f80da40439bf18cfc259c84d (must be accepted at this exact reviewed content, merged, final-head PASS, production PASS)
 ASM_DEPLOYMENT = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2 semantic head e225d7b22e90d09f5658e267edb7c871c808434a (must be accepted at this exact reviewed content, merged, final-head PASS, Stage B/D/E PASS)
-DOWNSTREAM_SCHEDULER_RUNTIME = dsh-agent-core AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1 semantic head 0b23a4385b8487050b6cb9a693c420b63f0db600 (must run only after Phase C reaches C_ACTIVE)
+SCHEDULER_RUNTIME_COORDINATION = dsh-agent-core AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1 semantic body 0b23a4385b8487050b6cb9a693c420b63f0db600 (deployment before Phase C; its sole cross-Agent canary only after C_ACTIVE; repin/re-review required)
 PRODUCTION_DB_ENDPOINT = 127.0.0.1:5432 / database agent_dev_center
 AUTH_ORIGIN = http://127.0.0.1:4001
 GLOBAL_MUTATION_LOCK = /var/run/auth-service-production-mutation.lock
@@ -221,6 +217,10 @@ version 0, zero live rows, and post-revoke issuance non-200; and (4) the source
 Principal/Client and ASM Audience are active/exact. Scheduler Auth/runtime is
 not a Phase-B prerequisite. Any missing, duplicate, live, differently scoped,
 or differently versioned ASM row stops without mutation.
+The locked Phase-B preflight also proves the source has zero Scheduler Grant
+rows. The locked Phase-C preflight proves the source has zero `svc-okr` Grant
+rows while the `svc-okr` Audience is active, machine-enabled, and registers
+`okr.read`; drift stops rather than selecting another foreign audience.
 
 Phase C MUST begin only after the Phase-B receipt is terminal `B_ACTIVE`, its
 ASM row and a fresh token remain exact, and `LANE_B=PRODUCTION_READY`. It also
@@ -228,11 +228,17 @@ requires: (1) Scheduler Auth deployment byte-equivalent to semantic head
 `c708b37cbfa1e577f80da40439bf18cfc259c84d` apart from lifecycle-only acceptance,
 merged and production PASS at the pinned 1.7.0 digest; and (2) the Scheduler
 Audience is active/exact and the source
-client has no Scheduler row. Phase C MUST NOT begin earlier. Any normative drift,
+client has no Scheduler row; and (3) downstream Scheduler Runtime deployment
+authority, after its exact-head acceptance/merge/final-head PASS, has a terminal
+`FORWARD_ACTIVE` deployment receipt at the exact semantic body pinned below,
+with its business canary still unrun. Phase C MUST NOT begin earlier. Any normative drift,
 unmerged/unaccepted authority, or preimage mismatch stops without mutation.
-Only after Phase C reaches terminal `C_ACTIVE` may the downstream
-`AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1@0b23a438...` be repinned to this
-final reviewed Grant head, accepted/merged, deployed, and canaried.
+Only after Phase C reaches terminal `C_ACTIVE` may the already deployed
+`AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1` run its one cross-Agent canary.
+Its current coordination pin is semantic body `0b23a438...`; it MUST be repinned
+to the exact post-review heads and independently re-reviewed before either
+runtime deployment or canary. This pin is downstream coordination, not a
+governing frontmatter authority.
 
 Each phase's locked preflight MUST prove that production
 `machine_access_grants.revoked_at` exists as nullable
@@ -261,8 +267,9 @@ Before mutation, Goal ledger, process census, participant receipt/marker census,
 and native Owner attestation MUST prove that no other participant or Auth
 production mutation is authorized, scheduled, active, or outcome-ambiguous in
 the window. Any competing/unknown writer or unfinished receipt stops. An
-isolated contention test MUST hold the lock in each of the three wrappers and
-prove the other two reject before DB/file access. Database target identity is
+isolated contention matrix MUST hold the lock in each of all four wrappers and
+prove every other three wrappers reject before DB/file access (12 ordered
+holder/contender cases). Database target identity is
 exactly TCP
 `127.0.0.1:5432`, database `agent_dev_center`; the secret-bearing connection
 string is read only inside the root helper from the active auth snapshot's
@@ -297,15 +304,30 @@ be copied into a target Agent execution context.
 
 ### CTR-DAG-004 — Positive/negative verification
 
-After Phase B commit, issue exactly one fresh ASM token request and verify
-sanitized subject/source principal, source agent ID, client ID, audience, and
-exact `agent.session.send` scope; prove its wrong-scope, alias, wildcard, and
-foreign-audience requests fail. After Phase C commit, issue exactly one fresh
-Scheduler token request with exact `scheduler.admin` and exactly one fresh ASM
-continuity request; prove Scheduler wrong-scope, two-scope, alias, wildcard, and
-foreign-audience requests fail. Prove target-client and service/human/delegated
-exclusion by the exact census/profile methods below. Tokens and credentials MUST
-NOT be persisted.
+Every request is exactly `POST http://127.0.0.1:4001/oauth/token`, HTTP Basic
+with the frozen source client ID and in-process secret, content type
+`application/x-www-form-urlencoded`, and body
+`grant_type=client_credentials&resource=<resource>&scope=<scope>`. Phase B runs
+exactly five requests: `(agent-session-messaging,agent.session.send)` MUST be
+HTTP 200 and decode to the exact source principal/agent/client/audience/scope;
+`(agent-session-messaging,agent.session.read)`,
+`(agent-session-messaging,agent_session_send)`,
+`(agent-session-messaging,*)`, and `(scheduler,scheduler.admin)` MUST each be
+HTTP 400 `{error:"invalid_scope"}`. The last request is a source-authenticated
+foreign-audience denial because the locked preflight proves the source has no
+Scheduler row.
+
+Phase C runs exactly seven requests: `(scheduler,scheduler.admin)` and the ASM
+continuity tuple `(agent-session-messaging,agent.session.send)` MUST each be HTTP
+200 with exact decoded identities/scopes; `(scheduler,scheduler.audit)`,
+`(scheduler,"scheduler.admin scheduler.audit")`,
+`(scheduler,scheduler.manage:any)`, `(scheduler,*)`, and
+`(svc-okr,okr.read)` MUST each be HTTP 400 `{error:"invalid_scope"}`. Locked
+preflight MUST prove `svc-okr` is active/machine-enabled and the source has zero
+`svc-okr` Grant rows, making the last request an authenticated registered-
+audience denial rather than an unavailable-audience surrogate. Any other
+request, count, status, error class, decoded field, or ordering fails the phase.
+Tokens and credentials MUST NOT be persisted.
 There is no operator-selected identity. The helper reads only
 `agt_efficiency-agent` from
 `/usr/local/libexec/agent-core/config/agent-credentials.json`, which MUST be a
@@ -316,11 +338,13 @@ entry, requires public client ID `mc_cF81DF-XND9Zmzao4F08rOK_`, and uses its sec
 `http://127.0.0.1:4001/oauth/token`, redacts authorization and response bodies,
 and zeroizes the binding after the phase's bounded matrix. Missing, mismatched,
 differently typed/owned/grouped/moded, symlinked, or unreadable storage fails closed.
-Only wrong-scope, two-scope Scheduler, alias, wildcard, and foreign-audience
-token negatives use the exact source credential, so they discriminate scope or
-audience denial after successful client authentication. Target-client denial is
-proved by exact target Principal/Client plus zero-row censuses for both
-audiences. Human/service/delegated denial is proved by the active Audience
+All token negatives use the exact source credential, so they discriminate scope
+or audience denial after successful client authentication. Target exclusion is
+proved without target credentials by an exhaustive locked join over every
+active `machine_clients` row whose Principal `agent_id != agt_efficiency-agent`:
+the count of live Grants for either target audience MUST be zero, and its sorted
+`principal_id,agent_id,client_id,audience_id,scopes,version` projection hash is
+bound in the receipt. Human/service/delegated denial is proved by the active Audience
 profiles (`accepted_principal_types=[agent]`, human/delegated disabled) plus
 complete Grant censuses; an unavailable or deliberately wrong credential MUST
 NOT stand in for authorization denial.
@@ -440,6 +464,13 @@ for Phase B and the same `C_*` forms for Phase C. Only `B_ACTIVE` and `C_ACTIVE`
 are forward success; residual/unknown/manual outcomes are nonterminal for Goal
 readiness. A Gate, dialog, row count, token, or receipt alone is not operational
 readiness.
+For `B_ACTIVE`, `request_counts` is exactly
+`{total:5,success:1,denied:4}` and `sanitized_result_classes` in request order is
+exactly `[issued,invalid_scope,invalid_scope,invalid_scope,invalid_scope]`. For
+`C_ACTIVE`, they are exactly `{total:7,success:2,denied:5}` and
+`[issued,issued,invalid_scope,invalid_scope,invalid_scope,invalid_scope,invalid_scope]`.
+Compensated/non-success receipts bind the executed prefix counts/classes and the
+specific first failing ordinal; they may not claim unexecuted requests.
 For a quarantine-clear reconciliation receipt, `parent_receipt_sha256` is the
 required parent digest; it MUST be null for every other outcome. The
 new terminal receipt is published no-clobber and the parent residual receipt
@@ -510,9 +541,9 @@ merge ancestry are mandatory before either artifact is built or applied.
 ### ACC-DAG-002 — Least privilege and tokens
 
 - Contracts: `CTR-DAG-003`, `CTR-DAG-004`
-- Method: exact per-phase row readback, target/fleet and principal-type profile
-  census, Phase-B one-positive matrix, then Phase-C Scheduler-positive plus ASM
-  continuity matrix, with source-authenticated scope/audience negatives
+- Method: exact per-phase row readback, exhaustive non-source target/fleet and
+  principal-type profile census, exact Phase-B 5-request matrix, then exact
+  Phase-C 7-request Scheduler/ASM matrix, all negatives source-authenticated
 - Pass: Phase B reaches permanent ASM-only `B_ACTIVE`; Phase C starts later and
   reaches two exact rows with ASM byte-equivalent, exact single-scope claims,
   every negative denied, target rows absent, human/service/delegated profiles
@@ -522,7 +553,8 @@ merge ancestry are mandatory before either artifact is built or applied.
 - Execution environment/evidence: production Mac against exact
   `http://127.0.0.1:4001/oauth/token` using the frozen root-only credential-store
   entry; record UTC `observed_at`, request count/result classes, sanitized claim
-  hashes, final row projections, target/fleet zero counts, and unrelated digest.
+  hashes, final row projections, exhaustive non-source projection/hash and zero
+  count, and unrelated digest.
 
 ### ACC-DAG-003 — Compensation isolation, audit, artifact, and receipt
 
@@ -599,7 +631,8 @@ AUTHORITY_LEVEL = governing_spec
 IMPLEMENTATION_AUTHORITY = contracts
 PRODUCTION_APPLY_AUTHORITY = contracts (inactive until accepted and merged)
 PRIMARY_PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V2
-EXTERNAL_AUTHORITIES = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V1@d6c781696b1c30d482ac5d32023afe5edc7226a9; AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2@e225d7b22e90d09f5658e267edb7c871c808434a; AGENT_CORE_SELF_SERVICE_SCHEDULER_TOOLS_V2@4c0a62382cabb9641dbf512a8d5f8ce8a9fed1f2; AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1@0b23a4385b8487050b6cb9a693c420b63f0db600 (downstream)
+EXTERNAL_AUTHORITIES = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V1@d6c781696b1c30d482ac5d32023afe5edc7226a9; AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2@e225d7b22e90d09f5658e267edb7c871c808434a; AGENT_CORE_SELF_SERVICE_SCHEDULER_TOOLS_V2@4c0a62382cabb9641dbf512a8d5f8ce8a9fed1f2
+DOWNSTREAM_COORDINATION_PIN = dsh-agent-core AGENT_CORE_SCHEDULER_RUNTIME_DEPLOYMENT_V1 semantic body 0b23a4385b8487050b6cb9a693c420b63f0db600 (repin and re-review before execution)
 OPEN_OWNER_DECISIONS = EXACT_HEAD_ACCEPTANCE
 NORMATIVE_TBD = NONE
 PARTIAL_SUPERSESSION = NONE
