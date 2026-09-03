@@ -267,9 +267,11 @@ main，accepted authority 文本），方法相同。
 - Result:
   - `1.4.0` 已被 NI 注册占用并落 main（registry_version = 1.4.0）；
   - accepted `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` 冻结
-    `svc-forum` `forum.moderate` 增量注册为 Bundle `1.5.0`（"reserved
-    Bundle `1.4.0` 之后注册 `1.5.0`"）；其实现 PR #37 仍 DRAFT 未落 main，
-    但版本号已被 accepted authority 预留；
+    `svc-forum` `forum.moderate` 增量注册于 Bundle `1.5.0`（paraphrase：
+    该 spec :56/:137 冻结 reserved `1.5.0` 注册，:217 记
+    "Bundle 1.4.0 predecessor is already reserved"，DEC-FMG-002 :315-318
+    同义）；其实现 PR #37 仍 DRAFT 未落 main，但版本号已被 accepted
+    authority 预留；
   - 因此本 CCR 的实现版本判定 MUST 规避 `1.5.0`（CTR-ASM-005）。
 - Provenance: 本 Spec authoring 审计。
 
@@ -348,7 +350,53 @@ main，accepted authority 文本），方法相同。
   LIMITED_RUNTIME_COMPATIBILITY_CHANGE（NI closure 先例），其精确边界由
   CTR-ASM-004/005 冻结。
 
-## 7. Decisions
+## 7. Evidence relations
+
+### EVD-ASM-001 — Audience 缺席与 token 拒绝支持注册必要性与现状判定
+
+- Source observations: `OBS-ASM-001`、`OBS-ASM-002`
+- Target: `STATE-ASM-001`、`STATE-ASM-003`、`CLM-ASM-001`
+- Relation: SUPPORTS
+- Bound coordinates: `mayf3/auth-service@05fcf40`，observed 2026-09-03
+- Strength/sufficiency: exact for source authority at the authoring base
+- Limitations: 不注册、不激活 Audience；不证明任何 token 行为变化
+- Provenance: 本 Spec authoring 审计
+
+### EVD-ASM-002 — namespace 机械规则与下游字面量支持字段冻结
+
+- Source observations: `OBS-ASM-003`、`OBS-ASM-007`
+- Target: `CLM-ASM-002`、CTR-ASM-001/002 字段值（audience/resource 字面量、
+  namespace=agent、单 scope `agent.session.send`）
+- Relation: SUPPORTS
+- Bound coordinates: `auth-service@05fcf40` + `dsh-agent-core@a0ce485`
+- Strength/sufficiency: 每个冻结字段都有源码行证或 accepted authority 文本
+  行证（resource=audience 匹配、namespace 前缀强制、下游 exact resource/scope）
+- Limitations: 下游坐标为 context evidence，非 authority pin（CTR-ASM-008）
+- Provenance: 本 Spec authoring 审计
+
+### EVD-ASM-003 — 既有加载链与 backfill 车辆支持零产品代码变更
+
+- Source observations: `OBS-ASM-004`、`OBS-ASM-008`、`OBS-ASM-009`
+- Target: `CLM-ASM-003`、CTR-ASM-004 闭包边界
+- Relation: SUPPORTS
+- Bound coordinates: `auth-service@05fcf40`
+- Strength/sufficiency: 注册 = bundle 数据 + 版本联动 + backfill 数据行，
+  均有 accepted 先例（NI closure V2）
+- Limitations: 版本联动/测试期望的精确字节由实现轮在 CTR-ASM-004/005 内证明
+- Provenance: 本 Spec authoring 审计
+
+### EVD-ASM-004 — 版本占用与预留现状支持版本判定规则
+
+- Source observations: `OBS-ASM-005`、`OBS-ASM-006`
+- Target: `STATE-ASM-002`、`DEC-ASM-002`、CTR-ASM-005(2)
+- Relation: SUPPORTS
+- Bound coordinates: `auth-service@05fcf40`
+- Strength/sufficiency: 1.4.0 占用（change-log + registry_version）、1.5.0
+  accepted 预留（forum-moderator spec 行证）均可机械回读
+- Limitations: 实现时点若 1.5.0 已占用，规则自带分支覆盖
+- Provenance: 本 Spec authoring 审计
+
+## 8. Decisions
 
 ### DEC-ASM-001 — machine-only、agent-profile、单 scope
 
@@ -368,7 +416,7 @@ agent principal；human/service/delegated access 均不在下游 Gate 内。
 auth-service 不理解 messaging/canonical-session 语义；所有产品语义归下游。与
 wake CCR 的 CTR-AW-003 同构（CTR-ASM-003）。
 
-## 8. Contracts
+## 9. Contracts
 
 ### CTR-ASM-001 — Frozen Audience entry
 
@@ -443,9 +491,9 @@ algorithm、introspection、fallback 或 error 行为。NO_IN_PLACE_DISGUISE = Y
 1. 添加恰 CTR-ASM-001 的 entry 与 `agent.session.send` 注册；
 2. 版本 = 恰一次 additive minor 晋升，基准为实现时点当时 registry_version，
    且 MUST 严格避开一切已被 accepted Spec 预留而尚未占用的版本号
-   （authoring 时点：当前 1.4.0、1.5.0 被
-   `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` 预留 → 实现值 = `1.6.0`，
-   除非实现时点 1.5.0 已被占用，此时取其后下一个未预留 minor）；
+   （authoring 时点：当前 registry_version = `1.4.0`，已被 NI 注册占用；
+   `1.5.0` 被 `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` 预留 → 实现值
+   = `1.6.0`，除非实现时点 1.5.0 已被占用，此时取其后下一个未预留 minor）；
    registry/manifest/fixtures MUST NOT 原地伪装不变；
 3. 按 `validate.mjs` 的联动校验同步全部携带 `contract_version` 的 bundle
    文件（含 `registry_version`），并在 `metadata/change-log.md` 增加条目
@@ -498,7 +546,7 @@ body；下游对 `agent-session-messaging` / `agent.session.send` 字面量的�
 生产效果。production deployment（服务重启/snapshot 再生成）是 acceptance 与
 实现合入后的 separately authorized operator 轮次。
 
-## 9. Acceptance scheme
+## 10. Acceptance scheme
 
 当前为 docs-only proposal：`status: proposed`、`implementation_authority:
 none`、`production_apply_authority: none`。独立审计必须明确判断：bounded
