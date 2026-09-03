@@ -57,7 +57,7 @@ trap cleanup EXIT INT TERM
 )
 node -e '
 const runtime = require(process.argv[1] + "/generated/minimal-auth-v1/runtime-contract.json");
-if (runtime?.payload?.contractVersion !== "1.5.0") throw new Error("FATAL: runtime Bundle is not 1.5.0");
+if (runtime?.payload?.contractVersion !== "1.7.0") throw new Error("FATAL: runtime Bundle is not 1.7.0");
 const entries = runtime?.payload?.audienceRegistry?.audiences;
 const forum = Array.isArray(entries) ? entries.find((entry) => entry?.audience_id === "svc-forum") : null;
 if (!forum || JSON.stringify(forum.registered_scopes) !== JSON.stringify(["forum.moderate","forum.read","forum.write"])) {

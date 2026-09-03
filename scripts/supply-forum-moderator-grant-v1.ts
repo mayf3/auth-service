@@ -49,7 +49,7 @@ const WORKFLOW_AUDIENCE = 'svc-workflow';
 const WORKFLOW_SCOPES = Object.freeze(['workflow.read']);
 const SOURCE_SCOPES = Object.freeze(['forum.read', 'forum.write']);
 const TARGET_SCOPES = Object.freeze(['forum.moderate', 'forum.read', 'forum.write']);
-const BUNDLE_CONTRACT_VERSION = '1.5.0';
+const BUNDLE_CONTRACT_VERSION = '1.7.0';
 const PLAN_VERSION = 'AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1_PLAN_1';
 const AUDIT_REASON_PREFIX = 'forum_moderator_grant_supply_v1';
 const AUDIT_REASON_PATTERN = /^forum_moderator_grant_supply_v1 plan_sha256=[0-9a-f]{64}$/;
@@ -657,7 +657,7 @@ function refuseVerifyMint(authorization: unknown): never {
     fail('functional mint verification authorization kind is invalid');
   }
   lowercaseHex(authorization.implementation_commit, 40, 'verification.implementation_commit');
-  if (authorization.bundle_version !== BUNDLE_CONTRACT_VERSION) fail('verification.bundle_version must equal 1.5.0');
+  if (authorization.bundle_version !== BUNDLE_CONTRACT_VERSION) fail('verification.bundle_version must equal 1.7.0');
   text(authorization.operator_id, 'verification.operator_id', 256);
   text(authorization.approval_ref, 'verification.approval_ref', 2048);
   text(authorization.verification_authorization_ref, 'verification.authorization_ref', 2048);
