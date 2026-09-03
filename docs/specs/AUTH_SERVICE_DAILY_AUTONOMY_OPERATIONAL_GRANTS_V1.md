@@ -9,11 +9,14 @@ date: 2026-09-04
 revision: r1
 scope:
   - two permanent least-privilege machine grants for agt_efficiency-agent
+  - two ordered, separately compensated production transactions
   - agent_session_send and cross-agent scheduler operational continuity
 governed_by:
   - MINIMAL_AUTH_FOUNDATION_V2
   - AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1
+  - AUTH_SERVICE_AGENT_SESSION_MESSAGING_TEMP_GRANT_V1
   - AUTH_SERVICE_SCHEDULER_AUDIENCE_CCR_V1
+  - AUTH_SERVICE_SCHEDULER_BUNDLE_1_7_DEPLOYMENT_V1
 external_authorities:
   - repository: mayf3/dsh-agent-core
     authority_id: AGENT_CORE_AGENT_SESSION_MESSAGING_V1
@@ -23,6 +26,10 @@ external_authorities:
     authority_id: AGENT_CORE_SELF_SERVICE_SCHEDULER_TOOLS_V2
     revision: 4c0a62382cabb9641dbf512a8d5f8ce8a9fed1f2
     relation: constrained_by
+  - repository: mayf3/dsh-agent-core
+    authority_id: AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2
+    revision: e6a70b733c121eb913277df1cc9289e7911c7f06
+    relation: prerequisite
 supersedes: []
 superseded_by: null
 owners: [mayf3]
@@ -36,9 +43,8 @@ owners: [mayf3]
 
 ## 1. Goal and exact subject
 
-After the temporary A2A canary is terminally compensated and Scheduler Auth
-1.7.0 is production-live, authorize exactly two permanent least-privilege
-operational permissions for the already active source Agent:
+Authorize exactly two permanent least-privilege operational permissions for the
+already active source Agent in two ordered, independently gated transactions:
 
 ```text
 SOURCE_AGENT_ID = agt_efficiency-agent
@@ -48,6 +54,9 @@ SOURCE_CLIENT_UUID = 695d1eeb-3547-4cbd-a72b-915f4ebf25a4
 
 GRANT_1 = agent-session-messaging / {agent.session.send} / permanent / version 2
 GRANT_2 = scheduler / {scheduler.admin} / permanent / version 1
+
+PHASE_B = reactivate GRANT_1 after the temporary A2A canary is terminally compensated
+PHASE_C = create GRANT_2 only after Lane B is terminal and Scheduler Auth/runtime are production-live
 ```
 
 `scheduler.audit` is deliberately absent: daily autonomy requires cross-Agent
@@ -56,7 +65,10 @@ bounded production proof.
 
 ## 2. Boundaries
 
-The authority permits one serializable two-row transaction and exact readback.
+The authority permits exactly two serializable one-row transactions and exact
+readback. They MUST NOT be combined, reordered, or partially co-committed:
+Phase B makes permanent send active and closes Lane B before Phase C may begin;
+Phase C adds only scheduler permission and cannot revoke or rewrite Phase B.
 It does not create or rotate credentials, Principals, Clients, Audiences, or
 Sessions; grant any target Agent; touch existing workflow/forum/other Grants;
 grant `scheduler.audit`; use aliases/wildcards/manage-any labels; change
@@ -74,8 +86,9 @@ AUTH_MAIN_BASE = ff9e1bec7d364568a92be91f6ffbd49d1d2101de
 ASM_AUDIENCE_AUTHORITY = accepted @ 34ca9c6f2d677096a7c2b17a6ed023fa62c0da2e
 ASM_TEMP_GRANT_AUTHORITY = accepted/current @ 95f8ea9275b0184416d2ac7a1043746c58fe5f57
 SCHEDULER_AUDIENCE_AUTHORITY = accepted @ 687c3b1eb3c671b1b4edf343fe96c07e9f00f92a
-SCHEDULER_AUTH_DEPLOYMENT = AUTH_SERVICE_SCHEDULER_BUNDLE_1_7_DEPLOYMENT_V1 semantic head f1dcd4b672c89e42c802d5a1460a0f8ce1c6cde8 (must be accepted at this exact reviewed content, merged, final-head PASS, production PASS)
-ASM_DEPLOYMENT = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2 semantic head e225d7b22e90d09f5658e267edb7c871c808434a (must be accepted at this exact reviewed content, merged, final-head PASS, Stage B/D/E PASS)
+SCHEDULER_AUTH_DEPLOYMENT = AUTH_SERVICE_SCHEDULER_BUNDLE_1_7_DEPLOYMENT_V1 semantic head 15d246f2b17cffc6d8cc343d3bb148d8034d0493 (must be accepted at this exact reviewed content, merged, final-head PASS, production PASS)
+ASM_DEPLOYMENT = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2 semantic head e6a70b733c121eb913277df1cc9289e7911c7f06 (must be accepted at this exact reviewed content, merged, final-head PASS, Stage B/D/E PASS)
+SCHEDULER_RUNTIME_DEPLOYMENT = dsh-agent-core AGENT_CORE_CROSS_AGENT_SCHEDULER_DEPLOYMENT_V1 (must be accepted at its exact reviewed content, merged, final-head PASS, production PASS)
 PRODUCTION_DB_ENDPOINT = 127.0.0.1:5432 / database agent_dev_center
 AUTH_ORIGIN = http://127.0.0.1:4001
 GLOBAL_MUTATION_LOCK = /var/run/auth-service-production-mutation.lock
@@ -85,15 +98,16 @@ CREDENTIAL_STORE = /usr/local/libexec/agent-core/config/agent-credentials.json
 - `STATE-DAG-001` — Source identity is the active Agent/client tuple already
   used by the production workflow lane; no new credential is needed. Basis:
   `OBS-DAG-001`, `EVD-DAG-001`.
-- `STATE-DAG-002` — Expected apply preimage is one preserved ASM temporary
-  tombstone (`revoked_at` non-null, version 0, exact scope) plus no scheduler
-  row for the source client. This is a future gated state, not claimed current.
+- `STATE-DAG-002` — Phase B preimage is one preserved ASM temporary tombstone
+  (`revoked_at` non-null, version 0, exact scope); its result is one permanent
+  live ASM row. Phase C preimage requires that exact live ASM row and no
+  scheduler row. These are future gated states, not claimed current.
   Basis: `OBS-DAG-002`, `CLM-DAG-001`, `EVD-DAG-002`.
 - `STATE-DAG-003` — The two audience authorities register broader available
   scope sets, but least privilege requires one scope per permanent Grant.
   Basis: `OBS-DAG-003`, `EVD-DAG-003`.
 
-## 4. Observations, claims, and evidence
+## 4. Observations
 
 ### OBS-DAG-001 — Exact source client ownership
 
@@ -149,12 +163,16 @@ CREDENTIAL_STORE = /usr/local/libexec/agent-core/config/agent-credentials.json
   Scheduler source Git blob `253708fba079ed580f9d7cd8676bf616b6d3e568`,
   SHA-256 `f7d4dcc76f58cfae57787c612819c987398fa06fdcfb598b69bbf6f41e3290ec`.
 
-### CLM-DAG-001 — One permanent transaction can reuse the temp tombstone safely
+## 5. Claims
+
+### CLM-DAG-001 — Phase B can reuse the temp tombstone safely
 
 - Support state: SUPPORTED
 - Support: composite primary key forbids a second ASM row; exact reactivation of
   the preserved tombstone is narrower and more auditable than delete/reinsert
 - Uncertainty: production raw column/type/preimage must be rechecked under lock.
+
+## 6. Evidence
 
 - `EVD-DAG-001` — Source `OBS-DAG-001`; target `STATE-DAG-001`; relation
   SUPPORTS; exact client/principal coordinates; strong for identity, no secret
@@ -166,61 +184,70 @@ CREDENTIAL_STORE = /usr/local/libexec/agent-core/config/agent-credentials.json
   SUPPORTS; exact accepted registry entries; strong for least-privilege scope
   selection, not downstream product conformance.
 
-## 5. Decisions
+## 7. Decisions
 
 ### DEC-DAG-001 — One named operator Agent, two exact permissions
 
 Select the existing `agt_efficiency-agent` client and no other subject. Reject
 fleet, target-Agent, service/human/delegated, and new-credential alternatives.
 
-### DEC-DAG-002 — Reactivate the ASM tombstone; insert Scheduler once
+### DEC-DAG-002 — Use two ordered one-row transactions
 
-The ASM primary-key row is preserved by the temporary flow, so permanent
-activation updates only that row to `revoked_at=NULL`, exact scope, version 2.
-Scheduler has no preimage row and is inserted once with version 1. Reject
-delete/reinsert of ASM and any upsert that hides drift.
+Phase B updates only the preserved ASM primary-key row to `revoked_at=NULL`,
+exact scope, version 2. It then closes Lane B. Phase C, and only Phase C, inserts
+the absent Scheduler row once with version 1 while requiring the Phase-B row to
+remain byte-equivalent. Reject a combined transaction, delete/reinsert of ASM,
+and any upsert that hides drift.
 
 ### DEC-DAG-003 — Exclude scheduler.audit
 
 Grant only `scheduler.admin`; reject the tempting two-scope superset. A future
 global/foreign history requirement must establish separate evidence/authority.
 
-## 6. Contracts
+## 8. Contracts
 
 ### CTR-DAG-001 — Hard prerequisites and fail-closed preimage
 
-Apply MUST begin only after: (1) this Spec is accepted and merged; (2) Session
-Messaging V2 deployment Stage B and its D/E canary are PASS; (3) the temporary
-ASM Grant is terminally compensated with one preserved exact-scope row having
-non-null `revoked_at`, version 0, zero live rows, and post-revoke issuance
-non-200; (4) Scheduler auth deployment is PASS at its exact 1.7.0 source/digest;
-and (5) the source Principal/Client and both Audiences are active/exact. Any
-missing, duplicate, live, differently scoped, or differently versioned row
-stops without mutation.
-The two prerequisite authority bodies MUST be byte-equivalent to semantic heads
-`e225d7b22e90d09f5658e267edb7c871c808434a` and
-`f1dcd4b672c89e42c802d5a1460a0f8ce1c6cde8`; lifecycle commits may add only
-their declared acceptance metadata. Any normative drift or unmerged/unaccepted
-coordinate stops.
-The same locked preflight MUST prove that production
+Phase B MUST begin only after: (1) this Spec is accepted and merged; (2) Session
+Messaging Deployment V2 is byte-equivalent to semantic head `e6a70b733c121eb913277df1cc9289e7911c7f06`
+apart from its declared lifecycle-only acceptance, is merged, and its deployment
+plus D/E real A2A canary are PASS; (3) the temporary ASM Grant is terminally
+compensated with one preserved exact-scope row having non-null `revoked_at`,
+version 0, zero live rows, and post-revoke issuance non-200; and (4) the source
+Principal/Client and ASM Audience are active/exact. Scheduler Auth/runtime is
+not a Phase-B prerequisite. Any missing, duplicate, live, differently scoped,
+or differently versioned ASM row stops without mutation.
+
+Phase C MUST begin only after the Phase-B receipt is terminal `B_ACTIVE`, its
+ASM row and a fresh token remain exact, and `LANE_B=PRODUCTION_READY`. It also
+requires: (1) Scheduler Auth deployment byte-equivalent to semantic head
+`15d246f2b17cffc6d8cc343d3bb148d8034d0493` apart from lifecycle-only acceptance,
+merged and production PASS at the pinned 1.7.0 digest; (2) the separately
+accepted exact-head dsh-agent-core Scheduler runtime deployment is merged and
+production PASS; and (3) the Scheduler Audience is active/exact and the source
+client has no Scheduler row. Phase C MUST NOT begin earlier. Any normative drift,
+unmerged/unaccepted authority, or preimage mismatch stops without mutation.
+
+Each phase's locked preflight MUST prove that production
 `machine_access_grants.revoked_at` exists as nullable
 `timestamp(3) without time zone`, that the table primary key remains exactly
 `(machine_client_id, audience_id)`, and that the raw-SQL projection returns the
-expected tombstone. Missing/drifted column type, nullability, precision, key, or
-row projection stops before mutation; Prisma model shape is not evidence of
-the production column.
+phase-specific expected row face. Missing/drifted column type, nullability,
+precision, key, or row projection stops before mutation; Prisma model shape is
+not evidence of the production column.
 
-### CTR-DAG-002 — Exact two-row serializable transaction
+### CTR-DAG-002 — Two isolated one-row serializable transactions
 
 The sealed helper MUST acquire exactly
 `/var/run/auth-service-production-mutation.lock` before its first preimage read
-and hold it continuously through commit, token verification, compensation if
-needed, and terminal receipt publication. Its owned participant set is closed
-to the three transactions serialized by
+and hold it continuously through each phase's commit, token verification,
+compensation if needed, and terminal receipt publication. Phase B and Phase C
+use distinct correlation IDs, artifacts, processes, and receipts. Its owned
+participant set is closed to the four Auth transactions serialized by
 `CORE_RUNTIME_DAILY_AUTONOMY_OVERNIGHT_V1`: the scheduler bundle deployment,
 the accepted temporary ASM Grant apply/revoke vehicle at
 `/Users/yanfenma/workspace/deployment-artifacts/agent-session-messaging-temp-grant-v1`,
-and this permanent Grant transaction. The Goal coordinator wraps every
+this permanent-Grant Phase B, and this permanent-Grant Phase C. The Goal coordinator wraps every
 participant from first preimage read through terminal receipt and schedules no
 overlap; this Spec does not claim to retrofit unrelated Auth writers.
 
@@ -238,22 +265,25 @@ never logged or persisted.
 
 Under an explicit PostgreSQL `SERIALIZABLE` transaction, write-conflicting locks
 on `auth_audiences`, `machine_access_grants`, and `auth_security_audits`, exact
-row locks, and guarded row counts, the operator MUST:
+row locks, and guarded row counts:
 
-1. update exactly the existing ASM tombstone identified by the composite key,
-   setting only `scopes={agent.session.send}`, `version=2`,
-   `revoked_at=NULL`, and `updated_at=now()`;
-2. insert exactly one Scheduler row for the same client with
-   `scopes={scheduler.admin}`, `version=1`;
-3. append exactly two sanitized, correlation-bound audit rows identifying
-   `grant.permanent_activated` and `grant.permanent_created`.
+1. Phase B MUST update exactly the existing ASM tombstone identified by the
+   composite key, setting only `scopes={agent.session.send}`, `version=2`,
+   `revoked_at=NULL`, and `updated_at=now()`, and append exactly one Phase-B
+   forward audit row.
+2. Phase C MUST first freeze and hash the live Phase-B row, then insert exactly
+   one Scheduler row for the same client with `scopes={scheduler.admin}`,
+   `version=1`, and append exactly one Phase-C forward audit row. Its transaction
+   MUST assert the Phase-B row is unchanged before commit.
 
-No upsert, wildcard predicate, DELETE, partial commit, or automatic retry after
-an ambiguous outcome is allowed.
+Neither transaction may write the other phase's business row. No combined
+transaction, upsert, wildcard predicate, Phase-B DELETE, partial commit, or
+automatic retry after an ambiguous outcome is allowed.
 
 ### CTR-DAG-003 — Least privilege and non-propagation
 
-The final source-client rows MUST contain only the two exact permissions above.
+After Phase B the source client MUST have exactly the permanent ASM row and no
+Scheduler row; after Phase C it MUST contain only the two exact permissions above.
 All target agents MUST have zero rows for both audiences. `scheduler.audit`,
 aliases, wildcards, local manage-any labels, human/service/delegated grants, and
 credentials MUST remain absent. A granted source token or authority MUST never
@@ -261,20 +291,25 @@ be copied into a target Agent execution context.
 
 ### CTR-DAG-004 — Positive/negative verification
 
-After commit, issue exactly one fresh token request for each exact Grant and
-verify sanitized claims: subject/source principal, source agent ID, client ID,
-audience, and exact single scope. Then use the same authenticated source client
-to prove wrong scope, two-scope Scheduler request, alias, wildcard, and foreign-
-audience requests fail. Prove target-client and service/human/delegated exclusion
-by the exact census/profile methods below. Tokens and credentials MUST NOT be
-persisted.
+After Phase B commit, issue exactly one fresh ASM token request and verify
+sanitized subject/source principal, source agent ID, client ID, audience, and
+exact `agent.session.send` scope; prove its wrong-scope, alias, wildcard, and
+foreign-audience requests fail. After Phase C commit, issue exactly one fresh
+Scheduler token request with exact `scheduler.admin` and exactly one fresh ASM
+continuity request; prove Scheduler wrong-scope, two-scope, alias, wildcard, and
+foreign-audience requests fail. Prove target-client and service/human/delegated
+exclusion by the exact census/profile methods below. Tokens and credentials MUST
+NOT be persisted.
 There is no operator-selected identity. The helper reads only
 `agt_efficiency-agent` from
-`/usr/local/libexec/agent-core/config/agent-credentials.json`, requires public
-client ID `mc_cF81DF-XND9Zmzao4F08rOK_`, uses its secret only in process against
+`/usr/local/libexec/agent-core/config/agent-credentials.json`, which MUST be a
+regular non-symlink `authsvc:authsvc 0600` file with the exact JSON shape
+`{version:1,credentials:{<agentId>:{clientId,clientSecret}}}` and exactly one
+lookup by key `agt_efficiency-agent`. It rejects extra keys in that selected
+entry, requires public client ID `mc_cF81DF-XND9Zmzao4F08rOK_`, and uses its secret only in process against
 `http://127.0.0.1:4001/oauth/token`, redacts authorization and response bodies,
-and zeroizes the binding after the bounded matrix. Missing, mismatched,
-unsafe-mode, symlinked, or unreadable storage fails closed.
+and zeroizes the binding after the phase's bounded matrix. Missing, mismatched,
+differently typed/owned/grouped/moded, symlinked, or unreadable storage fails closed.
 Only wrong-scope, two-scope Scheduler, alias, wildcard, and foreign-audience
 token negatives use the exact source credential, so they discriminate scope or
 audience denial after successful client authentication. Target-client denial is
@@ -286,44 +321,112 @@ NOT stand in for authorization denial.
 
 ### CTR-DAG-005 — Post-commit compensation
 
-If verification fails after the DB commit, one pre-authorized compensation
-transaction MUST restore the exact preimage: return the ASM row to its original
-`revoked_at` timestamp, original `updated_at`, version 0, and exact scope;
-delete only the newly created Scheduler row whose creation correlation matches
-this transaction; append two
-sanitized compensation audit rows; and prove zero live rows for both audiences.
-An ambiguous transaction outcome MUST be read back before action and MUST NOT be
-blindly replayed. Successful verification leaves both permanent rows live.
+Each phase owns only its own compensation. If Phase B verification fails after
+commit, its one pre-authorized compensation transaction MUST return only the ASM
+row to the exact frozen tombstone (`revoked_at`, `updated_at`, version 0, exact
+scope), append its Phase-B compensation audit, and prove zero live ASM rows.
+If Phase C verification fails after commit, its compensation MUST delete only
+the newly created Scheduler row whose exact key and creation correlation match,
+append its Phase-C compensation audit, and prove the previously terminal Phase-B
+ASM row is byte-equivalent and its fresh token still succeeds. Phase C has no
+authority to update, revoke, delete, or compensate the ASM row.
+
+An ambiguous transaction outcome MUST be read back by phase before action and
+MUST NOT be blindly replayed. Successful Phase B leaves only ASM permanent;
+successful Phase C leaves both permanent rows live.
 HUP/INT/TERM received after the first mutation MUST be recorded and deferred
 until compensation and the terminal receipt finish; repeated signals cannot
 abort or retarget compensation. The helper exits nonzero only after the exact
 restored face is durably recorded.
 
-The forward/compensation state machine is closed:
+The Phase-B state machine is closed:
 
 | Readback face | Permitted action/outcome |
 |---|---|
-| exact preimage, zero correlation audits | forward definitely not committed; stop unchanged, no retry |
-| exact two-row target, exactly two forward correlation audits | forward committed; continue verification, never replay |
-| any mixed/extra/missing forward face | no forward retry; run the single compensation only where exact correlation guards identify both target rows, otherwise `MANUAL_RECOVERY_REQUIRED` |
-| exact restored preimage including original `updated_at`, scheduler absent, exact compensation audits | business rows restored; continue denial and residual-token quarantine |
-| target/mixed/unknown face after compensation attempt | no compensation retry; `MANUAL_RECOVERY_REQUIRED` with durable nonterminal receipt |
+| exact ASM tombstone + no B correlation audit | `B_NOT_COMMITTED`; stop unchanged, no retry |
+| exact ASM live v2 + exact B forward audit | `B_COMMITTED`; continue verification, never replay |
+| any other ASM/audit face | no forward retry; compensate only when exact key/preimage/correlation makes the transition unique, otherwise `MANUAL_RECOVERY_REQUIRED` |
+| exact restored ASM tombstone + exact B forward/compensation audits | deny fresh ASM issuance, quarantine any issued B token, then `B_RESTORED` |
+| unknown face after B compensation attempt | no compensation retry; `MANUAL_RECOVERY_REQUIRED` |
 
-After compensation, fresh issuance for both exact audiences MUST return non-200.
-Every successfully issued proof token's `exp` is retained only as a sanitized
-timestamp; downstream use is quarantined until the latest such `exp` (token TTL
-is at most 600 seconds), and only then may the receipt become terminal
-`RESTORED`. Before expiry the honest outcome is `RESIDUAL_AUTHORIZATION` and is
-nonterminal; unknown expiry is `MANUAL_RECOVERY_REQUIRED`, never restored.
+The Phase-C state machine is closed and always hashes/asserts the terminal
+Phase-B row before and after every action:
 
-### CTR-DAG-006 — Native path, artifact, and durable receipt
+| Readback face | Permitted action/outcome |
+|---|---|
+| exact ASM live v2 + Scheduler absent + no C correlation audit | `C_NOT_COMMITTED`; stop unchanged, no retry |
+| exact ASM unchanged + Scheduler live v1 + exact C forward audit | `C_COMMITTED`; continue verification, never replay |
+| any Scheduler/audit mismatch with ASM unchanged | no forward retry; compensate only when exact key/preimage/correlation makes the C transition unique, otherwise `MANUAL_RECOVERY_REQUIRED` |
+| exact ASM unchanged + Scheduler absent + exact C forward/compensation audits | deny fresh Scheduler issuance, quarantine any issued C token, then `C_RESTORED` |
+| any ASM drift or unknown face after C compensation attempt | no write and no compensation retry; `MANUAL_RECOVERY_REQUIRED` |
 
-The operator vehicle MUST be hash-sealed, secret-free, and invoked only through
-an Owner-approved macOS native authorization dialog. It MUST pin script/source,
-exact tuple, prerequisites, pre/post row projections, correlation, audit rows,
-positive/negative results, unrelated-row digest, and terminal outcome in an
-atomic root-owned receipt. No password fallback is allowed. A Gate, dialog,
-row count, token, or receipt alone is not operational readiness.
+After Phase-B compensation, fresh ASM issuance MUST be non-200. After Phase-C
+compensation, fresh Scheduler issuance MUST be non-200 while fresh ASM issuance
+MUST remain 200 with exact claims. Every successfully issued token's `exp` is
+retained only as a sanitized timestamp; downstream use is quarantined until the
+latest token whose authority was compensated expires (TTL at most 600 seconds),
+and only then may the phase become `B_RESTORED` or `C_RESTORED`. Before expiry
+the honest outcome is `RESIDUAL_AUTHORIZATION`; unknown expiry is
+`MANUAL_RECOVERY_REQUIRED`, never restored.
+
+### CTR-DAG-006 — Exact immutable audit envelopes
+
+These raw-SQL tombstone transitions MUST use the existing immutable
+`auth_security_audits`, not `grant_change_audits`: the latter's version check
+cannot truthfully represent restoration to version 0. No schema change is
+authorized. Each phase uses one UUID correlation value in
+`request_correlation_id`; preflight requires zero rows for it, and readback
+requires exactly the expected one or two immutable rows. Reuse or duplicate is
+drift, never idempotent success.
+
+Every row has exactly: UUID `id`; event type from
+`daily_autonomy.asm.forward|daily_autonomy.asm.compensated|daily_autonomy.scheduler.forward|daily_autonomy.scheduler.compensated`;
+`result=success`; all five identity UUID columns (`user_id`, `human_client_id`,
+`human_session_id`, `refresh_family_id`, `credential_id`) null; exact correlation;
+DB-generated UTC `timestamp(3)`; and `details` with exactly
+`schema_version=1`, `phase=B|C`, `source_agent_id`, `source_principal_uuid`,
+`source_client_id`, `source_client_uuid`, `audience_id`, `operation`,
+`before_value`, `after_value`, `expected_version`, `resulting_version`,
+`authority_spec`, `authority_semantic_head`, `operator_id`, `approval_ref`,
+`source_git_commit`, and `reason`. Before/after values are complete sanitized
+row projections or null; compensation details additionally bind the forward
+audit UUID. Secret/token bytes are forbidden. The transaction must prove the
+table's exact column types/nullability, primary key, immutability trigger, and
+the absence of any extra details key before writing.
+
+### CTR-DAG-007 — Native path, artifact, and durable receipt
+
+The non-secret operator artifact is exactly
+`/Users/yanfenma/workspace/deployment-artifacts/daily-autonomy-operational-grants-v1`
+with canonical entrypoints `RUN_DAILY_AUTONOMY_GRANT_B_OWNER.sh` and
+`RUN_DAILY_AUTONOMY_GRANT_C_OWNER.sh`. Its exhaustive closure is those two
+regular executable files plus `ARTIFACT_MANIFEST.json`, one phase-specific
+sealed-input JSON and SHA-256 list per phase, one read-only checker, and no other
+path. The manifest binds every relative path/type/bytes/mode/SHA-256, both
+semantic authorities, exact tuple/audiences/scopes/versions, DB/origin/lock,
+audit envelope, timeouts, and receipt schema. Artifact creation occurs only
+after accepted exact-head merge; any extra path, writable input, symlink, special
+file, seal mismatch, or secret stops.
+
+Each entrypoint is copied with its sealed inputs to a nonce-scoped
+`/private/var/root/daily-autonomy-grants-v1-*` directory owned `root:wheel 0700`;
+data are regular `root:wheel 0600` and runners regular `root:wheel 0700`. It is
+invoked only through an Owner-approved macOS native authorization dialog. No
+password fallback is allowed.
+
+Each atomic receipt is a regular non-symlink `root:wheel 0600` JSON file in that
+phase's root directory with exactly: `schema_version`, `phase`, `outcome`,
+`correlation_id`, `started_at`, `finished_at`, `authority_spec`,
+`authority_semantic_head`, `artifact_manifest_sha256`, `runner_sha256`,
+`sealed_inputs_sha256`, `authorization_method`, `operator_id`, `approval_ref`,
+`db_identity`, `lock_identity`, `preimage_sha256`, `postimage_sha256`,
+`unrelated_rows_sha256`, `audit_ids`, `request_counts`, `sanitized_result_classes`,
+`token_expiries`, `signal_events`, and `evidence_sha256`. Closed outcomes are
+`B_STOPPED_PREMUTATION|B_ACTIVE|B_RESTORED|B_RESIDUAL_AUTHORIZATION|B_OUTCOME_UNKNOWN|B_MANUAL_RECOVERY_REQUIRED`
+for Phase B and the same `C_*` forms for Phase C. Only `B_ACTIVE` and `C_ACTIVE`
+are forward success; residual/unknown/manual outcomes are nonterminal for Goal
+readiness. A Gate, dialog, row count, token, or receipt alone is not operational
+readiness.
 Lock acquisition is bounded to 30 seconds, native authorization dialog to 120
 seconds, DB lock/statement/whole-transaction time to 5/10/30 seconds, and the
 complete token/readback matrix to 60 seconds with each request bounded to 5
@@ -332,43 +435,71 @@ compensation. Timeout or ambiguous outcome is never success and is never a
 reason for blind retry.
 Immediately before issuing the first mutating SQL statement or attempt, the
 helper MUST arm the post-mutation signal fence. Before that fence, HUP/INT/TERM
-exits unchanged with a terminal `INTERRUPTED_PREMUTATION` receipt. From the
+exits unchanged with the phase's `*_STOPPED_PREMUTATION` receipt. From the
 armed fence through the first attempt (including an in-flight or ambiguous
 outcome) and until the state machine reaches a terminal receipt, all signals
 are recorded/deferred; they cannot select a different transition, skip denial
 or quarantine, or convert a nonterminal face to success.
+If a process exits before atomic receipt publication, its next invocation is
+read-only reconciliation only; it MUST classify by exact row/audit correlation
+and may not enter a forward path. Phase C reconciliation always asserts the
+Phase-B row unchanged. An uncertain mutation is never replayed.
 
 ### CTR-GDAG-001 — Lifecycle boundary
 
-Review/acceptance may change only this Spec's lifecycle/provenance and README
-row. No implementation, artifact, credential, DB, token, or production change
-may occur before accepted exact-head merge and final-head recheck.
+Review/acceptance may perform only this exhaustive docs lifecycle transaction:
+(1) frontmatter `status: proposed -> accepted`; (2) add `accepted_date`,
+`accepted_by`, `accepted_at`, `accepted_reviewed_base`, `accepted_reviewed_head`,
+`independent_review_result`, `independent_review_blockers`,
+`acceptance_verdict`, `acceptance_semantic_delta`, and
+`acceptance_authority_basis`; (3) replace the opening banner with exactly:
 
-## 7. Acceptance
+```text
+> **ACCEPTED / PRODUCTION GRANT AUTHORITY.** Accepted by `mayf3` at the exact
+> independently reviewed base/head recorded in frontmatter. Contracts become
+> active only after this lifecycle commit merges to `main`; every phase Gate,
+> native authorization, compensation, and proof remains mandatory.
+```
+
+(4) footer `STATUS: proposed -> accepted` and
+`OPEN_OWNER_DECISIONS: EXACT_HEAD_ACCEPTANCE -> NONE`, leaving the existing
+production-authority line byte-identical; and (5) README row Status only
+`proposed -> accepted`, leaving its other cells byte-identical. Added provenance
+MUST bind exact base/head, reviewer identity/result/blockers, Owner identity/time/
+decision, `acceptance_verdict: accepted`, and
+`acceptance_semantic_delta: none_after_review`. No other byte, artifact,
+credential, DB row, token, or production state may change. Final-head review and
+merge ancestry are mandatory before either artifact is built or applied.
+
+## 9. Acceptance
 
 ### ACC-DAG-001 — Preconditions and exact plan
 
 - Contracts: `CTR-DAG-001`, `CTR-DAG-002`
-- Method: sealed census/plan against fresh DB state under lock
-- Pass: one exact ASM tombstone + scheduler absence; planned changes exactly one
-  update, one insert, two audit rows; every prerequisite coordinate PASS
+- Method: run each phase's sealed census/plan independently under lock, including
+  the case where Scheduler Audience/runtime is not yet available during Phase B
+- Pass: Phase B plans exactly one ASM update plus one audit and can PASS without
+  Scheduler; only after `B_ACTIVE`/Lane-B terminal may Phase C plan exactly one
+  Scheduler insert plus one audit while hashing ASM unchanged
 - Fail: live/duplicate/drifted row, missing proof, broader predicate/delta, or
   preflight mutation.
 - Execution environment/evidence: production Mac sealed root helper targeting
   exact `127.0.0.1:5432/agent_dev_center`; record UTC `observed_at`, global-lock
   inode/owner, SERIALIZABLE settings, `information_schema` column/key result,
   complete sanitized source/audience/row projections, Goal ledger/process/
-  participant-marker census, Owner no-concurrency attestation, three-wrapper
+  participant-marker census, Owner no-concurrency attestation, four-wrapper
   contention transcript, exact table locks, and planned write counts.
 
 ### ACC-DAG-002 — Least privilege and tokens
 
 - Contracts: `CTR-DAG-003`, `CTR-DAG-004`
-- Method: exact row readback, target/fleet and principal-type profile census,
-  two positive requests, and source-authenticated scope/audience negative matrix
-- Pass: only two exact live rows for the source, exact single-scope claims,
-  every source-authenticated negative denied, target rows absent, human/service/
-  delegated profiles and Grant censuses exclude access, no persisted token
+- Method: exact per-phase row readback, target/fleet and principal-type profile
+  census, Phase-B one-positive matrix, then Phase-C Scheduler-positive plus ASM
+  continuity matrix, with source-authenticated scope/audience negatives
+- Pass: Phase B reaches permanent ASM-only `B_ACTIVE`; Phase C starts later and
+  reaches two exact rows with ASM byte-equivalent, exact single-scope claims,
+  every negative denied, target rows absent, human/service/delegated profiles
+  and Grant censuses excluding access, and no persisted token
 - Fail: extra scope/subject/row, token leakage, privilege propagation, or any
   negative issuance.
 - Execution environment/evidence: production Mac against exact
@@ -376,15 +507,16 @@ may occur before accepted exact-head merge and final-head recheck.
   entry; record UTC `observed_at`, request count/result classes, sanitized claim
   hashes, final row projections, target/fleet zero counts, and unrelated digest.
 
-### ACC-DAG-003 — Compensation and receipt
+### ACC-DAG-003 — Compensation isolation, audit, artifact, and receipt
 
-- Contracts: `CTR-DAG-005`, `CTR-DAG-006`
+- Contracts: `CTR-DAG-005`, `CTR-DAG-006`, `CTR-DAG-007`
 - Method: isolated failure injection at every transaction/verification boundary;
   production compensation only after real authorized failure
-- Pass: pre-commit failure changes nothing; post-commit failure restores exact
-  ASM tombstone including original `updated_at` plus Scheduler absence; fresh
-  issuance is denied and residual-token quarantine expires before `RESTORED`;
-  success emits one durable exact receipt
+- Pass: Phase-B failure restores only its exact tombstone; every Phase-C failure,
+  ambiguous outcome, signal, and receipt-publication boundary leaves the terminal
+  ASM row and token behavior unchanged while restoring only Scheduler; audit
+  envelopes/counts, sealed manifest, no-replay, quarantine, closed outcome, and
+  atomic receipt schemas are exact
 - Fail: blind retry, mixed face, wrong timestamp/version/scope, missing audit,
   early restored claim, residual-token use, unrelated-row drift, unsafe
   authorization path, or ambiguous overclaim.
@@ -406,7 +538,40 @@ may occur before accepted exact-head merge and final-head recheck.
   UTC `observed_at`, reviewed base/spec/final-head commits, reviewer and Owner
   identities, lifecycle-only diff, verifier transcript, and merge ancestry.
 
-## 8. Authoring status
+## 10. Migration, compatibility, and rollback
+
+Phase B migrates the preserved temporary ASM tombstone to permanent live version
+2 without changing its composite key or credential. Phase C is additive and
+inserts only the Scheduler version-1 row. Existing workflow/forum/other Grants,
+Audiences, identities, and credentials are byte-equivalent throughout. Consumers
+see no alias or wildcard compatibility surface.
+
+Rollback is phase-local as frozen in `CTR-DAG-005`: B returns only to its exact
+tombstone; C returns only to Scheduler absence and preserves B active. Audit rows
+remain immutable evidence. Unknown state is manual recovery, not replay. A later
+business revocation of either permanent permission is outside this Spec.
+
+## 11. Alternatives
+
+- One combined two-row transaction: rejected because it prevents Lane B from
+  becoming production-ready before Lane C and couples their compensation.
+- Delete/reinsert the ASM tombstone: rejected because it destroys history.
+- Use `grant_change_audits`: rejected for these raw-SQL transitions because its
+  version constraint cannot truthfully represent the version-0 restore face.
+- Grant `scheduler.audit` or fleet/target access: rejected as unnecessary.
+
+## 12. Open questions
+
+```text
+OPEN_OWNER_DECISIONS = EXACT_HEAD_ACCEPTANCE
+NORMATIVE_TBD = SCHEDULER_RUNTIME_DEPLOYMENT_EXACT_HEAD
+ARTIFACT_STATE = NOT_BUILT
+PRODUCTION_STATE = UNCHANGED
+PHASE_B = NOT_STARTED
+PHASE_C = NOT_STARTED
+```
+
+## 13. Authoring status
 
 ```text
 SPEC_GOVERNANCE_MODE = AUTHOR
@@ -417,12 +582,12 @@ AUTHORITY_LEVEL = governing_spec
 IMPLEMENTATION_AUTHORITY = contracts
 PRODUCTION_APPLY_AUTHORITY = contracts (inactive until accepted and merged)
 PRIMARY_PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V2
-EXTERNAL_AUTHORITIES = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V1@d6c781696b1c30d482ac5d32023afe5edc7226a9; AGENT_CORE_SELF_SERVICE_SCHEDULER_TOOLS_V2@4c0a62382cabb9641dbf512a8d5f8ce8a9fed1f2
-OPEN_OWNER_DECISIONS = NONE
-NORMATIVE_TBD = NONE
+EXTERNAL_AUTHORITIES = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V1@d6c781696b1c30d482ac5d32023afe5edc7226a9; AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2@e6a70b733c121eb913277df1cc9289e7911c7f06; AGENT_CORE_SELF_SERVICE_SCHEDULER_TOOLS_V2@4c0a62382cabb9641dbf512a8d5f8ce8a9fed1f2; AGENT_CORE_CROSS_AGENT_SCHEDULER_DEPLOYMENT_V1@PENDING_EXACT_HEAD
+OPEN_OWNER_DECISIONS = EXACT_HEAD_ACCEPTANCE
+NORMATIVE_TBD = SCHEDULER_RUNTIME_DEPLOYMENT_EXACT_HEAD
 PARTIAL_SUPERSESSION = NONE
-CONTRACT_COUNT = 7
-CONTRACTS_WITH_ACCEPTANCE = 7
-AUTHORING_READY_FOR_REVIEW = YES
+CONTRACT_COUNT = 8
+CONTRACTS_WITH_ACCEPTANCE = 8
+AUTHORING_READY_FOR_REVIEW = NO_PENDING_SCHEDULER_RUNTIME_HEAD
 PRODUCTION_CHANGE_THIS_ROUND = NONE
 ```
