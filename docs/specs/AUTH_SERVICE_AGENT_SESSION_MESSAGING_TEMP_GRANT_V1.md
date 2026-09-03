@@ -1,11 +1,16 @@
 ---
 spec_id: AUTH_SERVICE_AGENT_SESSION_MESSAGING_TEMP_GRANT_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 production_apply_authority: none
 date: 2026-09-03
+accepted_date: 2026-09-03
+accepted_by: mayf3
+accepted_reviewed_base: 7aec69fa36762bf5384e9f3b0c904e5b6b06a84f
+accepted_reviewed_spec_commit: d759265f003e7fdfe4f31341251bd6b452bb05d8
+acceptance_review_verdict: PASS
 scope: [mayf3/auth-service, temporary canary Grant for agent_session_send A2A E2E only]
 governed_by: [MINIMAL_AUTH_FOUNDATION_V2, AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1]
 external_authorities: []
