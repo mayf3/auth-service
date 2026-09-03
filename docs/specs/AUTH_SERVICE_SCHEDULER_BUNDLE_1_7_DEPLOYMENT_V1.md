@@ -143,7 +143,7 @@ CREDENTIAL_STORE = /usr/local/libexec/agent-core/config/agent-credentials.json
   Grant supply remain separately authorized.
 - Provenance: `docs/specs/AUTH_SERVICE_SCHEDULER_AUDIENCE_CCR_V1.md`.
 
-## 5. Claims and evidence
+## 5. Claims
 
 - `CLM-SD17-001` — Support state: SUPPORTED. Exact `57258ec...` is the narrowest
   sufficient source for scheduler 1.7.0 and excludes later unrelated main
@@ -155,6 +155,8 @@ CREDENTIAL_STORE = /usr/local/libexec/agent-core/config/agent-credentials.json
 - `CLM-SD17-003` — Support state: SUPPORTED. A new child deployment authority is
   required before any production action. Supported by `EVD-SD17-003`.
 
+## 6. Evidence
+
 - `EVD-SD17-001` — Source `OBS-SD17-001`; target `CLM-SD17-001`; relation
   SUPPORTS; coordinates `57258ec.../3ec89aec...`; strength strong for exact
   source closure; limitation: not runtime proof.
@@ -165,7 +167,7 @@ CREDENTIAL_STORE = /usr/local/libexec/agent-core/config/agent-credentials.json
   SUPPORTS; coordinates accepted CCR; strength conclusive for the authority gap;
   limitation: this proposal stays inert until accepted and merged.
 
-## 6. Decisions
+## 7. Decisions
 
 ### DEC-SD17-001 — Pin the pre-forum scheduler merge
 
@@ -183,7 +185,7 @@ success claims because runtime DB/registry consistency requires both faces.
 End this deployment with scheduler Grant count zero and negative-only token
 proofs. Grant supply is a later separately accepted authority and mutation.
 
-## 7. Contracts
+## 8. Contracts
 
 ### CTR-SD17-001 — Exact immutable artifact
 
@@ -195,6 +197,24 @@ under hashes. The artifact MUST contain no DB URL, credential, token, key, or
 environment dump. Any mismatch stops before production.
 `contractVersion=1.7.0` alone MUST NOT satisfy identity: source commit, complete
 manifest, and generated runtime digest must all equal the sealed artifact.
+
+The non-secret owner artifact MUST be a root-owned directory under
+`/private/var/root/auth-scheduler-1-7-*`, mode `0700`; manifest and data files
+MUST be `root:wheel 0600`, and executable helpers `root:wheel 0700`. The target
+snapshot path MUST be exactly
+`/Users/yanfenma/workspace/project/production-auth-service-57258ec33700af8057ab2ed63fd8e52b3225e749`.
+Its root and ordinary directories MUST be `root:staff 0755`; ordinary non-secret
+files MUST be `root:staff 0444`; executable files MUST be `root:staff 0555`;
+symlinks are allowed only when enumerated by the manifest with an exact relative
+target that remains inside the snapshot. Every catalog row MUST bind relative
+path, type, link target or null, SHA-256 or null, bytes, owner, group, and mode.
+The candidate plist MUST be a regular `root:wheel 0644` file. Any extra path,
+special file, external/absolute symlink, or metadata mismatch MUST stop.
+
+The artifact MUST NOT contain `.env`. Under the production lock, the root helper
+MAY copy only the existing snapshot's `.env` directly to the new snapshot as
+`authsvc:authsvc 0600`; it MUST compare a redacted SHA-256 before/after without
+emitting bytes or values. That secret-bearing file is never a staged artifact.
 
 ### CTR-SD17-002 — Exact Scheduler Audience row
 
@@ -227,6 +247,7 @@ accepted by fallback. The helper MUST acquire one auth-service deployment lock,
 fresh-read target snapshot/plist/DB preimages under that lock, and fail before
 mutation on drift, concurrent operation, bad ownership/mode/type, symlink, or
 unsealed input.
+
 The lock is exactly `/var/run/auth-service-production-mutation.lock`. Its owned
 participant set is closed to the three operator transactions serialized by
 `CORE_RUNTIME_DAILY_AUTONOMY_OVERNIGHT_V1`: this scheduler bundle deployment,
@@ -277,11 +298,23 @@ be treated as success or blindly retried.
 
 ### CTR-SD17-005 — Negative-only post-deploy proof
 
-Before any scheduler Grant exists, the exact frozen source Agent client MUST
-receive no token for exact `scheduler/scheduler.admin`; wrong scope, alias,
-wildcard, human/service/delegated, and foreign-audience forms MUST also fail.
-No positive scheduler issuance may occur in this round. Sanitized evidence may
-record error classes and claim-shape hashes but no credential or token bytes.
+Before any scheduler Grant exists, the exact §3 Agent/principal/client MUST
+receive no token for exact resource `scheduler` and scope `scheduler.admin`, with
+exact error `invalid_scope/machine_grant_missing`; this proves the request passed
+audience selection, identity/profile, and credential verification and reached
+Grant lookup. Exact resource `cross-agent-scheduler` MUST fail as
+`invalid_target/audience_not_machine_enabled`. These two production cases are the
+only target-runtime negative Gate and access-token occurrences MUST be zero.
+
+Scope/alias/wildcard and human/service/delegated cases are non-discriminating in
+production without a Grant because `direct.ts` checks `machine_grant_missing`
+before `canonicalV1Scope`. They MUST therefore be executed only by the exact
+`57258ec...` bundle validator and OAuth conformance suite, where fixtures reach
+and assert their specific validation branches. The receipt MUST label them
+`OFFLINE_DISCRIMINATING`, MUST NOT claim they were target-runtime proofs, and MUST
+bind the exact test counts/error matrix. No positive scheduler issuance or test
+Grant may occur in this round. Sanitized evidence may record error classes and
+digests but no credential or token bytes.
 The source identity is exactly Agent `agt_efficiency-agent`, Principal
 `b21ddb23-42f6-47c4-a27f-bc44950e554c`, public client ID
 `mc_cF81DF-XND9Zmzao4F08rOK_`, and client UUID
@@ -296,13 +329,46 @@ or unreadable credential storage fails closed.
 
 ### CTR-SD17-006 — Equal-face compensation
 
-Any post-mutation failure MUST restore the exact old plist/snapshot reference,
-remove only the newly created scheduler Audience row when its correlation and
-pre-absence match, append a sanitized rollback audit record, restart exactly
-once into the old snapshot, and prove the original 1.6.0 digest, seven-audience
-DB equality, scheduler absence, zero scheduler Grants, and unrelated-state
-invariants. Ambiguous DB or restart outcome fails closed for manual recovery;
-the helper MUST NOT retry an ambiguous mutation.
+After interruption or any non-success, a `RECONCILE` entrypoint MUST first perform
+only read-only classification under the deployment lock. It MUST bind live plist
+bytes, loaded launchd arguments, PID/start time, health version/digest, exact
+scheduler Audience/audit correlation, Grant count, old/new snapshot catalogs,
+and receipt state to exactly one class:
+
+```text
+PRESTATE
+  old plist/loaded arguments + old PID/digest + scheduler row absent
+FORWARD_DB_ONLY
+  exact correlated scheduler row + old plist/loaded arguments + old PID/digest
+FORWARD_SWITCHED_NOT_STARTED
+  exact row + new plist bytes but loaded old arguments + old PID/digest
+FORWARD_ACTIVE
+  exact row + new loaded arguments + fresh PID + new digest
+COMPENSATED
+  old loaded arguments + fresh rollback PID/old digest + scheduler row absent
+AMBIGUOUS
+  anything else, including missing read authority or correlation mismatch
+```
+
+`PRESTATE` stops with zero writes. `FORWARD_DB_ONLY` may delete only the exact
+correlated new scheduler row and append one rollback audit row, with zero restart.
+`FORWARD_SWITCHED_NOT_STARTED` may restore the exact old plist, delete only that
+row, and append the audit, with zero restart because no new process generation
+started. `FORWARD_ACTIVE` must restore the exact old plist, delete only that row,
+append the audit, and perform exactly one rollback restart. `COMPENSATED` is a
+read-only terminal success. `AMBIGUOUS` MUST publish `outcome_unknown`, perform no
+write/restart, and require manual recovery; no uncertain mutation may be retried
+or replayed. A successful forward path performs exactly one forward restart;
+restart counters are separate and never inferred from a command exit code.
+
+Every safe compensation MUST prove the original 1.6.0 digest, seven-audience DB
+equality, scheduler absence, zero scheduler Grants, and unrelated-state
+invariants. The append-only audit ledger may differ only by the exact correlated
+`audience.registered` row and, when compensation runs, one exact rollback row;
+all pre-existing audit bytes/rows remain. After rollback the candidate plist and
+the entire exact new snapshot, including its copied `.env`, MUST be removed only
+after proving they are unreferenced and match their sealed path/catalog; any
+mismatch stops removal and becomes `outcome_unknown`.
 If the candidate snapshot was absent at the frozen preimage, compensation MUST
 also remove exactly that newly installed candidate tree and every
 transaction-created staging node after the old service is healthy, then prove
@@ -321,23 +387,56 @@ negative matrix, zero Grant count, and unrelated-state digest. A dialog, Gate,
 row, restart, health response, or receipt alone is not deployment success and
 does not make Scheduler or dsh-agent-core production-ready.
 
+Every invocation, including signal/interruption recovery, MUST terminate with
+exactly one atomic root-owned receipt classified as `stopped_pre_mutation`,
+`forward_success`, `compensated`, or `outcome_unknown`. If the process dies before
+receipt publication, the next invocation is RECONCILE-only; it MUST NOT enter the
+forward mutation path until classification proves `PRESTATE` and records the
+prior missing receipt.
+
 ### CTR-GSD17-001 — Lifecycle boundary
 
 Independent review and Owner acceptance may perform only a docs lifecycle
-transaction: proposed to accepted, add exact review/acceptance provenance, and
-update this Spec's README row. No artifact or production byte may change in that
-transaction. The accepted exact head must receive final-head recheck and merge
-before artifact construction or production apply begins.
+transaction. Its exhaustive byte allowlist is: (1) frontmatter
+`status: proposed -> accepted`; (2) add `accepted_date`, `accepted_by`,
+`accepted_at`, `accepted_reviewed_head`, `independent_review_result`,
+`independent_review_blockers`, `acceptance_verdict`,
+`acceptance_semantic_delta`, and `acceptance_authority_basis`; (3) replace the
+entire opening banner with exactly:
 
-## 8. Acceptance
+```text
+> **ACCEPTED / PRODUCTION DEPLOYMENT AUTHORITY.** Accepted by `mayf3` at the
+> exact independently reviewed head recorded in frontmatter. Contracts become
+> active only after this lifecycle commit merges to `main`; every runtime Gate
+> and separate downstream Grant authority remains mandatory.
+```
+
+(4) authoring footer `STATUS: proposed -> accepted` and
+`OPEN_OWNER_DECISIONS: EXACT_HEAD_ACCEPTANCE -> NONE`; the already exact
+`PRODUCTION_APPLY_AUTHORITY = contracts (inactive until accepted and merged)`
+line remains byte-identical; (5) README row changes only `Status: proposed ->
+accepted`, while its Implementation authority and Purpose cells remain
+byte-identical. No other byte may change.
+
+The added provenance values MUST bind exact reviewer identity/result/blockers,
+the reviewed head, Owner identity/time/decision, `acceptance_verdict: accepted`,
+and `acceptance_semantic_delta: none_after_review`. No artifact or production
+byte may change in that transaction. An independent final-head check MUST prove
+the exhaustive diff and unchanged normative content. The accepted exact head
+must merge before artifact construction or production apply begins.
+
+## 9. Acceptance
 
 ### ACC-SD17-001 — Source and artifact
 
 - Contracts: `CTR-SD17-001`
 - Method: two clean builds, manifest/hash comparison, full accepted validation
-  suite, secret scan, snapshot/plist/rollback inspection
+  suite, secret scan, complete type/link/hash/bytes/owner/group/mode catalog
+  comparison, snapshot/plist/rollback inspection, and isolated `.env` copy test
 - Pass: identical sealed outputs from `57258ec...`, exact 1.7.0 scheduler face,
-  zero later-main/forum delta, zero secret
+  zero later-main/forum delta, zero secret in artifact, exact root/file/dir/helper
+  and plist metadata, only contained manifest-declared symlinks, and `.env`
+  copied only live-to-candidate as `authsvc:authsvc 0600` with equal redacted hash
 - Fail: any nondeterminism, extra source/file, mutable input, missing rollback,
   validation failure, or secret.
 - Execution environment/evidence: two separately created clean local worktrees
@@ -366,16 +465,19 @@ before artifact construction or production apply begins.
 
 - Contracts: `CTR-SD17-004`, `CTR-SD17-005`, `CTR-SD17-007`
 - Method: execute sealed wrapper once; inspect receipt, process generation,
-  health, DB/registry equality, negative token matrix, and unrelated digests
+  health, DB/registry equality, two target-runtime negatives, the separately
+  labeled offline discriminating matrix, credential custody, and unrelated digests
 - Pass: one restart, fresh healthy 1.7.0 PID/digest, eight exact audiences,
-  zero scheduler Grants, negative-only matrix PASS, durable receipt
+  zero scheduler Grants, exact `machine_grant_missing` and foreign-audience
+  errors, offline matrix PASS, zero secret/token persistence, durable receipt
 - Fail: partial face, extra restart/write, positive issuance, retained mismatch,
   unrelated drift, missing/ambiguous receipt, or overclaim.
 - Execution environment/evidence: production Mac sealed root transaction against
   `system/com.auth-service` and `http://127.0.0.1:4001`; record UTC
   `observed_at`, old/new PID plus process start time, source/runtime/manifest
   hashes, plist/snapshot identities, DB correlation/readback, negative result
-  classes, request count, and terminal receipt hash.
+  classes and offline label, request/access-token counts, credential-store
+  metadata and selected public-client hash, and terminal receipt hash.
 
 ### ACC-SD17-004 — Rollback rehearsal and real compensation
 
@@ -383,10 +485,13 @@ before artifact construction or production apply begins.
 - Method: isolated failure injection before/after DB write, plist switch,
   restart, health, readback, and receipt; invoke production compensation only
   on a real authorized failure
-- Pass: every mutated failure returns to exact 1.6.0/seven-audience/zero-Grant
-  face with one rollback restart and terminal receipt
+- Pass: every classified mutated failure returns to exact
+  1.6.0/seven-audience/zero-Grant face; DB-only and switched-not-started states
+  use zero rollback restarts, active-new-runtime uses exactly one, all terminate
+  with the matching receipt, allowed audit delta, and candidate/staging absence
 - Fail: mixed face, deletion beyond the correlated scheduler row, retry of an
-  ambiguous mutation, missing audit evidence, or unproven baseline.
+  ambiguous mutation, wrong restart count, retained candidate/secret, missing
+  audit evidence, or unproven baseline.
 - Execution environment/evidence: isolated disposable local harness with fake
   DB, launchd/process, filesystem, credential store, signals, and clock; record
   UTC `observed_at`, harness/source hashes and per-boundary transcripts. The
@@ -405,7 +510,7 @@ before artifact construction or production apply begins.
   UTC `observed_at`, reviewed base/spec/final-head commits, reviewer and Owner
   identities, lifecycle-only diff, verifier transcript, and merge ancestry.
 
-## 9. Alternatives
+## 10. Alternatives
 
 - Deploy current `github/main`: rejected; it includes later forum-moderator
   registry/runtime deltas outside Lane C.
@@ -414,7 +519,36 @@ before artifact construction or production apply begins.
 - Reuse `scheduler.audit` in the initial operational Grant: rejected unless the
   downstream canary proves global/foreign history is indispensable.
 
-## 10. Authoring status
+## 11. Migration, compatibility, and rollback
+
+This is an additive 1.6.0-to-1.7.0 snapshot transition. It does not rewrite the
+seven existing Audience rows, Clients, Principals, Grants, credentials, or
+Minimal Auth V2 migration state. The new runtime must remain wire-compatible for
+all seven existing audiences; their exact registry/DB equality and focused token
+smokes are mandatory. No consumer may select behavior by version text alone;
+the exact runtime digest is authoritative.
+
+Rollback follows only the `CTR-SD17-006` classified state machine. Its target is
+the exact old plist, loaded arguments, snapshot, 1.6.0 digest, seven Audience
+rows, zero Scheduler rows/Grants, and unchanged unrelated DB/file state. The only
+permitted durable difference is the append-only correlated audit evidence. The
+failed new snapshot is not retained: it is removed with its copied secret only
+under the exact unreferenced/catalog Gate; otherwise the result is
+`outcome_unknown` and manual recovery owns it.
+
+## 12. Open questions
+
+```text
+OPEN_OWNER_DECISIONS = EXACT_HEAD_ACCEPTANCE
+NORMATIVE_TBD = NONE
+PARTIAL_SUPERSESSION = NONE
+ARTIFACT_STATE = NOT_BUILT
+PRODUCTION_STATE = 1.6.0_UNCHANGED
+SCHEDULER_AUDIENCE = ABSENT
+SCHEDULER_GRANTS = ZERO
+```
+
+## 13. Authoring status
 
 ```text
 SPEC_GOVERNANCE_MODE = AUTHOR
@@ -426,7 +560,7 @@ IMPLEMENTATION_AUTHORITY = contracts
 PRODUCTION_APPLY_AUTHORITY = contracts (inactive until accepted and merged)
 PRIMARY_PARENT_AUTHORITY = AUTH_SERVICE_SCHEDULER_AUDIENCE_CCR_V1
 EXTERNAL_AUTHORITIES = NONE
-OPEN_OWNER_DECISIONS = NONE
+OPEN_OWNER_DECISIONS = EXACT_HEAD_ACCEPTANCE
 NORMATIVE_TBD = NONE
 PARTIAL_SUPERSESSION = NONE
 CONTRACT_COUNT = 8
