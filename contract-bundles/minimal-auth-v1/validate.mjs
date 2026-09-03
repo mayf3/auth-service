@@ -392,7 +392,7 @@ const audienceIds = registry.audiences.map((audience) => audience.audience_id);
 const audienceById = new Map(registry.audiences.map((audience) => [audience.audience_id, audience]));
 check(new Set(audienceIds).size === audienceIds.length, 'registry: duplicate Audience ID');
 check([...audienceIds].sort(asciiCompare).join('\0')
-  === ['adc-v2', 'agent-core-notification-ingress-v1', 'svc-auth', 'svc-forum', 'svc-okr', 'svc-workflow'].sort(asciiCompare).join('\0'), 'registry: first-wave Audience set changed');
+  === ['adc-v2', 'agent-core-notification-ingress-v1', 'agent-session-messaging', 'svc-auth', 'svc-forum', 'svc-okr', 'svc-workflow'].sort(asciiCompare).join('\0'), 'registry: first-wave Audience set changed');
 check(!audienceIds.includes('agent-forum'), 'registry: repository name agent-forum cannot be a Wire Audience');
 check(!audienceIds.includes('workflow-todo'), 'registry: workflow-todo is a Client, not a resource Audience');
 for (const audience of registry.audiences) {
