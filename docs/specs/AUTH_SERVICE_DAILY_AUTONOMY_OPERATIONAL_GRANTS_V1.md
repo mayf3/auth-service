@@ -74,8 +74,8 @@ AUTH_MAIN_BASE = ff9e1bec7d364568a92be91f6ffbd49d1d2101de
 ASM_AUDIENCE_AUTHORITY = accepted @ 34ca9c6f2d677096a7c2b17a6ed023fa62c0da2e
 ASM_TEMP_GRANT_AUTHORITY = accepted/current @ 95f8ea9275b0184416d2ac7a1043746c58fe5f57
 SCHEDULER_AUDIENCE_AUTHORITY = accepted @ 687c3b1eb3c671b1b4edf343fe96c07e9f00f92a
-SCHEDULER_AUTH_DEPLOYMENT = AUTH_SERVICE_SCHEDULER_BUNDLE_1_7_DEPLOYMENT_V1 (must be accepted, merged, PASS)
-ASM_DEPLOYMENT = dsh-agent-core accepted successor + Stage B/D/E PASS required
+SCHEDULER_AUTH_DEPLOYMENT = AUTH_SERVICE_SCHEDULER_BUNDLE_1_7_DEPLOYMENT_V1 semantic head f1dcd4b672c89e42c802d5a1460a0f8ce1c6cde8 (must be accepted at this exact reviewed content, merged, final-head PASS, production PASS)
+ASM_DEPLOYMENT = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V2 semantic head e225d7b22e90d09f5658e267edb7c871c808434a (must be accepted at this exact reviewed content, merged, final-head PASS, Stage B/D/E PASS)
 PRODUCTION_DB_ENDPOINT = 127.0.0.1:5432 / database agent_dev_center
 AUTH_ORIGIN = http://127.0.0.1:4001
 GLOBAL_MUTATION_LOCK = /var/run/auth-service-production-mutation.lock
@@ -98,22 +98,31 @@ CREDENTIAL_STORE = /usr/local/libexec/agent-core/config/agent-credentials.json
 ### OBS-DAG-001 — Exact source client ownership
 
 - Subject/revision/environment/time: auth production identity census bound to
-  `github/main@ff9e1bec...`, 2026-09-04
-- Method/result: read-only Principal/Client lookup; the active client UUID/ID
+  `github/main@ff9e1bec7d364568a92be91f6ffbd49d1d2101de`, production DB
+  `127.0.0.1:5432/agent_dev_center`, observed `2026-09-03T16:34:41Z`
+- Method/query/result: read-only exact-key projection of `machine_principals` and
+  `machine_clients` by frozen UUID/public client ID, including status, principal
+  type, agent ID, ownership, and active-client count; the active client UUID/ID
   above is the sole active client bound to principal `b21ddb23...` and agent ID
   `agt_efficiency-agent`
-- Provenance: sanitized auth-service read-only lookup and accepted temp-Grant
-  correction record.
+- Provenance: accepted temp-Grant authority
+  `95f8ea9275b0184416d2ac7a1043746c58fe5f57` and artifact manifest
+  `/Users/yanfenma/workspace/deployment-artifacts/agent-session-messaging-temp-grant-v1/ARTIFACT_MANIFEST.json`
+  SHA-256 `42f464b8f9ae26cffa4a365bf41985beeaf0691d9b7725d6332314ebf8a612be`.
 
 ### OBS-DAG-002 — Current and required preimages differ by lawful prior stages
 
-- Subject/revision/environment/time: production `machine_access_grants`,
-  2026-09-04 authoring projection
-- Method/result: current read-only census shows zero ASM/scheduler rows; the
+- Subject/revision/environment/time: production `machine_access_grants`, commit
+  `04c5dad`, observed epoch ms `1788419569545`
+- Method/query/result: local read-only `psql`, host `localhost`, user `auth_ro`,
+  database `agent_dev_center`, ordered per-audience count plus exact absence
+  predicate for `agent-session-messaging|scheduler`; zero rows observed; the
   accepted temporary Grant flow must later create then preserve an ASM
   `version=0` tombstone before this permanent transaction may run
-- Provenance: read-only census plus
-  `AUTH_SERVICE_AGENT_SESSION_MESSAGING_TEMP_GRANT_V1@95f8ea9...`.
+- Provenance: `docs/evidence/workflow-execute-receipt-recovery-v2-20260903/GRANT_READBACK.md`
+  at `04c5dad`, SHA-256
+  `c5f1c188182d6010b4c70e93deafeeeef7c23fdd517bcb4778ae468adef65389`,
+  plus temp authority `95f8ea9275b0184416d2ac7a1043746c58fe5f57`.
 - Schema note: the repository Prisma model does not map
   `machine_access_grants.revoked_at`; the accepted temporary-Grant vehicle uses
   raw SQL because production added that column out of band. This proposal does
@@ -122,9 +131,11 @@ CREDENTIAL_STORE = /usr/local/libexec/agent-core/config/agent-credentials.json
 
 ### OBS-DAG-003 — Exact registered scope sets
 
-- Subject/revision: deployed ASM 1.6.0 registry and scheduler-only source
-  `57258ec...`
-- Method/result: registry inspection; ASM registers only `agent.session.send`;
+- Subject/revision/environment/time: deployed ASM registry source
+  `4d383ee02d298eebeb15470a5328b7345ed140e9` and Scheduler registry source
+  `57258ec33700af8057ab2ed63fd8e52b3225e749`; clean Git objects inspected
+  `2026-09-03T16:34:41Z`
+- Method/result: exact registry JSON blob projection; ASM registers only `agent.session.send`;
   Scheduler registers `scheduler.admin` and `scheduler.audit` as non-implying
   scopes
 - Provenance: accepted CCRs and executable bundle registries.
@@ -177,6 +188,11 @@ non-200; (4) Scheduler auth deployment is PASS at its exact 1.7.0 source/digest;
 and (5) the source Principal/Client and both Audiences are active/exact. Any
 missing, duplicate, live, differently scoped, or differently versioned row
 stops without mutation.
+The two prerequisite authority bodies MUST be byte-equivalent to semantic heads
+`e225d7b22e90d09f5658e267edb7c871c808434a` and
+`f1dcd4b672c89e42c802d5a1460a0f8ce1c6cde8`; lifecycle commits may add only
+their declared acceptance metadata. Any normative drift or unmerged/unaccepted
+coordinate stops.
 The same locked preflight MUST prove that production
 `machine_access_grants.revoked_at` exists as nullable
 `timestamp(3) without time zone`, that the table primary key remains exactly
@@ -248,13 +264,22 @@ client ID `mc_cF81DF-XND9Zmzao4F08rOK_`, uses its secret only in process against
 `http://127.0.0.1:4001/oauth/token`, redacts authorization and response bodies,
 and zeroizes the binding after the bounded matrix. Missing, mismatched,
 unsafe-mode, symlinked, or unreadable storage fails closed.
+Only wrong-scope, two-scope Scheduler, alias, wildcard, and foreign-audience
+token negatives use the exact source credential, so they discriminate scope or
+audience denial after successful client authentication. Target-client denial is
+proved by exact target Principal/Client plus zero-row censuses for both
+audiences. Human/service/delegated denial is proved by the active Audience
+profiles (`accepted_principal_types=[agent]`, human/delegated disabled) plus
+complete Grant censuses; an unavailable or deliberately wrong credential MUST
+NOT stand in for authorization denial.
 
 ### CTR-DAG-005 — Post-commit compensation
 
 If verification fails after the DB commit, one pre-authorized compensation
 transaction MUST restore the exact preimage: return the ASM row to its original
-`revoked_at` timestamp, version 0, and exact scope; delete only the newly created
-Scheduler row whose creation correlation matches this transaction; append two
+`revoked_at` timestamp, original `updated_at`, version 0, and exact scope;
+delete only the newly created Scheduler row whose creation correlation matches
+this transaction; append two
 sanitized compensation audit rows; and prove zero live rows for both audiences.
 An ambiguous transaction outcome MUST be read back before action and MUST NOT be
 blindly replayed. Successful verification leaves both permanent rows live.
@@ -262,6 +287,23 @@ HUP/INT/TERM received after the first mutation MUST be recorded and deferred
 until compensation and the terminal receipt finish; repeated signals cannot
 abort or retarget compensation. The helper exits nonzero only after the exact
 restored face is durably recorded.
+
+The forward/compensation state machine is closed:
+
+| Readback face | Permitted action/outcome |
+|---|---|
+| exact preimage, zero correlation audits | forward definitely not committed; stop unchanged, no retry |
+| exact two-row target, exactly two forward correlation audits | forward committed; continue verification, never replay |
+| any mixed/extra/missing forward face | no forward retry; run the single compensation only where exact correlation guards identify both target rows, otherwise `MANUAL_RECOVERY_REQUIRED` |
+| exact restored preimage including original `updated_at`, scheduler absent, exact compensation audits | business rows restored; continue denial and residual-token quarantine |
+| target/mixed/unknown face after compensation attempt | no compensation retry; `MANUAL_RECOVERY_REQUIRED` with durable nonterminal receipt |
+
+After compensation, fresh issuance for both exact audiences MUST return non-200.
+Every successfully issued proof token's `exp` is retained only as a sanitized
+timestamp; downstream use is quarantined until the latest such `exp` (token TTL
+is at most 600 seconds), and only then may the receipt become terminal
+`RESTORED`. Before expiry the honest outcome is `RESIDUAL_AUTHORIZATION` and is
+nonterminal; unknown expiry is `MANUAL_RECOVERY_REQUIRED`, never restored.
 
 ### CTR-DAG-006 — Native path, artifact, and durable receipt
 
@@ -277,6 +319,11 @@ complete token/readback matrix to 60 seconds with each request bounded to 5
 seconds. Timeout before mutation exits unchanged; timeout after mutation enters
 compensation. Timeout or ambiguous outcome is never success and is never a
 reason for blind retry.
+Before the first mutation, HUP/INT/TERM exits unchanged with a terminal
+`INTERRUPTED_PREMUTATION` receipt. From the first successful write attempt until
+the state machine reaches a terminal receipt, the first and all repeated signals
+are recorded/deferred; they cannot select a different transition, skip denial
+or quarantine, or convert a nonterminal face to success.
 
 ### CTR-GDAG-001 — Lifecycle boundary
 
@@ -321,9 +368,12 @@ may occur before accepted exact-head merge and final-head recheck.
 - Method: isolated failure injection at every transaction/verification boundary;
   production compensation only after real authorized failure
 - Pass: pre-commit failure changes nothing; post-commit failure restores exact
-  ASM tombstone plus Scheduler absence; success emits one durable exact receipt
+  ASM tombstone including original `updated_at` plus Scheduler absence; fresh
+  issuance is denied and residual-token quarantine expires before `RESTORED`;
+  success emits one durable exact receipt
 - Fail: blind retry, mixed face, wrong timestamp/version/scope, missing audit,
-  unrelated-row drift, unsafe authorization path, or ambiguous overclaim.
+  early restored claim, residual-token use, unrelated-row drift, unsafe
+  authorization path, or ambiguous overclaim.
 - Execution environment/evidence: isolated disposable local harness with fake
   DB/auth endpoint/credential store/signals/clock for every failure boundary,
   recording UTC `observed_at`, harness/source hashes, per-boundary transcript,
