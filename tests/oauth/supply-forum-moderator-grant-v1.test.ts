@@ -403,7 +403,7 @@ await test('static boundary pins Serializable lock/order, guarded updates, and s
   assert.doesNotMatch(source, /select:\s*\{[^}]*allowedScopes/s);
 });
 
-await test('Bundle 1.5.0 freezes exact moderator fixture polarity and forbidden negatives', () => {
+await test('Bundle 1.7.0 freezes exact moderator fixture polarity and forbidden negatives', () => {
   const registry = JSON.parse(readFileSync(path.join(ROOT, 'contract-bundles/minimal-auth-v1/audience-registry.json'), 'utf8'));
   const positives = JSON.parse(readFileSync(path.join(ROOT, 'contract-bundles/minimal-auth-v1/fixtures/positive-token-fixtures.json'), 'utf8'));
   const negatives = JSON.parse(readFileSync(path.join(ROOT, 'contract-bundles/minimal-auth-v1/fixtures/negative-token-fixtures.json'), 'utf8'));
@@ -728,7 +728,7 @@ await test('production --apply refuses a valid authorization before any database
     schema_version: 1,
     authorization_kind: 'forum_moderator_grant_supply_v1_production_apply',
     implementation_commit: 'a'.repeat(40),
-    bundle_version: '1.5.0',
+    bundle_version: '1.7.0',
     bundle_digest: 'b'.repeat(64),
     plan_sha256: canonicalPlan('APPLY').digest,
     prestate_digest: 'c'.repeat(64),
@@ -753,7 +753,7 @@ await test('verify-mint requires its own authorization and refuses before creden
     schema_version: 1,
     authorization_kind: 'forum_moderator_grant_supply_v1_verify_mint',
     implementation_commit: 'a'.repeat(40),
-    bundle_version: '1.5.0',
+    bundle_version: '1.7.0',
     operator_id: 'verification-operator',
     approval_ref: 'https://github.com/mayf3/auth-service/issues/1#apply',
     verification_authorization_ref: 'https://github.com/mayf3/auth-service/issues/1#verify-mint',
