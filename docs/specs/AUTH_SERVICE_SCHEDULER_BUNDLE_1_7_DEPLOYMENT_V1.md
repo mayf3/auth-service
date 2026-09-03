@@ -191,16 +191,28 @@ proofs. Grant supply is a later separately accepted authority and mutation.
 
 The builder MUST use a clean checkout of `57258ec...`, generate the runtime
 Contract twice reproducibly, run the accepted bundle validators/tests, and seal
-the complete snapshot, candidate plist, exact file manifest, source commit,
-runtime digest, DB-row manifest, rollback snapshot/plist, and operator wrapper
-under hashes. The artifact MUST contain no DB URL, credential, token, key, or
-environment dump. Any mismatch stops before production.
+the complete snapshot, candidate plist payload, exact file manifest, source
+commit, runtime digest, DB-row manifest, rollback snapshot/plist, and operator
+wrapper under hashes. The production snapshot closure is exactly the clean
+`git ls-files` tree at `57258ec...` plus reproducibly generated `dist/`,
+`generated/`, and the `package-lock.json`-resolved `node_modules/`; it excludes
+`.git`, `.env`, all other untracked paths, caches, logs, and build workspaces.
+The artifact MUST contain no DB URL, operational credential, token, production
+key, or environment dump. The sole private-key-shaped exception is the public,
+tracked test fixture
+`tests/fixtures/keys/svc-okr-canary-test-private.pem` at SHA-256
+`5209392287ad718e04882edccc1a0e8a0aeae56f30f1aef4701be8830c5b0b2c`;
+it MUST be labeled `PUBLIC_TEST_FIXTURE`, never loaded by the production entrypoint,
+and any other secret-scan exception or hash fails before production.
 `contractVersion=1.7.0` alone MUST NOT satisfy identity: source commit, complete
 manifest, and generated runtime digest must all equal the sealed artifact.
 
 The non-secret owner artifact MUST be a root-owned directory under
-`/private/var/root/auth-scheduler-1-7-*`, mode `0700`; manifest and data files
-MUST be `root:wheel 0600`, and executable helpers `root:wheel 0700`. The target
+`/private/var/root/auth-scheduler-1-7-*`, mode `0700`; manifest, candidate plist
+payload, and other non-executable data files MUST be `root:wheel 0600`, and
+executable helpers `root:wheel 0700`. The installed plist staging file and its
+atomically installed live copy MUST instead be regular `root:wheel 0644` files;
+the artifact payload itself remains `0600`. The target
 snapshot path MUST be exactly
 `/Users/yanfenma/workspace/project/production-auth-service-57258ec33700af8057ab2ed63fd8e52b3225e749`.
 Its root and ordinary directories MUST be `root:staff 0755`; ordinary non-secret
@@ -208,8 +220,8 @@ files MUST be `root:staff 0444`; executable files MUST be `root:staff 0555`;
 symlinks are allowed only when enumerated by the manifest with an exact relative
 target that remains inside the snapshot. Every catalog row MUST bind relative
 path, type, link target or null, SHA-256 or null, bytes, owner, group, and mode.
-The candidate plist MUST be a regular `root:wheel 0644` file. Any extra path,
-special file, external/absolute symlink, or metadata mismatch MUST stop.
+Any extra path, special file, external/absolute symlink, or metadata mismatch
+MUST stop.
 
 The artifact MUST NOT contain `.env`. Under the production lock, the root helper
 MAY copy only the existing snapshot's `.env` directly to the new snapshot as
@@ -289,7 +301,10 @@ health `ok=true`, Contract version `1.7.0`, the artifact-pinned runtime digest,
 and DB-to-registry exact equality for all eight audiences.
 The live snapshot, candidate snapshot, plist, launchd target, and service origin
 are exactly the coordinates frozen in §3. Candidate snapshot pre-absence is a
-hard Gate. Lock acquisition is bounded to 30 seconds, the native authorization
+hard Gate. Snapshot installation MUST finish with every temporary staging node
+removed and the exact candidate catalog proved before the DB transaction may
+begin; therefore no post-DB state may contain a staging node. Lock acquisition
+is bounded to 30 seconds, the native authorization
 dialog to 120 seconds, DB lock/statement/whole-transaction time to 5/10/30
 seconds, launchd stop and start to 30 seconds each, and health/readback to 60
 seconds with at most one request per second. Any timeout is a failure: before
@@ -319,60 +334,76 @@ The source identity is exactly Agent `agt_efficiency-agent`, Principal
 `b21ddb23-42f6-47c4-a27f-bc44950e554c`, public client ID
 `mc_cF81DF-XND9Zmzao4F08rOK_`, and client UUID
 `695d1eeb-3547-4cbd-a72b-915f4ebf25a4`; there is no operator selection.
-The sealed root helper reads only that Agent's entry from
-`/usr/local/libexec/agent-core/config/agent-credentials.json`, requires its
-public client ID to match, uses the secret only in process for one bounded
-request to `http://127.0.0.1:4001/oauth/token`, redacts request authorization
-and response bodies, persists no token/secret, and zeroizes the in-memory
-binding after the negative matrix. Missing, mismatched, unsafe-mode, symlinked,
-or unreadable credential storage fails closed.
+The sealed root helper requires the credential store to be one regular,
+non-symlink file owned exactly `authsvc:authsvc` with mode `0600`, reads only
+that Agent's entry, and requires its public client ID to match. It uses the
+secret only in process for exactly the two bounded production requests above to
+`http://127.0.0.1:4001/oauth/token`, redacts request authorization and response
+bodies, persists no token/secret, and zeroizes the in-memory binding after the
+second request. Missing, mismatched, differently owned/grouped/moded/typed,
+symlinked, or unreadable credential storage fails closed.
 
 ### CTR-SD17-006 — Equal-face compensation
 
 After interruption or any non-success, a `RECONCILE` entrypoint MUST first perform
 only read-only classification under the deployment lock. It MUST bind live plist
-bytes, loaded launchd arguments, PID/start time, health version/digest, exact
-scheduler Audience/audit correlation, Grant count, old/new snapshot catalogs,
-and receipt state to exactly one class:
+bytes, loaded launchd arguments, PID/start time or proven process absence, health
+version/digest or bounded unavailability, exact scheduler Audience/audit
+correlation, Grant count, old/new snapshot and staging catalogs, copied `.env`
+metadata/redacted hash, and receipt state to exactly one class. The classifier is
+exhaustive across the ordered mutations `install snapshot -> commit DB -> switch
+plist -> stop old -> start new -> verify`:
 
 ```text
-PRESTATE
-  old plist/loaded arguments + old PID/digest + scheduler row absent
+PRESTATE_CLEAN
+  old plist/loaded arguments + old PID/digest + scheduler row absent + candidate/staging absent
+STAGED_ONLY
+  old plist/loaded arguments + old PID/digest + scheduler row absent + exact candidate/staging present
 FORWARD_DB_ONLY
-  exact correlated scheduler row + old plist/loaded arguments + old PID/digest
+  exact correlated row + old plist/loaded arguments + old PID/digest + exact candidate present
 FORWARD_SWITCHED_NOT_STARTED
-  exact row + new plist bytes but loaded old arguments + old PID/digest
+  exact row + new plist bytes + loaded old arguments + old PID/digest
+FORWARD_OLD_STOPPED
+  exact row + new plist bytes + no loaded service/PID + exact candidate present
+FORWARD_NEW_UNVERIFIED
+  exact row + new loaded arguments + fresh PID + health absent, unavailable, or wrong
 FORWARD_ACTIVE
-  exact row + new loaded arguments + fresh PID + new digest
+  exact row + new loaded arguments + fresh PID + exact new health/digest
 COMPENSATED
-  old loaded arguments + fresh rollback PID/old digest + scheduler row absent
+  old plist/loaded arguments + fresh rollback PID/old digest + scheduler row absent + candidate/staging absent
 AMBIGUOUS
-  anything else, including missing read authority or correlation mismatch
+  anything else, including missing read authority, unbounded health state,
+  correlation mismatch, unexpected catalog, or unknown process identity
 ```
 
-`PRESTATE` stops with zero writes. `FORWARD_DB_ONLY` may delete only the exact
-correlated new scheduler row and append one rollback audit row, with zero restart.
-`FORWARD_SWITCHED_NOT_STARTED` may restore the exact old plist, delete only that
-row, and append the audit, with zero restart because no new process generation
-started. `FORWARD_ACTIVE` must restore the exact old plist, delete only that row,
-append the audit, and perform exactly one rollback restart. `COMPENSATED` is a
-read-only terminal success. `AMBIGUOUS` MUST publish `outcome_unknown`, perform no
-write/restart, and require manual recovery; no uncertain mutation may be retried
-or replayed. A successful forward path performs exactly one forward restart;
-restart counters are separate and never inferred from a command exit code.
+`PRESTATE_CLEAN` stops with zero writes. `STAGED_ONLY` removes only the exact
+sealed, unreferenced candidate/staging tree (including copied `.env`) and uses
+zero restart. `FORWARD_DB_ONLY` deletes only the exact correlated scheduler row,
+appends one rollback audit row, then removes the exact unreferenced candidate,
+with zero restart. `FORWARD_SWITCHED_NOT_STARTED` restores the exact old plist,
+deletes only that row, appends the audit, removes the exact candidate, and uses
+zero restart because no process generation changed. `FORWARD_OLD_STOPPED` and
+`FORWARD_NEW_UNVERIFIED` restore the old plist, delete only that row, append the
+audit, and perform exactly one rollback start/restart into the old snapshot;
+after old health succeeds they remove the exact candidate. `FORWARD_ACTIVE`
+is forward success only after every `CTR-SD17-007` proof passes; if any later
+proof fails it follows the same exactly-one-restart compensation as
+`FORWARD_NEW_UNVERIFIED`. `COMPENSATED` is a read-only terminal success.
+`AMBIGUOUS` MUST publish `outcome_unknown`, perform no write/restart, and require
+manual recovery; no uncertain mutation may be retried or replayed. A successful
+forward path performs exactly one forward restart; forward and rollback counters
+are separate and never inferred from a command exit code.
 
 Every safe compensation MUST prove the original 1.6.0 digest, seven-audience DB
 equality, scheduler absence, zero scheduler Grants, and unrelated-state
 invariants. The append-only audit ledger may differ only by the exact correlated
 `audience.registered` row and, when compensation runs, one exact rollback row;
-all pre-existing audit bytes/rows remain. After rollback the candidate plist and
-the entire exact new snapshot, including its copied `.env`, MUST be removed only
-after proving they are unreferenced and match their sealed path/catalog; any
-mismatch stops removal and becomes `outcome_unknown`.
-If the candidate snapshot was absent at the frozen preimage, compensation MUST
-also remove exactly that newly installed candidate tree and every
-transaction-created staging node after the old service is healthy, then prove
-their absence. It MUST preserve the separately sealed artifact and durable
+all pre-existing audit bytes/rows remain. After rollback the installed plist
+staging file and the entire exact new snapshot, including its copied `.env`,
+MUST be removed only after proving they are unreferenced and match their sealed
+path/catalog; any mismatch stops removal and becomes `outcome_unknown`. Every
+transaction-created staging node must likewise be removed and absence-proved.
+It MUST preserve the separately sealed artifact and durable
 receipt. HUP/INT/TERM received after the first mutation MUST be recorded and
 deferred until compensation and the terminal receipt finish; repeated signals
 cannot abort compensation. A second signal changes neither target nor action,
@@ -380,7 +411,10 @@ and the helper exits nonzero only after the restored face is durably recorded.
 
 ### CTR-SD17-007 — Durable receipt and no overclaim
 
-Success requires an atomic root-owned receipt binding authorization path,
+Success requires an atomic receipt at the artifact-bound path
+`/private/var/root/auth-scheduler-1-7-*/receipts/<correlation>.json`, whose
+directory is owned `root:wheel` with mode `0700` and whose file is regular,
+non-symlink `root:wheel 0600`, binding authorization path,
 artifact/seal/source/runtime digests, before/after snapshot and plist identity,
 DB transaction/audit correlation, old/new PID, health, eight-audience readback,
 negative matrix, zero Grant count, and unrelated-state digest. A dialog, Gate,
@@ -391,7 +425,7 @@ Every invocation, including signal/interruption recovery, MUST terminate with
 exactly one atomic root-owned receipt classified as `stopped_pre_mutation`,
 `forward_success`, `compensated`, or `outcome_unknown`. If the process dies before
 receipt publication, the next invocation is RECONCILE-only; it MUST NOT enter the
-forward mutation path until classification proves `PRESTATE` and records the
+forward mutation path until classification proves `PRESTATE_CLEAN` and records the
 prior missing receipt.
 
 ### CTR-GSD17-001 — Lifecycle boundary
@@ -399,7 +433,7 @@ prior missing receipt.
 Independent review and Owner acceptance may perform only a docs lifecycle
 transaction. Its exhaustive byte allowlist is: (1) frontmatter
 `status: proposed -> accepted`; (2) add `accepted_date`, `accepted_by`,
-`accepted_at`, `accepted_reviewed_head`, `independent_review_result`,
+`accepted_at`, `accepted_reviewed_base`, `accepted_reviewed_head`, `independent_review_result`,
 `independent_review_blockers`, `acceptance_verdict`,
 `acceptance_semantic_delta`, and `acceptance_authority_basis`; (3) replace the
 entire opening banner with exactly:
@@ -419,7 +453,7 @@ accepted`, while its Implementation authority and Purpose cells remain
 byte-identical. No other byte may change.
 
 The added provenance values MUST bind exact reviewer identity/result/blockers,
-the reviewed head, Owner identity/time/decision, `acceptance_verdict: accepted`,
+the reviewed base and head, Owner identity/time/decision, `acceptance_verdict: accepted`,
 and `acceptance_semantic_delta: none_after_review`. No artifact or production
 byte may change in that transaction. An independent final-head check MUST prove
 the exhaustive diff and unchanged normative content. The accepted exact head
