@@ -105,22 +105,26 @@ CREDENTIAL_STORE = /usr/local/libexec/agent-core/config/agent-credentials.json
   type, agent ID, ownership, and active-client count; the active client UUID/ID
   above is the sole active client bound to principal `b21ddb23...` and agent ID
   `agt_efficiency-agent`
-- Provenance: accepted temp-Grant authority
+- Provenance: `docs/evidence/daily-autonomy-operational-grants-v1/IDENTITY_READBACK.md`
+  in this proposal revision, canonical result SHA-256
+  `adc898813dfc1db804aedf6985db624756a351dd7a0622b7c5e177da2c960886`; accepted temp-Grant authority
   `95f8ea9275b0184416d2ac7a1043746c58fe5f57` and artifact manifest
   `/Users/yanfenma/workspace/deployment-artifacts/agent-session-messaging-temp-grant-v1/ARTIFACT_MANIFEST.json`
   SHA-256 `42f464b8f9ae26cffa4a365bf41985beeaf0691d9b7725d6332314ebf8a612be`.
 
 ### OBS-DAG-002 — Current and required preimages differ by lawful prior stages
 
-- Subject/revision/environment/time: production `machine_access_grants`, commit
-  `04c5dad`, observed epoch ms `1788419569545`
+- Subject/revision/environment/time: production `machine_access_grants`,
+  `mayf3/dsh-agent-core@04c5dad53762b5dc44cc1e451a23fa31eb23ac08`,
+  observed epoch ms `1788419569545`
 - Method/query/result: local read-only `psql`, host `localhost`, user `auth_ro`,
   database `agent_dev_center`, ordered per-audience count plus exact absence
   predicate for `agent-session-messaging|scheduler`; zero rows observed; the
   accepted temporary Grant flow must later create then preserve an ASM
   `version=0` tombstone before this permanent transaction may run
-- Provenance: `docs/evidence/workflow-execute-receipt-recovery-v2-20260903/GRANT_READBACK.md`
-  at `04c5dad`, SHA-256
+- Provenance: `mayf3/dsh-agent-core` path
+  `docs/evidence/workflow-execute-receipt-recovery-v2-20260903/GRANT_READBACK.md`
+  at `04c5dad53762b5dc44cc1e451a23fa31eb23ac08`, SHA-256
   `c5f1c188182d6010b4c70e93deafeeeef7c23fdd517bcb4778ae468adef65389`,
   plus temp authority `95f8ea9275b0184416d2ac7a1043746c58fe5f57`.
 - Schema note: the repository Prisma model does not map
@@ -138,7 +142,12 @@ CREDENTIAL_STORE = /usr/local/libexec/agent-core/config/agent-credentials.json
 - Method/result: exact registry JSON blob projection; ASM registers only `agent.session.send`;
   Scheduler registers `scheduler.admin` and `scheduler.audit` as non-implying
   scopes
-- Provenance: accepted CCRs and executable bundle registries.
+- Provenance: accepted CCRs and exact path
+  `contract-bundles/minimal-auth-v1/audience-registry.json`; ASM source Git blob
+  `fca5a92721b9038286545fef9c774ccd4b15fe5e`, SHA-256
+  `695b059247c532805e0f78856dd40761386a5ff428e0b8b168e6066aea4eab3c`;
+  Scheduler source Git blob `253708fba079ed580f9d7cd8676bf616b6d3e568`,
+  SHA-256 `f7d4dcc76f58cfae57787c612819c987398fa06fdcfb598b69bbf6f41e3290ec`.
 
 ### CLM-DAG-001 — One permanent transaction can reuse the temp tombstone safely
 
@@ -254,9 +263,11 @@ be copied into a target Agent execution context.
 
 After commit, issue exactly one fresh token request for each exact Grant and
 verify sanitized claims: subject/source principal, source agent ID, client ID,
-audience, and exact single scope. Then prove wrong scope, two-scope Scheduler
-request, alias, wildcard, target client, service/human/delegated, and foreign
-audience requests fail. Tokens and credentials MUST NOT be persisted.
+audience, and exact single scope. Then use the same authenticated source client
+to prove wrong scope, two-scope Scheduler request, alias, wildcard, and foreign-
+audience requests fail. Prove target-client and service/human/delegated exclusion
+by the exact census/profile methods below. Tokens and credentials MUST NOT be
+persisted.
 There is no operator-selected identity. The helper reads only
 `agt_efficiency-agent` from
 `/usr/local/libexec/agent-core/config/agent-credentials.json`, requires public
@@ -319,9 +330,11 @@ complete token/readback matrix to 60 seconds with each request bounded to 5
 seconds. Timeout before mutation exits unchanged; timeout after mutation enters
 compensation. Timeout or ambiguous outcome is never success and is never a
 reason for blind retry.
-Before the first mutation, HUP/INT/TERM exits unchanged with a terminal
-`INTERRUPTED_PREMUTATION` receipt. From the first successful write attempt until
-the state machine reaches a terminal receipt, the first and all repeated signals
+Immediately before issuing the first mutating SQL statement or attempt, the
+helper MUST arm the post-mutation signal fence. Before that fence, HUP/INT/TERM
+exits unchanged with a terminal `INTERRUPTED_PREMUTATION` receipt. From the
+armed fence through the first attempt (including an in-flight or ambiguous
+outcome) and until the state machine reaches a terminal receipt, all signals
 are recorded/deferred; they cannot select a different transition, skip denial
 or quarantine, or convert a nonterminal face to success.
 
@@ -351,10 +364,11 @@ may occur before accepted exact-head merge and final-head recheck.
 ### ACC-DAG-002 — Least privilege and tokens
 
 - Contracts: `CTR-DAG-003`, `CTR-DAG-004`
-- Method: exact row readback, target/fleet census, two positive requests and
-  bounded negative matrix
+- Method: exact row readback, target/fleet and principal-type profile census,
+  two positive requests, and source-authenticated scope/audience negative matrix
 - Pass: only two exact live rows for the source, exact single-scope claims,
-  all forbidden requests denied, no target row or persisted token
+  every source-authenticated negative denied, target rows absent, human/service/
+  delegated profiles and Grant censuses exclude access, no persisted token
 - Fail: extra scope/subject/row, token leakage, privilege propagation, or any
   negative issuance.
 - Execution environment/evidence: production Mac against exact
