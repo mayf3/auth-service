@@ -190,17 +190,30 @@ the production column.
 The sealed helper MUST acquire exactly
 `/var/run/auth-service-production-mutation.lock` before its first preimage read
 and hold it continuously through commit, token verification, compensation if
-needed, and terminal receipt publication. Every auth-service production DB
-mutation vehicle (Audience, Grant, Principal, Client, Session, credential
-metadata, or migration) and every auth snapshot/plist deployment vehicle MUST
-share this exclusive lock. Database target identity is exactly TCP
+needed, and terminal receipt publication. Its owned participant set is closed
+to the three transactions serialized by
+`CORE_RUNTIME_DAILY_AUTONOMY_OVERNIGHT_V1`: the scheduler bundle deployment,
+the accepted temporary ASM Grant apply/revoke vehicle at
+`/Users/yanfenma/workspace/deployment-artifacts/agent-session-messaging-temp-grant-v1`,
+and this permanent Grant transaction. The Goal coordinator wraps every
+participant from first preimage read through terminal receipt and schedules no
+overlap; this Spec does not claim to retrofit unrelated Auth writers.
+
+Before mutation, Goal ledger, process census, participant receipt/marker census,
+and native Owner attestation MUST prove that no other participant or Auth
+production mutation is authorized, scheduled, active, or outcome-ambiguous in
+the window. Any competing/unknown writer or unfinished receipt stops. An
+isolated contention test MUST hold the lock in each of the three wrappers and
+prove the other two reject before DB/file access. Database target identity is
+exactly TCP
 `127.0.0.1:5432`, database `agent_dev_center`; the secret-bearing connection
 string is read only inside the root helper from the active auth snapshot's
 root-readable `.env`, never accepted as an argument/environment override, and
 never logged or persisted.
 
-Under an explicit PostgreSQL `SERIALIZABLE` transaction, exact table/row locks,
-and guarded row counts, the operator MUST:
+Under an explicit PostgreSQL `SERIALIZABLE` transaction, write-conflicting locks
+on `auth_audiences`, `machine_access_grants`, and `auth_security_audits`, exact
+row locks, and guarded row counts, the operator MUST:
 
 1. update exactly the existing ASM tombstone identified by the composite key,
    setting only `scopes={agent.session.send}`, `version=2`,
@@ -284,7 +297,9 @@ may occur before accepted exact-head merge and final-head recheck.
 - Execution environment/evidence: production Mac sealed root helper targeting
   exact `127.0.0.1:5432/agent_dev_center`; record UTC `observed_at`, global-lock
   inode/owner, SERIALIZABLE settings, `information_schema` column/key result,
-  complete sanitized source/audience/row projections, and planned write counts.
+  complete sanitized source/audience/row projections, Goal ledger/process/
+  participant-marker census, Owner no-concurrency attestation, three-wrapper
+  contention transcript, exact table locks, and planned write counts.
 
 ### ACC-DAG-002 — Least privilege and tokens
 
