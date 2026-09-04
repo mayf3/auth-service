@@ -1,11 +1,20 @@
 ---
 spec_id: AUTH_SERVICE_SCHEDULER_PRODUCTION_RECONCILIATION_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: none
 production_apply_authority: none
 date: 2026-09-04
+accepted_date: 2026-09-04
+accepted_by: mayf3
+accepted_reviewed_spec_commit: f3a4599e33d86831902cfe6ab57a1429d21abc8e
+acceptance_review_verdict: PASS
+acceptance_authority_basis: >-
+  Owner BATCHED OWNER ACCEPTANCE = ACCEPT of both reconciliation PRs at these
+  exact heads (dsh PR #164 @ dfa0f599…, auth PR #52 @ f3a4599…) on 2026-09-04,
+  after ONE independent reconciliation review + ONE blocker-union fix + ONE
+  exact-head re-audit (RE_AUDIT=PASS, BLOCKER_UNION_RESIDUAL=[]).
 scope:
   - current-state adoption record for the already-live auth 1.7.0 scheduler face and the exact scheduler.admin operational Grant
   - honest recording of the early-production-execution authority gap on the auth side
@@ -21,7 +30,9 @@ owners: [mayf3]
 
 # AUTH_SERVICE_SCHEDULER_PRODUCTION_RECONCILIATION_V1
 
-> **PROPOSED / RECONCILIATION RECORD.** 本 Spec 不授权任何新的生产 mutation，
+> **ACCEPTED / RECONCILIATION RECORD** (Owner exact-head acceptance
+> f3a4599e33d86831902cfe6ab57a1429d21abc8e on 2026-09-04; reviewed content
+> unchanged by lifecycle finalization). 本 Spec 不授权任何新的生产 mutation，
 > 不产生任何新的 implementation power（implementation_authority = none）。
 > 它只采纳并记录一个已经存在、且被 §2 机械证明为安全的当前 auth 生产状态。
 >
