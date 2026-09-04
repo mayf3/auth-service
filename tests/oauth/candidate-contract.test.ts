@@ -4,8 +4,8 @@ import { loadCandidateSnapshot } from '../helpers/load-candidate-snapshot.js';
 
 const snapshot = loadCandidateSnapshot();
 
-test('Candidate contract version is 1.4.0', () => {
-  assert.equal(snapshot.contractVersion, '1.4.0');
+test('Candidate contract version is 1.7.0', () => {
+  assert.equal(snapshot.contractVersion, '1.7.0');
 });
 
 test('Candidate registry status reflects frozen bundle', () => {

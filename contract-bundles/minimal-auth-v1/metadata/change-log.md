@@ -1,5 +1,214 @@
 # Change Log
 
+## 1.7.0 — 2026-09-03
+
+- CCR: `AUTH_SERVICE_SCHEDULER_AUDIENCE_CCR_V1` (accepted @
+  687c3b1eb3c671b1b4edf343fe96c07e9f00f92a lineage, PR #42) — registered
+  `scheduler` into the Minimal Auth V1 Audience Registry as the auth-service
+  root authority of the downstream dsh-agent-core scheduler deployment chain
+  (scope semantics anchored on accepted
+  `AGENT_CORE_SCHEDULER_RUN_HISTORY_V1` §R8 and consumed by proposed
+  `AGENT_CORE_SELF_SERVICE_SCHEDULER_TOOLS_V2`, cited as context only) —
+  implementation closure = the CTR-SCH-004 frozen 16-file set (NI closure V2
+  CTR-NIC2-001 / session-messaging CTR-ASM-004 isomorphic,
+  `EXTRA_FILE_COUNT = 0`).
+- Frozen entry (field-by-field, per CTR-SCH-001):
+  `audience_id=scheduler`, `resource_service=scheduler`,
+  `scope_namespace=scheduler`, `accepted_principal_types=["agent"]`,
+  `human_access_enabled=false`, `machine_access_enabled=true`,
+  `delegated_access_enabled=false`,
+  `registered_scopes=["scheduler.admin","scheduler.audit"]`,
+  `status=active`, `freeze_ready=true`.
+- Forbidden set unchanged and unregistered (CTR-SCH-002): every manage-any
+  wire form (`scheduler.manage-any`, `scheduler.manage:any`), the local labels
+  `scheduler.read:self` / `scheduler.manage:self`, any global
+  job-definition-read literal (`scheduler.read`, `scheduler.read:all` or any
+  new literal — R8 freezes that no such scope exists), aliases such as
+  `scheduler.audit.read`, `*` / `scheduler.*` wildcards, any other namespace
+  (`workflow.*` / `forum.*` / `notification.*` / `okr.*` / `adc.*` / `auth.*`
+  / `agent.*`), and human / service / delegated access. `scheduler.admin`
+  (job-definition mutation/control) and `scheduler.audit` (global/foreign
+  execution history read) are mutually non-implying; each carries no
+  semantics beyond its literal.
+- Version judgment (CTR-SCH-005): single additive minor promotion based on the
+  implementation-time `registry_version`. `1.4.0` was OCCUPIED by the landed
+  NI closure; `1.5.0` is RESERVED by accepted
+  `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` (version not yet occupied);
+  `1.6.0` was OCCUPIED by the sibling session-messaging implementation (merged
+  ahead of this round) → implementation value = `1.7.0` (skip of
+  accepted-reserved and sibling-occupied versions per DEC-SCH-002).
+  Registry/manifest/fixtures promoted in place 1.6.0 → 1.7.0; no in-place
+  disguise.
+- Added TWO positive fixtures (both machine-only `principal_type=agent`
+  Direct Machine, RS256 + tracked fixture kid
+  `fixture-key-v1-svc-okr-canary-20260719`, iss=auth-service, aud=scheduler,
+  exact requested-scope equality, grant subset, per CTR-SCH-006 "one per
+  scope"): `direct-agent-scheduler-admin` (agent_id=agent-scheduler-admin,
+  scope=`scheduler.admin`, grant subset `scheduler.admin`) and
+  `direct-agent-scheduler-audit` (agent_id=agent-scheduler-auditor,
+  scope=`scheduler.audit`, grant subset `scheduler.audit`) — distinct least-
+  privilege principals, one per scope per DEC-SCH-001. compact_jwt signatures
+  machine-verified against `tests/fixtures/keys/svc-okr-canary-test-private.pem`
+  with payload byte-identical to claims.
+- Added 19 negative fail-closed cases (NI / session-messaging family
+  isomorphic plus the scheduler-specific forbidden literals): service
+  principal rejected, human access rejected, delegated/OBO rejected, unknown
+  audience `cross-agent-scheduler`, foreign-namespace `workflow.read`,
+  manage-any wire forms `scheduler.manage-any` (unregistered) and
+  `scheduler.manage:any` (non-conforming wire), local labels
+  `scheduler.read:self` and `scheduler.manage:self` (non-conforming wire),
+  global-read literal `scheduler.read` (unregistered — R8 freezes that no
+  global job-definition-read scope exists), alias `scheduler.audit.read`
+  (unregistered), `*` wildcard, `scheduler.*` namespace wildcard, emptied
+  (missing) Grant, over-scope request (`scheduler.admin scheduler.audit`
+  against an admin-only Grant — representable because this Audience has two
+  registered Scopes), cross-Audience Grant reuse (svc-workflow + workflow.read
+  with no such Grant), extra requested Scope
+  (`scheduler.admin scheduler.audit.read`), noncanonical double-space wire,
+  duplicate Scope items — every case rejected whole with its exact expected
+  error code, no downscoping, no positive issuance in any negative phase.
+  Dedicated DB/registry-mismatch cases are structurally unrepresentable in
+  the Bundle fixture harness (fail-closed `audience_registry_mismatch` /
+  `machine_grant_state_invalid` live in the runtime Grant lookup, not in the
+  fixture validator); `SCOPE_OUTPUT_MISMATCH`-shaped requested sets fail
+  earlier as `INVALID_SCOPE_NAMESPACE` (extra-requested-scope case).
+- `validate.mjs` first-wave Audience set literal extended with `scheduler`
+  (7 → 8 entries; validator gate `registry: first-wave Audience set changed`)
+  — the single allowed validator delta per CTR-SCH-005(4).
+- Version linkage: `contract_version` / `registry_version` promoted
+  1.6.0 → 1.7.0 across manifest (incl. `audience_registry_version`), registry,
+  manifest schema const, freeze gates, consumer matrix, positive/negative
+  fixtures, schema instances, ADC scope map and llm-todo candidate; runtime
+  allowlist (`src/lib/oauth/v1/contract.ts`) and candidate loader allowlist +
+  the two version-expectation tests add/expect `1.7.0`
+  (`LIMITED_RUNTIME_COMPATIBILITY_CHANGE`, allowlist-only).
+- No Grant created, modified or enlarged (CTR-SCH-007 descriptive only; the
+  future single disposable-source-agent Grant + terminal compensation is a
+  downstream, separately authorized round); no Principal/Client/secret
+  created; no product-code change beyond the frozen allowlist literals; no
+  production apply, deploy or database change (CTR-SCH-009; AuthAudience data
+  row creation remains a separate operator backfill round, OBS-SCH-007).
+
+## 1.6.0 — 2026-09-03
+
+- CCR: `AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1` (accepted @
+  e5a1b8b5ea7801ac9aa6d7fd1170ffa7c5d654e6, PR #41) — registered
+  `agent-session-messaging` into the Minimal Auth V1 Audience Registry as the
+  auth-service root authority of the downstream
+  `AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V1` (dsh-agent-core) chain —
+  pinned by its CTR-DEP-002 as the Phase-A accepted prerequisite; implementation
+  closure = the CTR-ASM-004 frozen 16-file set (NI closure V2
+  CTR-NIC2-001 isomorphic, `EXTRA_FILE_COUNT = 0`).
+- Frozen entry (field-by-field, per CTR-ASM-001):
+  `audience_id=agent-session-messaging`,
+  `resource_service=agent-session-messaging`, `scope_namespace=agent`,
+  `accepted_principal_types=["agent"]`, `human_access_enabled=false`,
+  `machine_access_enabled=true`, `delegated_access_enabled=false`,
+  `registered_scopes=["agent.session.send"]`, `status=active`,
+  `freeze_ready=true`.
+- Forbidden set unchanged and unregistered (CTR-ASM-002): `agent.session.read`,
+  `agent.session.*`/wildcards, `agent.wake`, `agent.definition.write`, any
+  `workflow.*` / `forum.*` / `scheduler.*` / `notification.*` / `okr.*` /
+  `adc.*` / `auth.*` new literal, human or delegated access. `agent.session.send`
+  carries no semantics beyond send.
+- Version judgment (CTR-ASM-005): additive minor promotion based on the
+  implementation-time `registry_version`. `1.4.0` was already OCCUPIED by the
+  landed NI closure; `1.5.0` is RESERVED by accepted
+  `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` (its implementation PR #37
+  still draft, version not yet occupied) → implementation value = `1.6.0`
+  (skip of accepted-reserved versions per DEC-ASM-002). Registry/manifest/
+  fixtures promoted in place 1.4.0 → 1.6.0; no in-place disguise.
+- Added positive fixture `direct-agent-session-messaging` — a machine-only
+  `principal_type=agent` Direct Machine positive fixture (RS256 + tracked
+  fixture kid `fixture-key-v1-svc-okr-canary-20260719`, iss=auth-service,
+  aud=agent-session-messaging, agent_id=agent-session-messenger,
+  client_id=agent-client-session-messaging, scope=`agent.session.send`, exact
+  requested-scope equality, grant subset `agent.session.send`).
+- Added 11 negative cases (NI family isomorphic): service principal,
+  human principal, delegated/OBO, wrong audience (`agent-session-send`),
+  wrong-namespace `session.send`, alias `agent.session.read`, `*` wildcard,
+  `agent.*` namespace wildcard, emptied (over-scope) Grant, cross-Audience
+  Grant reuse (svc-workflow + workflow.read with no such Grant), extra
+  requested Scope (`agent.session.read agent.session.send`) — every case
+  rejected whole, no downscoping, no positive issuance in any negative phase.
+  Dedicated DB/registry-mismatch cases are structurally unrepresentable in the
+  Bundle fixture harness (fail-closed `audience_registry_mismatch` /
+  `machine_grant_state_invalid` live in the runtime Grant lookup, not in the
+  fixture validator); `SCOPE_OUTPUT_MISMATCH` cases are structurally
+  unnecessary for this Audience: with exactly one registered Scope, exact
+  requested/issued equality plus strict registration makes a valid-but-
+  different requested set unrepresentable; mismatch-shaped requests fail
+  earlier as `INVALID_SCOPE_NAMESPACE` (extra-requested-scope case).
+- `validate.mjs` first-wave Audience set literal extended with
+  `agent-session-messaging` (6 → 7 entries; validator gate
+  `registry: first-wave Audience set changed`) — the single allowed validator
+  delta per CTR-ASM-005(4).
+- Version linkage: `contract_version` / `registry_version` promoted
+  1.4.0 → 1.6.0 across manifest (incl. `audience_registry_version`), registry,
+  manifest schema const, freeze gates, consumer matrix, positive/negative
+  fixtures, schema instances, ADC scope map and llm-todo candidate; runtime
+  allowlist (`src/lib/oauth/v1/contract.ts`) and candidate loader allowlist +
+  the two version-expectation tests add/expect `1.6.0`
+  (`LIMITED_RUNTIME_COMPATIBILITY_CHANGE`, allowlist-only).
+- No Grant created, modified or enlarged (CTR-ASM-007 descriptive only; future
+  single disposable-source Grant + terminal compensation is downstream
+  CTR-DEP-006, separately authorized); no Principal/Client/secret created; no
+  product-code change beyond the frozen allowlist literals; no production
+  apply, deploy or database change (CTR-ASM-009; AuthAudience data row creation
+  remains a separate operator backfill round).
+## 1.5.0 — 2026-08-29
+
+- Spec: `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` (accepted; whole-successor
+  of `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1`,
+  `AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1` and
+  `AUTH_SERVICE_SVC_FORUM_AUDIENCE_REGISTRY_RECONCILIATION_V1`; PR #34 @
+  325e781) — the sole semantic increment is registering `forum.moderate` for
+  `svc-forum` (CTR-FMG-002/DEC-FMG-001), based on the merged conformant
+  `1.4.0` notification-ingress result (CTR-FMG-015).
+- `svc-forum.registered_scopes` = exactly
+  `["forum.moderate","forum.read","forum.write"]`; every other Audience entry
+  and Scope stays byte-identical. `forum.admin`, `forum.*`, `*` and any other
+  Scope remain unregistered (negative fixtures retained, CTR-FMG-002).
+- Added positive fixture `direct-agent-svc-forum-moderator` (RS256 + tracked
+  fixture kid, iss=auth-service, aud=svc-forum, principal_type=agent,
+  agent_id=agent-forum-moderator, scope="forum.moderate forum.read
+  forum.write", exact requested-scope equality, grant subset). Removed the
+  obsolete negative case `direct-svc-forum-unregistered-scope-moderate` —
+  `forum.moderate` is registered at 1.5.0, so that case is semantically
+  unrepresentable; the `forum.admin`, `*` and `forum.*` negative cases remain.
+- Consumer evidence re-pinned per Spec §3.1:
+  `mayf3/agent-forum@502cfca5a180d6c49fe75dfc270fd117f279ccfb` (tree
+  `cc7e38363297bf4b7339e0c88d9f2869e9df1cde`, `origin/main`,
+  `fixed_remote_sha=true`, migration_status stays `completed`) — the deployed
+  consumer that enforces `forum.moderate` on pin/feature, soft-delete, report
+  queue/handling and admin-unread routes (OBS-FMG-005); resolve/archive remain
+  server-`forum.write`.
+- Grant supply implementation (CTR-FMG-014 closed 18-file closure, files
+  16–18): `scripts/supply-forum-moderator-grant-v1.ts`,
+  `scripts/run-forum-moderator-grant-supply-v1-conformance.sh`,
+  `tests/oauth/supply-forum-moderator-grant-v1.test.ts` — canonical
+  APPLY/EXACT_RERUN_NOOP plan documents with SHA-256 digests (CTR-FMG-003),
+  one Serializable transaction updating only the `svc-forum` audience
+  registered_scopes plus the exact Client's Grant 1→2 with the closed 13-field
+  `grant_change_audits` envelope (CTR-FMG-004/007/010), exact rerun NOOP and
+  fail-closed conflict semantics (CTR-FMG-008/009), reviewed non-target Grant
+  digest binding, read-only `OUTCOME_UNKNOWN` reconciliation with no blind
+  retry, and the exact frozen identity tuple `agt_course-community-agent-2` /
+  `9f7cf4c5-7b2c-4239-9993-d9b2a2e0df56` /
+  `mc_hvEfjkJ5BTKA8HZXRmbzNVw0` (CTR-FMG-001). `PRODUCTION_APPLY_AUTHORITY = none` — `--apply` refuses
+  before any database connection (CTR-FMG-016); the legacy OpenClaw
+  `mc_oc_*` family is never queried, resolved or mutated (CTR-FMG-013).
+- Version linkage: `contract_version` / `registry_version` promoted
+  1.4.0 → 1.5.0 across manifest, registry, manifest schema const, freeze gates,
+  consumer matrix, positive/negative fixtures, schema instances, ADC scope map
+  and llm-todo candidate; runtime allowlist (`src/lib/oauth/v1/contract.ts`)
+  and candidate loader allowlist + the two version-expectation tests add/expect
+  `1.5.0` (`LIMITED_RUNTIME_COMPATIBILITY_CHANGE`, allowlist-only).
+- No Grant created, modified or enlarged by this source change
+  (CTR-FMG-015: source merge creates no database change); no
+  Principal/Client/secret created; no production apply, deploy or database
+  change.
+
 ## 1.4.0 — 2026-08-24
 
 - CCR: `AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_AUDIENCE_CCR_V1` (accepted)
