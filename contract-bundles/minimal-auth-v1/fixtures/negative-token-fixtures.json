@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.4.0",
+  "contract_version": "1.7.0",
   "cases": [
     {
       "name": "human-forbidden-scope",
@@ -207,18 +207,6 @@
       "expected_error": "INVALID_SCOPE_NAMESPACE"
     },
     {
-      "name": "direct-svc-forum-unregistered-scope-moderate",
-      "base_fixture": "direct-agent-svc-forum",
-      "mutations": [
-        {
-          "op": "set",
-          "path": "/claims/scope",
-          "value": "forum.moderate"
-        }
-      ],
-      "expected_error": "INVALID_SCOPE_NAMESPACE"
-    },
-    {
       "name": "direct-svc-forum-wildcard-scope-rejected",
       "base_fixture": "direct-agent-svc-forum",
       "mutations": [
@@ -368,6 +356,251 @@
         { "op": "set", "path": "/authorization_context/requested_scope", "value": "notification.deliver notification.send" }
       ],
       "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-session-messaging-service-principal-rejected",
+      "base_fixture": "direct-service-notification-ingress",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "agent-session-messaging" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "direct-session-messaging-human-access-rejected",
+      "base_fixture": "human-svc-okr",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "agent-session-messaging" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "direct-session-messaging-obo-delegation-rejected",
+      "base_fixture": "obo-adc-v2-to-svc-workflow",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "agent-session-messaging" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "direct-session-messaging-wrong-audience",
+      "base_fixture": "direct-agent-session-messaging",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "agent-session-send" }
+      ],
+      "expected_error": "UNKNOWN_AUDIENCE"
+    },
+    {
+      "name": "direct-session-messaging-foreign-namespace-scope-rejected",
+      "base_fixture": "direct-agent-session-messaging",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "session.send" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-session-messaging-alias-scope-rejected",
+      "base_fixture": "direct-agent-session-messaging",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "agent.session.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-session-messaging-wildcard-scope-rejected",
+      "base_fixture": "direct-agent-session-messaging",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "*" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-session-messaging-namespace-wildcard-scope-rejected",
+      "base_fixture": "direct-agent-session-messaging",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "agent.*" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-session-messaging-partial-grant-rejected",
+      "base_fixture": "direct-agent-session-messaging",
+      "mutations": [
+        { "op": "set", "path": "/authorization_context/machine_access_grants/agent-session-messaging", "value": [] }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "direct-session-messaging-cross-audience-grant-reuse",
+      "base_fixture": "direct-agent-session-messaging",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "svc-workflow" },
+        { "op": "set", "path": "/claims/scope", "value": "workflow.read" },
+        { "op": "set", "path": "/authorization_context/requested_scope", "value": "workflow.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "direct-session-messaging-extra-requested-scope-rejected",
+      "base_fixture": "direct-agent-session-messaging",
+      "mutations": [
+        { "op": "set", "path": "/authorization_context/requested_scope", "value": "agent.session.read agent.session.send" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-scheduler-service-principal-rejected",
+      "base_fixture": "direct-service-notification-ingress",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "scheduler" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "direct-scheduler-human-access-rejected",
+      "base_fixture": "human-svc-okr",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "scheduler" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "direct-scheduler-obo-delegation-rejected",
+      "base_fixture": "obo-adc-v2-to-svc-workflow",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "scheduler" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "direct-scheduler-wrong-audience",
+      "base_fixture": "direct-agent-scheduler-audit",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "cross-agent-scheduler" }
+      ],
+      "expected_error": "UNKNOWN_AUDIENCE"
+    },
+    {
+      "name": "direct-scheduler-foreign-namespace-scope-rejected",
+      "base_fixture": "direct-agent-scheduler-admin",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "workflow.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-scheduler-manage-any-wire-scope-rejected",
+      "base_fixture": "direct-agent-scheduler-admin",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "scheduler.manage-any" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-scheduler-manage-colon-wire-scope-rejected",
+      "base_fixture": "direct-agent-scheduler-admin",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "scheduler.manage:any" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-scheduler-read-self-local-label-rejected",
+      "base_fixture": "direct-agent-scheduler-admin",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "scheduler.read:self" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-scheduler-manage-self-local-label-rejected",
+      "base_fixture": "direct-agent-scheduler-audit",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "scheduler.manage:self" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-scheduler-global-read-scope-rejected",
+      "base_fixture": "direct-agent-scheduler-admin",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "scheduler.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-scheduler-alias-scope-rejected",
+      "base_fixture": "direct-agent-scheduler-audit",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "scheduler.audit.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-scheduler-wildcard-scope-rejected",
+      "base_fixture": "direct-agent-scheduler-admin",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "*" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-scheduler-namespace-wildcard-scope-rejected",
+      "base_fixture": "direct-agent-scheduler-admin",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "scheduler.*" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-scheduler-partial-grant-rejected",
+      "base_fixture": "direct-agent-scheduler-admin",
+      "mutations": [
+        { "op": "set", "path": "/authorization_context/machine_access_grants/scheduler", "value": [] }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "direct-scheduler-over-scope-grant-rejected",
+      "base_fixture": "direct-agent-scheduler-admin",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "scheduler.admin scheduler.audit" },
+        { "op": "set", "path": "/authorization_context/requested_scope", "value": "scheduler.admin scheduler.audit" }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "direct-scheduler-cross-audience-grant-reuse",
+      "base_fixture": "direct-agent-scheduler-admin",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "svc-workflow" },
+        { "op": "set", "path": "/claims/scope", "value": "workflow.read" },
+        { "op": "set", "path": "/authorization_context/requested_scope", "value": "workflow.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "direct-scheduler-extra-requested-scope-rejected",
+      "base_fixture": "direct-agent-scheduler-admin",
+      "mutations": [
+        { "op": "set", "path": "/authorization_context/requested_scope", "value": "scheduler.admin scheduler.audit.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-scheduler-noncanonical-double-space",
+      "base_fixture": "direct-agent-scheduler-admin",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "scheduler.admin  scheduler.audit" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-scheduler-duplicate-scope",
+      "base_fixture": "direct-agent-scheduler-admin",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "scheduler.admin scheduler.admin" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
     }
   ],
   "signature_cases": [

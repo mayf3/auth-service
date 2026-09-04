@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.4.0",
+  "contract_version": "1.7.0",
   "now": 1784300000,
   "fixtures": [
     {
@@ -211,6 +211,37 @@
       "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI1MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJzdmMtZm9ydW0iLCJwcmluY2lwYWxfdHlwZSI6ImFnZW50IiwiY2xpZW50X2lkIjoiYWdlbnQtY2xpZW50LXN2Yy1mb3J1bSIsInRva2VuX3VzZSI6ImFjY2VzcyIsInR5cGUiOiJhY2Nlc3MiLCJ2ZXJzaW9uIjoidjEiLCJzY29wZSI6ImZvcnVtLnJlYWQgZm9ydW0ud3JpdGUiLCJhZ2VudF9pZCI6ImFnZW50LWZvcnVtLXBhcnRpY2lwYW50IiwianRpIjoiZGlyZWN0LWp0aS1zdmMtZm9ydW0tMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.Gv0AImOTxwbrJbMwqHnK-CFH-e9Y2iLkHfzYLFNYB2JyOT9V0jZU5CLBfvvyIhQroa7Wqb420IKSOdn1Y_0Q1YEImyHh6-NDkcmRI8-QWC3ArWw9MS6fNcd6pqJf6RhX15_iXVLZkoz_9yJ50ZyqM75Xalapr-TH4eLBj93Fy3TRIw57CJyAv44Kue6Ex51HrLN7xC0Tw7E-5Unhbr6_wkhTpT93TFg-lb_biGFPg0pxuhvrIUf2yFgaevmF_tmxqOjPRQopT93lvizE2ypl2sPXAVUKxXhdGej66sL0ZJPVPhCDPasGtG90VH5AmDNFwNCdJcGBsiEwXQULqbP2uA"
     },
     {
+      "name": "direct-agent-svc-forum-moderator",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-svc-okr-canary-20260719"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "50000000-0000-4000-8000-000000000002",
+        "aud": "svc-forum",
+        "principal_type": "agent",
+        "client_id": "agent-client-svc-forum-moderator",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "forum.moderate forum.read forum.write",
+        "agent_id": "agent-forum-moderator",
+        "jti": "direct-jti-svc-forum-moderator-0001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "forum.moderate forum.read forum.write",
+        "machine_access_grants": {
+          "svc-forum": ["forum.moderate", "forum.read", "forum.write"]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI1MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDIiLCJhdWQiOiJzdmMtZm9ydW0iLCJwcmluY2lwYWxfdHlwZSI6ImFnZW50IiwiY2xpZW50X2lkIjoiYWdlbnQtY2xpZW50LXN2Yy1mb3J1bS1tb2RlcmF0b3IiLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJ0eXBlIjoiYWNjZXNzIiwidmVyc2lvbiI6InYxIiwic2NvcGUiOiJmb3J1bS5tb2RlcmF0ZSBmb3J1bS5yZWFkIGZvcnVtLndyaXRlIiwiYWdlbnRfaWQiOiJhZ2VudC1mb3J1bS1tb2RlcmF0b3IiLCJqdGkiOiJkaXJlY3QtanRpLXN2Yy1mb3J1bS1tb2RlcmF0b3ItMDAwMSIsImlhdCI6MTc4NDMwMDAwMCwibmJmIjoxNzg0MzAwMDAwLCJleHAiOjE3ODQzMDA2MDB9.dr3gc4btGJaLAmjuT2NyfnkgXZW9_tjrUPki2XEZxAnAcL5GLmC6_awQFIOzzKzNPtrboIAbTbUEfE2BurKw2uPlKn2hnnT6daYR47aZLe6-_F_K2FxCxpSgnj1UpCsvUg67eAbfszN1gJJQVs9azmwfvAqTFRuV3xeC0W9A2dIFqNqZgwcvFMhxBtkE0f-jiAAr3UYJXA5nENisB5zksPb8J0UXjYhF6T_uhlgSvOMZ0LZz2cCOF-lwHu2boO4pShEh5n3FtnN4vNXXTopeMox3_byI4aiboXF8PaG7WXyG8Z_vAm-De2Ck28BzSOa-2ixV5eZ7DjNtxzoQn8Y8-Q"
+    },
+    {
       "name": "direct-service-notification-ingress",
       "profile": "direct_machine_access",
       "header": {
@@ -239,6 +270,99 @@
         }
       },
       "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI2MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1jb3JlLW5vdGlmaWNhdGlvbi1pbmdyZXNzLXYxIiwicHJpbmNpcGFsX3R5cGUiOiJzZXJ2aWNlIiwiY2xpZW50X2lkIjoic2VydmljZS1jbGllbnQtbm90aWZpY2F0aW9uLWluZ3Jlc3MiLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJ0eXBlIjoiYWNjZXNzIiwidmVyc2lvbiI6InYxIiwic2NvcGUiOiJub3RpZmljYXRpb24uZGVsaXZlciIsImp0aSI6ImRpcmVjdC1qdGktbm90aWZpY2F0aW9uLWluZ3Jlc3MtMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.rzvWfvZN_hN89sJDGD66GAxD7INag-pYYuxXA_Rldme1B9fSYOcTQ5Or-ZdAkSdrt5IB1C7QGuooozgWxIfTy-3kWfv8TicbhXIxeFThHn1JQqrAF0Rc8UMnqfIfhFufT_C18a8pUml4YgDHaE76D2F-9isVZ0Px0Hbvpek6198tU331UP_B3JXjUeZ2O6rSNvZ41tWimh7qCinDBdHzjRRIwhfBXWTNsP8vZLhrH9n2C6GvkWwYQ9py0VWAJnWG1nCwHV_5wsMRBQOi2-ARhwMdCYBTeIAdvSPdTPvlwSs-TriOodiHyZk-bnI27DtJmbJZjaI3wk-6Xdxo7SDsTQ"
+    },
+    {
+      "name": "direct-agent-session-messaging",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-svc-okr-canary-20260719"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "70000000-0000-4000-8000-000000000001",
+        "aud": "agent-session-messaging",
+        "principal_type": "agent",
+        "client_id": "agent-client-session-messaging",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "agent.session.send",
+        "agent_id": "agent-session-messenger",
+        "jti": "direct-jti-session-messaging-00001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "agent.session.send",
+        "machine_access_grants": {
+          "agent-session-messaging": ["agent.session.send"]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI3MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1zZXNzaW9uLW1lc3NhZ2luZyIsInByaW5jaXBhbF90eXBlIjoiYWdlbnQiLCJjbGllbnRfaWQiOiJhZ2VudC1jbGllbnQtc2Vzc2lvbi1tZXNzYWdpbmciLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJ0eXBlIjoiYWNjZXNzIiwidmVyc2lvbiI6InYxIiwic2NvcGUiOiJhZ2VudC5zZXNzaW9uLnNlbmQiLCJhZ2VudF9pZCI6ImFnZW50LXNlc3Npb24tbWVzc2VuZ2VyIiwianRpIjoiZGlyZWN0LWp0aS1zZXNzaW9uLW1lc3NhZ2luZy0wMDAwMSIsImlhdCI6MTc4NDMwMDAwMCwibmJmIjoxNzg0MzAwMDAwLCJleHAiOjE3ODQzMDA2MDB9.YCsVIBBllGyrlBwSc3gzGZ70t87_-OB9Lg_SZXr7_ya8n1qcrLDSvft87OR-YwHeazVJDO97PoM539QSudxp2OauN_ILM3NCjk2psLPLbKhj4lL0XUE6hkRFxtLBwcxNn-wwVJfvpJePVYTxeTnoSfLZh91UkanR96nUXrjgMl6r8-qxcpOpDQ09LJHgfT7l9bDCjN-EZlKNokaWotQevhKsQCc1nAMCzlhM476lwH3Ote6PHGz2_d5HtFb-cssNEeWkI8sRYd2G7dtP3UYYcn-UeWnLfqXpfd0M6evOEGflvQDQ88VKU4baUj8Vd1_dj3h4R8pwAtbp547APzCCSw"
+    },
+    {
+      "name": "direct-agent-scheduler-admin",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-svc-okr-canary-20260719"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "80000000-0000-4000-8000-000000000001",
+        "aud": "scheduler",
+        "principal_type": "agent",
+        "client_id": "agent-client-scheduler-admin",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "scheduler.admin",
+        "agent_id": "agent-scheduler-admin",
+        "jti": "direct-jti-scheduler-admin-00001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "scheduler.admin",
+        "machine_access_grants": {
+          "scheduler": ["scheduler.admin"]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI4MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJzY2hlZHVsZXIiLCJwcmluY2lwYWxfdHlwZSI6ImFnZW50IiwiY2xpZW50X2lkIjoiYWdlbnQtY2xpZW50LXNjaGVkdWxlci1hZG1pbiIsInRva2VuX3VzZSI6ImFjY2VzcyIsInR5cGUiOiJhY2Nlc3MiLCJ2ZXJzaW9uIjoidjEiLCJzY29wZSI6InNjaGVkdWxlci5hZG1pbiIsImFnZW50X2lkIjoiYWdlbnQtc2NoZWR1bGVyLWFkbWluIiwianRpIjoiZGlyZWN0LWp0aS1zY2hlZHVsZXItYWRtaW4tMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.nAI7Myy84Lj0nTKjF_EVc5p0jjy-IYNn_zTam-hJAKYJN33BbUrH9wE4Sqv0T7GgAKOiohZOwIAZ0aw2Jg1ZIicnuhw-kFHzP1wJ-CrqEvaZS6X_6pRp3mxfamrdXt5CldpRR-KrHmR_0b2s5171DOU2UeS8iEMvDK2ucIGyJBbXzstJVnQiXLqcRAhCVFkAkTVE0jjEKHcwuur91kuIunO7oCZhOcKLSm48_IwoewwoKnkTi6FoTw56kzR7QT67lblB20HV2xFbPqftxphxqywDFLJ0mq0wSihuK0HfaTwSzbVK1MDcXgvF8JQi2kf2GBJjCE_owwYLS98IuJXIKA"
+    },
+    {
+      "name": "direct-agent-scheduler-audit",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-svc-okr-canary-20260719"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "80000000-0000-4000-8000-000000000002",
+        "aud": "scheduler",
+        "principal_type": "agent",
+        "client_id": "agent-client-scheduler-audit",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "scheduler.audit",
+        "agent_id": "agent-scheduler-auditor",
+        "jti": "direct-jti-scheduler-audit-00001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "scheduler.audit",
+        "machine_access_grants": {
+          "scheduler": ["scheduler.audit"]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI4MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDIiLCJhdWQiOiJzY2hlZHVsZXIiLCJwcmluY2lwYWxfdHlwZSI6ImFnZW50IiwiY2xpZW50X2lkIjoiYWdlbnQtY2xpZW50LXNjaGVkdWxlci1hdWRpdCIsInRva2VuX3VzZSI6ImFjY2VzcyIsInR5cGUiOiJhY2Nlc3MiLCJ2ZXJzaW9uIjoidjEiLCJzY29wZSI6InNjaGVkdWxlci5hdWRpdCIsImFnZW50X2lkIjoiYWdlbnQtc2NoZWR1bGVyLWF1ZGl0b3IiLCJqdGkiOiJkaXJlY3QtanRpLXNjaGVkdWxlci1hdWRpdC0wMDAwMSIsImlhdCI6MTc4NDMwMDAwMCwibmJmIjoxNzg0MzAwMDAwLCJleHAiOjE3ODQzMDA2MDB9.OpCKxWM7MVuJ1u1epTFGZOS3CV1Djq7yOBmdjETM_TfhXojzpSGQ8N9ECJODLCCNoVffKdI0xj4QgC7mtX_qPRBRJLPH9OVZHy9dm9ATFhkrYVi5hn_x1ZPEMjgaknztefV90zROPYlc3DQ285vi7ZCc7xLfhbdq4Bb8UFK9zPjUJmaYkagDkwoUYOi4SxJwOYAz1TmM_rAMHhLH-TTnxnjSVdnsY4O-2SUxP-oPKpzfKOyEM9m-7ZTdxVOFjpUOZvboRtpBDiYCDkRUVsfzHC0g90zxpPNUTg7wfuieaB3zToj8NdkZHX8LbVpyBROB2RY2nL5EPkZzcILx-iiB5Q"
     }
   ]
 }
