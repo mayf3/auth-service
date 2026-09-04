@@ -9,7 +9,7 @@ export const loginSchema = z.object({
 
 export const tokenLoginSchema = z.object({
   body: z.object({
-    token: z.string().min(1, '请提供 Agent Token'),
+    token: z.string().min(1, '请提供 Agent Token').optional(),
     name: z.string().optional(),
     role: z.string().optional(),
   }),

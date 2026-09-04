@@ -96,6 +96,7 @@ app.get('/api/health', (_req, res) => {
     authContractMode: authContract.mode,
     authContractVersion: authContract.contractVersion,
     authContractDigest: authContract.runtimeDigest,
+    forumSigningKeyVersion: env.FORUM_SIGNING_KEY_VERSION,
     timestamp: new Date().toISOString(),
   });
 });
