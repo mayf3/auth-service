@@ -1,11 +1,24 @@
 ---
 spec_id: AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V2
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 production_apply_authority: none
 date: 2026-09-05
+accepted_date: 2026-09-05
+accepted_by: mayf3
+accepted_reviewed_spec_commit: 3a5e01ed9274445de77d63b6a0ece6861a843072
+acceptance_review_verdict: PASS
+acceptance_authority_basis: >-
+  Owner BATCHED EXACT-HEAD ACCEPTANCE = YES on 2026-09-05 for the three
+  HR_DISPATCH_DELIVERY_READINESS_V1 subject-correction successors, binding
+  this V2 at reviewed semantic head
+  3a5e01ed9274445de77d63b6a0ece6861a843072 (independent review ACCEPT;
+  pushed verbatim and remote-verified before finalization). The acceptance
+  transaction sets implementation_authority: contracts exactly as authorized
+  by section 3 and is atomic with V1 -> superseded (reciprocal backlink).
+  Reviewed normative body preserved byte-for-byte.
 scope:
   - mayf3/auth-service
   - one operational agent.session.send grant for exact HR Principal
