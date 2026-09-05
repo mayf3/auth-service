@@ -13,6 +13,7 @@ import test from 'node:test';
 import {
   ADVISORY_LOCK_KEY,
   AGENT_ID,
+  LEGACY_PRINCIPAL_ID,
   APPLY_AUDIT_EVENT_TYPE,
   APPLY_ENV_GATE,
   APPLY_REASON,
@@ -353,6 +354,32 @@ test('census aborts on missing, non-agent, disabled, or agent_id-mismatched Prin
 
   for (const handle of [missing, wrongType, disabled, agentDrift]) {
     assert.deepEqual(handle.writes, [], 'aborting census performs zero writes');
+  }
+});
+
+test('wrong-target: the legacy HR Principal cannot be bound, substituted, or granted (V2 subject correction)', async () => {
+  // The current business Principal record carrying the LEGACY agent_id spelling
+  // aborts the census (agent_id binding is fail-closed; the legacy display name
+  // cannot substitute for the exact bound agent_id).
+  const legacyAgentId = fixtureDatabase((state) => {
+    state.principal = principalRow({ agentId: 'hr-agent' });
+  });
+  const legacyAgentIdPlan = await planGrant(legacyAgentId.db, toolInput());
+  assert.equal(legacyAgentIdPlan.outcome, 'ABORT');
+  assert.equal(legacyAgentIdPlan.abortReason, 'PRINCIPAL_AGENT_ID_MISMATCH');
+
+  // A database where ONLY the legacy Principal exists: the census looks up the
+  // exact current business Principal UUID and must find nothing — the legacy
+  // row is never consulted and never receives anything.
+  const legacyOnly = fixtureDatabase((state) => {
+    state.principal = { ...principalRow(), id: LEGACY_PRINCIPAL_ID, agentId: 'hr-agent' };
+  });
+  const legacyOnlyPlan = await planGrant(legacyOnly.db, toolInput());
+  assert.equal(legacyOnlyPlan.outcome, 'ABORT');
+  assert.equal(legacyOnlyPlan.abortReason, 'PRINCIPAL_NOT_FOUND');
+
+  for (const handle of [legacyAgentId, legacyOnly]) {
+    assert.deepEqual(handle.writes, [], 'wrong-target abort performs zero writes — legacy principal receives no grant');
   }
 });
 

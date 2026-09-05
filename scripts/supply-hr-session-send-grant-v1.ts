@@ -10,8 +10,9 @@
  *   PRODUCTION_MUTATION = NONE (this source change performs no database write)
  *
  * The sole intended recipient is the existing formal HR orchestration Principal
- * bc970ced-710f-4479-9ff0-e295a1c59424 (CTR-HRG-001): principal_type `agent`,
- * status `active`, disabled_at null, canonical agent_id `hr-agent`. Exactly ONE
+ * dc702687-6515-4a2a-91ae-e572a9bbd766 (AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V2
+ * CTR-HRG-001): principal_type `agent`,
+ * status `active`, disabled_at null, canonical agent_id `agt_hr-agent` (legacy `hr-agent` fails this binding fail-closed). Exactly ONE
  * active MachineClient is mechanically bound to that Principal; the operator
  * supplies that client's PUBLIC client_id (obtained from the fresh runtime
  * census / Broker credential binding) and the tool verifies — from Auth's
@@ -82,9 +83,11 @@ const REPO_ROOT = fileURLToPath(new URL('../', import.meta.url));
 
 // ─── Frozen constants (CTR-HRG-001/002/003/005) ─────────────────────────────
 
-export const PRINCIPAL_ID = 'bc970ced-710f-4479-9ff0-e295a1c59424';
+export const PRINCIPAL_ID = 'dc702687-6515-4a2a-91ae-e572a9bbd766';
+/** Legacy OpenClaw-era HR identity — MUST NOT be the subject nor receive this Grant (AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V2 CTR-HRG-001). */
+export const LEGACY_PRINCIPAL_ID = 'bc970ced-710f-4479-9ff0-e295a1c59424';
 export const PRINCIPAL_TYPE = 'agent';
-export const AGENT_ID = 'hr-agent';
+export const AGENT_ID = 'agt_hr-agent';
 export const AUDIENCE_ID = 'agent-session-messaging';
 export const TARGET_SCOPE = 'agent.session.send';
 export const TARGET_SCOPES = Object.freeze([TARGET_SCOPE]);
