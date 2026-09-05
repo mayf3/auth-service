@@ -1,11 +1,24 @@
 ---
 spec_id: AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
+implementation_authority: contracts
 production_apply_authority: none
 date: 2026-09-05
+accepted_date: 2026-09-05
+accepted_by: mayf3
+accepted_reviewed_spec_commit: 9b3b4bdb0016ec40bab2419bbf15dc886f40476f
+acceptance_review_verdict: PASS
+acceptance_authority_basis: >-
+  Owner BATCHED EXACT-HEAD ACCEPTANCE = YES on 2026-09-05 for the three
+  HR_DISPATCH_DELIVERY_READINESS_V1 authority candidates, binding this Spec at
+  reviewed semantic head 9b3b4bdb0016ec40bab2419bbf15dc886f40476f after the
+  round-1 independent review (single reason blocker), one blocker-union fix,
+  and ONE exact-head re-audit (ACCEPT, BLOCKERS = 0, MERGE_READY = YES). The
+  acceptance transaction sets implementation_authority: contracts exactly as
+  authorized by section 3; the reviewed normative body is otherwise preserved
+  byte-for-byte.
 scope:
   - mayf3/auth-service
   - one operational agent.session.send grant for exact HR Principal
