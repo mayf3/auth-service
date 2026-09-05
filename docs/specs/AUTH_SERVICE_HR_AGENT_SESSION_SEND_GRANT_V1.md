@@ -169,8 +169,10 @@ transaction. Inside that transaction it MUST fresh-read/lock the bound identity,
 audience and exact Grant, validate CTR-HRG-001 and the expected preimage, then
 create/reactivate only via compare-and-set. A nonce-unique auth_security_audits
 entry MUST commit in the same transaction with closed details: migration_id,
-operator, approval_ref, Principal UUID, client UUID/client_id, canonical agent_id,
+operator, approval_ref, reason, Principal UUID, client UUID/client_id, canonical agent_id,
 audience, exact scopes, old/new version, preimage digest, created/reactivated.
+The apply audit and fixed-SHA migration envelope MUST include the bounded
+nonsecret reason `HR_WORKFLOW_ORCHESTRATION_AGENT_SESSION_SEND_ACTIVATION`.
 No secret or token is permitted. Failure before commit MUST leave both Grant
 and audit unchanged. Unknown commit outcome MUST stop automatic apply/retry;
 a new read-only census may classify nonce receipt and row state before any
@@ -197,8 +199,10 @@ On known post-apply verification failure, a bound rollback operation MUST act
 only if the current row exactly matches this transaction's postimage and nonce
 receipt. It MUST tombstone that row (`version=0`, revoked_at set), preserving its
 scope and identity; it MUST NOT delete a row or affect unrelated grants. Rollback
-and a correlated closed-envelope audit MUST be atomic, followed by readback and
-a negative HR send-token proof. This restores pre-existing absence of effective
+and a correlated closed-envelope audit MUST be atomic. That audit and the
+rollback migration envelope MUST include the bounded nonsecret reason
+`HR_AGENT_SESSION_SEND_FAILED_ACTIVATION_ROLLBACK`. Readback and a negative HR
+send-token proof MUST follow. This restores pre-existing absence of effective
 send permission while retaining audit/tombstone history, not byte-for-byte row
 absence. Drift or unknown outcome MUST stop and report recovery required; no
 blind rollback, retry or further canary. Accepted existing live exact NOOP rows
@@ -229,9 +233,9 @@ NOT_EXECUTED until lawful production execution.
 |---|---|---|---|---|
 | ACC-HRG-001 | CTR-HRG-001 | Fixture census cases, then production read-only | Exact UUID/client binding receipt; wrong type, disabled, duplicate/missing client, caller mismatch and audience drift abort | Any ambiguous or changed identity accepted; unavailable live evidence asserted PASS |
 | ACC-HRG-002 | CTR-HRG-002 | Isolated disposable DB for absent/tombstone/exact-live/conflict cases | Create/reactivate exact one row; live NOOP; all conflict families denied; unchanged unrelated semantic digest | Scope union, overwrite, second-client write or replay audit |
-| ACC-HRG-003 | CTR-HRG-003 | Isolated DB injected precommit/audit failure/concurrent drift/commit-unknown, then controlled production | Atomic audit+row; fresh locked preimage; unknown stops; durable exact receipt | Partial commit, blind retry, missing attribution or slot violation |
+| ACC-HRG-003 | CTR-HRG-003 | Isolated DB injected precommit/audit failure/concurrent drift/commit-unknown, then controlled production | Atomic audit+row; fresh locked preimage; unknown stops; durable exact receipt | Partial commit, blind retry, missing attribution/reason in audit or migration envelope, or slot violation |
 | ACC-HRG-004 | CTR-HRG-004 | Local positive/negative issuer conformance, then protected production token proof | Exact HR claims digest only, forbidden aliases denied, ungranted client denied, health and unrelated grant digest PASS | Leaked secret/token, privilege expansion, wrong Principal or missing negative |
-| ACC-HRG-005 | CTR-HRG-005 | Isolated created/reactivated rollback, drift and NOOP cases; production only on failure | Safe tombstone + atomic audit and denial; drift stops; NOOP untouched | Deletion, unrelated mutation, live-token-after-rollback, blind recovery |
+| ACC-HRG-005 | CTR-HRG-005 | Isolated created/reactivated rollback, drift and NOOP cases; production only on failure | Safe tombstone + atomic audit and denial; drift stops; NOOP untouched | Deletion, unrelated mutation, live-token-after-rollback, blind recovery, or missing reason in audit or migration envelope |
 | ACC-HRG-006 | CTR-HRG-006 | Production after A+B readiness, one controlled canary | Target suitability and canonical resolution; one delivery/run and no unrelated workflow/scheduler effect | Premature send, duplicate/unknown replay, wrong session or credential propagation |
 
 ## 11. Alternatives and disposition
