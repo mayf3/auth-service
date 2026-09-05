@@ -18,7 +18,13 @@
  * server-side client->Principal relation — that exactly one active client is
  * bound and that its public client_id equals the supplied one. No credential,
  * secret, token or hash value is ever selected, read, printed, or required; the
- * client is referenced by its public client_id only.
+* client is referenced by its public client_id only.
+ *
+* Runbook note (implementation audit 2026-09-05): rollback intentionally
+* re-checks the frozen HR identity before acting; if the HR Principal itself
+* was disabled after activation, rollback refuses with IDENTITY_DRIFT and
+* revocation needs a separately authorized operation under applicable
+* authority (never this path).
  *
  * The only allowed permission delta (CTR-HRG-002) is the selected client's
  * single row (machine_client_id, `agent-session-messaging`) with exactly
@@ -187,7 +193,10 @@ export interface HrSendGrantDatabase {
     findUnique(args: { where: { id: string } }): Promise<ToolPrincipalRow | null>;
   };
   machineClient: {
-    findMany(args: { where: { machinePrincipalId: string } }): Promise<ToolClientRow[]>;
+    findMany(args: {
+      where: { machinePrincipalId: string };
+      select: { id: true; clientId: true; status: true; revokedAt: true };
+    }): Promise<ToolClientRow[]>;
   };
   machineAccessGrant: {
     findUnique(args: {
@@ -561,7 +570,10 @@ export async function planGrant(
     return abort('PRINCIPAL_AGENT_ID_MISMATCH', audience, principalViewFound(principal), null, FROZEN_AUDIENCE_ROW.version, null);
   }
 
-  const clients = await db.machineClient.findMany({ where: { machinePrincipalId: principal.id } });
+  const clients = await db.machineClient.findMany({
+    where: { machinePrincipalId: principal.id },
+    select: { id: true, clientId: true, status: true, revokedAt: true },
+  });
   const activeClients = clients.filter((client) => client.status === 'active' && client.revokedAt === null);
   if (activeClients.length === 0) {
     return abort('NO_ACTIVE_CLIENT', audience, principalViewFound(principal), null, FROZEN_AUDIENCE_ROW.version, null);
@@ -1052,7 +1064,10 @@ async function rollbackInTransaction(
       || principal.agentId !== AGENT_ID) {
     return refusal('IDENTITY_DRIFT');
   }
-  const clients = await tx.machineClient.findMany({ where: { machinePrincipalId: PRINCIPAL_ID } });
+  const clients = await tx.machineClient.findMany({
+    where: { machinePrincipalId: PRINCIPAL_ID },
+    select: { id: true, clientId: true, status: true, revokedAt: true },
+  });
   const activeClients = clients.filter((client) => client.status === 'active' && client.revokedAt === null);
   if (activeClients.length !== 1
       || activeClients[0].id !== receipt.clientUuid
