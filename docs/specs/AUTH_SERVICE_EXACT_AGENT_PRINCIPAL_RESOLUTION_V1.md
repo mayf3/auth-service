@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -13,6 +13,20 @@ governed_by:
 external_authorities: []
 supersedes: []
 superseded_by: null
+accepted_date: 2026-09-05
+accepted_by: mayf3
+accepted_reviewed_spec_commit: 0359575dd1481aa5e6c294a495fbaabce97e40bf
+acceptance_review_verdict: PASS
+acceptance_authority_basis: >-
+  Owner BATCHED EXACT-HEAD ACCEPTANCE = YES on 2026-09-05 for the three
+  HR_DISPATCH_DELIVERY_READINESS_V1 authority candidates, binding this Spec at
+  reviewed semantic head 0359575dd1481aa5e6c294a495fbaabce97e40bf after one
+  independent first review (ACCEPT, BLOCKERS = 0, MERGE_READY = YES,
+  DOWNSTREAM_PIN_CONSISTENCY = PASS; review record 77750cd). Owner acceptance
+  ratifies production_apply_authority: conditional_controlled_operation per
+  review SPEC_GAP-3; the reviewed normative body is preserved byte-for-byte;
+  the three review SPEC_GAPs stay implementation-preflight obligations and are
+  not promoted to shipping blockers.
 owners:
   - mayf3
 ---
