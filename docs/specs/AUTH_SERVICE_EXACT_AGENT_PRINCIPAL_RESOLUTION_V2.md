@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V2
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -11,6 +11,18 @@ scope:
 governed_by:
   - MINIMAL_AUTH_FOUNDATION_V2
 external_authorities: []
+accepted_date: 2026-09-05
+accepted_by: mayf3
+accepted_reviewed_spec_commit: 87beb7783d7e81bdf479cbb109c42cac86a9bfbf
+acceptance_review_verdict: PASS
+acceptance_authority_basis: >-
+  Owner BATCHED EXACT-HEAD ACCEPTANCE = YES on 2026-09-05 for the three
+  HR_DISPATCH_DELIVERY_READINESS_V1 subject-correction successors, binding
+  this V2 at reviewed semantic head
+  87beb7783d7e81bdf479cbb109c42cac86a9bfbf (independent review ACCEPT;
+  pushed verbatim and remote-verified before finalization). Acceptance is
+  atomic with V1 -> superseded (reciprocal backlink). Reviewed normative
+  body preserved byte-for-byte.
 supersedes: [AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V1]
 superseded_by: null
 owners:

@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V1
-status: accepted
+status: superseded
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -10,6 +10,12 @@ accepted_date: 2026-09-05
 accepted_by: mayf3
 accepted_reviewed_spec_commit: 9b3b4bdb0016ec40bab2419bbf15dc886f40476f
 acceptance_review_verdict: PASS
+superseded_note: >-
+  Superseded 2026-09-05 by AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V2 (whole-Spec
+  subject successor: HR business subject bc970ced…/hr-agent -> dc702687…/agt_hr-agent
+  per Owner fresh identity fact). Remains an existing bounded provisioning/admin
+  actor authority where already authorized; MUST NOT be used as the HR business-subject
+  send-supply authority.
 acceptance_authority_basis: >-
   Owner BATCHED EXACT-HEAD ACCEPTANCE = YES on 2026-09-05 for the three
   HR_DISPATCH_DELIVERY_READINESS_V1 authority candidates, binding this Spec at
@@ -31,7 +37,7 @@ external_authorities:
     revision: 1912d582888455a049838f376759b62f295b341b
     relation: constrained_by
 supersedes: []
-superseded_by: null
+superseded_by: AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V2
 owners: [mayf3]
 ---
 
