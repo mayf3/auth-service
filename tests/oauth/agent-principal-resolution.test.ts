@@ -16,6 +16,11 @@ import { readFile } from 'node:fs/promises';
 import { createServer, request as httpRequest, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
 import test from 'node:test';
+
+// The route server's env contract (src/config/env.ts) is validated at its first
+// dynamic import inside withRouteServer — the JWT_SECRET test default must be
+// in place before ANY test runs, not inside a late test body.
+process.env.JWT_SECRET ??= 'agent-principal-resolution-route-test-secret';
 import express, { type NextFunction, type Request, type Response } from 'express';
 import {
   AGENT_PRINCIPAL_RESOLUTION_DEFAULT_TIMEOUT_MS,
@@ -574,7 +579,6 @@ test('a bounded deadline inside the resolver surfaces as route 504', async () =>
 // ─── Production middleware wiring (real V1 verifier + patched delegates) ───
 
 test('production router enforces the real V1 verification chain before any target read', async () => {
-  process.env.JWT_SECRET ??= 'agent-principal-resolution-route-test-secret';
   const key = generateTestKeyPair('agent-principal-resolution-route-key');
   configureKeyringEnv({ activeKid: key.kid, activePrivateKeyPem: key.privateKeyPem });
   const [{ resetWorkflowKeyringForTests }, { signV1DirectMachineToken }, { prisma }, jwtModule] = await Promise.all([
