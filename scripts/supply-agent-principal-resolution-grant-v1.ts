@@ -114,7 +114,10 @@ export interface ProvisionGrantDatabase {
     findUnique(args: { where: { id: string } }): Promise<ToolPrincipalRow | null>;
   };
   machineClient: {
-    findMany(args: { where: { machinePrincipalId: string } }): Promise<ToolClientRow[]>;
+    findMany(args: {
+      where: { machinePrincipalId: string };
+      select: { id: true; clientId: true; status: true };
+    }): Promise<ToolClientRow[]>;
   };
   machineAccessGrant: {
     findUnique(args: {
@@ -285,7 +288,10 @@ export async function planGrant(
       { found: true, principalType: principal.principalType, status: principal.status }, null, null);
   }
 
-  const clients = await db.machineClient.findMany({ where: { machinePrincipalId: principal.id } });
+  const clients = await db.machineClient.findMany({
+    where: { machinePrincipalId: principal.id },
+    select: { id: true, clientId: true, status: true },
+  });
   const activeClients = clients.filter((client) => client.status === 'active');
   if (activeClients.length === 0) {
     return abortPlan(audience, 'NO_ACTIVE_CLIENT', principal,
@@ -399,7 +405,10 @@ export async function applyGrant(db: ProvisionGrantDatabase, input: ToolInput): 
       return { outcome: 'NOOP' as const, abortReason: null, resultingGrantVersion: 1, auditChangeId: null, ...base };
     }
 
-    const clients = await tx.machineClient.findMany({ where: { machinePrincipalId: FIXED_PRINCIPAL_ID } });
+    const clients = await tx.machineClient.findMany({
+    where: { machinePrincipalId: FIXED_PRINCIPAL_ID },
+    select: { id: true, clientId: true, status: true },
+  });
     const activeClients = clients.filter((entry) => entry.status === 'active');
     const target = activeClients[0] as ToolClientRow | undefined;
     if (activeClients.length !== 1 || !target || target.clientId !== input.suppliedClientId) {
