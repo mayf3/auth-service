@@ -1,5 +1,76 @@
 # Change Log
 
+## 1.8.0 — 2026-09-05
+
+- CCR: `AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V1` (accepted @
+  0359575dd1481aa5e6c294a495fbaabce97e40bf, acceptance BATCHED EXACT-HEAD
+  ACCEPTANCE = YES on 2026-09-05) — registered `agent-principal-resolution`
+  into the Minimal Auth V1 Audience Registry per CTR-EAPR-001 as the
+  machine-only OAuth registration for the exact active Agent Principal
+  relation read (`GET /api/v1/agent-principals/:principal_id/agent`,
+  CTR-EAPR-002..004). Implementation closure = the CTR-EAPR-006 allowed set
+  (wake CTR-AW-005 recipe isomorphic; scheduler/session-messaging NI closure
+  family).
+- Frozen entry (field-by-field, per CTR-EAPR-001):
+  `audience_id=agent-principal-resolution`, `resource_service=svc-auth`,
+  `scope_namespace=auth`, `accepted_principal_types=["agent"]`,
+  `human_access_enabled=false`, `machine_access_enabled=true`,
+  `delegated_access_enabled=false`,
+  `registered_scopes=["auth.agent.resolve"]`, `status=active`,
+  `freeze_ready=true`.
+- No wildcard/scope implication (CTR-EAPR-001): `auth.identity.provision`,
+  generic admin, scheduler, `agent.session.send` and `agent.wake` do not
+  satisfy `auth.agent.resolve`, or conversely; forbidden/unregistered set
+  exercised by negative fixtures (`auth.identity.provision`,
+  `agent.session.send`, invented `auth.agent.read`, `*`, `auth.*`, wrong
+  audience, cross-Audience Grant reuse via svc-auth, emptied Grant, extra
+  requested Scope, trailing-space / duplicate noncanonical wire, service /
+  human / delegated-OBO profiles).
+- Version judgment (CTR-EAPR-001): one additive minor advancement from the
+  implementation-time `registry_version` `1.7.0`; no accepted reserved minor
+  was pending → implementation value = `1.8.0`. Registry/manifest/fixtures
+  promoted in place 1.7.0 → 1.8.0; no in-place disguise.
+- Added ONE positive fixture `direct-agent-agent-principal-resolution` — a
+  machine-only `principal_type=agent` Direct Machine positive fixture (RS256 +
+  tracked fixture kid `fixture-key-v1-svc-okr-canary-20260719`,
+  iss=auth-service, aud=agent-principal-resolution,
+  agent_id=agent-principal-resolver,
+  client_id=agent-client-principal-resolution, scope=`auth.agent.resolve`,
+  exact requested-scope equality, grant subset `auth.agent.resolve`);
+  compact_jwt machine-verified against
+  `tests/fixtures/keys/svc-okr-canary-test-private.pem` with payload
+  byte-identical to claims.
+- Added 15 negative fail-closed cases (scheduler/NI family isomorphic plus
+  the resolution-specific foreign literals): wrong audience
+  `cross-agent-principal-resolution`, unregistered `auth.identity.provision`
+  (the svc-auth management scope must not carry over), foreign-namespace
+  `workflow.read`, cross-namespace `agent.session.send`, invented
+  `auth.agent.read`, `*` wildcard, `auth.*` namespace wildcard, emptied
+  Grant, extra requested Scope
+  (`auth.agent.resolve auth.identity.provision`), cross-Audience Grant reuse
+  (svc-workflow + workflow.read against this Audience's Grant-only fixture),
+  trailing-space and
+  duplicate noncanonical Scope wire, plus service / human / delegated-OBO
+  profile rejection — every case rejected whole with its exact expected error
+  code, no downscoping, no positive issuance in any negative phase.
+- `validate.mjs` first-wave Audience set literal extended with
+  `agent-principal-resolution` (8 → 9 entries; validator gate
+  `registry: first-wave Audience set changed`) — the single allowed validator
+  delta per CTR-EAPR-006 / CTR-AW-005(3) recipe.
+- Version linkage: `contract_version` / `registry_version` promoted
+  1.7.0 → 1.8.0 across manifest (incl. `audience_registry_version`), registry,
+  manifest schema const, freeze gates, consumer matrix, positive/negative
+  fixtures, schema instances, ADC scope map and llm-todo candidate; runtime
+  allowlist (`src/lib/oauth/v1/contract.ts`) and candidate loader allowlist +
+  the two version-expectation tests add/expect `1.8.0`
+  (`LIMITED_RUNTIME_COMPATIBILITY_CHANGE`, allowlist-only).
+- No Grant created, modified or enlarged by this source change; the future
+  HR read Grant `(HR clientId, agent-principal-resolution,
+  auth.agent.resolve)` is prepared only by the controlled
+  plan/apply/verify vehicle and stays gated by CTR-EAPR-007; no
+  Principal/Client/secret created; no production apply, deploy or database
+  change (`PRODUCTION_MUTATION = NONE`).
+
 ## 1.7.0 — 2026-09-03
 
 - CCR: `AUTH_SERVICE_SCHEDULER_AUDIENCE_CCR_V1` (accepted @

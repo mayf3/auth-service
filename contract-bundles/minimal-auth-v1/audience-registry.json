@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "registry_version": "1.7.0",
+  "registry_version": "1.8.0",
   "status": "frozen",
   "audiences": [
     {
@@ -106,6 +106,19 @@
       "status": "active",
       "freeze_ready": true,
       "notes": "Registered by AUTH_SERVICE_SCHEDULER_AUDIENCE_CCR_V1; machine-only agent access for cross-agent scheduler job mutation/control (scheduler.admin) and global/foreign execution history read (scheduler.audit), semantics frozen by accepted AGENT_CORE_SCHEDULER_RUN_HISTORY_V1 R8."
+    },
+    {
+      "audience_id": "agent-principal-resolution",
+      "resource_service": "svc-auth",
+      "scope_namespace": "auth",
+      "accepted_principal_types": ["agent"],
+      "human_access_enabled": false,
+      "machine_access_enabled": true,
+      "delegated_access_enabled": false,
+      "registered_scopes": ["auth.agent.resolve"],
+      "status": "active",
+      "freeze_ready": true,
+      "notes": "Exact active Agent Principal relation read under AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V1."
     }
   ]
 }
