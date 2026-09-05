@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.7.0",
+  "contract_version": "1.8.0",
   "cases": [
     {
       "name": "human-forbidden-scope",
@@ -601,6 +601,128 @@
         { "op": "set", "path": "/claims/scope", "value": "scheduler.admin scheduler.admin" }
       ],
       "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-apr-wrong-audience",
+      "base_fixture": "direct-agent-agent-principal-resolution",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "cross-agent-principal-resolution" }
+      ],
+      "expected_error": "UNKNOWN_AUDIENCE"
+    },
+    {
+      "name": "direct-apr-provisioning-scope-rejected",
+      "base_fixture": "direct-agent-agent-principal-resolution",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "auth.identity.provision" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-apr-foreign-namespace-scope-rejected",
+      "base_fixture": "direct-agent-agent-principal-resolution",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "workflow.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-apr-cross-namespace-agent-scope-rejected",
+      "base_fixture": "direct-agent-agent-principal-resolution",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "agent.session.send" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-apr-unregistered-auth-scope-rejected",
+      "base_fixture": "direct-agent-agent-principal-resolution",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "auth.agent.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-apr-wildcard-scope-rejected",
+      "base_fixture": "direct-agent-agent-principal-resolution",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "*" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-apr-namespace-wildcard-scope-rejected",
+      "base_fixture": "direct-agent-agent-principal-resolution",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "auth.*" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-apr-emptied-grant-rejected",
+      "base_fixture": "direct-agent-agent-principal-resolution",
+      "mutations": [
+        { "op": "set", "path": "/authorization_context/machine_access_grants/agent-principal-resolution", "value": [] }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "direct-apr-extra-requested-scope-rejected",
+      "base_fixture": "direct-agent-agent-principal-resolution",
+      "mutations": [
+        { "op": "set", "path": "/authorization_context/requested_scope", "value": "auth.agent.resolve auth.identity.provision" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-apr-cross-audience-grant-reuse",
+      "base_fixture": "direct-agent-agent-principal-resolution",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "svc-workflow" },
+        { "op": "set", "path": "/claims/scope", "value": "workflow.read" },
+        { "op": "set", "path": "/authorization_context/requested_scope", "value": "workflow.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "direct-apr-noncanonical-trailing-space",
+      "base_fixture": "direct-agent-agent-principal-resolution",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "auth.agent.resolve " }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-apr-duplicate-scope",
+      "base_fixture": "direct-agent-agent-principal-resolution",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "auth.agent.resolve auth.agent.resolve" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-apr-service-principal-rejected",
+      "base_fixture": "direct-service-notification-ingress",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "agent-principal-resolution" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "direct-apr-human-access-rejected",
+      "base_fixture": "human-svc-okr",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "agent-principal-resolution" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "direct-apr-obo-delegation-rejected",
+      "base_fixture": "obo-adc-v2-to-svc-workflow",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "agent-principal-resolution" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
     }
   ],
   "signature_cases": [
