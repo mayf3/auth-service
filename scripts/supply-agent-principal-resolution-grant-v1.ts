@@ -10,7 +10,8 @@
  *   PRODUCTION_MUTATION = NONE (this source change performs no database write)
  *
  * The sole initial intended recipient is the existing active AGENT Principal
- * bc970ced-710f-4479-9ff0-e295a1c59424 (CTR-EAPR-005). The tool never selects
+ * dc702687-6515-4a2a-91ae-e572a9bbd766 (AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V2
+ * CTR-EAPR-005). The tool never selects
  * a client by display name and never creates/rotates credentials or enumerates
  * secrets: the operator supplies the HR public Client ID obtained from the
  * fresh runtime census (CTR-HRG-001 precedent), and the tool verifies — from
@@ -48,7 +49,9 @@ const REPO_ROOT = fileURLToPath(new URL('../', import.meta.url));
 
 // ─── Frozen constants (CTR-EAPR-005) ────────────────────────────────────────
 
-export const FIXED_PRINCIPAL_ID = 'bc970ced-710f-4479-9ff0-e295a1c59424';
+export const FIXED_PRINCIPAL_ID = 'dc702687-6515-4a2a-91ae-e572a9bbd766';
+/** Legacy OpenClaw-era HR identity — MUST NOT be the read-grant recipient (AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V2 CTR-EAPR-005). */
+export const LEGACY_PRINCIPAL_ID = 'bc970ced-710f-4479-9ff0-e295a1c59424';
 export const AUDIENCE_ID = 'agent-principal-resolution';
 export const TARGET_SCOPE = 'auth.agent.resolve';
 export const MIGRATION_ID = 'agent-principal-resolution-grant-v1';
