@@ -12,6 +12,7 @@ import { oauthRouter } from './routes/oauth.js';
 import { oauthHumanRouter } from './routes/oauth-human.js';
 import { wellKnownRouter } from './routes/well-known.js';
 import { idempotentRouter } from './routes/idempotent.js';
+import { agentPrincipalRouter } from './routes/agent-principals.js';
 import { HttpError, OAuthHttpError } from './utils/http-error.js';
 import { prisma } from './lib/prisma.js';
 import { startCleanup } from './middleware/token-rotation.js';
@@ -130,6 +131,7 @@ app.use('/api/services', serviceRegistrationRouter);
 app.use('/api/users', usersRouter);
 app.use('/api/roles', rolesRouter);
 app.use('/api', idempotentRouter);
+app.use('/api', agentPrincipalRouter);
 
 // ─── Error Handler ──────────────────────────────────────────────────────
 
