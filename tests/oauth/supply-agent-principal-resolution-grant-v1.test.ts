@@ -14,6 +14,7 @@ import {
   APPLY_REASON,
   AUDIENCE_ID,
   FIXED_PRINCIPAL_ID,
+  LEGACY_PRINCIPAL_ID,
   MIGRATION_ID,
   TARGET_SCOPE,
   applyGrant,
@@ -37,7 +38,7 @@ function principalRow(overrides: Partial<ToolPrincipalRow> = {}): ToolPrincipalR
     id: FIXED_PRINCIPAL_ID,
     principalType: 'agent',
     status: 'active',
-    agentId: 'hr-agent',
+    agentId: 'agt_hr-agent',
     ...overrides,
   };
 }
@@ -414,4 +415,18 @@ test('no secret, token, hash, or credential value ever appears in plan or apply 
   for (const forbidden of ['secret', 'token', 'password', 'credential', 'private_key', 'clientsecret', 'secret_hash']) {
     assert.equal(serialized.includes(forbidden), false, forbidden);
   }
+});
+
+
+test('wrong-target: the legacy HR Principal is never selected as the read-grant recipient (V2 subject correction)', async () => {
+  // A database where ONLY the legacy Principal exists: the plan looks up the
+  // exact current business Principal UUID and must find nothing — the legacy
+  // row is never consulted and never receives the read Grant.
+  const legacyOnly = fixtureDatabase((state) => {
+    state.principal = { ...principalRow(), id: LEGACY_PRINCIPAL_ID, agentId: 'hr-agent' };
+  });
+  const legacyOnlyPlan = await planGrant(legacyOnly.db, toolInput());
+  assert.equal(legacyOnlyPlan.outcome, 'ABORT');
+  assert.equal(legacyOnlyPlan.abortReason, 'PRINCIPAL_NOT_FOUND');
+  assert.deepEqual(legacyOnly.writes, [], 'wrong-target abort performs zero writes');
 });
