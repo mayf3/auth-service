@@ -1,6 +1,6 @@
 ---
-spec_id: AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V1
-status: superseded
+spec_id: AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V2
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -11,33 +11,25 @@ scope:
 governed_by:
   - MINIMAL_AUTH_FOUNDATION_V2
 external_authorities: []
-supersedes: []
-superseded_by: AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V2
 accepted_date: 2026-09-05
 accepted_by: mayf3
-accepted_reviewed_spec_commit: 0359575dd1481aa5e6c294a495fbaabce97e40bf
+accepted_reviewed_spec_commit: 87beb7783d7e81bdf479cbb109c42cac86a9bfbf
 acceptance_review_verdict: PASS
-superseded_note: >-
-  Superseded 2026-09-05 by AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V2
-  (whole-Spec subject successor: HR read-grant recipient bc970ced… -> dc702687…
-  per Owner fresh identity fact). Its subject-generic resolution contracts remain
-  in force verbatim through V2; the legacy Principal is no longer the HR
-  read-grant recipient.
 acceptance_authority_basis: >-
   Owner BATCHED EXACT-HEAD ACCEPTANCE = YES on 2026-09-05 for the three
-  HR_DISPATCH_DELIVERY_READINESS_V1 authority candidates, binding this Spec at
-  reviewed semantic head 0359575dd1481aa5e6c294a495fbaabce97e40bf after one
-  independent first review (ACCEPT, BLOCKERS = 0, MERGE_READY = YES,
-  DOWNSTREAM_PIN_CONSISTENCY = PASS; review record 77750cd). Owner acceptance
-  ratifies production_apply_authority: conditional_controlled_operation per
-  review SPEC_GAP-3; the reviewed normative body is preserved byte-for-byte;
-  the three review SPEC_GAPs stay implementation-preflight obligations and are
-  not promoted to shipping blockers.
+  HR_DISPATCH_DELIVERY_READINESS_V1 subject-correction successors, binding
+  this V2 at reviewed semantic head
+  87beb7783d7e81bdf479cbb109c42cac86a9bfbf (independent review ACCEPT;
+  pushed verbatim and remote-verified before finalization). Acceptance is
+  atomic with V1 -> superseded (reciprocal backlink). Reviewed normative
+  body preserved byte-for-byte.
+supersedes: [AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V1]
+superseded_by: null
 owners:
   - mayf3
 ---
 
-# AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V1
+# AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V2
 
 ## 1. Goal and route
 
@@ -195,8 +187,11 @@ sanitized service access logging may record outcome, not tokens or secrets.
 
 ### CTR-EAPR-005 — HR read grant selection
 
-The sole initial intended recipient is existing active AGENT Principal
-`bc970ced-710f-4479-9ff0-e295a1c59424`. Fresh verify the runtime-owned HR credential
+The sole initial intended recipient is the current formal HR business AGENT
+Principal `dc702687-6515-4a2a-91ae-e572a9bbd766` (canonical agent_id
+`agt_hr-agent`). The legacy OpenClaw-era Principal
+`bc970ced-710f-4479-9ff0-e295a1c59424` (`hr-agent`) MUST NOT be selected as
+the recipient and MUST NOT receive this read Grant. Fresh verify the runtime-owned HR credential
 binding by its public Client ID and Auth's server-side client->Principal relation;
 select that exact active Client, requiring unique unambiguous agreement. Do not
 select by display name, create/rotate credentials, enumerate secrets, or choose
@@ -274,3 +269,18 @@ AUTHORING_DONE_WHEN = exact-head independent review ready
 IMPLEMENTATION_READY = NO
 PRODUCTION_READY = NO
 ```
+
+## 8. Supersession from V1
+
+Whole-Spec successor of accepted AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V1
+(reviewed head 0359575dd1481aa5e6c294a495fbaabce97e40bf). Sole semantic
+correction: the HR read-grant recipient changes from the legacy OpenClaw-era
+Principal `bc970ced-710f-4479-9ff0-e295a1c59424` to the current formal HR
+business identity Principal `dc702687-6515-4a2a-91ae-e572a9bbd766`
+(canonical agent_id `agt_hr-agent`), per the Owner's fresh identity fact of
+2026-09-05, with the legacy Principal now explicitly forbidden as recipient.
+Every other accepted Decision, Contract (registration entry, route, error
+taxonomy, lifecycle), and Acceptance mapping is preserved byte-semantically.
+The resolution Contracts themselves are subject-generic and unchanged.
+Acceptance is atomic: this V2 becomes accepted and V1 becomes superseded
+with the reciprocal backlink in the same acceptance transaction.

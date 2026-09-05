@@ -1,6 +1,6 @@
 ---
-spec_id: AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V1
-status: superseded
+spec_id: AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V2
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -8,23 +8,17 @@ production_apply_authority: none
 date: 2026-09-05
 accepted_date: 2026-09-05
 accepted_by: mayf3
-accepted_reviewed_spec_commit: 9b3b4bdb0016ec40bab2419bbf15dc886f40476f
+accepted_reviewed_spec_commit: 3a5e01ed9274445de77d63b6a0ece6861a843072
 acceptance_review_verdict: PASS
-superseded_note: >-
-  Superseded 2026-09-05 by AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V2 (whole-Spec
-  subject successor: HR business subject bc970ced…/hr-agent -> dc702687…/agt_hr-agent
-  per Owner fresh identity fact). Remains an existing bounded provisioning/admin
-  actor authority where already authorized; MUST NOT be used as the HR business-subject
-  send-supply authority.
 acceptance_authority_basis: >-
   Owner BATCHED EXACT-HEAD ACCEPTANCE = YES on 2026-09-05 for the three
-  HR_DISPATCH_DELIVERY_READINESS_V1 authority candidates, binding this Spec at
-  reviewed semantic head 9b3b4bdb0016ec40bab2419bbf15dc886f40476f after the
-  round-1 independent review (single reason blocker), one blocker-union fix,
-  and ONE exact-head re-audit (ACCEPT, BLOCKERS = 0, MERGE_READY = YES). The
-  acceptance transaction sets implementation_authority: contracts exactly as
-  authorized by section 3; the reviewed normative body is otherwise preserved
-  byte-for-byte.
+  HR_DISPATCH_DELIVERY_READINESS_V1 subject-correction successors, binding
+  this V2 at reviewed semantic head
+  3a5e01ed9274445de77d63b6a0ece6861a843072 (independent review ACCEPT;
+  pushed verbatim and remote-verified before finalization). The acceptance
+  transaction sets implementation_authority: contracts exactly as authorized
+  by section 3 and is atomic with V1 -> superseded (reciprocal backlink).
+  Reviewed normative body preserved byte-for-byte.
 scope:
   - mayf3/auth-service
   - one operational agent.session.send grant for exact HR Principal
@@ -36,17 +30,17 @@ external_authorities:
     authority_id: AGENT_CORE_AGENT_SESSION_MESSAGING_V1
     revision: 1912d582888455a049838f376759b62f295b341b
     relation: constrained_by
-supersedes: []
-superseded_by: AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V2
+supersedes: [AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V1]
+superseded_by: null
 owners: [mayf3]
 ---
 
-# AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V1
+# AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V2
 
 ## 1. Goal
 
-Enable the existing formal HR orchestration Principal
-`bc970ced-710f-4479-9ff0-e295a1c59424` to send task messages through the
+Enable the formal HR business orchestration Principal
+`dc702687-6515-4a2a-91ae-e572a9bbd766` to send task messages through the
 existing Agent Core `agent_session_send` capability. This authority owns only
 HR's minimal Auth Grant supply, not the whole Workflow autonomous loop.
 
@@ -143,8 +137,9 @@ required; no evidence exception is granted.
 DEC-HR-001 (Owner acceptance required): The exact existing HR Principal receives
 capability-level operational send authority. The selected client MUST be the
 unique active client mechanically bound to that Principal and to production
-Broker caller `hr-agent`. No name similarity, `agt_hr-agent` alias substitution,
-new client, rebind, or Owner selection among multiple clients is permitted.
+Broker caller `agt_hr-agent`. No name similarity, legacy `bc970ced-710f-4479-9ff0-e295a1c59424` (`hr-agent`)
+substitution, new client, rebind, or Owner selection among multiple clients is
+permitted.
 
 DEC-HR-002: Reuse the current send audience and semantics. This is a permanent
 operational Grant with an explicit failed-activation rollback, not a second
@@ -156,10 +151,13 @@ temporary canary Grant. No per-target authorization extension is introduced.
 
 Before preparing an apply transaction, the operator MUST perform read-only live
 census in the actual production Auth database and Broker credential binding.
-The Principal UUID MUST be exactly `bc970ced-710f-4479-9ff0-e295a1c59424`,
+The Principal UUID MUST be exactly `dc702687-6515-4a2a-91ae-e572a9bbd766`,
 principal_type `agent`, status active, disabled_at null, canonical agent_id
-`hr-agent`. Exactly one active client MUST exist for this Principal; its ID and
-UUID MUST match the credential entry used by actual Broker caller `hr-agent`.
+`agt_hr-agent`. The legacy Principal `bc970ced-710f-4479-9ff0-e295a1c59424`
+(`hr-agent`) MUST NOT be the subject of this operation and MUST NOT receive
+this Grant; its pre-existing provisioning/admin authorization is out of
+scope and unchanged. Exactly one active client MUST exist for this Principal; its ID and
+UUID MUST match the credential entry used by actual Broker caller `agt_hr-agent`.
 The census MUST bind those exact nonsecret IDs, audience row/version/registered
 scope, complete target Grant preimage and unrelated Grant digest to the reviewed
 runbook and a nonce. No credential value enters the runbook or evidence.
@@ -203,7 +201,7 @@ UTC time, environment, pre/post digests, audit ID, outcome and rollback status.
 Post-commit readback MUST prove exact row plus unchanged unrelated Grant digest
 and healthy Auth/runtime. Using the existing HR credential only in memory, token
 proof MUST verify success for resource `agent-session-messaging`, exact scope,
-sub=HR UUID, principal_type=agent, agent_id=hr-agent and exact bound client_id.
+sub=HR UUID, principal_type=agent, agent_id=agt_hr-agent and exact bound client_id.
 Wrong scope/alias/wildcard and one verified ungranted client MUST fail without
 token. This grant MUST cause no scheduler.admin, scheduler mutation, agent-wake,
 Agent administration, source credential propagation or target Grant. Tests MUST
@@ -287,3 +285,22 @@ binding and HR denial classification remain required operational evidence.
 No runtime proof is claimed. FOLLOW_UP_DEBT: target ACL enhancements and generic
 identity frameworks are excluded. NEXT: independent exact-head authority review;
 then one blocker union repair and one re-audit, before Owner acceptance.
+
+## 14. Supersession from V1
+
+Whole-Spec successor of accepted AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V1
+(reviewed head 9b3b4bdb0016ec40bab2419bbf15dc886f40476f). Sole semantic
+correction: the HR business security subject changes from the legacy
+OpenClaw-era Principal `bc970ced-710f-4479-9ff0-e295a1c59424` (canonical
+agent_id `hr-agent`) to the current formal HR business identity Principal
+`dc702687-6515-4a2a-91ae-e572a9bbd766` (canonical agent_id `agt_hr-agent`),
+per the Owner's fresh identity fact of 2026-09-05. V1's DEC-HR-001 alias
+clause inverted the two identities and is corrected accordingly. Every other
+accepted Decision, Contract, Acceptance mapping, and capability boundary is
+preserved byte-semantically: minimal agent_session_send authorization only;
+no scheduler.admin, no agent_wake, no cross-Agent Scheduler mutation, no
+credential impersonation, no source credential propagation, no broad Agent
+admin. V1 remains an existing bounded provisioning/admin actor authority
+where already authorized and is superseded only as the HR business send
+supply. Acceptance is atomic: this V2 becomes accepted and V1 becomes
+superseded with the reciprocal backlink in the same acceptance transaction.
