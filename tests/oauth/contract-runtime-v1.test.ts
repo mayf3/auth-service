@@ -29,7 +29,7 @@ test('v1 mode loads the frozen implementation-authorized snapshot', () => {
   resetAuthContractForTests();
   const identity = initializeAuthContract('v1');
   assert.equal(identity.mode, 'v1');
-  assert.equal(identity.contractVersion, '1.7.0');
+  assert.equal(identity.contractVersion, '1.8.0');
   assert.match(identity.sourceBundleDigest ?? '', /^[0-9a-f]{64}$/);
   assert.match(identity.runtimeDigest ?? '', /^[0-9a-f]{64}$/);
 });
