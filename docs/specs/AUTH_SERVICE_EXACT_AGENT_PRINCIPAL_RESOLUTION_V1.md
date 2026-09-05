@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V1
-status: accepted
+status: superseded
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -12,11 +12,17 @@ governed_by:
   - MINIMAL_AUTH_FOUNDATION_V2
 external_authorities: []
 supersedes: []
-superseded_by: null
+superseded_by: AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V2
 accepted_date: 2026-09-05
 accepted_by: mayf3
 accepted_reviewed_spec_commit: 0359575dd1481aa5e6c294a495fbaabce97e40bf
 acceptance_review_verdict: PASS
+superseded_note: >-
+  Superseded 2026-09-05 by AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V2
+  (whole-Spec subject successor: HR read-grant recipient bc970ced… -> dc702687…
+  per Owner fresh identity fact). Its subject-generic resolution contracts remain
+  in force verbatim through V2; the legacy Principal is no longer the HR
+  read-grant recipient.
 acceptance_authority_basis: >-
   Owner BATCHED EXACT-HEAD ACCEPTANCE = YES on 2026-09-05 for the three
   HR_DISPATCH_DELIVERY_READINESS_V1 authority candidates, binding this Spec at
