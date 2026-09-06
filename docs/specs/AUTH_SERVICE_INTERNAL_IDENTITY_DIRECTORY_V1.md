@@ -136,6 +136,11 @@ its sole-recipient grant law); the legacy /api/users directory (wrong store, exp
 profile data); unauthenticated mobile projection; generic IAM platform or second identity
 store; anonymous lookup; arbitrary-attribute search.
 
+Acceptance obligation: the acceptance transaction must atomically flip the predecessor
+AUTH_SERVICE_WORKFLOW_CANONICAL_ADMISSION_V1 to superseded_by this Spec's accepted head
+in the same docs-only change, and pin this Spec's exact reviewed head into any consuming
+authority's external_authorities revision field.
+
 STATUS=proposed; IMPLEMENTATION_ALLOWED_NOW=NO; PRODUCTION_READY=NO. This successor
 requires independent semantic review and exact-head Owner acceptance before any
 implementation continues under it. The superseded parent's never-provisioned objects
