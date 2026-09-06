@@ -193,16 +193,23 @@ function assertRowsArray(rows: unknown): asserts rows is Array<Record<string, un
 }
 
 /**
- * Resolve exactly one active AGENT relation for the exact principal UUID.
- * Both the forward and the reverse read share one read-only transaction
- * snapshot (Serializable). Database uniqueness is never trusted in place of
- * the fail-closed two-row bound.
+ * Shared exact-read core: one forward exact-UUID read with a two-row bound,
+ * one reverse exact-agentId read with a two-row bound, both inside one
+ * read-only Serializable transaction snapshot. Database uniqueness is never
+ * trusted in place of the fail-closed two-row bound.
+ *
+ * `mode` selects only the status branch of CTR-AID-003 vs CTR-EAPR-003:
+ * `active-only` (resolveAgentPrincipalById) rejects a non-active target with
+ * 409 PRINCIPAL_DISABLED; `directory` (resolveAgentPrincipalDirectory)
+ * returns the stored status as observable directory data instead. Every
+ * other error and query semantic is identical for both callers.
  */
-export async function resolveAgentPrincipalById(
+async function resolveExactAgentRelation(
   rawPrincipalId: string,
-  database: AgentPrincipalResolutionDatabase = defaultDatabase,
-  options: AgentPrincipalResolutionOptions = {},
-): Promise<AgentPrincipalResolution> {
+  database: AgentPrincipalResolutionDatabase,
+  options: AgentPrincipalResolutionOptions,
+  mode: 'active-only' | 'directory',
+): Promise<{ principalId: string; agentId: string; principalStatus: string }> {
   const principalId = parsePrincipalIdParam(rawPrincipalId);
   const timeoutMs = options.timeoutMs ?? AGENT_PRINCIPAL_RESOLUTION_DEFAULT_TIMEOUT_MS;
   try {
@@ -225,7 +232,7 @@ export async function resolveAgentPrincipalById(
           throw new TypeError('Agent principal resolution query returned a malformed exact-match row');
         }
         if (row.principalType !== 'agent') fail(422, 'PRINCIPAL_NOT_AGENT');
-        if (row.status !== 'active') fail(409, 'PRINCIPAL_DISABLED');
+        if (mode === 'active-only' && row.status !== 'active') fail(409, 'PRINCIPAL_DISABLED');
         if (typeof row.agentId !== 'string' || row.agentId.length === 0) {
           fail(409, 'AGENT_MAPPING_MISSING');
         }
@@ -241,11 +248,55 @@ export async function resolveAgentPrincipalById(
           fail(409, 'IDENTITY_RESOLUTION_AMBIGUOUS');
         }
 
-        return { principalId, agentId };
+        return { principalId, agentId, principalStatus: row.status as string };
       }, { isolationLevel: 'Serializable' }),
       timeoutMs,
     );
   } catch (error) {
     throw toAgentPrincipalResolutionError(error);
   }
+}
+
+/**
+ * Resolve exactly one active AGENT relation for the exact principal UUID
+ * (CTR-EAPR-003 / CTR-EAPR-004).
+ */
+export async function resolveAgentPrincipalById(
+  rawPrincipalId: string,
+  database: AgentPrincipalResolutionDatabase = defaultDatabase,
+  options: AgentPrincipalResolutionOptions = {},
+): Promise<AgentPrincipalResolution> {
+  const row = await resolveExactAgentRelation(rawPrincipalId, database, options, 'active-only');
+  return { principalId: row.principalId, agentId: row.agentId };
+}
+
+export type AgentPrincipalDirectoryStatus = 'active' | 'disabled';
+
+/** Success body of the internal identity-directory read (CTR-AID-003). */
+export interface AgentPrincipalDirectoryResolution {
+  principalId: string;
+  agentId: string;
+  principalStatus: AgentPrincipalDirectoryStatus;
+}
+
+/**
+ * Resolve the exact Principal→canonical-Agent relation for the exact
+ * principal UUID as minimal directory data (CTR-AID-003 of
+ * AUTH_SERVICE_INTERNAL_IDENTITY_DIRECTORY_V1). Reuses the exact-read core of
+ * resolveAgentPrincipalById unchanged; the only difference is the status
+ * branch: a disabled target is 200 data with principalStatus='disabled'
+ * (directory semantics — consumers reject non-active themselves), never a
+ * 409. All other error semantics are identical.
+ */
+export async function resolveAgentPrincipalDirectory(
+  rawPrincipalId: string,
+  database: AgentPrincipalResolutionDatabase = defaultDatabase,
+  options: AgentPrincipalResolutionOptions = {},
+): Promise<AgentPrincipalDirectoryResolution> {
+  const row = await resolveExactAgentRelation(rawPrincipalId, database, options, 'directory');
+  return {
+    principalId: row.principalId,
+    agentId: row.agentId,
+    principalStatus: row.principalStatus === 'active' ? 'active' : 'disabled',
+  };
 }

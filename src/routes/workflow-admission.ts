@@ -6,23 +6,23 @@ import {
 } from '../middleware/v1-workflow-admission-auth.js';
 import {
   AgentPrincipalResolutionError, assertNoQueryOrBody, parsePrincipalIdParam,
-  resolveAgentPrincipalById, toAgentPrincipalResolutionError,
+  resolveAgentPrincipalDirectory, toAgentPrincipalResolutionError,
 } from '../lib/oauth/v1/agent-principal-resolution.js';
 
 interface Dependencies {
   authenticate: (req: Request) => Promise<void>;
-  resolve: typeof resolveAgentPrincipalById;
+  resolve: typeof resolveAgentPrincipalDirectory;
   timeoutMs: number;
 }
 
 export function createWorkflowAdmissionRouter(overrides: Partial<Dependencies> = {}): Router {
   const deps: Dependencies = {
-    authenticate: authenticateWorkflowAdmission, resolve: resolveAgentPrincipalById,
+    authenticate: authenticateWorkflowAdmission, resolve: resolveAgentPrincipalDirectory,
     timeoutMs: 5000, ...overrides,
   };
   if (!(deps.timeoutMs > 0 && deps.timeoutMs <= 5000)) throw new Error('Invalid admission deadline');
   const router = Router();
-  router.get('/v1/workflow-admission/principals/:principal_id/agent', asyncHandler(async (req, res) => {
+  router.get('/v1/directory/principals/:principal_id/agent', asyncHandler(async (req, res) => {
     res.setHeader('Cache-Control', 'no-store');
     const deadline = performance.now() + deps.timeoutMs;
     const timeout = () => new AgentPrincipalResolutionError(504, 'IDENTITY_RESOLUTION_TIMEOUT');
