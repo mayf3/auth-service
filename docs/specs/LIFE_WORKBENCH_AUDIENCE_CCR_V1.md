@@ -77,11 +77,15 @@ child authority.
 ### DEC-LWACCR-002 — Append-only registry delta with digest pin
 The 1.9.0 candidate file is frozen at
 `docs/auth-pilot/candidates/audience-registry-1.9.0-candidate.json`
-(personal-cognition-audit workbench, head `7756c08…` lineage). Its
-nine-entry prefix MUST be byte-identical to deployed 1.8.0
-(`registry_version` and the appended entry are the only diffs). The exact
-`sha256` of the candidate file is bound at implementation-PR time into the
-reconcile script's fail-closed digest check.
+(personal-cognition-audit workbench, head lineage up to `a0bad7d…`;
+sha256 `7ba4b2a43b21fe168d4ce8bfb90dd8797e2661f8bf6713f1dc5c0b4240c028f1`,
+generated textually from the deployed github/main 1.8.0 file). The nine
+existing entries are byte-unchanged: the only byte deltas versus deployed
+1.8.0 are the `registry_version` value, the comma after the previously-last
+entry (JSON array-append syntax), and the appended entry itself. The
+implementation PR MUST re-verify this prefix property against the then-deployed
+bytes and bind the then-current candidate sha256 into the reconcile script's
+fail-closed digest check.
 
 ### DEC-LWACCR-003 — Fail-closed issuance follows from existing machinery
 Before registration, `POST /oauth/token` for resource=life-workbench fails
@@ -90,12 +94,26 @@ and before any Grant, it fails with `machine_grant_missing`; registry drift
 fails `audience_registry_mismatch`. No verifier or consumer change is
 authorized by this Spec.
 
-## 4. Implementation closure (CTR-LW-001, exactly three files)
+### DEC-LWACCR-004 — Version occupation avoidance (decided at implementation time)
+The `1.9.0` target is a candidate, not a reservation. A known sibling
+implementation (`codex/workflow-canonical-admission` @ `fa209b4`, not merged
+at authoring time) also advances the registry to `1.9.0` with two
+workflow-admission audiences. The final registry version is decided at the
+implementation PR time point: if `1.9.0` is then occupied or reserved by an
+accepted/merged sibling, this CCR's delta slides to the next unoccupied minor
+version with UNCHANGED semantics — "then-deployed file bytes, append-only,
+exactly one appended entry (this §1 entry), registry_version incremented" —
+and the candidate file is regenerated under the same textual rule with a
+freshly pinned sha256. Under no circumstance may this CCR merge a registry
+that drops, reorders, or edits another authority's appended entries.
+
+## 4. Implementation closure (CTR-LW-001, exactly three tracked files)
 
 1. `contract-bundles/minimal-auth-v1/audience-registry.json` — the 1.9.0
-   delta per §1 (candidate bytes pinned per DEC-LWACCR-002); plus the
-   regenerated `generated/minimal-auth-v1/runtime-contract.json` snapshot
-   (digest-verified loader, existing tooling).
+   delta per §1 (candidate bytes pinned per DEC-LWACCR-002); the regenerated
+   `generated/minimal-auth-v1/runtime-contract.json` snapshot is a gitignored
+   build artifact produced by existing tooling and is NOT counted as a
+   closure file.
 2. `scripts/reconcile-life-workbench-audience-registry-v1.ts` — offline,
    single-row `INSERT OR NOOP` reconcile in one Serializable transaction
    with an `auth_security_audits` record; Metadata requires
