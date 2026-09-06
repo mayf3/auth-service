@@ -2,10 +2,8 @@ import type { Request } from 'express';
 import { prisma } from '../lib/prisma.js';
 import { verifyV1DirectMachineToken } from '../lib/oauth/v1/signer.js';
 
-export const WORKFLOW_ADMISSION_PRINCIPAL = 'cedb954a-3d99-4e5a-b568-d312441bcc56';
-export const WORKFLOW_ADMISSION_CLIENT = 'svc-workflow-canonical-admission-v1';
-export const WORKFLOW_ADMISSION_AUDIENCE = 'workflow-principal-admission';
-export const WORKFLOW_ADMISSION_SCOPE = 'auth.agent.admission.read';
+export const WORKFLOW_ADMISSION_AUDIENCE = 'identity-directory';
+export const WORKFLOW_ADMISSION_SCOPE = 'auth.directory.read';
 
 export class WorkflowAdmissionAuthError extends Error {
   constructor(public readonly status: 401 | 403, public readonly code: string) {
@@ -15,6 +13,9 @@ export class WorkflowAdmissionAuthError extends Error {
 
 // Invoked inside the route's whole-operation deadline, before any target read.
 // Only the existing V1 verifier interprets JWTs; no second token protocol.
+// Any currently-active canonical internal AGENT or SERVICE principal may call
+// the directory (CTR-AID-002): no single-caller pin, no client pin, no
+// caller-agentId requirement.
 export async function authenticateWorkflowAdmission(req: Request): Promise<void> {
   const header = req.header('authorization');
   const token = header?.startsWith('Bearer ') ? header.slice(7) : '';
@@ -25,9 +26,7 @@ export async function authenticateWorkflowAdmission(req: Request): Promise<void>
   } catch {
     throw new WorkflowAdmissionAuthError(401, 'UNAUTHORIZED');
   }
-  if (claims.principal_type !== 'service'
-    || claims.sub !== WORKFLOW_ADMISSION_PRINCIPAL
-    || claims.client_id !== WORKFLOW_ADMISSION_CLIENT
+  if ((claims.principal_type !== 'agent' && claims.principal_type !== 'service')
     || claims.scope !== WORKFLOW_ADMISSION_SCOPE) {
     throw new WorkflowAdmissionAuthError(403, 'ACCESS_DENIED');
   }
@@ -46,7 +45,7 @@ export async function authenticateWorkflowAdmission(req: Request): Promise<void>
     throw new WorkflowAdmissionAuthError(401, 'UNAUTHORIZED');
   }
   if (principal.status !== 'active' || client.status !== 'active'
-    || principal.principalType !== 'service' || principal.agentId !== null) {
+    || (principal.principalType !== 'agent' && principal.principalType !== 'service')) {
     throw new WorkflowAdmissionAuthError(403, 'ACCESS_DENIED');
   }
 }
