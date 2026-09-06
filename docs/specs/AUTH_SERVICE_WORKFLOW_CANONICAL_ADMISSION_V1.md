@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_WORKFLOW_CANONICAL_ADMISSION_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -13,6 +13,12 @@ external_authorities: []
 supersedes: []
 superseded_by: null
 owners: [mayf3]
+accepted_by: mayf3
+accepted_date: 2026-09-06
+accepted_reviewed_spec_commit: 2af21f87769af50b1c38abcd19655bb28c023e9a
+acceptance_review_verdict: PASS
+acceptance_record: docs/reports/WORKFLOW_CANONICAL_IDENTITY_AUTHORITY_ACCEPTANCE_V1.md
+owner_acceptance_attachment_sha256: 0899cec0aa54725fedc3f130a686fb6331728ac0f8bb09d3bfce5b8139cd822b
 ---
 
 # AUTH_SERVICE_WORKFLOW_CANONICAL_ADMISSION_V1
