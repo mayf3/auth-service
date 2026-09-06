@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "registry_version": "1.10.0",
+  "registry_version": "1.11.0",
   "status": "frozen",
   "audiences": [
     {
@@ -145,6 +145,19 @@
       "status": "active",
       "freeze_ready": true,
       "notes": "Registered by AUTH_SERVICE_INTERNAL_IDENTITY_DIRECTORY_V1; generic machine-only agent/service access for tokens consumed by the agent-core successor Spec (registration only; Auth does not implement that endpoint)."
+    },
+    {
+      "audience_id": "life-workbench",
+      "resource_service": "life-workbench",
+      "scope_namespace": "workbench",
+      "accepted_principal_types": ["agent"],
+      "human_access_enabled": false,
+      "machine_access_enabled": true,
+      "delegated_access_enabled": false,
+      "registered_scopes": ["workbench.propose", "workbench.read"],
+      "status": "active",
+      "freeze_ready": true,
+      "notes": "Registered by LIFE_WORKBENCH_AUDIENCE_CCR_V1 (accepted); machine-only agent access for the local Life Workbench pilot (read/propose); owner review capabilities stay in the UI and are never agent-granted."
     }
   ]
 }
