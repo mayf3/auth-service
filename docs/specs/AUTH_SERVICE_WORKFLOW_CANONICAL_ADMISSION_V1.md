@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_WORKFLOW_CANONICAL_ADMISSION_V1
-status: accepted
+status: superseded
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -11,7 +11,7 @@ scope:
 governed_by: [MINIMAL_AUTH_FOUNDATION_V2]
 external_authorities: []
 supersedes: []
-superseded_by: null
+superseded_by: AUTH_SERVICE_INTERNAL_IDENTITY_DIRECTORY_V1
 owners: [mayf3]
 accepted_by: mayf3
 accepted_date: 2026-09-06

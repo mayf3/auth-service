@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_INTERNAL_IDENTITY_DIRECTORY_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -14,6 +14,11 @@ supersedes:
   - AUTH_SERVICE_WORKFLOW_CANONICAL_ADMISSION_V1
 superseded_by: null
 owners: [mayf3]
+accepted_by: mayf3
+accepted_date: 2026-09-06
+accepted_reviewed_spec_commit: f2b7d4c91ad657464816108062145ae95c21d686
+acceptance_review_verdict: PASS
+acceptance_record: docs/reports/INTERNAL_IDENTITY_DIRECTORY_ACCEPTANCE_V1.md
 ---
 
 # AUTH_SERVICE_INTERNAL_IDENTITY_DIRECTORY_V1
