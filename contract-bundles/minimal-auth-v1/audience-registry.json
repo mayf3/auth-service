@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "registry_version": "1.9.0",
+  "registry_version": "1.10.0",
   "status": "frozen",
   "audiences": [
     {
@@ -121,38 +121,30 @@
       "notes": "Exact active Agent Principal relation read under AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V1."
     },
     {
-      "audience_id": "workflow-principal-admission",
+      "audience_id": "identity-directory",
       "resource_service": "svc-auth",
       "scope_namespace": "auth",
-      "accepted_principal_types": [
-        "service"
-      ],
+      "accepted_principal_types": ["agent", "service"],
       "human_access_enabled": false,
       "machine_access_enabled": true,
       "delegated_access_enabled": false,
-      "registered_scopes": [
-        "auth.agent.admission.read"
-      ],
+      "registered_scopes": ["auth.directory.read"],
       "status": "active",
       "freeze_ready": true,
-      "notes": "Dedicated Workflow admission read under AUTH_SERVICE_WORKFLOW_CANONICAL_ADMISSION_V1."
+      "notes": "Registered by AUTH_SERVICE_INTERNAL_IDENTITY_DIRECTORY_V1; generic machine-only agent/service access for the minimal internal canonical identity directory read GET /api/v1/directory/principals/:principal_id/agent, replacing the retired workflow-admission pair."
     },
     {
-      "audience_id": "workflow-agent-admission",
+      "audience_id": "agent-directory",
       "resource_service": "agent-core",
       "scope_namespace": "agent",
-      "accepted_principal_types": [
-        "service"
-      ],
+      "accepted_principal_types": ["agent", "service"],
       "human_access_enabled": false,
       "machine_access_enabled": true,
       "delegated_access_enabled": false,
-      "registered_scopes": [
-        "agent.definition.admission.read"
-      ],
+      "registered_scopes": ["agent.directory.read"],
       "status": "active",
       "freeze_ready": true,
-      "notes": "Dedicated Workflow admission read under AUTH_SERVICE_WORKFLOW_CANONICAL_ADMISSION_V1."
+      "notes": "Registered by AUTH_SERVICE_INTERNAL_IDENTITY_DIRECTORY_V1; generic machine-only agent/service access for tokens consumed by the agent-core successor Spec (registration only; Auth does not implement that endpoint)."
     }
   ]
 }
