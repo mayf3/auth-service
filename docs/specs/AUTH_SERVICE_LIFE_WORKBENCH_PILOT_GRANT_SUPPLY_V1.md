@@ -1,11 +1,19 @@
 ---
 spec_id: AUTH_SERVICE_LIFE_WORKBENCH_PILOT_GRANT_SUPPLY_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
 production_apply_authority: none
 date: 2026-09-06
+accepted_date: 2026-09-06
+accepted_by: mayf3
+accepted_reviewed_base: ab9e70989bb0c03203f5f73ca794fc94804fcc99
+accepted_reviewed_spec_commit: 97166459e66c2a90a532db96908d432a7cb0a63a
+acceptance_review_verdict: PASS
+acceptance_time_utc: 2026-09-06T23:29:39Z
+acceptance_ref: OWNER-LIFE-WORKBENCH-PILOT-20260907-01
+semantic_delta_after_review: NONE
 scope:
   - mayf3/auth-service
   - Life Workbench two-Client pilot MachineAccessGrant supply/revoke authority
