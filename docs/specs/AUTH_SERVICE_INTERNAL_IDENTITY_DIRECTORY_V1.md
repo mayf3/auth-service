@@ -56,7 +56,11 @@ through the existing accepted version/digest linkage mechanism:
 | agent-directory | agent-core | agent | agent.directory.read | agent, service |
 
 Both accept machine access true, human/delegated access false, status active and
-freeze_ready true. No scope implies another. Existing audience entries, issuer, signer,
+freeze_ready true. No scope implies another. The retired Workflow-specific registrations
+(workflow-principal-admission, workflow-agent-admission, scope auth.agent.admission.read,
+scope agent.definition.admission.read) and the dedicated Workflow admission identity
+(principal cedb954a-3d99-4e5a-b568-d312441bcc56, client svc-workflow-canonical-admission-v1)
+MUST NOT be provisioned or re-introduced. Existing audience entries, issuer, signer,
 claims and profiles retain their contracts. Reserve one additive bundle minor version
 against the fresh implementation base; update only required linked digest/version
 validators and fixtures. The `agent-directory` entry registers tokens consumed by the
@@ -71,8 +75,16 @@ scope `auth.directory.read`, and a fresh read of caller Principal and Client sta
 requiring both active and the client exactly bound to the signed sub. No single-caller
 pin, no per-consumer identity special-casing, no delegated/proxy profile, no human
 token. Obtaining a token still requires an existing governed MachineAccessGrant for the
-audience (unchanged issuance law); grants are shared generic tuples, not per-purpose
-pairs. Invalid authentication = 401 UNAUTHORIZED; otherwise-valid caller missing the
+audience (unchanged issuance law); that grant represents ONE centrally governed baseline
+directory-read entitlement applied through the normal canonical identity
+provisioning/activation machinery — never a per-purpose pair.
+
+DIRECTORY_READ_ELIGIBLE_CALLERS = all ACTIVE authenticated canonical internal AGENT
+Principals and SERVICE Principals. The minimal canonical identity-directory read is a
+BASELINE INTERNAL DIRECTORY CAPABILITY: consumers MUST NOT create their own lookup
+Principal, lookup Client, consumer-specific directory audience, or consumer-specific
+directory Grant policy to obtain it, and no per-consumer directory grant decision is
+required (PER_CONSUMER_DIRECTORY_GRANT_DECISION_REQUIRED = NO). Invalid authentication = 401 UNAUTHORIZED; otherwise-valid caller missing the
 required scope = 403 ACCESS_DENIED before any target read.
 
 ### CTR-AID-003 — Exact directory route
