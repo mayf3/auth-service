@@ -77,7 +77,7 @@ child authority.
 ### DEC-LWACCR-002 — Append-only registry delta with digest pin
 The 1.9.0 candidate file is frozen at
 `docs/auth-pilot/candidates/audience-registry-1.9.0-candidate.json`
-(personal-cognition-audit workbench, head lineage up to `a0bad7d…`;
+(personal-cognition-audit workbench, head lineage up to `af7ee72…`;
 sha256 `7ba4b2a43b21fe168d4ce8bfb90dd8797e2661f8bf6713f1dc5c0b4240c028f1`,
 generated textually from the deployed github/main 1.8.0 file). The nine
 existing entries are byte-unchanged: the only byte deltas versus deployed
@@ -132,7 +132,10 @@ The ONLY rollback end-state of the audience registration is:
 
 ```text
 audience row  : status = 'disabled'   (row retained; never DELETE)
-registry bytes: reverted to the deployed 1.8.0 file
+registry bytes: reverted to the then-deployed file bytes as they stood
+                immediately before this CCR's registration (1.8.0 today;
+                per DEC-LWACCR-004 if the version slid, revert to that
+                pre-registration state, never through sibling entries)
 issuance      : life-workbench requests fail closed again
 ```
 
