@@ -76,7 +76,7 @@ broader-fleet or all-Agent rollout; production apply.
   (changeType='create'); NOOP rerun writes no audit row. Revoke = ROW DELETE
   (machine_access_grants has no effective soft-delete: the production column
   is schema drift invisible to Prisma and to V1 issuance) with the full
-  removed row in before_value (changeType='revoke', resulting version 0).
+  removed row in before_value (changeType='revoke', resulting version = the revoked row own version (production CHECK grant_change_audits_version_check requires >= 1)).
 - Conflict (existing grant differs from the frozen plan) = fail-closed abort.
 - Operators authenticate via the authsvc operator path (DATABASE_URL from the
   trusted .env); OPERATOR_ID / APPROVAL_REF / SOURCE_GIT_COMMIT are mandatory
