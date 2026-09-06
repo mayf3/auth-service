@@ -266,7 +266,7 @@ async function seed(options: SeedOptions = {}): Promise<void> {
   }
 }
 
-function canonicalPlan(kind: 'APPLY' | 'EXACT_RERUN_NOOP') {
+function canonicalPlan(kind: 'APPLY' | 'EXACT_RERUN_NOOP', audiencePreSynced = false) {
   const noop = kind === 'EXACT_RERUN_NOOP';
   const document = {
     plan_version: 'AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1_PLAN_1',
@@ -276,13 +276,13 @@ function canonicalPlan(kind: 'APPLY' | 'EXACT_RERUN_NOOP') {
     client_external_ref: CLIENT_EXTERNAL_REF,
     client_id: TARGET_PUBLIC,
     audience: 'svc-forum',
-    expected_audience_scopes: noop ? TARGET : SOURCE,
+    expected_audience_scopes: noop || audiencePreSynced ? TARGET : SOURCE,
     target_audience_scopes: TARGET,
     expected_grant_version: noop ? 2 : 1,
     expected_grant_scopes: noop ? TARGET : SOURCE,
     target_grant_version: 2,
     target_grant_scopes: TARGET,
-    operation: noop ? 'NONE' : 'UPDATE_AUDIENCE_AND_GRANT',
+    operation: noop ? 'NONE' : audiencePreSynced ? 'UPDATE_GRANT_ONLY' : 'UPDATE_AUDIENCE_AND_GRANT',
   };
   const canonical = JSON.stringify(canonicalJson(document));
   return { canonical, digest: createHash('sha256').update(Buffer.from(canonical)).digest('hex'), document };
@@ -403,7 +403,7 @@ await test('static boundary pins Serializable lock/order, guarded updates, and s
   assert.doesNotMatch(source, /select:\s*\{[^}]*allowedScopes/s);
 });
 
-await test('Bundle 1.7.0 freezes exact moderator fixture polarity and forbidden negatives', () => {
+await test('Bundle registry freezes exact moderator fixture polarity and forbidden negatives', () => {
   const registry = JSON.parse(readFileSync(path.join(ROOT, 'contract-bundles/minimal-auth-v1/audience-registry.json'), 'utf8'));
   const positives = JSON.parse(readFileSync(path.join(ROOT, 'contract-bundles/minimal-auth-v1/fixtures/positive-token-fixtures.json'), 'utf8'));
   const negatives = JSON.parse(readFileSync(path.join(ROOT, 'contract-bundles/minimal-auth-v1/fixtures/negative-token-fixtures.json'), 'utf8'));
@@ -422,7 +422,7 @@ await test('Bundle 1.7.0 freezes exact moderator fixture polarity and forbidden 
     'direct-svc-forum-namespace-wildcard-scope-rejected']) assert.equal(names.has(name), true, name);
 });
 
-await test('planning refuses a tampered or non-1.5 runtime Bundle before DB writes', async () => {
+await test('planning refuses a tampered or non-target runtime Bundle before DB writes', async () => {
   await seed();
   const before = await stateSnapshot();
   const runtimePath = path.join(ROOT, 'generated/minimal-auth-v1/runtime-contract.json');
@@ -435,7 +435,7 @@ await test('planning refuses a tampered or non-1.5 runtime Bundle before DB writ
   try {
     const result = await invokeArgs([], superuserUrl);
     assert.equal(result.code, 1);
-    assert.match(result.stderr, /integrity-invalid|digest mismatch|must be exactly 1\.5\.0/);
+    assert.match(result.stderr, /integrity-invalid|digest mismatch|must be exactly 1\.8\.0/);
     assert.deepEqual(await stateSnapshot(), before);
   } finally {
     writeFileSync(runtimePath, original);
@@ -596,6 +596,66 @@ await test('source to target succeeds atomically with exact audit and byte-stabl
   assert.match(verify.stdout, /FMG_VERIFY_STATE=PASS/);
 });
 
+await test('redeploy prestate (Audience@target, Grant@source) plans Grant-only APPLY with a distinct digest and zero writes', async () => {
+  await seed({ audienceScopes: TARGET });
+  const before = await stateSnapshot();
+  const result = await invokeArgs([], superuserUrl);
+  assert.equal(result.code, 0, result.stderr);
+  const parsed = parsePlanOutput(result.stdout);
+  const expected = canonicalPlan('APPLY', true);
+  assert.equal(parsed.canonical, expected.canonical);
+  assert.equal(parsed.digest, expected.digest);
+  assert.equal(parsed.classification, 'APPLY');
+  assert.notEqual(parsed.digest, canonicalPlan('APPLY').digest, 'Grant-only APPLY digest is distinct from both-rows APPLY');
+  assert.notEqual(parsed.digest, canonicalPlan('EXACT_RERUN_NOOP').digest);
+  assert.match(result.stdout, /PLAN_OPERATION=UPDATE_GRANT_ONLY/);
+  assert.match(result.stdout, /PLAN_WRITES=0/);
+  assert.deepEqual(await stateSnapshot(), before, 'plan is read-only');
+});
+
+await test('Grant-only conformance apply writes Grant+audit only, then exact NOOP and verify-state PASS', async () => {
+  await seed({ audienceScopes: TARGET });
+  const audienceBefore = await prisma.authAudience.findUniqueOrThrow({ where: { audienceId: 'svc-forum' } });
+  const invariantDigest = await currentInvariantDigest();
+  const grantOnly = canonicalPlan('APPLY', true);
+  const result = await invokeConformance({ ...descriptor, plan_sha256: grantOnly.digest });
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /"outcome":"replace"/);
+  assert.match(result.stdout, /"audience_rows_updated":0/);
+  assert.match(result.stdout, /"grant_rows_updated":1/);
+  assert.match(result.stdout, /"audits_created":1/);
+
+  const audienceAfter = await prisma.authAudience.findUniqueOrThrow({ where: { audienceId: 'svc-forum' } });
+  assert.deepEqual(audienceAfter, audienceBefore, 'the pre-synced Audience row is byte-identical (untouched)');
+
+  const targetForum = await prisma.machineAccessGrant.findUniqueOrThrow({
+    where: { machineClientId_audienceId: { machineClientId: TARGET_CLIENT_INTERNAL, audienceId: 'svc-forum' } },
+  });
+  assert.deepEqual(targetForum.scopes, TARGET);
+  assert.equal(targetForum.version, 2);
+
+  const audits = await prisma.grantChangeAudit.findMany({
+    where: { migrationId: 'forum-moderator-grant-supply-v1', clientId: TARGET_PUBLIC },
+  });
+  assert.equal(audits.length, 1);
+  assert.equal(audits[0].reason, `forum_moderator_grant_supply_v1 plan_sha256=${grantOnly.digest}`);
+  assert.deepEqual(audits[0].beforeValue, expectedSnapshot(SOURCE, 1));
+  assert.deepEqual(audits[0].afterValue, expectedSnapshot(TARGET, 2));
+
+  const rerun = await invokeConformance({ ...descriptor, plan_sha256: canonicalPlan('EXACT_RERUN_NOOP').digest });
+  assert.equal(rerun.code, 0, rerun.stderr);
+  assert.match(rerun.stdout, /"outcome":"noop"/);
+  assert.match(rerun.stdout, /"audience_rows_updated":0/);
+  assert.match(rerun.stdout, /"grant_rows_updated":0/);
+  assert.match(rerun.stdout, /"audits_created":0/);
+
+  const verify = await invokeArgs([
+    '--verify-state', '--expected-invariant-sha256', invariantDigest,
+  ], superuserUrl);
+  assert.equal(verify.code, 0, verify.stderr);
+  assert.match(verify.stdout, /FMG_VERIFY_STATE=PASS/);
+});
+
 await test('exact target plan and apply are deterministic NOOP with a digest distinct from APPLY', async () => {
   await seed();
   assert.equal((await invokeConformance()).code, 0);
@@ -637,7 +697,6 @@ await test('exact target NOOP permits a fresh authorized operator without rewrit
 });
 
 for (const scenario of [
-  { name: 'Audience target with source Grant', options: { audienceScopes: TARGET } },
   { name: 'Grant target with source Audience', options: { grantScopes: TARGET, grantVersion: 2 } },
   { name: 'wrong source Grant version', options: { grantVersion: 9 } },
   { name: 'extra target Grant scope', options: { grantScopes: [...SOURCE, 'forum.admin'] } },
@@ -728,7 +787,7 @@ await test('production --apply refuses a valid authorization before any database
     schema_version: 1,
     authorization_kind: 'forum_moderator_grant_supply_v1_production_apply',
     implementation_commit: 'a'.repeat(40),
-    bundle_version: '1.7.0',
+    bundle_version: '1.8.0',
     bundle_digest: 'b'.repeat(64),
     plan_sha256: canonicalPlan('APPLY').digest,
     prestate_digest: 'c'.repeat(64),
@@ -753,7 +812,7 @@ await test('verify-mint requires its own authorization and refuses before creden
     schema_version: 1,
     authorization_kind: 'forum_moderator_grant_supply_v1_verify_mint',
     implementation_commit: 'a'.repeat(40),
-    bundle_version: '1.7.0',
+    bundle_version: '1.8.0',
     operator_id: 'verification-operator',
     approval_ref: 'https://github.com/mayf3/auth-service/issues/1#apply',
     verification_authorization_ref: 'https://github.com/mayf3/auth-service/issues/1#verify-mint',

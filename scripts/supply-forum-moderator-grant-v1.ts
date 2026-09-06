@@ -14,7 +14,9 @@ import { verifyRuntimeSnapshot } from '../src/lib/oauth/v1/contract.js';
 // registered_scopes and the exact Client's Grant 1 -> 2 plus the closed
 // 13-field grant_change_audits envelope (CTR-FMG-004/007/010); exact rerun is
 // NOOP and every drifted pre-state conflicts with zero writes
-// (CTR-FMG-008/009). PRODUCTION_APPLY_AUTHORITY = none: `--apply` refuses
+// (CTR-FMG-008/009; CTR-FMG-008 as amended: the Bundle-redeploy
+// Audience-pre-synced prestate is the one legal APPLY addition, see
+// AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_BUNDLE_RETARGET_V1). PRODUCTION_APPLY_AUTHORITY = none: `--apply` refuses
 // before any database connection (CTR-FMG-016). The legacy OpenClaw mc_oc_*
 // Client family is never queried, resolved, or mutated (CTR-FMG-013).
 
@@ -31,6 +33,7 @@ type Metadata = {
 };
 type Classification = {
   kind: 'APPLY' | 'EXACT_RERUN_NOOP';
+  audiencePreSynced: boolean;
   internalClientId: string;
   principalId: string;
   invariantDigest: string;
@@ -49,7 +52,10 @@ const WORKFLOW_AUDIENCE = 'svc-workflow';
 const WORKFLOW_SCOPES = Object.freeze(['workflow.read']);
 const SOURCE_SCOPES = Object.freeze(['forum.read', 'forum.write']);
 const TARGET_SCOPES = Object.freeze(['forum.moderate', 'forum.read', 'forum.write']);
-const BUNDLE_CONTRACT_VERSION = '1.7.0';
+// Retargeted 1.7.0 -> 1.8.0 by AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_BUNDLE_RETARGET_V1:
+// Bundle 1.8.0 (agent-principal-resolution CCR) is the first deployed Bundle
+// whose frozen audience registry carries the FMG target svc-forum entry.
+const BUNDLE_CONTRACT_VERSION = '1.8.0';
 const PLAN_VERSION = 'AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1_PLAN_1';
 const AUDIT_REASON_PREFIX = 'forum_moderator_grant_supply_v1';
 const AUDIT_REASON_PATTERN = /^forum_moderator_grant_supply_v1 plan_sha256=[0-9a-f]{64}$/;
@@ -296,8 +302,13 @@ async function classify(db: Db): Promise<Classification> {
   if (!grantIsSource && !grantIsTarget) {
     conflict('the moderator svc-forum Grant is neither the exact source [forum.read,forum.write]@v1 nor the exact target [forum.moderate,forum.read,forum.write]@v2');
   }
-  if (audienceIsTarget !== grantIsTarget) {
-    conflict('the Audience and Grant states are mixed (both must be source or both target, CTR-FMG-008)');
+  // CTR-FMG-008 as amended by AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_BUNDLE_RETARGET_V1:
+  // a Bundle redeploy whose frozen registry already carries the target Audience
+  // entry legitimately advances the Audience half alone, so Audience@target with
+  // Grant@source classifies as APPLY (Grant-only completion). The reverse mixed
+  // direction (Audience lagging the Grant) remains a hard conflict.
+  if (audienceIsSource && grantIsTarget) {
+    conflict('the Audience and Grant states are mixed (Audience at source while Grant is at target, CTR-FMG-008)');
   }
 
   const audits = await db.grantChangeAudit.findMany({
@@ -319,7 +330,13 @@ async function classify(db: Db): Promise<Classification> {
   ], 2);
 
   if (grantIsTarget) {
-    const applyDigest = canonicalPlanDocument('APPLY').digest;
+    // The governed audit binds the plan digest of whichever legal APPLY shape
+    // produced the target state (both-rows, or Grant-only after a Bundle
+    // redeploy had already advanced the Audience half).
+    const applyDigests = [
+      canonicalPlanDocument('APPLY', false).digest,
+      canonicalPlanDocument('APPLY', true).digest,
+    ];
     const audit = audits[0];
     if (audits.length !== 1 || audit === undefined || audit.changeType !== 'replace'
         || audit.expectedGrantVersion !== 1 || audit.resultingGrantVersion !== 2
@@ -328,7 +345,7 @@ async function classify(db: Db): Promise<Classification> {
         || typeof audit.operatorId !== 'string' || audit.operatorId.length === 0
         || typeof audit.approvalRef !== 'string' || audit.approvalRef.length === 0
         || typeof audit.reason !== 'string' || !AUDIT_REASON_PATTERN.test(audit.reason)
-        || audit.reason !== `${AUDIT_REASON_PREFIX} plan_sha256=${applyDigest}`
+        || !applyDigests.some((digest) => audit.reason === `${AUDIT_REASON_PREFIX} plan_sha256=${digest}`)
         || typeof audit.id !== 'string'
         || !/^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(audit.id)
         || !(audit.timestamp instanceof Date) || Number.isNaN(audit.timestamp.getTime())
@@ -383,6 +400,7 @@ async function classify(db: Db): Promise<Classification> {
 
   return {
     kind: grantIsTarget ? 'EXACT_RERUN_NOOP' : 'APPLY',
+    audiencePreSynced: !grantIsTarget && audienceIsTarget,
     internalClientId: client.id,
     principalId: principal.id,
     invariantDigest,
@@ -391,7 +409,10 @@ async function classify(db: Db): Promise<Classification> {
   };
 }
 
-function canonicalPlanDocument(kind: 'APPLY' | 'EXACT_RERUN_NOOP'): { canonical: string; digest: string } {
+function canonicalPlanDocument(
+  kind: 'APPLY' | 'EXACT_RERUN_NOOP',
+  audiencePreSynced = false,
+): { canonical: string; digest: string } {
   const noop = kind === 'EXACT_RERUN_NOOP';
   const document = {
     plan_version: PLAN_VERSION,
@@ -401,13 +422,13 @@ function canonicalPlanDocument(kind: 'APPLY' | 'EXACT_RERUN_NOOP'): { canonical:
     client_external_ref: CLIENT_EXTERNAL_REF,
     client_id: PUBLIC_CLIENT_ID,
     audience: AUDIENCE,
-    expected_audience_scopes: noop ? [...TARGET_SCOPES] : [...SOURCE_SCOPES],
+    expected_audience_scopes: noop || audiencePreSynced ? [...TARGET_SCOPES] : [...SOURCE_SCOPES],
     target_audience_scopes: [...TARGET_SCOPES],
     expected_grant_version: noop ? 2 : 1,
     expected_grant_scopes: noop ? [...TARGET_SCOPES] : [...SOURCE_SCOPES],
     target_grant_version: 2,
     target_grant_scopes: [...TARGET_SCOPES],
-    operation: noop ? 'NONE' : 'UPDATE_AUDIENCE_AND_GRANT',
+    operation: noop ? 'NONE' : audiencePreSynced ? 'UPDATE_GRANT_ONLY' : 'UPDATE_AUDIENCE_AND_GRANT',
   };
   const canonical = JSON.stringify(canonicalJson(document));
   const digest = createHash('sha256').update(Buffer.from(canonical, 'utf8')).digest('hex');
@@ -463,7 +484,7 @@ async function applyChange(
     await tx.$executeRawUnsafe('LOCK TABLE delegation_grants IN SHARE MODE');
     await tx.$executeRaw`SELECT pg_advisory_xact_lock(${ADVISORY_LOCK_KEY})`;
     const classification = await classify(tx);
-    const { canonical, digest } = canonicalPlanDocument(classification.kind);
+    const { canonical, digest } = canonicalPlanDocument(classification.kind, classification.audiencePreSynced);
     if (classification.invariantDigest !== expectedInvariantDigest) {
       conflict('Client/non-target/Workflow invariant digest differs from the reviewed prestate');
     }
@@ -477,12 +498,18 @@ async function applyChange(
     }
     // Conditional exact Audience update: only registered_scopes changes; every
     // other column (including updated_at) is not set and stays byte-identical.
-    const audienceUpdated = await tx.$executeRawUnsafe(
-      'UPDATE auth_audiences SET registered_scopes = ARRAY[$1,$2,$3]::text[] '
-      + 'WHERE audience_id = $4 AND registered_scopes = ARRAY[$5,$6]::text[] AND version = 1',
-      TARGET_SCOPES[0], TARGET_SCOPES[1], TARGET_SCOPES[2], AUDIENCE, SOURCE_SCOPES[0], SOURCE_SCOPES[1],
-    );
-    if (audienceUpdated !== 1) conflict('the conditional svc-forum Audience update did not affect exactly one row');
+    // Skipped entirely when a Bundle redeploy already advanced the Audience row
+    // to the exact target set (redeploy-produced prestate): the row is already
+    // byte-identical to the target and must not be touched.
+    let audienceUpdated = 0;
+    if (!classification.audiencePreSynced) {
+      audienceUpdated = await tx.$executeRawUnsafe(
+        'UPDATE auth_audiences SET registered_scopes = ARRAY[$1,$2,$3]::text[] '
+        + 'WHERE audience_id = $4 AND registered_scopes = ARRAY[$5,$6]::text[] AND version = 1',
+        TARGET_SCOPES[0], TARGET_SCOPES[1], TARGET_SCOPES[2], AUDIENCE, SOURCE_SCOPES[0], SOURCE_SCOPES[1],
+      );
+      if (audienceUpdated !== 1) conflict('the conditional svc-forum Audience update did not affect exactly one row');
+    }
     // Optimistic exact Grant update 1 -> 2. Raw SQL is deliberate: Prisma's
     // @updatedAt behavior would mutate updated_at, but CTR-FMG-004 permits only
     // scopes + version to change on this row.
@@ -521,12 +548,19 @@ async function applyChange(
   }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
 }
 
-function reportPlan(kind: 'APPLY' | 'EXACT_RERUN_NOOP', operation: string, invariantDigest: string): void {
-  const { canonical, digest } = canonicalPlanDocument(kind);
+function reportPlan(
+  kind: 'APPLY' | 'EXACT_RERUN_NOOP',
+  operation: string,
+  invariantDigest: string,
+  audiencePreSynced = false,
+): void {
+  const { canonical, digest } = canonicalPlanDocument(kind, audiencePreSynced);
   process.stdout.write(`${canonical}\n`);
   process.stdout.write(`PLAN_SHA256=${digest}\n`);
   process.stdout.write(`PLAN_CLASSIFICATION=${kind}\n`);
-  process.stdout.write(`PLAN_OPERATION=${kind === 'EXACT_RERUN_NOOP' ? 'NONE' : 'UPDATE_AUDIENCE_AND_GRANT'}\n`);
+  process.stdout.write(`PLAN_OPERATION=${
+    kind === 'EXACT_RERUN_NOOP' ? 'NONE' : audiencePreSynced ? 'UPDATE_GRANT_ONLY' : 'UPDATE_AUDIENCE_AND_GRANT'
+  }\n`);
   process.stdout.write(`PLAN_WRITES=0\n`);
   process.stdout.write(`INVARIANT_GRANTS_SHA256=${invariantDigest}\n`);
   process.stdout.write(`${JSON.stringify({
@@ -538,7 +572,7 @@ function reportPlan(kind: 'APPLY' | 'EXACT_RERUN_NOOP', operation: string, invar
 async function runPlan(prisma: PrismaClient): Promise<void> {
   assertRuntimeBundleTarget(readRuntimeSnapshot());
   const classification = await classify(prisma);
-  reportPlan(classification.kind, 'plan', classification.invariantDigest);
+  reportPlan(classification.kind, 'plan', classification.invariantDigest, classification.audiencePreSynced);
 }
 
 function readRuntimeSnapshot(): { payload: Record<string, unknown> } {
@@ -657,7 +691,9 @@ function refuseVerifyMint(authorization: unknown): never {
     fail('functional mint verification authorization kind is invalid');
   }
   lowercaseHex(authorization.implementation_commit, 40, 'verification.implementation_commit');
-  if (authorization.bundle_version !== BUNDLE_CONTRACT_VERSION) fail('verification.bundle_version must equal 1.7.0');
+  if (authorization.bundle_version !== BUNDLE_CONTRACT_VERSION) {
+    fail(`verification.bundle_version must equal ${BUNDLE_CONTRACT_VERSION}`);
+  }
   text(authorization.operator_id, 'verification.operator_id', 256);
   text(authorization.approval_ref, 'verification.approval_ref', 2048);
   text(authorization.verification_authorization_ref, 'verification.authorization_ref', 2048);
