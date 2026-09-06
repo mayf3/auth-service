@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_BUNDLE_RETARGET_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -18,10 +18,13 @@ owners:
 
 # AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_BUNDLE_RETARGET_V1
 
-> **PROPOSED — DOCS ONLY while proposed.** This amendment authorizes no
-> production apply, no database write, no deployment, and no change to the
-> moderator identity tuple or scope sets. `PRODUCTION_APPLY_AUTHORITY = none`
-> is inherited unchanged from the parent Spec.
+> **ACCEPTED** (2026-09-06, exact head b22785c…, independent implementation
+> audit verdict ACCEPT with zero blockers — adversarial probes over the new
+> classification all negative, conformance harness 33/33 PASS independently
+> re-run by the auditor). This amendment authorizes no production apply, no
+> database write, no deployment, and no change to the moderator identity
+> tuple or scope sets. `PRODUCTION_APPLY_AUTHORITY = none` is inherited
+> unchanged from the parent Spec.
 
 ## 1. Goal
 
@@ -40,7 +43,8 @@ DELTA  = Bundle pin 1.7.0 -> 1.8.0
 
 ## 2. Scope and non-goals
 
-In scope (exactly two implementation files):
+In scope (exactly three files: two implementation files plus the harness
+precondition constant):
 
 - `scripts/supply-forum-moderator-grant-v1.ts`
 - `tests/oauth/supply-forum-moderator-grant-v1.test.ts`
@@ -131,8 +135,10 @@ zero writes.
 ### ACC-FMR-002 — Pin and discriminator surface
 
 - Method: plan output inspection for `PLAN_OPERATION=UPDATE_GRANT_ONLY`;
-  refusal message uses the constant for Bundle mismatches; no `1.7.0`
-  literal remains in the vehicle or harness.
+  refusal message uses the constant for Bundle mismatches; no functional
+  `1.7.0` pin remains in the vehicle or harness (the version constant, the
+  harness precondition, and every test fixture literal are `1.8.0`;
+  historical provenance prose in comments is exempt).
 
 ### ACC-FMR-003 — Parent invariants byte-unchanged
 
