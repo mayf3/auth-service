@@ -1,11 +1,18 @@
 ---
 spec_id: LIFE_WORKBENCH_AGENT_ACCESS_POLICY_V1
-status: proposed
+status: accepted
 spec_kind: policy
 authority_level: governing_spec
 implementation_authority: none
 production_apply_authority: none
 date: 2026-09-06
+accepted_date: 2026-09-06
+accepted_by: mayf3
+accepted_reviewed_base: f6382b860941cef0b9b97a1bf69b79e58f0350f3
+accepted_reviewed_spec_commit: 8c19679e5ba57ea50bc8a9050d06cec149517f8c
+acceptance_review_verdict: PASS
+acceptance_time_utc: 2026-09-06T15:06:02Z
+semantic_delta_after_review: NONE
 scope:
   - mayf3/auth-service
   - Life Workbench Agent access policy (entitlement / provisioning preconditions / runtime readiness)

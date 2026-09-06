@@ -1,11 +1,18 @@
 ---
 spec_id: LIFE_WORKBENCH_AUDIENCE_CCR_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
 production_apply_authority: none
 date: 2026-09-06
+accepted_date: 2026-09-06
+accepted_by: mayf3
+accepted_reviewed_base: f6382b860941cef0b9b97a1bf69b79e58f0350f3
+accepted_reviewed_spec_commit: 1d0e53c129499d508d56a08dfdf691524dee4b3a
+acceptance_review_verdict: PASS
+acceptance_time_utc: 2026-09-06T15:06:02Z
+semantic_delta_after_review: NONE
 scope:
   - mayf3/auth-service
   - Life Workbench OAuth audience and scope registration authority
