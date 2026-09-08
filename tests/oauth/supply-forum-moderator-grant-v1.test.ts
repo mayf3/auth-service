@@ -3,7 +3,7 @@ import { createHash } from 'node:crypto';
 import { chmodSync, mkdtempSync, readFileSync, readSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { fileURLToPath } from 'node:url';
-import { spawn } from 'node:child_process';
+import { execFileSync, spawn } from 'node:child_process';
 import path from 'node:path';
 import test, { after } from 'node:test';
 import { PrismaClient } from '@prisma/client';
@@ -84,7 +84,11 @@ const canonicalJson = (value: unknown): unknown => {
   return value;
 };
 
-function expectedSnapshot(scopes: string[], version: number) {
+function expectedSnapshot(
+  scopes: string[],
+  version: number,
+  bystanders: Record<string, string[]> = { 'svc-workflow': [...WORKFLOW] },
+) {
   return {
     client_id: TARGET_PUBLIC,
     client_kind: 'machine',
@@ -93,7 +97,10 @@ function expectedSnapshot(scopes: string[], version: number) {
     human_audience_grants: [],
     machine_access_grants: {
       'svc-forum': [...scopes],
-      'svc-workflow': [...WORKFLOW],
+      ...Object.fromEntries(Object.entries(bystanders)
+        .map(([audienceId, bystanderScopes]) => [audienceId, [...bystanderScopes]
+          .sort((a, b) => Buffer.compare(Buffer.from(a), Buffer.from(b)))])
+      ),
     },
     delegation_grants: {},
     status: 'active',
@@ -114,7 +121,15 @@ type SeedOptions = {
   targetExternalRef?: string;
   principalStatus?: 'active' | 'disabled';
   principalDisabled?: boolean;
+  bystanderGrants?: Array<{ audienceId: string; scopes: string[]; version: number }>;
 };
+
+function bystanderMap(options: SeedOptions = {}): Record<string, string[]> {
+  return {
+    'svc-workflow': [...(options.workflowScopes ?? WORKFLOW)],
+    ...Object.fromEntries((options.bystanderGrants ?? []).map((row) => [row.audienceId, row.scopes])),
+  };
+}
 
 async function reset(): Promise<void> {
   await prisma.$executeRawUnsafe('DROP TRIGGER IF EXISTS fmg_test_reject_audit_insert ON grant_change_audits');
@@ -140,6 +155,15 @@ async function seed(options: SeedOptions = {}): Promise<void> {
   ]) {
     await prisma.authAudience.create({ data: {
       ...data,
+      acceptedPrincipalTypes: ['agent'], humanAccessEnabled: false,
+      machineAccessEnabled: true, delegatedAccessEnabled: false,
+      status: 'active', freezeReady: true, version: 1, createdAt: CREATED, updatedAt: CREATED,
+    } });
+  }
+  for (const row of options.bystanderGrants ?? []) {
+    await prisma.authAudience.create({ data: {
+      audienceId: row.audienceId, resourceService: row.audienceId,
+      scopeNamespace: row.audienceId.split('.')[0], registeredScopes: row.scopes,
       acceptedPrincipalTypes: ['agent'], humanAccessEnabled: false,
       machineAccessEnabled: true, delegatedAccessEnabled: false,
       status: 'active', freezeReady: true, version: 1, createdAt: CREATED, updatedAt: CREATED,
@@ -223,6 +247,10 @@ async function seed(options: SeedOptions = {}): Promise<void> {
       machineClientId: LEGACY_CLIENT_INTERNAL, audienceId: 'svc-forum',
       scopes: SOURCE, version: 7, createdAt: CREATED, updatedAt: CREATED,
     },
+    ...(options.bystanderGrants ?? []).map((row) => ({
+      machineClientId: TARGET_CLIENT_INTERNAL, audienceId: row.audienceId,
+      scopes: row.scopes, version: row.version, createdAt: CREATED, updatedAt: CREATED,
+    })),
     ...EXTRA_FLEET.flatMap((item) => ([
       {
         machineClientId: item.clientInternalId, audienceId: 'svc-forum', scopes: SOURCE,
@@ -257,10 +285,10 @@ async function seed(options: SeedOptions = {}): Promise<void> {
         : `forum_moderator_grant_supply_v1 plan_sha256=${applyPlan.digest}`,
       clientId: TARGET_PUBLIC, changeType: 'replace', expectedGrantVersion: 1,
       resultingGrantVersion: 2,
-      beforeValue: expectedSnapshot(SOURCE, 1),
+      beforeValue: expectedSnapshot(SOURCE, 1, bystanderMap(options)),
       afterValue: options.fmgAudit === 'wrong-snapshot'
-        ? { ...expectedSnapshot(TARGET, 2), status: 'revoked' }
-        : expectedSnapshot(TARGET, 2),
+        ? { ...expectedSnapshot(TARGET, 2, bystanderMap(options)), status: 'revoked' }
+        : expectedSnapshot(TARGET, 2, bystanderMap(options)),
       timestamp: CREATED,
     } });
   }
@@ -340,11 +368,11 @@ async function invokeArgs(args: string[], databaseUrl?: string) {
   return invokeProcess(NODE, ['--import', 'tsx', SCRIPT, ...args], environment);
 }
 
-async function invokeAuthorization(authorization: unknown) {
+async function invokeAuthorization(authorization: unknown, databaseUrl = 'postgresql://nobody@127.0.0.1:1/must_not_connect') {
   return invokeProcess('/bin/bash', [
     '-c', 'exec 3< <(printf %s "$1"); exec "$2" --import tsx "$3" --apply --authorization-fd 3',
     'fmg-auth-test', JSON.stringify(authorization), NODE, SCRIPT,
-  ], { DATABASE_URL: 'postgresql://nobody@127.0.0.1:1/must_not_connect' });
+  ], { DATABASE_URL: databaseUrl });
 }
 
 async function invokeVerifyMintAuthorization(authorization: unknown) {
@@ -435,7 +463,7 @@ await test('planning refuses a tampered or non-target runtime Bundle before DB w
   try {
     const result = await invokeArgs([], superuserUrl);
     assert.equal(result.code, 1);
-    assert.match(result.stderr, /integrity-invalid|digest mismatch|must be exactly 1\.8\.0/);
+    assert.match(result.stderr, /integrity-invalid|digest mismatch|must be exactly 1\.11\.0/);
     assert.deepEqual(await stateSnapshot(), before);
   } finally {
     writeFileSync(runtimePath, original);
@@ -504,6 +532,101 @@ await test('a newly added zero-Grant non-target Client changes the reviewed inva
   assert.equal(result.code, 1);
   assert.match(result.stderr, /invariant digest differs from the reviewed prestate/);
   assert.deepEqual(await stateSnapshot(), before);
+});
+
+const CURRENT_PRODUCTION_BYSTANDERS = [
+  { audienceId: 'agent-directory', scopes: ['agent.directory.read'], version: 1 },
+  { audienceId: 'identity-directory', scopes: ['auth.directory.read'], version: 1 },
+  { audienceId: 'life-workbench', scopes: ['workbench.propose', 'workbench.read'], version: 1 },
+];
+
+await test('T2: current production 5-row prestate classifies APPLY and applies atomically with byte-preserved bystanders', async () => {
+  await seed({
+    bystanderGrants: CURRENT_PRODUCTION_BYSTANDERS,
+    workflowScopes: ['workflow.read', 'workflow.execute'],
+    workflowVersion: 2,
+  });
+  const before = await stateSnapshot();
+  const plan = await invokeArgs([], superuserUrl);
+  assert.equal(plan.code, 0, plan.stderr);
+  const parsed = parsePlanOutput(plan.stdout);
+  assert.equal(parsed.classification, 'APPLY');
+  assert.equal(parsed.document.operation, 'UPDATE_AUDIENCE_AND_GRANT');
+  assert.equal(parsed.invariantDigest, await currentInvariantDigest());
+
+  const result = await invokeConformance();
+  assert.equal(result.code, 0, result.stderr);
+  assert.match(result.stdout, /"outcome":"replace"/);
+  assert.match(result.stdout, /"audience_rows_updated":1/);
+  assert.match(result.stdout, /"grant_rows_updated":1/);
+  assert.match(result.stdout, /"audits_created":1/);
+
+  const targetForum = await prisma.machineAccessGrant.findUniqueOrThrow({
+    where: { machineClientId_audienceId: { machineClientId: TARGET_CLIENT_INTERNAL, audienceId: 'svc-forum' } },
+  });
+  assert.deepEqual(targetForum.scopes, TARGET);
+  assert.equal(targetForum.version, 2);
+  const bystandersAfter = before.grants.filter(
+    (row) => !(row.machineClientId === TARGET_CLIENT_INTERNAL && row.audienceId === 'svc-forum'),
+  );
+  const bystandersExpected = (await prisma.machineAccessGrant.findMany({
+    where: { NOT: { machineClientId: TARGET_CLIENT_INTERNAL, audienceId: 'svc-forum' } },
+    orderBy: [{ machineClientId: 'asc' }, { audienceId: 'asc' }],
+  }));
+  assert.deepEqual(bystandersExpected, bystandersAfter, 'every bystander row byte-preserved (T10)');
+
+  const map = bystanderMap({ bystanderGrants: CURRENT_PRODUCTION_BYSTANDERS, workflowScopes: ['workflow.read', 'workflow.execute'] });
+  const audit = await prisma.grantChangeAudit.findFirstOrThrow({
+    where: { migrationId: 'forum-moderator-grant-supply-v1', clientId: TARGET_PUBLIC },
+  });
+  assert.deepEqual(audit.beforeValue, expectedSnapshot(SOURCE, 1, map));
+  assert.deepEqual(audit.afterValue, expectedSnapshot(TARGET, 2, map));
+
+  const rerun = await invokeConformance({ ...descriptor, plan_sha256: canonicalPlan('EXACT_RERUN_NOOP').digest });
+  assert.equal(rerun.code, 0, rerun.stderr);
+  assert.match(rerun.stdout, /"outcome":"noop"/);
+  assert.match(rerun.stdout, /"audience_rows_updated":0/);
+  assert.match(rerun.stdout, /"grant_rows_updated":0/);
+  assert.match(rerun.stdout, /"audits_created":0/);
+});
+
+await test('T3: an arbitrary additional bystander Grant keeps the classification APPLY', async () => {
+  await seed({
+    bystanderGrants: [
+      ...CURRENT_PRODUCTION_BYSTANDERS,
+      { audienceId: 'some-future-audience', scopes: ['future.scope'], version: 3 },
+    ],
+    workflowScopes: ['workflow.read', 'workflow.execute'],
+    workflowVersion: 2,
+  });
+  const plan = await invokeArgs([], superuserUrl);
+  assert.equal(plan.code, 0, plan.stderr);
+  const parsed = parsePlanOutput(plan.stdout);
+  assert.equal(parsed.classification, 'APPLY');
+  assert.equal(parsed.document.operation, 'UPDATE_AUDIENCE_AND_GRANT');
+});
+
+await test('T8: bystander drift between plan and apply conflicts via the prestate digest with zero writes', async () => {
+  await seed();
+  const staleInvariant = await currentInvariantDigest();
+  // Raw SQL on purpose: the conformance schema triggers reject any touched
+  // column beyond scopes/version, and Prisma's @updatedAt would touch
+  // updated_at on this bystander row.
+  await prisma.$executeRawUnsafe(
+    "UPDATE machine_access_grants SET scopes = ARRAY['workflow.read','workflow.execute']::text[], version = 2 "
+      + 'WHERE machine_client_id = $1::uuid AND ' + "audience_id = 'svc-workflow'",
+    TARGET_CLIENT_INTERNAL,
+  );
+  const before = await stateSnapshot();
+  const result = await invokeConformance({ ...descriptor, invariant_sha256: staleInvariant });
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /invariant digest differs from the reviewed prestate/);
+  assert.deepEqual(await stateSnapshot(), before);
+  const workflowRow = await prisma.machineAccessGrant.findFirstOrThrow({
+    where: { machineClientId: TARGET_CLIENT_INTERNAL, audienceId: 'svc-workflow' },
+  });
+  assert.deepEqual(workflowRow.scopes, ['workflow.read', 'workflow.execute']);
+  assert.equal(workflowRow.version, 2);
 });
 
 await test('source to target succeeds atomically with exact audit and byte-stable invariants', async () => {
@@ -700,8 +823,10 @@ for (const scenario of [
   { name: 'Grant target with source Audience', options: { grantScopes: TARGET, grantVersion: 2 } },
   { name: 'wrong source Grant version', options: { grantVersion: 9 } },
   { name: 'extra target Grant scope', options: { grantScopes: [...SOURCE, 'forum.admin'] } },
-  { name: 'Workflow scope drift', options: { workflowScopes: ['workflow.execute', 'workflow.read'] } },
-  { name: 'Workflow version drift', options: { workflowVersion: 2 } },
+  // Workflow scope/version drift scenarios removed by
+  // AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_PRESTATE_REBASELINE_V1: the
+  // svc-workflow row is a bystander whose exact state is no longer an APPLY
+  // gate; stale-prestate bystander drift is covered by the T8 digest test.
   { name: 'foreign moderate Grant', options: { foreignModerate: true } },
   { name: 'wrong target Client external ref', options: { targetExternalRef: 'agentcore:v1:client:wrong-target' } },
   { name: 'inactive target Client', options: { targetStatus: 'revoked' as const } },
@@ -782,7 +907,7 @@ await test('post-commit unknown outcome performs read-only reconciliation and ne
   }), 1);
 });
 
-await test('production --apply refuses a valid authorization before any database connection', async () => {
+await test('production --apply refuses a descriptor bound to a foreign implementation commit before any database connection', async () => {
   const authorization = {
     schema_version: 1,
     authorization_kind: 'forum_moderator_grant_supply_v1_production_apply',
@@ -794,17 +919,96 @@ await test('production --apply refuses a valid authorization before any database
     operator_id: 'authorized-operator',
     approval_ref: 'https://github.com/mayf3/auth-service/issues/1#issuecomment-2',
     outage_approval_ref: 'https://github.com/mayf3/auth-service/issues/1#issuecomment-3',
-    stop_command: 'systemctl stop auth-service',
-    start_command: 'systemctl start auth-service',
-    rollback_ref: 'https://github.com/mayf3/auth-service/issues/1#rollback',
+    stop_command: 'launchctl kickstart -k system/com.auth-service',
+    start_command: 'launchctl kickstart system/com.auth-service',
+    rollback_ref: 'CTR-FMG-017 forward rollback',
     verify_command: `node --import tsx scripts/supply-forum-moderator-grant-v1.ts --verify-state --expected-invariant-sha256 ${'c'.repeat(64)}`,
   };
   const started = Date.now();
   const result = await invokeAuthorization(authorization);
   assert.equal(result.code, 1);
-  assert.match(result.stderr, /PRODUCTION_APPLY_AUTHORITY=none/);
+  assert.match(result.stderr, /implementation_commit must equal the clean executable worktree HEAD/);
   assert.doesNotMatch(result.stderr, /connect|ECONNREFUSED|PrismaClientInitializationError/i);
   assert.ok(Date.now() - started < 10_000, 'refusal did not wait on a database connection');
+});
+
+await test('production --apply refuses a stale prestate digest at the transaction boundary with zero writes', async () => {
+  await seed();
+  const authorization = {
+    schema_version: 1,
+    authorization_kind: 'forum_moderator_grant_supply_v1_production_apply',
+    implementation_commit: execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], { cwd: ROOT }).toString().trim(),
+    bundle_version: '1.11.0',
+    bundle_digest: createHash('sha256')
+      .update(readFileSync(path.join(ROOT, 'generated/minimal-auth-v1/runtime-contract.json')))
+      .digest('hex'),
+    plan_sha256: canonicalPlan('APPLY').digest,
+    prestate_digest: 'c'.repeat(64),
+    operator_id: 'authorized-operator',
+    approval_ref: 'https://github.com/mayf3/auth-service/pull/63#issuecomment-5586354195',
+    outage_approval_ref: 'svc-forum outage recovery Owner authorization',
+    stop_command: 'launchctl kickstart -k system/com.auth-service',
+    start_command: 'launchctl kickstart system/com.auth-service',
+    rollback_ref: 'CTR-FMG-017 forward rollback',
+    verify_command: `node --import tsx scripts/supply-forum-moderator-grant-v1.ts --verify-state --expected-invariant-sha256 ${'c'.repeat(64)}`,
+  };
+  const before = await stateSnapshot();
+  const result = await invokeAuthorization(authorization, superuserUrl);
+  assert.equal(result.code, 1);
+  assert.match(result.stderr, /invariant digest differs from the reviewed prestate/);
+  assert.deepEqual(await stateSnapshot(), before);
+});
+
+await test('authorized production --apply executes the exact atomic transaction end-to-end with a sanitized receipt', async () => {
+  await seed({ bystanderGrants: CURRENT_PRODUCTION_BYSTANDERS });
+  const prestateDigest = await currentInvariantDigest();
+  const authorization = {
+    schema_version: 1,
+    authorization_kind: 'forum_moderator_grant_supply_v1_production_apply',
+    implementation_commit: execFileSync('/usr/bin/git', ['rev-parse', 'HEAD'], { cwd: ROOT }).toString().trim(),
+    bundle_version: '1.11.0',
+    bundle_digest: createHash('sha256')
+      .update(readFileSync(path.join(ROOT, 'generated/minimal-auth-v1/runtime-contract.json')))
+      .digest('hex'),
+    plan_sha256: canonicalPlan('APPLY').digest,
+    prestate_digest: prestateDigest,
+    operator_id: 'activated-production-operator',
+    approval_ref: 'https://github.com/mayf3/auth-service/pull/63#issuecomment-5586354195',
+    outage_approval_ref: 'svc-forum outage recovery Owner authorization',
+    stop_command: 'launchctl kickstart -k system/com.auth-service',
+    start_command: 'launchctl kickstart system/com.auth-service',
+    rollback_ref: 'CTR-FMG-017 forward rollback',
+    verify_command: `node --import tsx scripts/supply-forum-moderator-grant-v1.ts --verify-state --expected-invariant-sha256 ${prestateDigest}`,
+  };
+  const before = await stateSnapshot();
+  const result = await invokeAuthorization(authorization, superuserUrl);
+  assert.equal(result.code, 0, result.stderr);
+  const receipt = JSON.parse(result.stdout.trim()) as Record<string, unknown>;
+  assert.equal(receipt.stage, 'FMG');
+  assert.equal(receipt.operation, 'production-apply');
+  assert.equal(receipt.outcome, 'replace');
+  assert.equal(receipt.attempts, 1);
+  assert.equal(receipt.audience_rows_updated, 1);
+  assert.equal(receipt.grant_rows_updated, 1);
+  assert.equal(receipt.audits_created, 1);
+  assert.equal(receipt.bystander_rows_changed, 0);
+  assert.equal(receipt.plan_sha256, canonicalPlan('APPLY').digest);
+  assert.equal(receipt.prestate_digest, prestateDigest);
+  assert.doesNotMatch(result.stdout, /DATABASE_URL|postgres(?:ql)?:\/\/|secret/i);
+
+  const targetForum = await prisma.machineAccessGrant.findUniqueOrThrow({
+    where: { machineClientId_audienceId: { machineClientId: TARGET_CLIENT_INTERNAL, audienceId: 'svc-forum' } },
+  });
+  assert.deepEqual(targetForum.scopes, TARGET);
+  assert.equal(targetForum.version, 2);
+  const bystandersAfter = (await prisma.machineAccessGrant.findMany({
+    where: { NOT: { machineClientId: TARGET_CLIENT_INTERNAL, audienceId: 'svc-forum' } },
+    orderBy: [{ machineClientId: 'asc' }, { audienceId: 'asc' }],
+  }));
+  const bystandersBefore = before.grants.filter(
+    (row) => !(row.machineClientId === TARGET_CLIENT_INTERNAL && row.audienceId === 'svc-forum'),
+  );
+  assert.deepEqual(bystandersAfter, bystandersBefore, 'bystander rows byte-preserved through --apply');
 });
 
 await test('verify-mint requires its own authorization and refuses before credential or network access', async () => {
