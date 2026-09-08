@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_BUNDLE_RETARGET_V1
-status: accepted
+status: superseded
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -11,7 +11,8 @@ governed_by:
   - AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1
 external_authorities: []
 supersedes: []
-superseded_by: null
+superseded_by:
+  - AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_BUNDLE_RETARGET_V2
 owners:
   - mayf3
 ---
