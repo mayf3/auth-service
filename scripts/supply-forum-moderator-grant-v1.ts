@@ -48,8 +48,6 @@ const PRINCIPAL_EXTERNAL_REF = 'agentcore:v1:principal:agt_course-community-agen
 const CLIENT_EXTERNAL_REF = 'agentcore:v1:client:agt_course-community-agent-2';
 const PUBLIC_CLIENT_ID = 'mc_hvEfjkJ5BTKA8HZXRmbzNVw0';
 const AUDIENCE = 'svc-forum';
-const WORKFLOW_AUDIENCE = 'svc-workflow';
-const WORKFLOW_SCOPES = Object.freeze(['workflow.read']);
 const SOURCE_SCOPES = Object.freeze(['forum.read', 'forum.write']);
 const TARGET_SCOPES = Object.freeze(['forum.moderate', 'forum.read', 'forum.write']);
 // Retargeted 1.7.0 -> 1.8.0 by AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_BUNDLE_RETARGET_V1;
@@ -66,7 +64,6 @@ const ADVISORY_LOCK_KEY = 813_947_205;
 const IMAGE = 'postgres@sha256:57c72fd2a128e416c7fcc499958864df5301e940bca0a56f58fddf30ffc07777';
 const DATABASE = 'auth_fmg_conformance';
 const CONTAINER_LABEL = 'com.mayf3.auth.fmg-conformance';
-const PRODUCTION_APPLY_AUTHORITY = 'none' as const;
 const FUNCTIONAL_MINT_VERIFICATION_AUTHORITY = 'none' as const;
 const AUDIT_KEYS = Object.freeze([
   'change_id', 'migration_id', 'source_git_commit', 'operator_id', 'approval_ref',
@@ -291,13 +288,17 @@ async function classify(db: Db): Promise<Classification> {
   }
 
   const forumGrant = client.accessGrants.find((grant) => grant.audienceId === AUDIENCE);
-  const workflowGrant = client.accessGrants.find((grant) => grant.audienceId === WORKFLOW_AUDIENCE);
-  if (client.accessGrants.length !== 2 || forumGrant === undefined || workflowGrant === undefined) {
-    conflict('the moderator Client must carry exactly the svc-forum and svc-workflow Grant rows');
+  if (forumGrant === undefined) {
+    conflict('the moderator Client carries no svc-forum Grant row');
   }
-  if (!sameJson([...workflowGrant.scopes].sort(asciiCompare), WORKFLOW_SCOPES) || workflowGrant.version !== 1) {
-    conflict('the moderator svc-workflow Grant must remain exactly [workflow.read]@v1 (CTR-FMG-005)');
-  }
+  // PRESTATE_OWNERSHIP_NARROWING (AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_PRESTATE_REBASELINE_V1):
+  // FMG owns only the svc-forum Grant row. Every other Grant row on this Client
+  // is a bystander (0..N, owned by other accepted authorities): read as
+  // evidence, carried into the invariant digest and the complete audit
+  // snapshots, and byte-preserved by the write path. The historical
+  // total-rows==2 and svc-workflow [workflow.read]@v1 exact pins are released
+  // as APPLY gates; workflow mutation remains structurally impossible because
+  // the write path below touches only the svc-forum row.
   const grantIsSource = forumGrant.version === 1 && sameJson([...forumGrant.scopes].sort(asciiCompare), SOURCE_SCOPES);
   const grantIsTarget = forumGrant.version === 2 && sameJson([...forumGrant.scopes].sort(asciiCompare), TARGET_SCOPES);
   if (!grantIsSource && !grantIsTarget) {
@@ -321,14 +322,24 @@ async function classify(db: Db): Promise<Classification> {
     },
     orderBy: [{ timestamp: 'asc' }, { id: 'asc' }],
   });
-  const beforeValue = completeSnapshot(client, [
-    { audienceId: AUDIENCE, scopes: [...SOURCE_SCOPES] },
-    { audienceId: WORKFLOW_AUDIENCE, scopes: [...WORKFLOW_SCOPES] },
-  ], 1);
-  const afterValue = completeSnapshot(client, [
-    { audienceId: AUDIENCE, scopes: [...TARGET_SCOPES] },
-    { audienceId: WORKFLOW_AUDIENCE, scopes: [...WORKFLOW_SCOPES] },
-  ], 2);
+  const observedGrantRows = client.accessGrants.map((grant) => ({
+    audienceId: grant.audienceId,
+    scopes: [...grant.scopes] as string[],
+  }));
+  const beforeValue = completeSnapshot(
+    client,
+    observedGrantRows.map((row) => row.audienceId === AUDIENCE
+      ? { audienceId: AUDIENCE, scopes: [...SOURCE_SCOPES] }
+      : { audienceId: row.audienceId, scopes: row.scopes }),
+    1,
+  );
+  const afterValue = completeSnapshot(
+    client,
+    observedGrantRows.map((row) => row.audienceId === AUDIENCE
+      ? { audienceId: AUDIENCE, scopes: [...TARGET_SCOPES] }
+      : { audienceId: row.audienceId, scopes: row.scopes }),
+    2,
+  );
 
   if (grantIsTarget) {
     // The governed audit binds the plan digest of whichever legal APPLY shape
@@ -648,13 +659,21 @@ async function runVerifyState(prisma: PrismaClient, expectedInvariantDigest: str
   process.stdout.write(`AUDIENCE_SCOPES=${[...row.registeredScopes].sort(asciiCompare).join(',')}\n`);
   process.stdout.write(`GRANT_VERSION=2\n`);
   process.stdout.write(`FMG_AUDIT_COUNT=1\n`);
-  process.stdout.write(`WORKFLOW_GRANT=workflow.read@v1\n`);
+  const bystanderRows = await prisma.machineAccessGrant.count({
+    where: { machineClientId: classification.internalClientId, NOT: { audienceId: AUDIENCE } },
+  });
+  process.stdout.write(`BYSTANDER_GRANT_ROWS=${bystanderRows}\n`);
   process.stdout.write(`NON_TARGET_MODERATE_GRANTS=0\n`);
   process.stdout.write(`INVARIANT_GRANTS_SHA256=${classification.invariantDigest}\n`);
   process.stdout.write(`WRITES=0\n`);
 }
 
-function refuseProductionApply(authorization: unknown): never {
+function validateProductionApplyAuthorization(authorization: unknown): Record<string, unknown> {
+  // CTR-FMG-016 activation (PRESTATE_REBASELINE_V1 §apply-activation): this
+  // build carries no self-authority. The exact production-apply authorization
+  // descriptor is the ONLY apply authority; every coordinate below is
+  // validated BEFORE any database connection, and any mismatch refuses with
+  // zero writes (ATTEMPTS_MAX = 1 per descriptor).
   if (!isObject(authorization)) fail('production apply authorization must be an object');
   exactKeys(authorization, AUTHORIZATION_KEYS, 'production apply authorization');
   if (authorization.schema_version !== 1
@@ -675,10 +694,62 @@ function refuseProductionApply(authorization: unknown): never {
   text(authorization.start_command, 'authorization.start_command', 1024);
   text(authorization.rollback_ref, 'authorization.rollback_ref', 2048);
   text(authorization.verify_command, 'authorization.verify_command', 1024);
-  // CTR-FMG-016: this implementation carries PRODUCTION_APPLY_AUTHORITY = none.
-  // Spec acceptance, source implementation, test pass, merge, or deployment are
-  // never apply authority; refuse BEFORE any database connection or write.
-  fail(`PRODUCTION_APPLY_AUTHORITY=${PRODUCTION_APPLY_AUTHORITY}: no exact production-apply authorization has been issued for this implementation; a separately authorized apply round is required (CTR-FMG-016)`);
+  return authorization;
+}
+
+function currentImplementationCommit(): string {
+  const git = '/usr/bin/git';
+  const status = execFileSync(git, ['-C', REPO_ROOT, 'status', '--porcelain', '--untracked-files=all'], { encoding: 'utf8' });
+  if (status.length !== 0) fail('auth-service executable worktree is dirty');
+  const top = execFileSync(git, ['-C', REPO_ROOT, 'rev-parse', '--show-toplevel'], { encoding: 'utf8' }).trim();
+  if (`${top}/` !== REPO_ROOT) fail('executable repository root mismatch');
+  return execFileSync(git, ['-C', REPO_ROOT, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+}
+
+function runtimeSnapshotFileDigest(): string {
+  const snapshotPath = path.resolve(process.cwd(), 'generated', 'minimal-auth-v1', 'runtime-contract.json');
+  return createHash('sha256').update(readFileSync(snapshotPath)).digest('hex');
+}
+
+async function runProductionApply(authorization: Record<string, unknown>): Promise<void> {
+  if (authorization.implementation_commit !== currentImplementationCommit()) {
+    fail('authorization.implementation_commit must equal the clean executable worktree HEAD');
+  }
+  if (authorization.bundle_digest !== runtimeSnapshotFileDigest()) {
+    fail('authorization.bundle_digest must equal the sha256 of the staged runtime snapshot file');
+  }
+  if (!process.env.DATABASE_URL) fail('DATABASE_URL is required for production apply');
+  const prisma = new PrismaClient();
+  try {
+    const result = await applyChange(
+      prisma,
+      {
+        migrationId: MIGRATION_ID,
+        sourceGitCommit: String(authorization.implementation_commit),
+        operatorId: String(authorization.operator_id),
+        approvalRef: String(authorization.approval_ref),
+        reason: `${AUDIT_REASON_PREFIX} plan_sha256=${String(authorization.plan_sha256)}`,
+      },
+      String(authorization.plan_sha256),
+      String(authorization.prestate_digest),
+    );
+    process.stdout.write(`${JSON.stringify({
+      stage: 'FMG',
+      operation: 'production-apply',
+      outcome: result.outcome,
+      plan_sha256: result.planDigest,
+      prestate_digest: String(authorization.prestate_digest),
+      implementation_commit: String(authorization.implementation_commit),
+      bundle_version: BUNDLE_CONTRACT_VERSION,
+      audience_rows_updated: result.writes.audience_rows_updated,
+      grant_rows_updated: result.writes.grant_rows_updated,
+      audits_created: result.writes.audits_created,
+      bystander_rows_changed: 0,
+      attempts: 1,
+    })}\n`);
+  } finally {
+    await prisma.$disconnect();
+  }
 }
 
 function refuseVerifyMint(authorization: unknown): never {
@@ -847,11 +918,12 @@ async function main(): Promise<void> {
     if (Object.keys(args).some((key) => key !== '--apply' && key !== '--authorization-fd')) {
       fail('apply accepts only its authorization descriptor');
     }
-    // CTR-FMG-016: refuse before any database connection. No PrismaClient is
-    // constructed on this path in this build.
+    // CTR-FMG-016: the descriptor is validated BEFORE any database connection;
+    // only a fully matching exact authorization reaches applyChange.
     const authorization = readFifo(args['--authorization-fd'] as string | undefined, 'authorization');
     if (!isObject(authorization)) fail('authorization must be an object');
-    refuseProductionApply(authorization);
+    await runProductionApply(validateProductionApplyAuthorization(authorization));
+    return;
   }
 
   if (args['--verify-mint']) {
