@@ -52,10 +52,11 @@ const WORKFLOW_AUDIENCE = 'svc-workflow';
 const WORKFLOW_SCOPES = Object.freeze(['workflow.read']);
 const SOURCE_SCOPES = Object.freeze(['forum.read', 'forum.write']);
 const TARGET_SCOPES = Object.freeze(['forum.moderate', 'forum.read', 'forum.write']);
-// Retargeted 1.7.0 -> 1.8.0 by AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_BUNDLE_RETARGET_V1:
-// Bundle 1.8.0 (agent-principal-resolution CCR) is the first deployed Bundle
-// whose frozen audience registry carries the FMG target svc-forum entry.
-const BUNDLE_CONTRACT_VERSION = '1.8.0';
+// Retargeted 1.7.0 -> 1.8.0 by AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_BUNDLE_RETARGET_V1;
+// rebound 1.8.0 -> 1.11.0 by AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_BUNDLE_RETARGET_V2:
+// Bundle 1.11.0 is the currently deployed Bundle whose frozen audience registry
+// carries the FMG target svc-forum entry (entry byte-identical to its 1.8.0 form).
+const BUNDLE_CONTRACT_VERSION = '1.11.0';
 const PLAN_VERSION = 'AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1_PLAN_1';
 const AUDIT_REASON_PREFIX = 'forum_moderator_grant_supply_v1';
 const AUDIT_REASON_PATTERN = /^forum_moderator_grant_supply_v1 plan_sha256=[0-9a-f]{64}$/;
