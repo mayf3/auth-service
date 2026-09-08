@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_PRESTATE_REBASELINE_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
