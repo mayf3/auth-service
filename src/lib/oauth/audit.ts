@@ -117,7 +117,14 @@ export function auditLog(event: AuditEvent): void {
     ...(event.issuedAt ? { issuedAt: event.issuedAt } : {}),
     ...(event.expiresAt ? { expiresAt: event.expiresAt } : {}),
   };
-  console.warn(`[AUDIT] ${JSON.stringify({ ...entry, ...oboEntry })}`);
+  // Rotation-seam lineage (Amendment A §11): the client.rotated audit line
+  // must carry the receipt linkage — ids/replay flag only, never secrets.
+  const rotationEntry = {
+    ...(event.rotationOperationId ? { rotationOperationId: event.rotationOperationId } : {}),
+    ...(event.rotationReceiptId ? { rotationReceiptId: event.rotationReceiptId } : {}),
+    ...(event.rotationReplayed !== undefined ? { rotationReplayed: event.rotationReplayed } : {}),
+  };
+  console.warn(`[AUDIT] ${JSON.stringify({ ...entry, ...oboEntry, ...rotationEntry })}`);
 }
 
 /**
