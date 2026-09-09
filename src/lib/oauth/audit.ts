@@ -77,6 +77,13 @@ export interface AuditEvent {
   issuedAt?: string;
   /** Output token's expires_at timestamp. */
   expiresAt?: string;
+  // ─── Rotation seam (Amendment A §11) ────────────────────────────────────
+  /** Stable operation id (client.rotated events only; receipt lineage). */
+  rotationOperationId?: string;
+  /** Receipt ledger row id (machine_client_rotations.id). */
+  rotationReceiptId?: string;
+  /** True when the event is a deterministic replay of a known operation. */
+  rotationReplayed?: boolean;
 }
 
 /**

@@ -137,13 +137,19 @@ async function cmdClientCreate(kwargs: Record<string, string>): Promise<void> {
 async function cmdClientRotate(kwargs: Record<string, string>): Promise<void> {
   const clientId = kwargs['client-id'];
   if (!clientId) throw new Error('--client-id is required');
+  // Optional stable operation id: a retried rotation that reuses the SAME id
+  // replays idempotently (no second secret mutation) per Amendment A §11.
+  const operationId = kwargs['operation-id'];
 
-  const result = await rotateClientSecret(clientId);
+  const result = await rotateClientSecret(clientId, operationId ? { operationId } : {});
   process.stdout.write(JSON.stringify({
     clientId: result.client.clientId,
     newSecret: result.newSecret,
     rotatedAt: result.client.rotatedAt,
     status: result.client.status,
+    rotationOperationId: result.rotation.operationId,
+    rotationReceiptId: result.rotation.receiptId,
+    rotationReplayed: result.rotation.replayed,
   }, null, 2) + '\n');
 }
 
