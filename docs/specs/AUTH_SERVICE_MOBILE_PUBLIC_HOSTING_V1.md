@@ -188,6 +188,17 @@ MAX_BODY                 = 1 MiB
 - `POST /oauth/token`、`POST /oauth/logout`、`POST /oauth/authorize/authenticate`
   等非幂等请求 MUST NOT 被 Nginx 自动重试；失败诚实返回（502/504）。
 
+### CTR-AH-HEALTH-001 — health/readiness 传输面
+
+- 公共面不提供主动健康探针端点：MUST NOT 将 auth-service `/api/health` 或任何
+  内部诊断端点经本 SNI block 暴露。
+- 公共 readiness 语义 = 被动：`GET /.well-known/jwks.json` 返回 200 即为链路
+  健康的唯一公共信号；其失败（5xx/超时）即为不健康信号，运维告警以此为锚。
+- 隧道/上游故障在浏览器路径上表现为诚实 502/504（`CTR-AH-TUNNEL-001`）；
+  MUST NOT 以缓存、fallback 或 mock 掩蔽不健康状态。
+- 引入任何主动拨测（synthetic prober、外部探针目标、新的公共 /health 端点）
+  必须先经本权威的修订（owner exact-head acceptance），不得在部署时临时加入。
+
 ### CTR-AH-DEPLOY-001 — 部署与回滚
 
 部署物 = 新增 Nginx SNI block + sshd principal 配置 + Mac 侧 launchd plist +
@@ -206,18 +217,23 @@ EMERGENCY_CONTAINMENT = 同 ROLLBACK（disable SNI block 即可达）。
 
 ### ACC-AH-TLS-001 — TLS 与 SNI 隔离
 
-- Contracts: `CTR-AH-TLS-001`, `CTR-AH-TOPO-001`
+- Contracts: `CTR-AH-TLS-001`, `CTR-AH-TOPO-001`, `CTR-AH-EDGE-001`
 - Method: 公开探针验证 auth.mayf3.com 证书链受信；exact-SNI 命中；
-  default_server 与 mobile-api block 变更前后 diff 为零改动
-- Failure: 自签证书入生产路径；既有 block 被修改
+  default_server 与 mobile-api block 变更前后 diff 为零改动；请求头边界矩阵
+  —— 伪造 `Forwarded` / `X-Forwarded-For` / `X-Real-IP` 到达 Nginx 后被删除、
+  上游所见 Host 恒为 `auth.mayf3.com`、`X-Forwarded-Proto` 恒为 `https`、
+  `X-AgentCore-*` 命名空间既不被信任也不被转发
+- Failure: 自签证书入生产路径；既有 block 被修改；任何伪造头穿透
 
 ### ACC-AH-TUNNEL-001 — 隧道行为
 
-- Contracts: `CTR-AH-TUNNEL-001`, `CTR-AH-TOPO-001`
+- Contracts: `CTR-AH-TUNNEL-001`, `CTR-AH-TOPO-001`, `CTR-AH-TIMEOUT-001`
 - Method: 正向转发验证；隧道中断故障注入（浏览器诚实 502，无 mock）；
   两端仅回环绑定证明；kill Mac 侧客户端观察 launchd 自动恢复；
-  principal 权限矩阵（PermitListen 之外全拒绝）
-- Failure: 非回环绑定、mock/fallback、无自动恢复、越权转发
+  principal 权限矩阵（PermitListen 之外全拒绝）；超时/体积/重试矩阵
+  —— connect 5s、read 60s、body 1 MiB、非幂等 POST 不自动重试（故障注入下
+  直接诚实失败）
+- Failure: 非回环绑定、mock/fallback、无自动恢复、越权转发、POST 被自动重试
 
 ### ACC-AH-LOG-001 — 日志负扫描
 
@@ -231,9 +247,11 @@ EMERGENCY_CONTAINMENT = 同 ROLLBACK（disable SNI block 即可达）。
 
 - Contracts: `CTR-AH-WELLKNOWN-001`
 - Method: `/.well-known/jwks.json` 代理正确性（与 127.0.0.1:4001 直连字节
-  一致）；`/.well-known/assetlinks.json` 与钉住的 sha256 字节一致；
-  `/mobile/callback` 传输可达且语义行为归 OAuth 权威验证
-- Failure: 字节不一致、404、或本 Spec 越权定义了端点语义
+  一致）＋被动 readiness 信号验证（200/失败语义即 `CTR-AH-HEALTH-001` 的唯一
+  公共健康锚）；`/.well-known/assetlinks.json` 与钉住的 sha256 字节一致；
+  `/api/health` 与内部诊断端点经公共 SNI 不可达；`/mobile/callback` 传输可达
+  且语义行为归 OAuth 权威验证
+- Failure: 字节不一致、404、内部端点公共可达、或本 Spec 越权定义了端点语义
 
 ### ACC-AH-ROLLBACK-001 — 回滚演练
 
@@ -254,6 +272,7 @@ EMERGENCY_CONTAINMENT = 同 ROLLBACK（disable SNI block 即可达）。
 | `CTR-AH-TUNNEL-001` | `ACC-AH-TUNNEL-001` | YES |
 | `CTR-AH-WELLKNOWN-001` | `ACC-AH-WELLKNOWN-001` | YES |
 | `CTR-AH-TIMEOUT-001` | `ACC-AH-TUNNEL-001`, `ACC-AH-LOG-001` | YES |
+| `CTR-AH-HEALTH-001` | `ACC-AH-WELLKNOWN-001`, `ACC-AH-TUNNEL-001` | YES |
 | `CTR-AH-DEPLOY-001` | `ACC-AH-ROLLBACK-001` | YES |
 
 反向：每个 Acceptance 至少映射一个 Contract，无孤儿。
