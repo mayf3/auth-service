@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_MOBILE_PUBLIC_HOSTING_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -376,4 +376,22 @@ NORMATIVE_TBD = NONE
 UNRESOLVED_AUTHORITY_CONFLICT = NONE
 PARTIAL_SUPERSESSION = NONE
 READY_TO_MARK_ACCEPTED = YES（独立 REVIEW 通过后，等待 owner exact-head acceptance）
+```
+
+## 9. Acceptance record
+
+```text
+STATUS = accepted
+REVIEWED_SEMANTIC_HEAD = 3f65d4cb4022a14664d6efa3b434617b63fea9ff
+ACCEPTANCE_ACTOR = mayf3
+ACCEPTED_AT = 2026-09-09
+ACCEPTANCE_RULING = ACCEPT_BOTH_PUBLIC_AUTHORITIES（含 late-security closure
+                    H1/H2/H3：精确公共 method/path 白名单、跨隧道可信客户端
+                    IP 溯源与独立限流身份、含 Mac auth-service 日志的全链
+                    secret-log 验收）
+SEMANTIC_DELTA_AFTER_REVIEW = NONE（仅 lifecycle/本记录/索引行）
+AUTHORITY_CONFLICT_VS_MAIN = NONE（自 base 5e07df5 以来的 main 前进 = 已审
+                    已合并的 Browser OAuth PR #67 @ b536c19，即 H1 七对
+                    公共面推导所用的实现；无任何 hosting 语义冲突）
+PRODUCTION_APPLY = NONE（部署仍由 §7 生产门把关，未执行）
 ```
