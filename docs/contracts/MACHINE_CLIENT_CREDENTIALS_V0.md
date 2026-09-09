@@ -300,3 +300,119 @@ The following are stable and must not change without coordination:
 - `machine-admin principal inspect --agent-id <id>` output format
 - `machine-admin client inspect --client-id <id>` output format
 - Error codes and HTTP status mapping
+
+---
+
+## 11. Amendment A (2026-09-09) — Secret-Mutation Enforcement Seam
+
+> Governing external prerequisite: `(e) SECRET_MUTATION_ENFORCEMENT_SEAM`
+> (dsh-agent-core `docs/specs/AGENT_CORE_AGENT_CREDENTIAL_PROVISIONING_V1.md`
+> Amendment 7 Part I.2 — accepted). Root cause reference:
+> `AGENT_CREDENTIAL_DRIFT_BOOT_HOOK_ROOT_CAUSE_V1` — 2026-09-07 an out-of-seam
+> operator script rotated a production MachineClient secret via a direct ORM
+> write (`secret_hash` changed, `rotated_at` never advanced, no audit, no
+> central-store sync). This amendment makes that write form mechanically
+> rejected at the database layer for ordinary supported production identities.
+>
+> Scope note: "impossible" is bounded to ordinary supported production
+> application/operator DB identities. PostgreSQL superuser / host root is out
+> of scope by definition.
+
+### 11.1 Frozen properties
+
+```text
+DIRECT_APP_ROLE_SECRET_UPDATE = IMPOSSIBLE
+    The application/operator role cannot UPDATE machine_clients.secret_hash
+    or machine_clients.rotated_at (column-level privilege, backed by real
+    ownership separation — the table owner is the NOLOGIN role
+    machine_credential_owner).
+SECRET_HASH_CHANGE_WITHOUT_ROTATION_AUDIT = IMPOSSIBLE
+    Secret material changes only through rotate_machine_client_secret(),
+    which atomically advances rotated_at + updated_at together with the new
+    secret_hash and appends an immutable receipt row.
+SUPPORTED_PRODUCTION_PATH_CAN_BYPASS_ROTATION = NO
+    A rotation-role-owned trigger additionally rejects secret-material changes
+    through ordinary row DML for every role except the SECURITY DEFINER
+    context of the rotation function.
+```
+
+### 11.2 Mechanism
+
+1. **Ownership separation** — `machine_clients` is owned by the NOLOGIN role
+   `machine_credential_owner`. The application role keeps explicit DML grants
+   (SELECT / INSERT / DELETE on rows; UPDATE restricted to
+   `client_id, machine_principal_id, external_ref, status, allowed_resources,
+   allowed_scopes, updated_at, revoked_at`). Row deletion is NOT a secret
+   mutation and remains available to existing lifecycle/cleanup paths.
+2. **Rotation seam function** — `rotate_machine_client_secret(p_client_uuid,
+   p_new_secret_hash, p_preimage_fingerprint, p_operation_id, p_rotated_by)`,
+   SECURITY DEFINER, owned by `machine_credential_owner`:
+   - replay of a known `operation_id` returns the stored receipt with
+     `replayed = true` and never mutates again (deterministic retry);
+   - verifies the sha256 fingerprint of the live `secret_hash` against the
+     frozen preimage (mismatch ⇒ exception, zero mutation);
+   - rejects non-active targets (exact target by internal UUID);
+   - sets `secret_hash` + `rotated_at` + `updated_at` atomically.
+3. **Receipt ledger** — `machine_client_rotations` (append-only; UNIQUE
+   `operation_id`; preimage/postimage sha256 fingerprints, rotated_by, rotated_at;
+   intentionally NO foreign key so receipts survive client deletion; the
+   application role has SELECT only).
+4. **Defense-in-depth trigger** — `machine_clients_secret_guard` rejects any
+   row UPDATE that changes `secret_hash` / `rotated_at` outside the SECURITY
+   DEFINER context of the rotation function. It does NOT replace the
+   privilege boundary; it additionally covers owner-role DML paths.
+5. **Service/CLI routing** — `rotateClientSecret()` (and therefore
+   `machine-admin client rotate`) calls the seam function; the CLI additionally
+   reports `rotationOperationId` / `rotationReceiptId` / `rotationReplayed`
+   and accepts `--operation-id` for deterministic retries. There is no
+   fallback write path.
+
+### 11.3 Operational constraints
+
+- Applying migration
+  `20260909010000_machine_credential_rotation_seam` requires a THREE-step
+  admin handshake; PostgreSQL grantor law (empirically verified on PG16)
+  makes the final seal an ADMIN action that cannot be delegated to the
+  migration role, and the shipped suite turns a skipped seal into a loud RED
+  rather than a silent gap: ① AS ADMIN create `machine_credential_owner`
+  NOLOGIN + `GRANT CREATE ON SCHEMA public TO machine_credential_owner` (the
+  new owning role must hold schema CREATE — PostgreSQL requirement) +
+  `GRANT machine_credential_owner TO <migration_role>`; ② run the migration
+  as `<migration_role>` (current table owner); ③ AS ADMIN
+  `REVOKE machine_credential_owner FROM <migration_role>` — the seal.
+  **Verification duty (§11.4, mechanically enforced by the shipped suite):**
+  after step ③, `pg_has_role(<app role>,'machine_credential_owner','member')`
+  MUST be false and `SET ROLE machine_credential_owner` MUST fail; while
+  membership lingers the frozen properties are NOT claimable and the
+  enforcement suite fails. Defense-in-depth trigger hardening additionally
+  rejects the `SET ROLE` reproduction of the definer context (session `role`
+  GUC must be unset). `<migration_role>` MUST be the same role the
+  auth-service connects as (the DATABASE_URL role) — the grants bind
+  `current_user`; a dedicated migration role deployment must substitute the
+  application role in every GRANT explicitly.
+- Future DDL on `machine_clients` must be applied as
+  `machine_credential_owner` (or with an explicitly documented, audited
+  exception). Ordinary application-role `prisma migrate deploy` continues to
+  work for DML-only/data migrations and for migrations touching other tables.
+- The canonical rotate flow above the seam is unchanged: `machine-admin
+  client rotate` generates the new 256-bit secret, shows it once, and the old
+  secret is invalidated immediately (§5 Rotation semantics unchanged). The
+  receipt ledger is additive lineage, replacing nothing.
+
+### 11.4 Verification duties (maps to governing spec L4-T5..T10)
+
+- T5/T6/T7: raw UPDATE of `secret_hash` alone, and of `secret_hash +
+  rotated_at` together, by the application role → rejected (privilege error).
+- T8: `machine-admin client rotate` → secret generation changes exactly once,
+  `rotated_at` advances, audit event `client.rotated` written (now carrying
+  `rotationOperationId`/`rotationReceiptId`), receipt row exists, store
+  reconciliation is the caller's bounded transaction (see governing spec I.4).
+- T10: replaying the same `operation-id` → `rotationReplayed = true`, no
+  second secret change.
+- Seal duty: post-apply, the application role holds NO membership in
+  `machine_credential_owner` and cannot SET ROLE to it (asserted by
+  `tests/oauth/secret-mutation-enforcement.test.ts`). Scope note: this
+  contract satisfies prerequisite (e) only — the credential-STORE
+  reconciliation half of a rotation remains the caller's bounded transaction
+  (governing spec I.4), and the (b) HTTPS rotation seam remains a separate,
+  still-open prerequisite.

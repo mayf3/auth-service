@@ -498,3 +498,21 @@ model GrantChangeAudit {
   @@index([timestamp])
   @@map("grant_change_audits")
 }
+
+/// Rotation receipt ledger (MACHINE_CLIENT_CREDENTIALS_V0 Amendment A §11).
+/// Append-only; intentionally no FK to MachineClient so receipts survive
+/// client deletion. operation_id UNIQUE ⇒ replay of a known rotation
+/// operation never mutates a second time (bounded-transaction T10).
+model MachineClientRotation {
+  id                   String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  operationId          String   @unique @map("operation_id")
+  machineClientId      String   @map("machine_client_id") @db.Uuid
+  clientId             String   @map("client_id")
+  preimageFingerprint  String   @map("preimage_fingerprint")
+  postimageFingerprint String   @map("postimage_fingerprint")
+  rotatedBy            String   @map("rotated_by")
+  rotatedAt            DateTime @map("rotated_at") @db.Timestamp(3)
+  createdAt            DateTime @default(now()) @map("created_at") @db.Timestamp(3)
+
+  @@map("machine_client_rotations")
+}
