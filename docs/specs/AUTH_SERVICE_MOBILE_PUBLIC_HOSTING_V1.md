@@ -58,8 +58,9 @@ B2 权威搜索结论（2026-09-09，read-only）：本仓库既有关乎（含 
 ## 3. 职责边界（owns / MUST NOT own）
 
 本 Spec **只拥有**：`auth.mayf3.com` 的公共托管拓扑 —— Aliyun Nginx SNI 边界、
-仅回环的远端端点、专用反向隧道、Mac 回环 auth-service 上游、TLS/Host/代理头
-边界、日志禁令、health/readiness 传输面、超时/失败行为、部署与回滚。
+公共面精确 method/path 白名单、仅回环的远端端点、专用反向隧道、Mac 回环
+auth-service 上游、TLS/Host/代理头边界、跨隧道的可信客户端 IP 溯源与独立
+限流身份、日志禁令、health/readiness 传输面、超时/失败行为、部署与回滚。
 
 本 Spec **不得重定义**（这些归 accepted `AUTH_SERVICE_MOBILE_PUBLIC_OAUTH_V1`
 @ `795f86e6ae4b0445d050242c8259ee7a378f803e` 以及 `MINIMAL_AUTH_FOUNDATION_V2`
@@ -127,6 +128,53 @@ Nginx SNI block MUST：
 - 不注入、不透传任何 `X-AgentCore-*` 头（该命名空间属产品网关权威；两套边界
   不共享任何 edge secret）；
 - 仅转发到 `127.0.0.1:18794`。
+
+### CTR-AH-PATHS-001 — 公共边缘精确方法/路径白名单（H1）
+
+Nginx SNI block MUST 实现精确 method/path 匹配，且 MUST NOT 存在任何
+catch-all 代理。公开面 = 恰好以下七对（由 accepted `AUTH_SERVICE_MOBILE_
+PUBLIC_OAUTH_V1` 冻结值 + 已合并实现 surface 推导，坐标见 ACC）：
+
+```text
+GET  /oauth/authorize/ui            （浏览器登录页，auth-service main b536c19）
+POST /oauth/authorize/ui            （凭据提交，PR #67 实现）
+GET  /mobile/callback               （App Link 传输面）
+POST /oauth/token                   （code / refresh_token grant）
+POST /oauth/logout                  （撤销）
+GET  /.well-known/jwks.json         （既有端点）
+GET  /.well-known/assetlinks.json   （静态交付，sha256 钉板）
+```
+
+其余一切 method/path 组合 MUST 在边缘被拒绝（4xx，零字节到达 18794/4001），
+特别必须拒绝：
+
+```text
+/api/*（含 /api/auth/register、/api/health 与全部 identity/admin/internal 路由）
+GET  /oauth/authorize               （机器流事务端点，非公共面所需）
+POST /oauth/authorize/authenticate  （同上）
+任何未知 OAuth 路径与未知 well-known 路径
+```
+
+机器流 OAuth 端点保持私有可达性不受本白名单影响；白名单收紧永不在边缘
+放行新路径——新增公共路径须先经权威修订。
+
+### CTR-AH-EDGE-002 — 跨反向隧道的可信客户端 IP 溯源与独立限流身份（H2）
+
+反向 SSH 拓扑使 auth-service 的 socket 对端恒为 `127.0.0.1`（隧道端点）。
+若不处理，所有公共用户会坍缩为同一个 `req.ip` 限流身份。因此：
+
+- Nginx MUST 删除客户端供给的 `Forwarded` / `X-Forwarded-For` /
+  `X-Real-IP`（沿用 `CTR-AH-EDGE-001`），然后 MUST 以
+  `proxy_set_header X-Forwarded-For $remote_addr;` 注入**恰好一跳**的边缘
+  真实客户端 IP（`TRUSTED_UPSTREAM_PROXY_HOPS = 0`，注入值可信）；
+- auth-service MUST 配置为仅信任恰好一跳的回环代理（Express trust proxy
+  限定 loopback / 单跳），使每个公共客户端获得**独立的限流身份**；
+- 私有服务的限流身份 MUST 派生自该可信客户端 IP，MUST NOT 使用回环隧道
+  地址作为任何公共请求的限流键；
+- 隧道侧请求缺失该可信头时降级为单一身份并构成运维告警信号（fail-degraded
+  仅限限流键选择；MUST NOT 因此放行未认证请求，也 MUST NOT 信任任何
+  客户端供给的转发头）；
+- 本条只拥有传输面限流身份边界，不重定义任何 OAuth 语义。
 
 ### CTR-AH-LOG-001 — 日志禁令
 
@@ -225,6 +273,23 @@ EMERGENCY_CONTAINMENT = 同 ROLLBACK（disable SNI block 即可达）。
   `X-AgentCore-*` 命名空间既不被信任也不被转发
 - Failure: 自签证书入生产路径；既有 block 被修改；任何伪造头穿透
 
+### ACC-AH-PATHS-001 — 边缘白名单与可信 IP 溯源验证
+
+- Contracts: `CTR-AH-PATHS-001`, `CTR-AH-EDGE-001`, `CTR-AH-EDGE-002`
+- Method: 白名单矩阵——七对允许组合逐一经边缘代理可达；探测
+  `/api/health`、`/api/auth/register`、`GET /oauth/authorize`、
+  `POST /oauth/authorize/authenticate`、未知 OAuth/ well-known 路径、随机
+  路径与错误方法 → 全部边缘拒绝（4xx），并以 18794/4001 侧零字节到达证明；
+  IP 溯源矩阵——从两个不同源 IP 经边缘发起请求，验证 auth-service 所见
+  `req.ip`/限流身份为两个不同公网客户端地址而非 `127.0.0.1`；伪造
+  `X-Forwarded-For` 的请求被边缘覆盖、伪造值到达不了私有服务；缺失可信头
+  的隧道侧请求降级为单一身份且产生告警信号
+- Environment: 部署后的 shadow（Aliyun + Mac 全链路）
+- Expected result: 只有七对组合到达私有服务；每个公共客户端拥有独立限流
+  身份；伪造/缺失转发头均不产生身份坍缩或未授权放行
+- Failure: 任何非白名单组合到达 18794/4001；任意两个公共客户端被坍缩为
+  同一限流身份；客户端供给的转发头值在私有服务可见
+
 ### ACC-AH-TUNNEL-001 — 隧道行为
 
 - Contracts: `CTR-AH-TUNNEL-001`, `CTR-AH-TOPO-001`, `CTR-AH-TIMEOUT-001`
@@ -238,10 +303,11 @@ EMERGENCY_CONTAINMENT = 同 ROLLBACK（disable SNI block 即可达）。
 ### ACC-AH-LOG-001 — 日志负扫描
 
 - Contracts: `CTR-AH-LOG-001`
-- Method: 全链路（Nginx access/error、隧道、Mac auth-service 之外的公共面）
-  负扫描 `CTR-AH-LOG-001` 全部禁项；特别构造含 code/state/cookie 的请求后
-  检查日志零残留
-- Failure: 任何禁项出现在任何日志
+- Method: **全链路**日志负扫描——Aliyun Nginx access/error 日志、Aliyun 侧
+  sshd/隧道日志、Mac 侧 launchd 隧道日志、**Mac auth-service 应用日志
+  （launchd stdout/stderr）**——对 `CTR-AH-LOG-001` 全部禁项逐一扫描；
+  特别构造含 code/state/cookie/凭据的请求后检查上述每一处日志零残留
+- Failure: 任何禁项出现在任何一环日志
 
 ### ACC-AH-WELLKNOWN-001 — well-known 交付
 
@@ -268,6 +334,8 @@ EMERGENCY_CONTAINMENT = 同 ROLLBACK（disable SNI block 即可达）。
 | `CTR-AH-TOPO-001` | `ACC-AH-TLS-001`, `ACC-AH-TUNNEL-001` | YES |
 | `CTR-AH-TLS-001` | `ACC-AH-TLS-001` | YES |
 | `CTR-AH-EDGE-001` | `ACC-AH-TLS-001`, `ACC-AH-LOG-001` | YES |
+| `CTR-AH-PATHS-001` | `ACC-AH-PATHS-001` | YES |
+| `CTR-AH-EDGE-002` | `ACC-AH-PATHS-001` | YES |
 | `CTR-AH-LOG-001` | `ACC-AH-LOG-001` | YES |
 | `CTR-AH-TUNNEL-001` | `ACC-AH-TUNNEL-001` | YES |
 | `CTR-AH-WELLKNOWN-001` | `ACC-AH-WELLKNOWN-001` | YES |
