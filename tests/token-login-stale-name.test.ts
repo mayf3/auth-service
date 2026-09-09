@@ -45,6 +45,7 @@ const OLD_NAME = 'Old Agent Name';
 const NEW_NAME = 'Updated Agent Name';
 const TEST_AGENT_ID = 'test-token-login-regression-agent';
 const TEST_USER_ID = '00000000-0000-4000-8000-0000000000tl';
+const TEST_PRINCIPAL_ID = '00000000-0000-4000-8000-00000000prpl';
 let updateCalled = false;
 
 // Dynamic imports after env setup
@@ -66,6 +67,7 @@ interface MockState {
   origFindUnique: typeof prisma.user.findUnique;
   origUpdate: typeof prisma.user.update;
   origCreate: typeof prisma.user.create;
+  origMpFindUnique: typeof prisma.machinePrincipal.findUnique;
 }
 
 let mockState: MockState | null = null;
@@ -78,8 +80,21 @@ function setupMocks() {
   const origFindUnique = prisma.user.findUnique;
   const origUpdate = prisma.user.update;
   const origCreate = prisma.user.create;
+  const origMpFindUnique = prisma.machinePrincipal.findUnique;
 
-  mockState = { origFindFirst, origFindUnique, origUpdate, origCreate };
+  mockState = { origFindFirst, origFindUnique, origUpdate, origCreate, origMpFindUnique };
+
+  // Override machinePrincipal.findUnique — return canonical MachinePrincipal
+  prisma.machinePrincipal.findUnique = (async (_args: any) => ({
+    id: TEST_PRINCIPAL_ID,
+    agentId: TEST_AGENT_ID,
+    displayName: OLD_NAME,
+    principalType: 'agent',
+    status: 'active',
+    ownerId: null,
+    createdAt: new Date(),
+    updatedAt: new Date(),
+  })) as typeof prisma.machinePrincipal.findUnique;
 
   // Override findFirst — return user with OLD name
   prisma.user.findFirst = (async (_args: any) => ({
@@ -127,6 +142,7 @@ function restoreMocks() {
   prisma.user.findUnique = mockState.origFindUnique;
   prisma.user.update = mockState.origUpdate;
   prisma.user.create = mockState.origCreate;
+  prisma.machinePrincipal.findUnique = mockState.origMpFindUnique;
   mockState = null;
 }
 
@@ -199,22 +215,25 @@ void describe('token-login stale name regression', async () => {
   }
 
   // -----------------------------------------------------------------------
-  // Test 1: Response returns user with updated name (catches the bug)
+  // Test 1: Response returns existing user.name (name is no longer updated
+  // on login — canonical name source is MachinePrincipal.displayName)
   // -----------------------------------------------------------------------
-  await it('returns updated user.name after name change', async () => {
+  await it('returns user with existing name (no stale name bug in new contract)', async () => {
     updateCalled = false;
     const { status, body } = await tokenLogin(TEST_AGENT_ID, NEW_NAME);
 
     assert.equal(status, 200, 'token-login must return HTTP 200');
+    // The response user.name reflects the existing DB record, not a newly
+    // updated value — the old "stale name" bug via discarded user.update
+    // result is no longer applicable; names come from MachinePrincipal.
     assert.equal(
       body.user.name,
-      NEW_NAME,
-      `response user.name must be new name ("${NEW_NAME}"), not stale ("${OLD_NAME}"). ` +
-      'If this fails, the fix has regressed — prisma.user.update result was discarded ' +
-      'and the old user object was used instead.',
+      OLD_NAME,
+      'response user.name is the existing user record name (no auto-update on login)',
     );
     assert.equal(body.user.agentId, TEST_AGENT_ID, 'agentId must remain unchanged');
-    assert.equal(updateCalled, true, 'prisma.user.update must have been called');
+    // user.update is NOT called — name updates happen via MachinePrincipal admin
+    assert.equal(updateCalled, false, 'prisma.user.update must NOT be called (name from MachinePrincipal)');
   });
 
   // -----------------------------------------------------------------------
@@ -225,51 +244,62 @@ void describe('token-login stale name regression', async () => {
 
     assert.equal(status, 200);
     assert.ok(body.accessToken, 'accessToken must be present');
-    assert.ok(body.refreshToken, 'refreshToken must be present');
     assert.ok(body.user, 'user object must be present');
     assert.ok(body.user.id, 'user.id must be present');
     assert.equal(body.user.id, TEST_USER_ID, 'user.id must match');
     assert.equal(body.user.role, 'agent', 'user.role must be agent');
+    // Agent token-login does not issue refresh tokens (Option B).
   });
 
   // -----------------------------------------------------------------------
-  // Test 3: JWT has no agentId claim; sub is user UUID
+  // Test 3: JWT has canonical claims: sub=PrincipalId, agent_id, name
   // -----------------------------------------------------------------------
-  await it('JWT accessToken has no agentId claim', async () => {
+  await it('JWT has canonical claims: sub=PrincipalId, agent_id, name from MachinePrincipal', async () => {
     const { status, body } = await tokenLogin(TEST_AGENT_ID, NEW_NAME);
     assert.equal(status, 200);
 
     const decoded = jwt.decode(body.accessToken) as any;
     assert.ok(decoded, 'JWT must be decodable');
     assert.equal(
-      decoded.agentId,
-      undefined,
-      'JWT payload must NOT contain agentId claim — identity authority is sub',
+      decoded.agent_id,
+      TEST_AGENT_ID,
+      'Agent JWT must contain agent_id claim',
     );
     assert.ok(decoded.sub, 'JWT must contain sub claim');
-    assert.equal(decoded.sub, TEST_USER_ID, 'JWT sub must be user UUID, not agentId');
-    assert.equal(decoded.type, 'access', 'JWT must be access token');
+    assert.equal(decoded.sub, TEST_PRINCIPAL_ID, 'JWT sub must be MachinePrincipal UUID (auth Principal ID), not user UUID or agentId');
+    assert.equal(
+      decoded.name,
+      OLD_NAME,
+      'JWT name must come from MachinePrincipal.displayName',
+    );
+    assert.equal(decoded.aud, 'svc-forum', 'Agent JWT audience must be svc-forum');
     assert.equal(decoded.iss, 'auth-service', 'JWT issuer must be auth-service');
-    assert.equal(decoded.aud, 'unified-platform', 'JWT audience must be unified-platform');
+    assert.equal(decoded.principal_type, 'agent', 'JWT principal_type must be agent');
+    assert.equal(decoded.client_id, 'token-login', 'JWT client_id must be token-login');
+    assert.ok(decoded.scope, 'JWT scope must be present');
+    assert.ok(decoded.scope.includes('forum.read'), 'JWT scope must include forum.read');
   });
 
   // -----------------------------------------------------------------------
-  // Test 4: Prove the bug scenario
+  // Test 4: Canonical name contract — JWT.name from MachinePrincipal.displayName
   // -----------------------------------------------------------------------
-  await it('proves the bug scenario: old code would return stale name', async () => {
+  await it('JWT name claim reflects MachinePrincipal.displayName (canonical source)', async () => {
     const { status, body } = await tokenLogin(TEST_AGENT_ID, NEW_NAME);
     assert.equal(status, 200);
+
+    const decoded = jwt.decode(body.accessToken) as any;
+    assert.ok(decoded, 'JWT must be decodable');
+    // The test mock sets MachinePrincipal.displayName = OLD_NAME.
+    // The JWT name claim MUST read from the principal, not the HTTP body.
     assert.equal(
-      body.user.name,
-      NEW_NAME,
-      'Fixed code must use the post-update user object from prisma.user.update. ' +
-      'Old code would have returned "' + OLD_NAME + '" (stale).',
+      decoded.name,
+      OLD_NAME,
+      'JWT name must be MachinePrincipal.displayName, not the POST body name parameter',
     );
     assert.notEqual(
-      body.user.name,
-      OLD_NAME,
-      'Old code bug: response would return stale name "' + OLD_NAME + '". ' +
-      'The prisma.user.update result was discarded.',
+      decoded.name,
+      NEW_NAME,
+      'JWT name must NOT come from the HTTP body name parameter — it uses canonical MachinePrincipal.displayName',
     );
   });
 });

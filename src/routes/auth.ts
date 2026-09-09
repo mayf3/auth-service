@@ -9,6 +9,7 @@ import { signAccessToken, signRefreshToken, verifyRefreshToken, authRequired, ge
 import { revokeRefreshToken, isRefreshTokenRevoked } from '../middleware/token-rotation.js';
 import { loginSchema, tokenLoginSchema, registerSchema, changePasswordSchema, refreshTokenSchema } from '../schemas/auth.js';
 import { env } from '../config/env.js';
+import { authenticateMachineClient } from '../lib/oauth/service.js';
 
 export const authRouter = Router();
 
@@ -93,70 +94,240 @@ authRouter.post(
 );
 
 // ---------------------------------------------------------------------------
+// Shared: resolve canonical MachinePrincipal from a pre-signed agent token
+// ---------------------------------------------------------------------------
+
+/**
+ * Verify a pre-signed agent token and resolve the canonical MachinePrincipal.
+ *
+ * Unlike the Basic auth path which authenticates via machine client credentials,
+ * this path verifies a pre-signed JWT signed with AGENT_TOKEN_SECRET and
+ * resolves the associated MachinePrincipal by agentId.
+ *
+ * Throws 401 if the token is invalid, expired, or no MachinePrincipal exists.
+ * Does NOT auto-create MachinePrincipals — only finds existing ones.
+ */
+async function resolvePrincipalFromAgentToken(token: string): Promise<{
+  id: string;
+  agentId: string;
+  displayName: string | null;
+  principalType: string;
+  status: string;
+}> {
+  let agentPayload: { sub?: string; name?: string; role?: string; agentId?: string };
+  try {
+    agentPayload = jwt.verify(token, env.AGENT_TOKEN_SECRET) as typeof agentPayload;
+  } catch {
+    throw new HttpError(401, 'Agent Token 无效或已过期');
+  }
+
+  const agentId = agentPayload.sub || agentPayload.agentId || '';
+  if (!agentId) {
+    throw new HttpError(400, 'Token 缺少 agentId/sub 字段');
+  }
+
+  // Resolve canonical MachinePrincipal — do NOT auto-create
+  const principal = await prisma.machinePrincipal.findUnique({
+    where: { agentId },
+  });
+  if (!principal) {
+    throw new HttpError(401, '未找到对应的 Machine Principal，请联系管理员');
+  }
+  if (principal.status === 'disabled') {
+    throw new HttpError(401, 'Principal 已禁用');
+  }
+
+  return {
+    id: principal.id,
+    agentId: principal.agentId!,
+    displayName: principal.displayName,
+    principalType: principal.principalType,
+    status: principal.status,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// Shared: issue a canonical Forum JWT from a MachinePrincipal
+// ---------------------------------------------------------------------------
+
+/**
+ * Issue a standardized Forum-scoped JWT from a verified MachinePrincipal.
+ *
+ * Both auth paths (Basic client_credentials and pre-signed agent token) converge
+ * here, ensuring every Forum JWT has identical sub/agent_id/name semantics.
+ *
+ * Token claims:
+ *   sub       = MachinePrincipal.id  (auth Principal UUID)
+ *   agent_id  = MachinePrincipal.agentId  (stable Agent ID)
+ *   name      = MachinePrincipal.displayName || agentId
+ *   iss       = auth-service
+ *   aud       = svc-forum
+ */
+function issueForumJwt(principal: {
+  id: string;
+  agentId: string;
+  displayName: string | null;
+}): string {
+  const now = Math.floor(Date.now() / 1000);
+  return jwt.sign(
+    {
+      sub: principal.id,
+      agent_id: principal.agentId,
+      name: principal.displayName || principal.agentId,
+      iss: env.JWT_ISSUER,
+      aud: 'svc-forum',
+      principal_type: 'agent',
+      client_id: 'token-login',
+      scope: 'forum.read forum.write',
+      iat: now,
+    },
+    env.JWT_SECRET,
+    { expiresIn: '7d' },
+  );
+}
+
+// ---------------------------------------------------------------------------
 // POST /api/auth/token-login — Agent Token login
+//
+// Two authentication paths:
+//   Path A (Basic auth):   client_id:client_secret via Authorization header
+//   Path B (pre-signed):   pre-signed agent JWT in body.token
+//
+// Both paths converge to resolveCanonicalMachinePrincipal → issueForumJwt.
 // ---------------------------------------------------------------------------
 authRouter.post(
   '/token-login',
   asyncHandler(async (req, res) => {
-    const { body } = tokenLoginSchema.parse({ body: req.body });
+    const authHeader = req.headers['authorization'] || '';
+    const isBasicAuth = authHeader.startsWith('Basic ');
 
-    // Verify the agent token using AGENT_TOKEN_SECRET
-    let agentPayload: { sub?: string; name?: string; role?: string; agentId?: string };
-    try {
-      agentPayload = jwt.verify(body.token, env.AGENT_TOKEN_SECRET) as typeof agentPayload;
-    } catch {
-      throw new HttpError(401, 'Agent Token 无效或已过期');
-    }
+    let principal: {
+      id: string;
+      agentId: string;
+      displayName: string | null;
+      principalType: string;
+      status: string;
+    };
 
-    const agentId = agentPayload.sub || agentPayload.agentId || '';
-    const agentName = body.name || agentPayload.name || agentId;
-    // Only allow non-privileged roles for agent auto-creation
-    const allowedAgentRoles = ['agent', 'requester', 'developer'] as const;
-    const agentRole = allowedAgentRoles.includes((body.role || agentPayload.role) as any)
-      ? (body.role || agentPayload.role)
-      : 'agent';
+    if (isBasicAuth) {
+      // ── Path A: OAuth2 client_credentials via Basic auth ──────────────
+      const basicMatch = authHeader.match(/^Basic\s+(.+)$/i);
+      if (!basicMatch) throw new HttpError(401, '无效的 Authorization header');
 
-    if (!agentId) {
-      throw new HttpError(400, 'Token 缺少 agentId/sub 字段');
-    }
+      let decoded: string;
+      try {
+        decoded = Buffer.from(basicMatch[1], 'base64').toString('utf-8');
+      } catch {
+        throw new HttpError(401, '无效的 Base64 编码');
+      }
 
-    // Find or create user
-    let user = await prisma.user.findFirst({
-      where: {
-        OR: [{ agentId }, { email: `agent:${agentId}@auth-service.local` }],
-      },
-    });
+      const colonIdx = decoded.indexOf(':');
+      if (colonIdx === -1) throw new HttpError(401, 'Basic 格式错误，应为 client_id:client_secret');
 
-    if (!user) {
-      // Auto-create agent user (non-privileged role only)
-      const randomPwd = generatePassword();
-      const hashedPassword = await bcrypt.hash(randomPwd, 10);
-      user = await prisma.user.create({
-        data: {
-          name: agentName,
-          email: `agent:${agentId}@auth-service.local`,
-          password: hashedPassword,
-          role: (agentRole as any) || 'agent',
-          agentId,
+      const clientId = decoded.slice(0, colonIdx);
+      const clientSecret = decoded.slice(colonIdx + 1);
+
+      if (!clientId || !clientSecret) {
+        throw new HttpError(401, 'client_id 和 client_secret 不能为空');
+      }
+
+      // Use the shared OAuth2 authentication + authorization
+      // Map errors from authenticateMachineClient (plain Error with statusCode) to HttpError
+      let authResult;
+      try {
+        authResult = await authenticateMachineClient({
+          clientId,
+          clientSecret,
+          resource: 'svc-forum',
+          requestedScopes: ['forum.read', 'forum.write'],
+        });
+      } catch (clientErr: any) {
+        throw new HttpError(
+          clientErr.statusCode || 401,
+          clientErr.message || 'Authentication failed',
+        );
+      }
+
+      principal = authResult.principal;
+
+      // Sync user record for forum user lookup
+      const agentId = principal.agentId;
+      let user = await prisma.user.findFirst({
+        where: {
+          OR: [{ agentId }, { email: `agent:${agentId}@auth-service.local` }],
+        },
+      });
+
+      if (!user) {
+        const randomPwd = generatePassword();
+        const hashedPassword = await bcrypt.hash(randomPwd, 10);
+        user = await prisma.user.create({
+          data: {
+            name: principal.displayName || agentId,
+            email: `agent:${agentId}@auth-service.local`,
+            password: hashedPassword,
+            role: 'agent',
+            agentId,
+          },
+        });
+      }
+
+      const accessToken = issueForumJwt(principal);
+      res.json({
+        accessToken,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          agentId: user.agentId,
         },
       });
     } else {
-      // Update name on login & capture updated user
-      user = await prisma.user.update({
-        where: { id: user.id },
-        data: { name: agentName },
+      // ── Path B: Pre-signed agent token ────────────────────────────────
+      const { body } = tokenLoginSchema.parse({ body: req.body });
+
+      if (!body.token) {
+        throw new HttpError(401, '请提供 Agent Token 或使用 Basic Auth');
+      }
+
+      // Resolve canonical MachinePrincipal (no auto-create)
+      principal = await resolvePrincipalFromAgentToken(body.token);
+
+      // Find or create user for forum compatibility
+      const agentId = principal.agentId;
+      let user = await prisma.user.findFirst({
+        where: {
+          OR: [{ agentId }, { email: `agent:${agentId}@auth-service.local` }],
+        },
+      });
+
+      if (!user) {
+        const randomPwd = generatePassword();
+        const hashedPassword = await bcrypt.hash(randomPwd, 10);
+        user = await prisma.user.create({
+          data: {
+            name: principal.displayName || agentId,
+            email: `agent:${agentId}@auth-service.local`,
+            password: hashedPassword,
+            role: 'agent',
+            agentId,
+          },
+        });
+      }
+
+      const accessToken = issueForumJwt(principal);
+      res.json({
+        accessToken,
+        user: {
+          id: user.id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          agentId: user.agentId,
+        },
       });
     }
-
-    const safeUser = toSafeUser(user);
-    const accessToken = signAccessToken(safeUser);
-    const refreshToken = signRefreshToken(safeUser);
-
-    res.json({
-      accessToken,
-      refreshToken,
-      user: safeUser,
-    });
   }),
 );
 

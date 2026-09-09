@@ -182,7 +182,7 @@ describe('Machine Client lifecycle', () => {
         resource: 'svc-admin',
         scope: 'forum.read',
       }),
-      /invalid_grant/,
+      /invalid_target/,
     );
   });
 

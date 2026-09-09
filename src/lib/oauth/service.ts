@@ -13,13 +13,187 @@ import { prisma } from '../../lib/prisma.js';
 import {
   generateClientSecret,
   hashClientSecret,
+  verifyClientSecret,
 } from './secret.js';
 import { auditLog } from './audit.js';
+import { validateRequestedScope } from '../../schemas/oauth.js';
 import type { PrincipalType, PrincipalStatus, ClientStatus } from '@prisma/client';
 
 // Re-export token issuance for backward compatibility
 export { issueToken } from './token-issuance.js';
 export type { IssueTokenParams, TokenResult } from './token-issuance.js';
+
+// ─── Shared Client Authentication ──────────────────────────────────────────
+
+export interface AuthenticateClientParams {
+  clientId: string;
+  clientSecret: string;
+  resource: string;
+  requestedScopes: string[];       // e.g. ['forum.read', 'forum.write']
+}
+
+export interface AuthenticateClientResult {
+  principal: {
+    id: string;
+    principalType: string;
+    agentId: string;
+    displayName: string | null;
+    status: string;
+  };
+  client: {
+    id: string;
+    clientId: string;
+    machinePrincipalId: string;
+    status: string;
+    allowedResources: string[];
+    allowedScopes: string[];
+  };
+}
+
+/**
+ * Authenticate a machine client and validate its authorization for a given
+ * resource + scope combination.
+ *
+ * Shared between OAuth2 client_credentials grant and token-login endpoint.
+ * All errors carry a `statusCode` property for HTTP response mapping.
+ *
+ * Error → HTTP mapping:
+ *   invalid_client → 401 (client not found, revoked, secret wrong, disabled)
+ *   invalid_target → 400 (resource not in allowedResources)
+ *   invalid_scope  → 400 (scope not a subset of allowedScopes)
+ */
+export async function authenticateMachineClient(
+  params: AuthenticateClientParams,
+): Promise<AuthenticateClientResult> {
+  // 1. Find client by clientId
+  const client = await prisma.machineClient.findUnique({
+    where: { clientId: params.clientId },
+    include: { principal: true },
+  });
+
+  if (!client) {
+    auditLog({
+      timestamp: new Date().toISOString(),
+      type: 'token.failed',
+      clientId: params.clientId,
+      resource: params.resource,
+      success: false,
+      error: 'client_not_found',
+    });
+    throw Object.assign(new Error('invalid_client'), { statusCode: 401 });
+  }
+
+  // 2. Check client status
+  if (client.status === 'revoked') {
+    auditLog({
+      timestamp: new Date().toISOString(),
+      type: 'token.failed',
+      principalId: client.machinePrincipalId,
+      clientId: client.clientId,
+      resource: params.resource,
+      success: false,
+      error: 'client_revoked',
+    });
+    throw Object.assign(new Error('invalid_client'), { statusCode: 401 });
+  }
+
+  // 3. Check principal status
+  if (client.principal.status === 'disabled') {
+    auditLog({
+      timestamp: new Date().toISOString(),
+      type: 'token.failed',
+      principalId: client.machinePrincipalId,
+      agentId: client.principal.agentId,
+      clientId: client.clientId,
+      resource: params.resource,
+      success: false,
+      error: 'principal_disabled',
+    });
+    throw Object.assign(new Error('invalid_client'), { statusCode: 401 });
+  }
+  if (client.principal.principalType !== 'agent' || !client.principal.agentId) {
+    auditLog({
+      timestamp: new Date().toISOString(),
+      type: 'token.failed',
+      principalId: client.machinePrincipalId,
+      clientId: client.clientId,
+      resource: params.resource,
+      success: false,
+      error: 'legacy_principal_profile_mismatch',
+    });
+    throw Object.assign(new Error('invalid_client'), { statusCode: 401 });
+  }
+
+  // 4. Verify secret (constant-time)
+  const secretValid = verifyClientSecret(params.clientSecret, client.secretHash);
+  if (!secretValid) {
+    auditLog({
+      timestamp: new Date().toISOString(),
+      type: 'token.failed',
+      principalId: client.machinePrincipalId,
+      clientId: client.clientId,
+      resource: params.resource,
+      success: false,
+      error: 'invalid_secret',
+    });
+    throw Object.assign(new Error('invalid_client'), { statusCode: 401 });
+  }
+
+  // 5. Validate resource — exact match only
+  const resourceMatch = client.allowedResources.some(
+    (r) => r === params.resource,
+  );
+  if (!resourceMatch) {
+    auditLog({
+      timestamp: new Date().toISOString(),
+      type: 'token.failed',
+      principalId: client.machinePrincipalId,
+      agentId: client.principal.agentId,
+      clientId: client.clientId,
+      resource: params.resource,
+      success: false,
+      error: 'invalid_resource',
+    });
+    throw Object.assign(new Error('invalid_target'), { statusCode: 400 });
+  }
+
+  // 6. Validate scope — must be subset of allowed scopes
+  const scopeString = params.requestedScopes.join(' ');
+  try {
+    validateRequestedScope(scopeString, client.allowedScopes);
+  } catch (err: any) {
+    auditLog({
+      timestamp: new Date().toISOString(),
+      type: 'token.failed',
+      principalId: client.machinePrincipalId,
+      agentId: client.principal.agentId,
+      clientId: client.clientId,
+      resource: params.resource,
+      scopes: scopeString,
+      success: false,
+      error: 'invalid_scope',
+    });
+    throw Object.assign(new Error('invalid_scope'), { statusCode: 400 });
+  }
+
+  return {
+    principal: {
+      id: client.principal.id,
+      principalType: client.principal.principalType,
+      agentId: client.principal.agentId,
+      displayName: client.principal.displayName,
+      status: client.principal.status,
+    },
+    client: {
+      id: client.id,
+      clientId: client.clientId,
+      machinePrincipalId: client.machinePrincipalId,
+      status: client.status,
+      allowedResources: client.allowedResources,
+      allowedScopes: client.allowedScopes,
+    },
+  };
+}
 
 type LegacyAgentPrincipal = {
   principalType: PrincipalType;

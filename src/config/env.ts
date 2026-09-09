@@ -39,6 +39,10 @@ export const env = {
   JWT_AUDIENCE: process.env.JWT_AUDIENCE ?? 'unified-platform',
   JWT_VERSION: 'v1',
 
+  // Forum signing key version — used to detect key drift between auth-service and forum
+  // Must match svc-forum's FORUM_SIGNING_KEY_VERSION in production.
+  FORUM_SIGNING_KEY_VERSION: (process.env.FORUM_SIGNING_KEY_VERSION ?? '0').trim(),
+
   // ─── Workflow RS256 signer key ring (PR-A) ───────────────────────────────
   // Optional: only required when serving aud=svc-workflow tokens. When unset,
   // workflow issuance is rejected (see workflow-keyring.ts). All keys are parsed
