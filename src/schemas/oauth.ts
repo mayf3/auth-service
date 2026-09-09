@@ -62,6 +62,22 @@ export const humanAuthenticationRequestSchema = z.object({
   password: z.string().min(1),
 }).strict();
 
+/**
+ * Browser credential POST body for POST /oauth/authorize/ui
+ * (AUTH_SERVICE_MOBILE_PUBLIC_OAUTH_V1 CTR-MPO-001): the existing human
+ * authentication fields plus the server-side single-use synchronizer CSRF
+ * token delivered in a hidden form field (32 bytes, base64url — 256-bit
+ * entropy, above CSRF_TOKEN_ENTROPY_MINIMUM).
+ */
+export const browserCsrfTokenSchema = z.string().regex(/^[A-Za-z0-9_-]{43}$/);
+
+export const browserAuthenticationFormSchema = z.object({
+  authorization_transaction_id: z.string().uuid(),
+  email: z.string().email(),
+  password: z.string().min(1),
+  csrf_token: browserCsrfTokenSchema,
+}).strict();
+
 export const authorizationCodeTokenRequestSchema = z.object({
   grant_type: z.literal('authorization_code'),
   code: authorizationCodeSchema,
