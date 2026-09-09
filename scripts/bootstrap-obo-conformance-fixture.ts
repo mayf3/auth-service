@@ -30,7 +30,7 @@
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import { PrismaClient } from '@prisma/client';
-import { hashClientSecret } from '../src/lib/oauth/secret.js';
+import { hashClientSecret, verifyClientSecret } from '../src/lib/oauth/secret.js';
 import {
   initializeAuthContract,
   getV1AudienceDefinitions,
@@ -362,27 +362,40 @@ async function main() {
       // 4. Machine clients
       type ClientInput = {
         id: string; clientId: string; machinePrincipalId: string; secretHash: string;
+        secret: string;
       };
       // Negative test clients share the same secret bundle's adcProxySecret for simplicity
       const clients: ClientInput[] = [
-        { id: CALLER_A_CLIENT_DB_ID, clientId: CALLER_A_CLIENT_ID, machinePrincipalId: CALLER_A_PRINCIPAL_ID, secretHash: hashClientSecret(secrets.callerASecret) },
-        { id: CALLER_B_CLIENT_DB_ID, clientId: CALLER_B_CLIENT_ID, machinePrincipalId: CALLER_B_PRINCIPAL_ID, secretHash: hashClientSecret(secrets.callerBSecret) },
-        { id: PROXY_CLIENT_DB_ID, clientId: PROXY_CLIENT_ID, machinePrincipalId: PROXY_PRINCIPAL_ID, secretHash: hashClientSecret(secrets.adcProxySecret) },
-        { id: MISMATCH_CLIENT_DB_ID, clientId: MISMATCH_CLIENT_ID, machinePrincipalId: MISMATCH_PRINCIPAL_ID, secretHash: hashClientSecret(secrets.adcProxySecret) },
-        { id: NO_TP_CLIENT_DB_ID, clientId: NO_TP_CLIENT_ID, machinePrincipalId: NO_TP_PRINCIPAL_ID, secretHash: hashClientSecret(secrets.adcProxySecret) },
-        { id: DISABLED_PROXY_CLIENT_DB_ID, clientId: DISABLED_PROXY_CLIENT_ID, machinePrincipalId: DISABLED_PROXY_PRINCIPAL_ID, secretHash: hashClientSecret(secrets.adcProxySecret) },
-        { id: NO_DG_CLIENT_DB_ID, clientId: NO_DG_CLIENT_ID, machinePrincipalId: NO_DG_PRINCIPAL_ID, secretHash: hashClientSecret(secrets.adcProxySecret) },
-        { id: CALLER_C_CLIENT_DB_ID, clientId: CALLER_C_CLIENT_ID, machinePrincipalId: CALLER_C_PRINCIPAL_ID, secretHash: hashClientSecret(secrets.adcProxySecret) },
+        { id: CALLER_A_CLIENT_DB_ID, clientId: CALLER_A_CLIENT_ID, machinePrincipalId: CALLER_A_PRINCIPAL_ID, secretHash: hashClientSecret(secrets.callerASecret), secret: secrets.callerASecret },
+        { id: CALLER_B_CLIENT_DB_ID, clientId: CALLER_B_CLIENT_ID, machinePrincipalId: CALLER_B_PRINCIPAL_ID, secretHash: hashClientSecret(secrets.callerBSecret), secret: secrets.callerBSecret },
+        { id: PROXY_CLIENT_DB_ID, clientId: PROXY_CLIENT_ID, machinePrincipalId: PROXY_PRINCIPAL_ID, secretHash: hashClientSecret(secrets.adcProxySecret), secret: secrets.adcProxySecret },
+        { id: MISMATCH_CLIENT_DB_ID, clientId: MISMATCH_CLIENT_ID, machinePrincipalId: MISMATCH_PRINCIPAL_ID, secretHash: hashClientSecret(secrets.adcProxySecret), secret: secrets.adcProxySecret },
+        { id: NO_TP_CLIENT_DB_ID, clientId: NO_TP_CLIENT_ID, machinePrincipalId: NO_TP_PRINCIPAL_ID, secretHash: hashClientSecret(secrets.adcProxySecret), secret: secrets.adcProxySecret },
+        { id: DISABLED_PROXY_CLIENT_DB_ID, clientId: DISABLED_PROXY_CLIENT_ID, machinePrincipalId: DISABLED_PROXY_PRINCIPAL_ID, secretHash: hashClientSecret(secrets.adcProxySecret), secret: secrets.adcProxySecret },
+        { id: NO_DG_CLIENT_DB_ID, clientId: NO_DG_CLIENT_ID, machinePrincipalId: NO_DG_PRINCIPAL_ID, secretHash: hashClientSecret(secrets.adcProxySecret), secret: secrets.adcProxySecret },
+        { id: CALLER_C_CLIENT_DB_ID, clientId: CALLER_C_CLIENT_ID, machinePrincipalId: CALLER_C_PRINCIPAL_ID, secretHash: hashClientSecret(secrets.adcProxySecret), secret: secrets.adcProxySecret },
       ];
       for (const c of clients) {
-        await tx.machineClient.upsert({
-          where: { clientId: c.clientId },
-          update: {
-            machinePrincipalId: c.machinePrincipalId,
-            secretHash: c.secretHash,
-            status: 'active',
-          },
-          create: {
+        // Amendment A §11: secret material is never rewritten out-of-seam.
+        // This bootstrap is CREATE-only; an existing client is kept when its
+        // stored secret still verifies against this run's fixture secret
+        // (idempotent re-bootstrap) and any drift FAILS CLOSED with a pointer
+        // to the rotation seam — the update branch of the old upsert was the
+        // incident's exact out-of-seam write form and is now impossible at
+        // the privilege layer anyway.
+        const existing = await tx.machineClient.findUnique({ where: { clientId: c.clientId } });
+        if (existing) {
+          const secret = c.secret;
+          if (!verifyClientSecret(secret, existing.secretHash)) {
+            throw new Error(`CONFLICT: fixture client ${c.clientId} exists with a different secret generation — Amendment A §11 forbids out-of-seam secret rewrites; rotate via the rotation seam (machine-admin client rotate) or delete the fixture client explicitly before re-bootstrap`);
+          }
+          if (existing.machinePrincipalId !== c.machinePrincipalId || existing.status !== 'active') {
+            throw new Error(`CONFLICT: fixture client ${c.clientId} exists with a different principal/status — reconcile via the admin CLI`);
+          }
+          continue;
+        }
+        await tx.machineClient.create({
+          data: {
             id: c.id,
             clientId: c.clientId,
             machinePrincipalId: c.machinePrincipalId,

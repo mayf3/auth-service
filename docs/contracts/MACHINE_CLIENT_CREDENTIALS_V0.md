@@ -370,15 +370,26 @@ SUPPORTED_PRODUCTION_PATH_CAN_BYPASS_ROTATION = NO
 ### 11.3 Operational constraints
 
 - Applying migration
-  `20260909010000_machine_credential_rotation_seam` requires the admin
-  handshake (three steps, in order): ① AS ADMIN create `machine_credential_owner`
-  NOLOGIN + `GRANT CREATE ON SCHEMA public TO machine_credential_owner`
-  (the new owning role must hold schema CREATE — PostgreSQL requirement) +
-  `GRANT machine_credential_owner TO <migration_role>`; ② run the migration as
-  the migration_role (current table owner); ③ AS ADMIN
-  `REVOKE machine_credential_owner FROM <migration_role>` — step ③ is what
-  seals the boundary (without it the migration role could SET ROLE to the
-  owner and bypass the column-level grants).
+  `20260909010000_machine_credential_rotation_seam` requires a THREE-step
+  admin handshake; PostgreSQL grantor law (empirically verified on PG16)
+  makes the final seal an ADMIN action that cannot be delegated to the
+  migration role, and the shipped suite turns a skipped seal into a loud RED
+  rather than a silent gap: ① AS ADMIN create `machine_credential_owner`
+  NOLOGIN + `GRANT CREATE ON SCHEMA public TO machine_credential_owner` (the
+  new owning role must hold schema CREATE — PostgreSQL requirement) +
+  `GRANT machine_credential_owner TO <migration_role>`; ② run the migration
+  as `<migration_role>` (current table owner); ③ AS ADMIN
+  `REVOKE machine_credential_owner FROM <migration_role>` — the seal.
+  **Verification duty (§11.4, mechanically enforced by the shipped suite):**
+  after step ③, `pg_has_role(<app role>,'machine_credential_owner','member')`
+  MUST be false and `SET ROLE machine_credential_owner` MUST fail; while
+  membership lingers the frozen properties are NOT claimable and the
+  enforcement suite fails. Defense-in-depth trigger hardening additionally
+  rejects the `SET ROLE` reproduction of the definer context (session `role`
+  GUC must be unset). `<migration_role>` MUST be the same role the
+  auth-service connects as (the DATABASE_URL role) — the grants bind
+  `current_user`; a dedicated migration role deployment must substitute the
+  application role in every GRANT explicitly.
 - Future DDL on `machine_clients` must be applied as
   `machine_credential_owner` (or with an explicitly documented, audited
   exception). Ordinary application-role `prisma migrate deploy` continues to
@@ -398,3 +409,10 @@ SUPPORTED_PRODUCTION_PATH_CAN_BYPASS_ROTATION = NO
   reconciliation is the caller's bounded transaction (see governing spec I.4).
 - T10: replaying the same `operation-id` → `rotationReplayed = true`, no
   second secret change.
+- Seal duty: post-apply, the application role holds NO membership in
+  `machine_credential_owner` and cannot SET ROLE to it (asserted by
+  `tests/oauth/secret-mutation-enforcement.test.ts`). Scope note: this
+  contract satisfies prerequisite (e) only — the credential-STORE
+  reconciliation half of a rotation remains the caller's bounded transaction
+  (governing spec I.4), and the (b) HTTPS rotation seam remains a separate,
+  still-open prerequisite.

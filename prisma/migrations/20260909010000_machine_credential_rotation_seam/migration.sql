@@ -24,9 +24,10 @@
 -- machine_clients must be applied as machine_credential_owner. This migration
 -- must be applied by the table owner (the role that runs migrations).
 --
--- ADMIN HANDSHAKE (three steps, because PostgreSQL requires membership in the
--- target role to transfer ownership, and that membership must be revoked
--- afterwards to seal the boundary):
+-- ADMIN HANDSHAKE (three steps; the final REVOKE is required by PostgreSQL
+-- grantor law — only the grantor (or a role with privileges of the grantor)
+-- can revoke a membership grant, so the seal CANNOT be executed by the
+-- migration role itself and MUST NOT be skipped):
 --   1. AS ADMIN:  CREATE ROLE machine_credential_owner NOLOGIN;
 --                 GRANT CREATE ON SCHEMA public TO machine_credential_owner;
 --                   (the NEW owning role must hold CREATE on the schema —
@@ -34,8 +35,12 @@
 --                 GRANT machine_credential_owner TO <migration_role>;
 --   2. run THIS migration as <migration_role> (the current table owner);
 --   3. AS ADMIN:  REVOKE machine_credential_owner FROM <migration_role>;
---      (seals the boundary: the migration role can no longer SET ROLE to the
---       owner, so the column-level grants below are the whole DML surface)
+--      (seals the boundary). VERIFICATION DUTY (§11.4, mechanically checked
+--      by the shipped enforcement suite): after step 3,
+--      pg_has_role(<migration_role>,'machine_credential_owner','member') MUST
+--      be false and SET ROLE MUST fail. While membership lingers, a member
+--      could SET ROLE to the boundary role and the frozen properties are NOT
+--      claimable — the suite turns that state into a loud RED.
 
 DO $$
 BEGIN
@@ -164,7 +169,13 @@ AS $$
 BEGIN
   IF NEW.secret_hash IS DISTINCT FROM OLD.secret_hash
      OR NEW.rotated_at IS DISTINCT FROM OLD.rotated_at THEN
-    IF current_user = 'machine_credential_owner' AND session_user <> current_user THEN
+    -- Allow ONLY a genuine SECURITY DEFINER switch (current_user flipped by
+    -- the definer mechanism, which does NOT touch the session `role` GUC).
+    -- A role member reproducing the pair via `SET ROLE` sets the `role` GUC
+    -- to the boundary role and is rejected here — SET ROLE is NOT a seam.
+    IF current_user = 'machine_credential_owner'
+       AND session_user <> current_user
+       AND coalesce(current_setting('role'), 'none') IN ('none', 'unset') THEN
       RETURN NEW;
     END IF;
     RAISE EXCEPTION 'MACHINE_CLIENT_SECRET_MUTATION_OUTSIDE_ROTATION_SEAM';
@@ -178,3 +189,16 @@ DROP TRIGGER IF EXISTS machine_clients_secret_guard ON machine_clients;
 CREATE TRIGGER machine_clients_secret_guard
 BEFORE UPDATE ON machine_clients
 FOR EACH ROW EXECUTE FUNCTION machine_clients_secret_guard();
+
+-- ── SEAL STATUS (contract §11.3 / §11.4) ─────────────────────────────────
+-- PostgreSQL grantor law: the migration role cannot revoke a membership
+-- granted by the admin (empirically verified on PG16 — ADMIN OPTION does not
+-- confer grantor-revocation). The seal is therefore handshake step 3, an
+-- ADMIN action, and it is DETECTABLE: the shipped enforcement suite fails
+-- loudly while membership lingers, so a skipped step 3 cannot pass silently.
+DO $$
+BEGIN
+  IF pg_has_role(current_user, 'machine_credential_owner', 'member') THEN
+    RAISE WARNING 'BOUNDARY_SEAL_PENDING: membership of % in machine_credential_owner is still present — execute admin handshake step 3 (REVOKE machine_credential_owner FROM %) BEFORE claiming DIRECT_APP_ROLE_SECRET_UPDATE = IMPOSSIBLE. The shipped enforcement suite will fail until the seal is applied.', current_user, current_user;
+  END IF;
+END $$;
