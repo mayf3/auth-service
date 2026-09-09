@@ -65,7 +65,7 @@ Program 或 governance adoption Spec 使用 `implementation_authority: none` 时
 | `AUTH_SERVICE_LIFE_WORKBENCH_PILOT_GRANT_SUPPLY_V1` | implementation | accepted | contracts（CTR-LWP-001 六文件闭包；`production_apply_authority: none`） | 精确两 pilot Client 的 life-workbench Grant supply/revoke 与 audience rollback 执行权威：plan digest `ac845e49…` 绑定、Serializable+advisory lock、13 列 closed-envelope 审计、rerun=NOOP、conflict fail-closed、LEGACY_FIELD_TOUCH=FORBIDDEN、隔离容器 conformance；PILOT_ROSTER != FINAL_ELIGIBILITY_RULE；production apply 另行 owner 授权。 |
 
 | `AUTH_SERVICE_MOBILE_PUBLIC_OAUTH_V1` | implementation | accepted | contracts | Agent Core Android Native Public Client OAuth：system-browser + verified App Link、PKCE S256、Browser Cookie/CSRF/clickjacking 安全、Native Public Client、Audience/Grant 幂等注册、Refresh rotation/reuse detection 与 offline-only revocation；Spec acceptance 不自动授权 production registration/apply |
-| `AUTH_SERVICE_MOBILE_PUBLIC_HOSTING_V1` | implementation | proposed | contracts | auth.mayf3.com 公共托管拓扑：Aliyun 专用 SNI → 仅回环隧道端点 18794 → 专用反向隧道 → Mac auth-service 127.0.0.1:4001；Owner ruling ACCEPT_AUTH_PUBLIC_HOSTING_CANDIDATE_A (2026-09-09)；不拥有 OAuth 协议语义（归 MOBILE_PUBLIC_OAUTH_V1） |
+| `AUTH_SERVICE_MOBILE_PUBLIC_HOSTING_V1` | implementation | accepted | contracts | auth.mayf3.com 公共托管拓扑：Aliyun 专用 SNI → 仅回环隧道端点 18794 → 专用反向隧道 → Mac auth-service 127.0.0.1:4001；Owner ruling ACCEPT_AUTH_PUBLIC_HOSTING_CANDIDATE_A (2026-09-09)；不拥有 OAuth 协议语义（归 MOBILE_PUBLIC_OAUTH_V1） |
 
 ## Architecture authorities outside this directory
 
