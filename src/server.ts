@@ -10,6 +10,8 @@ import { usersRouter } from './routes/users.js';
 import { rolesRouter } from './routes/roles.js';
 import { oauthRouter } from './routes/oauth.js';
 import { oauthHumanRouter } from './routes/oauth-human.js';
+import { mobileCallbackRouter, oauthBrowserRouter } from './routes/oauth-browser.js';
+import { AUTH_PUBLIC_ORIGIN } from './lib/oauth/v1/browser-login.js';
 import { wellKnownRouter } from './routes/well-known.js';
 import { idempotentRouter } from './routes/idempotent.js';
 import { agentPrincipalRouter } from './routes/agent-principals.js';
@@ -33,7 +35,12 @@ app.use(helmet({
 }));
 
 // P0-3: CORS — whitelist only, no wildcard with credentials
-const allowedOrigins = env.CORS_ORIGINS;
+// CTR-MPO-001 (AUTH_SERVICE_MOBILE_PUBLIC_OAUTH_V1): the first-party browser
+// UI and its credential POST use only the frozen auth public origin, so that
+// origin must be accepted for same-origin form POSTs on the browser surface.
+const allowedOrigins = env.CORS_ORIGINS.includes(AUTH_PUBLIC_ORIGIN)
+  ? env.CORS_ORIGINS
+  : [...env.CORS_ORIGINS, AUTH_PUBLIC_ORIGIN];
 app.use(cors({
   origin(origin, callback) {
     // Allow requests with no origin (mobile apps, curl, server-to-server)
@@ -115,7 +122,12 @@ app.use('/api/auth', authRouter);
 // ─── OAuth 2.0 Token Endpoint ──────────────────────────────────────────────
 
 app.use('/oauth', oauthHumanRouter);
+app.use('/oauth', oauthBrowserRouter);
 app.use('/oauth', oauthRouter);
+
+// ─── First-party browser OAuth surface (mobile public OAuth V1) ────────────
+// Verified HTTPS App Link callback transport (CTR-MPO-004).
+app.use(mobileCallbackRouter);
 
 // ─── JWKS — public workflow verification keys (PR-A) ───────────────────────
 // Eagerly build the key ring at startup so misconfig fails fast and the JWKS
