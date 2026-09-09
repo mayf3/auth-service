@@ -64,6 +64,8 @@ Program 或 governance adoption Spec 使用 `implementation_authority: none` 时
 | `LIFE_WORKBENCH_AUDIENCE_CCR_V1` | implementation | accepted | contracts（仅 CTR-LW-001 冻结的三文件闭包；`production_apply_authority: none`） | 注册 `life-workbench` Audience（machine-only、agent-profile、恰 `workbench.propose` + `workbench.read` 两 scope、no-delegation）的 bounded child CCR：registry 1.8.0→1.9.0 append-only（九现有条目 byte 不变）、离线 reconcile、正负 conformance、§5 冻结唯一 rollback end-state（status=disabled，不 DELETE）；不创建 Principal/Client/Grant、零生产效果。 |
 | `AUTH_SERVICE_LIFE_WORKBENCH_PILOT_GRANT_SUPPLY_V1` | implementation | accepted | contracts（CTR-LWP-001 六文件闭包；`production_apply_authority: none`） | 精确两 pilot Client 的 life-workbench Grant supply/revoke 与 audience rollback 执行权威：plan digest `ac845e49…` 绑定、Serializable+advisory lock、13 列 closed-envelope 审计、rerun=NOOP、conflict fail-closed、LEGACY_FIELD_TOUCH=FORBIDDEN、隔离容器 conformance；PILOT_ROSTER != FINAL_ELIGIBILITY_RULE；production apply 另行 owner 授权。 |
 
+| `AUTH_SERVICE_MOBILE_PUBLIC_OAUTH_V1` | implementation | accepted | contracts | Agent Core Android Native Public Client OAuth：system-browser + verified App Link、PKCE S256、Browser Cookie/CSRF/clickjacking 安全、Native Public Client、Audience/Grant 幂等注册、Refresh rotation/reuse detection 与 offline-only revocation；Spec acceptance 不自动授权 production registration/apply |
+
 ## Architecture authorities outside this directory
 
 治理采用为 forward-only，不批量迁移历史合同。当前 Architecture authority 状态为：
