@@ -15,6 +15,11 @@ import {
   hashClientSecret,
 } from './secret.js';
 import { auditLog } from './audit.js';
+import {
+  generateRotationOperationId,
+  rotateMachineClientSecretViaSeam,
+  secretHashFingerprint,
+} from './rotation-seam.js';
 import type { PrincipalType, PrincipalStatus, ClientStatus } from '@prisma/client';
 
 // Re-export token issuance for backward compatibility
@@ -295,10 +300,19 @@ export async function createClient(
 /**
  * Rotate a client secret. Returns the new secret once.
  * Old secret is immediately invalidated.
+ *
+ * (Amendment A §11) The mutation goes through the rotation seam — the
+ * SECURITY DEFINER function rotate_machine_client_secret() — which verifies
+ * the frozen preimage fingerprint, advances rotated_at/updated_at together
+ * with secret_hash, and appends an immutable receipt row keyed by operationId
+ * (replaying the same operationId never performs a second rotation). Direct
+ * Prisma updates of secret material are impossible by column-level
+ * privileges; there is deliberately no fallback path.
  */
 export async function rotateClientSecret(
   clientId: string,
-): Promise<{ client: MachineClientResult; newSecret: string }> {
+  opts: { operationId?: string; rotatedBy?: string } = {},
+): Promise<{ client: MachineClientResult; newSecret: string; rotation: { operationId: string; receiptId: string; replayed: boolean } }> {
   const client = await prisma.machineClient.findUnique({
     where: { clientId },
   });
@@ -311,13 +325,14 @@ export async function rotateClientSecret(
 
   const newSecret = generateClientSecret();
   const newHash = hashClientSecret(newSecret);
+  const operationId = opts.operationId ?? generateRotationOperationId('machine-admin');
 
-  await prisma.machineClient.update({
-    where: { id: client.id },
-    data: {
-      secretHash: newHash,
-      rotatedAt: new Date(),
-    },
+  const seam = await rotateMachineClientSecretViaSeam({
+    machineClientUuid: client.id,
+    newSecretHash: newHash,
+    preimageFingerprint: secretHashFingerprint(client.secretHash),
+    operationId,
+    rotatedBy: opts.rotatedBy ?? 'machine-admin',
   });
 
   auditLog({
@@ -325,6 +340,9 @@ export async function rotateClientSecret(
     type: 'client.rotated',
     principalId: client.machinePrincipalId,
     clientId: client.clientId,
+    rotationOperationId: operationId,
+    rotationReceiptId: seam.receiptId,
+    rotationReplayed: seam.replayed,
     success: true,
   });
 
@@ -337,10 +355,11 @@ export async function rotateClientSecret(
       allowedResources: client.allowedResources,
       allowedScopes: client.allowedScopes,
       createdAt: client.createdAt,
-      rotatedAt: new Date(),
+      rotatedAt: seam.rotatedAt,
       revokedAt: client.revokedAt,
     },
     newSecret,
+    rotation: { operationId, receiptId: seam.receiptId, replayed: seam.replayed },
   };
 }
 

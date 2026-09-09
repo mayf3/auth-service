@@ -41,8 +41,11 @@ async function cleanupTestData(): Promise<void> {
   await prisma.machinePrincipal.deleteMany({
     where: { agentId: { startsWith: TEST_PREFIX } },
   });
+  // Prefix-scoped to THIS suite's fixtures only: node:test runs test files
+  // concurrently, so a broad endsWith('@test.local') matcher would delete
+  // another concurrently-running suite's owner user mid-flight (FK violation).
   await prisma.user.deleteMany({
-    where: { email: { endsWith: '@test.local' } },
+    where: { email: { startsWith: TEST_PREFIX } },
   });
 }
 

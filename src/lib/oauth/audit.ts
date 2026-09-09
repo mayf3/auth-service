@@ -77,6 +77,13 @@ export interface AuditEvent {
   issuedAt?: string;
   /** Output token's expires_at timestamp. */
   expiresAt?: string;
+  // ─── Rotation seam (Amendment A §11) ────────────────────────────────────
+  /** Stable operation id (client.rotated events only; receipt lineage). */
+  rotationOperationId?: string;
+  /** Receipt ledger row id (machine_client_rotations.id). */
+  rotationReceiptId?: string;
+  /** True when the event is a deterministic replay of a known operation. */
+  rotationReplayed?: boolean;
 }
 
 /**
@@ -110,7 +117,14 @@ export function auditLog(event: AuditEvent): void {
     ...(event.issuedAt ? { issuedAt: event.issuedAt } : {}),
     ...(event.expiresAt ? { expiresAt: event.expiresAt } : {}),
   };
-  console.warn(`[AUDIT] ${JSON.stringify({ ...entry, ...oboEntry })}`);
+  // Rotation-seam lineage (Amendment A §11): the client.rotated audit line
+  // must carry the receipt linkage — ids/replay flag only, never secrets.
+  const rotationEntry = {
+    ...(event.rotationOperationId ? { rotationOperationId: event.rotationOperationId } : {}),
+    ...(event.rotationReceiptId ? { rotationReceiptId: event.rotationReceiptId } : {}),
+    ...(event.rotationReplayed !== undefined ? { rotationReplayed: event.rotationReplayed } : {}),
+  };
+  console.warn(`[AUDIT] ${JSON.stringify({ ...entry, ...oboEntry, ...rotationEntry })}`);
 }
 
 /**
