@@ -25,7 +25,7 @@ export const env = {
   // deployment sets AUTH_HTTP_BIND_HOST=127.0.0.1 (loopback-only) via the
   // launchd environment. No default change: binding narrows ONLY when the
   // deployment explicitly opts in.
-  AUTH_HTTP_BIND_HOST: process.env.AUTH_HTTP_BIND_HOST ?? undefined,
+  AUTH_HTTP_BIND_HOST: process.env.AUTH_HTTP_BIND_HOST?.trim() || undefined,
   AUTH_CONTRACT_MODE: authContractMode as 'v0' | 'v1_shadow' | 'v1',
 
   // Database — connects to ADC's PostgreSQL
