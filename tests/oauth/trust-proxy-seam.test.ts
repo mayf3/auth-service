@@ -32,7 +32,7 @@ import http from 'node:http';
 import type { AddressInfo } from 'node:net';
 import express from 'express';
 import rateLimit from 'express-rate-limit';
-import { parseTrustProxyHops } from '../../src/config/trust-proxy-hops.js';
+import { installDegradedIdentityAlarm, parseTrustProxyHops } from '../../src/config/trust-proxy-hops.js';
 
 interface TestResponse {
   status: number;
@@ -53,12 +53,19 @@ interface AppHandle {
  * instance with default keyGenerator (req.ip) so identity derivation is
  * observed through the actual limiter, not a mock.
  */
-function buildApp(options: { trustProxyHops?: number; withLimiter?: boolean } = {}): AppHandle {
+function buildApp(options: {
+  trustProxyHops?: number;
+  withLimiter?: boolean;
+  /** Captures the CTR-AH-EDGE-002 degraded-identity alarm (verbatim wiring). */
+  alarmWarn?: (message: string) => void;
+  alarmNow?: () => number;
+} = {}): AppHandle {
   const app = express();
   // ── seam under test (verbatim server.ts wiring) ──
   const hops = options.trustProxyHops ?? 0;
   if (hops > 0) {
     app.set('trust proxy', hops);
+    installDegradedIdentityAlarm(app, { warn: options.alarmWarn, now: options.alarmNow });
   }
   // ─────────────────────────────────────────────────
   if (options.withLimiter) {
@@ -234,5 +241,61 @@ describe('trust-proxy seam wiring (source level, server.ts + env.ts)', () => {
 
   it('parses the hop count through the CTR-AH-EDGE-002 config gate', () => {
     assert.match(envSource, /AUTH_TRUST_PROXY_HOPS: parseTrustProxyHops\(process\.env\.AUTH_TRUST_PROXY_HOPS\)/);
+  });
+});
+
+describe('AUTH_TRUST_PROXY_HOPS=1 — degraded-identity alarm (CTR-AH-EDGE-002)', () => {
+  it('emits the rate-limited alarm when a request arrives without the edge XFF', async () => {
+    const warnings: string[] = [];
+    let tick = 0;
+    const app = buildApp({
+      trustProxyHops: 1,
+      alarmWarn: (m) => warnings.push(m),
+      alarmNow: () => ++tick * 1000, // distinct times: every request may alarm
+    });
+    const port = await app.start();
+    try {
+      const res = await httpRequest(port, '/echo-ip');
+      assert.equal(res.status, 200);
+      assert.equal(JSON.parse(res.body).ip, SOCKET_IP); // degraded: collapsed to loopback
+      await new Promise((r) => setTimeout(r, 10));
+      assert.equal(warnings.length, 1);
+      assert.match(warnings[0], /HOSTING-EDGE/);
+      assert.doesNotMatch(warnings[0], /203\.0\.113|127\.0\.0\.1|ZZ/); // no client data in the alarm
+    } finally {
+      await app.stop();
+    }
+  });
+
+  it('does not alarm when the edge XFF is present (normal per-client identity)', async () => {
+    const warnings: string[] = [];
+    const app = buildApp({
+      trustProxyHops: 1,
+      alarmWarn: (m) => warnings.push(m),
+      alarmNow: () => 1000,
+    });
+    const port = await app.start();
+    try {
+      const res = await httpRequest(port, '/echo-ip', { 'x-forwarded-for': CLIENT_A });
+      assert.equal(res.status, 200);
+      await new Promise((r) => setTimeout(r, 10));
+      assert.equal(warnings.length, 0);
+    } finally {
+      await app.stop();
+    }
+  });
+
+  it('never alarms at hops=0 (default local deployments stay silent)', async () => {
+    const warnings: string[] = [];
+    const app = buildApp({ trustProxyHops: 0, alarmWarn: (m) => warnings.push(m) });
+    const port = await app.start();
+    try {
+      await httpRequest(port, '/echo-ip', { 'x-forwarded-for': CLIENT_A });
+      await new Promise((r) => setTimeout(r, 10));
+      assert.equal(warnings.length, 0);
+      assert.equal(app.trustProxySetting(), false);
+    } finally {
+      await app.stop();
+    }
   });
 });

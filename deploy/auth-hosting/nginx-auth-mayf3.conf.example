@@ -49,8 +49,16 @@ http {
     # $uri is the normalized request path only — $args/$request/$query_string
     # are deliberately absent from this format, for the ENTIRE block (superset
     # of the contract floor: even denied probe paths are logged query-free).
+    # %3F-style encoded '?' decodes INTO $uri, letting a client place a fake
+    # "…?code=…" string into the access log (CTR-AH-LOG-001 hygiene). Such
+    # URIs are logged as empty instead.
+    map $uri $auth_log_uri {
+        ~\?    "";
+        default $uri;
+    }
+
     log_format auth_hosting_noqs
-        '$remote_addr [$time_local] "$request_method $uri $server_protocol" '
+        '$remote_addr [$time_local] "$request_method $auth_log_uri $server_protocol" '
         '$status $body_bytes_sent "$http_user_agent"';
 
     server {
@@ -139,24 +147,39 @@ http {
 
         # 1+2. Browser login page + credential POST (first-party surface).
         location = /oauth/authorize/ui {
+        # CTR-AH-LOG-001: nginx's CORE error log embeds the raw request line
+        # (incl. query string: code/state) in upstream `connect() failed`
+        # messages — exactly the tunnel-down 502 mode this block mandates.
+        # These six sensitive locations therefore raise their error-log level
+        # to crit: upstream failures still surface honestly to the client
+        # (502/504) and via tunnel supervision/health probes, but the
+        # code/state-bearing request line never reaches disk. Trade-off is
+        # deliberate and documented (README).
+        error_log logs/error.log crit;
             if ($request_method !~ ^(GET|POST)$) { return 405; }
             proxy_pass http://127.0.0.1:18794;
         }
 
         # 3. App Link callback transport (GET only).
         location = /mobile/callback {
+        # (CTR-AH-LOG-001: crit-level error log — see /oauth/authorize/ui note.)
+        error_log logs/error.log crit;
             if ($request_method != GET) { return 405; }
             proxy_pass http://127.0.0.1:18794;
         }
 
         # 4. Token endpoint: code / refresh_token grant (POST only).
         location = /oauth/token {
+        # (CTR-AH-LOG-001: crit-level error log — see /oauth/authorize/ui note.)
+        error_log logs/error.log crit;
             if ($request_method != POST) { return 405; }
             proxy_pass http://127.0.0.1:18794;
         }
 
         # 5. Logout / revocation (POST only).
         location = /oauth/logout {
+        # (CTR-AH-LOG-001: crit-level error log — see /oauth/authorize/ui note.)
+        error_log logs/error.log crit;
             if ($request_method != POST) { return 405; }
             proxy_pass http://127.0.0.1:18794;
         }
@@ -164,6 +187,8 @@ http {
         # 6. JWKS — proxied to the Mac auth-service (passive public readiness
         # anchor per CTR-AH-HEALTH-001; no active probes exist on this edge).
         location = /.well-known/jwks.json {
+        # (CTR-AH-LOG-001: crit-level error log — see /oauth/authorize/ui note.)
+        error_log logs/error.log crit;
             if ($request_method != GET) { return 405; }
             proxy_pass http://127.0.0.1:18794;
         }
@@ -173,6 +198,8 @@ http {
         # pinned by sha256 to the bytes supplied by mayf3/agent-core-mobile;
         # pinning procedure in README.md. PLACEHOLDER root below.
         location = /.well-known/assetlinks.json {
+        # (CTR-AH-LOG-001: crit-level error log — see /oauth/authorize/ui note.)
+        error_log logs/error.log crit;
             if ($request_method != GET) { return 405; }
             alias www/well-known/assetlinks.json;
             default_type application/json;

@@ -29,3 +29,29 @@ export function parseTrustProxyHops(raw: string | undefined): number {
   }
   return Number(value);
 }
+
+/**
+ * CTR-AH-EDGE-002 degraded-identity alarm (hosting plane only). Behind the
+ * edge (hops=1) a request WITHOUT the edge-injected X-Forwarded-For collapses
+ * to the single loopback rate-limit identity; that degradation is allowed but
+ * MUST be observable. Emits a rate-limited warn (once per interval, no header
+ * values, no client data) — request/auth semantics are untouched. Server.ts
+ * and the seam tests install this SAME function, so the mirrored wiring
+ * cannot drift.
+ */
+export function installDegradedIdentityAlarm(
+  app: { use: (middleware: (req: { headers: Record<string, unknown> }, res: unknown, next: () => void) => void) => unknown },
+  options: { intervalMs?: number; warn?: (message: string) => void; now?: () => number } = {},
+): void {
+  const intervalMs = options.intervalMs ?? 60_000;
+  const warn = options.warn ?? ((message: string) => console.warn(message));
+  const now = options.now ?? (() => Date.now());
+  let lastAlarmAt = -intervalMs;
+  app.use((req, _res, next) => {
+    if (req.headers['x-forwarded-for'] === undefined && now() - lastAlarmAt >= intervalMs) {
+      lastAlarmAt = now();
+      warn('[HOSTING-EDGE] degraded rate-limit identity: request reached auth-service without the edge-injected X-Forwarded-For (check hosting edge/tunnel health)');
+    }
+    next();
+  });
+}

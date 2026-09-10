@@ -127,6 +127,23 @@ describe('auth-hosting log scanner — prohibited value classes (CTR-AH-LOG-001)
     assert.ok(ruleIds('body={"email":"a@b.c","password":"hunter2secret"}').includes('PASSWORD_FIELD'));
     assert.ok(ruleIds('password: opensesame123').includes('PASSWORD_FIELD'));
   });
+
+  it('detects the nginx core error-log tunnel-down leak (request line carries code/state)', () => {
+    // This is the exact shape CTR-AH-LOG-001 forbids: nginx `connect() failed`
+    // error lines embed the raw request line, so a tunnel-down 502 used to
+    // write code/state to the error log. The sensitive locations run
+    // `error_log … crit` so such lines must never exist; the scanner must
+    // flag them if they ever do.
+    const line = '2026/09/10 03:00:00 [error] 123#123: *1 connect() failed (111: Connection refused) while connecting to upstream, client: 203.0.113.10, server: auth.mayf3.com, request: "GET /mobile/callback?code=ZZVERIFY-AUTHCODE-0002&state=ZZVERIFY-STATE-0002 HTTP/1.1", upstream: "http://127.0.0.1:18794/mobile/callback?code=ZZVERIFY-AUTHCODE-0002&state=ZZVERIFY-STATE-0002", host: "auth.mayf3.com"';
+    const ids = ruleIds(line);
+    assert.ok(ids.includes('CREDENTIAL_QUERY_PARAM'), `expected CREDENTIAL_QUERY_PARAM in ${JSON.stringify(ids)}`);
+    assert.ok(ids.includes('OAUTH_OR_CALLBACK_QUERY_STRING'), `expected OAUTH_OR_CALLBACK_QUERY_STRING in ${JSON.stringify(ids)}`);
+  });
+
+  it('accepts a crit-suppressed shape: no request line reaches the error log', () => {
+    const line = '2026/09/10 03:00:01 [warn] 124#124: upstream response is buffered to a temporary file while reading upstream';
+    assert.deepEqual(scanLine(rules, line), [], 'clean crit-level line must not hit');
+  });
 });
 
 describe('auth-hosting log scanner — redaction', () => {

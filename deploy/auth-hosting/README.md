@@ -51,12 +51,14 @@ Rewrite the example's prefix-relative placeholders to absolute scratch paths
 (the example keeps deploy-realistic values; the shadow run adapts them):
 
 ```bash
-sed -e "s|ssl/auth.mayf3.com.fullchain.pem|$SHADOW/ssl/auth.mayf3.com.fullchain.pem|" \
-    -e "s|ssl/auth.mayf3.com.key|$SHADOW/ssl/auth.mayf3.com.key|" \
-    -e "s|alias www/well-known/assetlinks.json;|alias $SHADOW/www/well-known/assetlinks.json;|" \
-    -e "s|access_log logs/|access_log $SHADOW/logs/|" \
-    -e "s|error_log logs/|error_log $SHADOW/logs/|" \
-    -e "s|pid logs/|pid $SHADOW/logs/|" \
+# Paths are written for the docker mount namespace (tree at /shadow inside the
+# container). Host-nginx variant: re-sed to $SHADOW host paths instead.
+sed -e "s|ssl/auth.mayf3.com.fullchain.pem|/shadow/ssl/auth.mayf3.com.fullchain.pem|" \
+    -e "s|ssl/auth.mayf3.com.key|/shadow/ssl/auth.mayf3.com.key|" \
+    -e "s|alias www/well-known/assetlinks.json;|alias /shadow/www/well-known/assetlinks.json;|" \
+    -e "s|access_log logs/|access_log /shadow/logs/|" \
+    -e "s|error_log logs/|error_log /shadow/logs/|" \
+    -e "s|pid logs/|pid /shadow/logs/|" \
     "$SHADOW/conf/auth.conf" > "$SHADOW/conf/auth.shadow.conf"
 ```
 
@@ -93,6 +95,34 @@ header boundary; synthetic ZZ* markers only):
 ```bash
 PORT=18443 UPSTREAM_SEEN="$SHADOW/upstream-seen.jsonl" \
   bash deploy/auth-hosting/shadow-compose-probe.sh
+
+**Tunnel-down + query-string probe (ACC-AH-LOG-001 negative sweep):** with the
+composition still up, stop the recording upstream, fire a code/state-bearing
+callback through the edge (honest 502 mode), bring it back, then re-run the
+harness — it MUST still exit 0 (no query string in ANY log, including nginx
+core error logs; the sensitive locations run `error_log … crit` so the
+request-line-bearing upstream failure messages never reach disk):
+
+```bash
+docker stop auth-shadow-upstream
+curl -sk --noproxy '*' "https://localhost:18443/mobile/callback?code=ZZVERIFY-AUTHCODE-0002&state=ZZVERIFY-STATE-0002" -o /dev/null -w '%{http_code}\n'   # expect 502
+docker start auth-shadow-upstream
+npm run verify:hosting-logs -- --probe-spec <spec.json> --nginx-access "$SHADOW/logs/auth-access.log" --nginx-error "$SHADOW/logs/error.log"   # expect exit 0
+```
+
+**Trade-off + reliance notes:**
+- `error_log … crit` in the six sensitive locations trades upstream-failure
+  verbosity for the no-query-string-on-disk MUST. Tunnel/upstream health is
+  observed via the client-visible honest 502/504, launchd/ssh supervision of
+  the tunnel, and the gateway/health probes — not via these error lines.
+- `error_log` cannot be formatted; if a future requirement needs upstream
+  failure detail with the query string scrubbed, that needs an authority
+  revision (nginx cannot rewrite its core error-log fields).
+- Identity relies on the edge REPLACING X-Forwarded-For
+  (`proxy_set_header X-Forwarded-For $remote_addr`, never
+  `$proxy_add_x_forwarded_for`) combined with `AUTH_TRUST_PROXY_HOPS=1`
+  (rightmost-entry selection). Any future edge change that appends instead of
+  replacing breaks identity provenance — CTR-AH-EDGE-002 guards this.
 ```
 
 Expected: `COMPOSE-PROBE PASS`. This proves: only the six proxied pairs arrive
