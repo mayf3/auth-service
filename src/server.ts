@@ -188,9 +188,12 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 // ─── Start ──────────────────────────────────────────────────────────────
 
-app.listen(env.PORT, () => {
+// AUTH_SERVICE_PORT_4001_LOOPBACK_BINDING_V1: the deployment narrows the
+// business listener via AUTH_HTTP_BIND_HOST (e.g. 127.0.0.1). Unset keeps the
+// historical wildcard binding; no other listener is affected.
+const onHttpListening = () => {
   console.log(`\n  🔐 auth-service v1.0.0`);
-  console.log(`  📡 http://localhost:${env.PORT}`);
+  console.log(`  📡 http://${env.AUTH_HTTP_BIND_HOST ?? '0.0.0.0'}:${env.PORT}`);
   console.log(`  🏷️  issuer: ${env.JWT_ISSUER} | audience: ${env.JWT_AUDIENCE}`);
   console.log(`  📜 auth contract: ${authContract.mode} | ${authContract.contractVersion ?? 'legacy'} | ${authContract.runtimeDigest ?? 'not-loaded'}`);
   console.log(`  🛡️  CORS origins: ${allowedOrigins.join(', ')}`);
@@ -198,7 +201,13 @@ app.listen(env.PORT, () => {
 
   // Start token rotation cleanup
   startCleanup();
-});
+};
+
+if (env.AUTH_HTTP_BIND_HOST !== undefined) {
+  app.listen(env.PORT, env.AUTH_HTTP_BIND_HOST, onHttpListening);
+} else {
+  app.listen(env.PORT, onHttpListening);
+}
 
 // ─── Graceful Shutdown ──────────────────────────────────────────────────
 

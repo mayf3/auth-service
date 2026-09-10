@@ -20,6 +20,12 @@ if (!['v0', 'v1_shadow', 'v1'].includes(authContractMode)) {
 export const env = {
   NODE_ENV: process.env.NODE_ENV ?? 'development',
   PORT: parseInt(process.env.PORT ?? '4001', 10),
+  // AUTH_SERVICE_PORT_4001_LOOPBACK_BINDING_V1: optional listen host. Unset =
+  // current wildcard behavior (Node binds all interfaces); the production
+  // deployment sets AUTH_HTTP_BIND_HOST=127.0.0.1 (loopback-only) via the
+  // launchd environment. No default change: binding narrows ONLY when the
+  // deployment explicitly opts in.
+  AUTH_HTTP_BIND_HOST: process.env.AUTH_HTTP_BIND_HOST ?? undefined,
   AUTH_CONTRACT_MODE: authContractMode as 'v0' | 'v1_shadow' | 'v1',
 
   // Database — connects to ADC's PostgreSQL
