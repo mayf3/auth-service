@@ -1,0 +1,194 @@
+# deploy/auth-hosting/nginx-auth-mayf3.conf.example
+#
+# AUTH_SERVICE_MOBILE_PUBLIC_HOSTING_V1 — H1 edge artifact.
+# Dedicated SNI server block for auth.mayf3.com: the ONLY public auth entry.
+#
+# STATUS: NOT APPLIED. Non-production example for the shadow stage. Nothing in
+# this file has been deployed to any public host. Production apply is gated by
+# spec section 7 (DNS, publicly trusted cert, backups, ACC-AH-* …).
+#
+# Contracts implemented here:
+#   CTR-AH-PATHS-001    exact 7-pair public method/path allow-list, deny-all
+#                       default, no catch-all proxy
+#   CTR-AH-EDGE-001     header boundary: delete client-supplied
+#                       Forwarded/X-Forwarded-For/X-Real-IP, pin Host, inject
+#                       X-Forwarded-Proto https, never forward X-AgentCore-*
+#   CTR-AH-EDGE-002     single-hop trusted client IP injection
+#                       (X-Forwarded-For = $remote_addr, never $proxy_add_…)
+#   CTR-AH-LOG-001      access logs carry NO query string, NO cookie, NO
+#                       authorization, NO tokens; error logs carry no body
+#   CTR-AH-TIMEOUT-001  connect 5s / read 60s / body 1 MiB / no auto-retry
+#   CTR-AH-TUNNEL-001   honest 502/504 when the tunnel is down; no fallback
+#   CTR-AH-TOPO-001     this file ADDS one SNI block only; it must never be
+#                       merged into, or modify, the default_server block, the
+#                       mobile-api.mayf3.com block, or any other existing site.
+#                       Coexistence = separate SNI blocks, zero shared config.
+#
+# This example is a complete standalone nginx.conf so it can be validated and
+# shadow-run against a scratch prefix (see README.md: `nginx -t -p <scratch>
+# -c <this file>`). For production apply, the http-level lines (log_format)
+# and the server block are added as a NEW include in the existing nginx http
+# context; port/listen values stay frozen at 443. DO NOT run this file as the
+# host main config in production.
+
+# ── main context (standalone shadow staging only) ──────────────────────────
+worker_processes 1;
+pid logs/nginx.pid;
+error_log logs/error.log warn;   # never contains request bodies (CTR-AH-LOG-001)
+
+events {
+    worker_connections 256;
+}
+
+http {
+    default_type application/octet-stream;
+
+    # CTR-AH-LOG-001 implementation floor: the public auth access log MUST NOT
+    # contain the query string of /oauth/* and /mobile/callback (code/state
+    # arrive there), nor cookies, authorization headers, tokens or bodies.
+    # $uri is the normalized request path only — $args/$request/$query_string
+    # are deliberately absent from this format, for the ENTIRE block (superset
+    # of the contract floor: even denied probe paths are logged query-free).
+    log_format auth_hosting_noqs
+        '$remote_addr [$time_local] "$request_method $uri $server_protocol" '
+        '$status $body_bytes_sent "$http_user_agent"';
+
+    server {
+        # ── TLS / SNI (CTR-AH-TLS-001, CTR-AH-TOPO-001) ─────────────────────
+        # Owned public port: 443, this SNI block only. Selection is by exact
+        # server_name; the host default_server block is NOT touched.
+        #
+        # PLACEHOLDER cert paths — production MUST use a publicly trusted
+        # certificate (self-signed is forbidden in the production path); the
+        # issuance/renewal path is a section-7 deployment-gate decision.
+        # For local shadow composition only, README.md generates a throwaway
+        # self-signed pair under the scratch prefix.
+        listen 443 ssl;
+        http2 on;                        # nginx >= 1.25.1; on older versions
+                                         # use: listen 443 ssl http2;
+        server_name auth.mayf3.com;
+
+        # PLACEHOLDER — swap to the real fullchain/key under the scratch or
+        # production paths; see README.md step 1.
+        ssl_certificate     ssl/auth.mayf3.com.fullchain.pem;
+        ssl_certificate_key ssl/auth.mayf3.com.key;
+        ssl_protocols TLSv1.2 TLSv1.3;
+
+        access_log logs/auth-access.log auth_hosting_noqs;
+
+        # CTR-AH-TIMEOUT-001 — body cap 1 MiB (413 beyond), honest failures.
+        client_max_body_size 1m;
+
+        # ── reverse proxy to the loopback tunnel listener ───────────────────
+        # CTR-AH-TOPO-001: AUTH_TUNNEL_LISTENER = 127.0.0.1:18794, created by
+        # the dedicated sshd remote-forward (GatewayPorts no). The ONLY
+        # proxy_pass target in this file. Tunnel down => honest 502/504
+        # (CTR-AH-TUNNEL-001): no fallback, no mock, no second auth-service.
+        #
+        # CTR-AH-EDGE-001 + CTR-AH-EDGE-002 — header boundary. Set at server
+        # level only; no location below declares its own proxy_set_header, so
+        # this exact set is what every proxied location inherits.
+        proxy_pass_request_headers off;
+
+        # Host pinned to the exact public origin — auth-service Origin/redirect
+        # validation depends on it (CTR-AH-EDGE-001).
+        proxy_set_header Host auth.mayf3.com;
+
+        # Client-supplied Forwarded / X-Forwarded-For / X-Real-IP are DELETED:
+        # with proxy_pass_request_headers off nothing client-supplied transits,
+        # and the headers below are the complete, edge-owned replacement set.
+        # X-Forwarded-For gets EXACTLY ONE trusted hop: the edge-seen
+        # $remote_addr. NEVER $proxy_add_x_forwarded_for (would append client
+        # input). auth-service trusts exactly this one hop
+        # (AUTH_TRUST_PROXY_HOPS=1, see src/config/trust-proxy-hops.ts).
+        proxy_set_header X-Forwarded-For $remote_addr;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Forwarded "";   # empty value => never sent upstream
+        proxy_set_header X-Real-IP "";   # empty value => never sent upstream
+
+        # The X-AgentCore-* namespace belongs to the mobile product gateway
+        # authority; this edge neither trusts nor forwards ANY of it
+        # (CTR-AH-EDGE-001). proxy_pass_request_headers off blanks the whole
+        # namespace by construction — there is no enumeration to drift.
+        # Only the four load-bearing request headers below are re-injected
+        # from the client request (verified against the app surface:
+        # Content-Type + Authorization for /oauth/token//oauth/logout,
+        # Cookie + Origin for the first-party browser surface). An empty
+        # client value omits the header upstream.
+        proxy_set_header Content-Type   $content_type;
+        proxy_set_header Authorization  $http_authorization;
+        proxy_set_header Cookie         $http_cookie;
+        proxy_set_header Origin         $http_origin;
+
+        # CTR-AH-TIMEOUT-001 — connect 5s, read 60s (browser OAuth flow has no
+        # long-poll turns; the 300/330s product-gateway ladder MUST NOT be
+        # reused), and NO automatic retry: /oauth/token and /oauth/logout are
+        # non-idempotent and fail honestly (502/504).
+        proxy_connect_timeout 5s;
+        proxy_read_timeout    60s;
+        proxy_next_upstream   off;
+
+        # ── CTR-AH-PATHS-001: the exact public surface ──────────────────────
+        # Exactly seven method/path pairs. Matching is exact-location (=), so
+        # trailing-slash variants, encodings and case differences fall through
+        # to the deny-all location. Method gating is exact `if … return` in
+        # the rewrite phase — limit_except cannot express "GET without HEAD",
+        # and HEAD is not in the frozen pair list. Wrong method => 405.
+        # New public paths require an authority revision first; this edge
+        # never admits new paths at deploy time.
+
+        # 1+2. Browser login page + credential POST (first-party surface).
+        location = /oauth/authorize/ui {
+            if ($request_method !~ ^(GET|POST)$) { return 405; }
+            proxy_pass http://127.0.0.1:18794;
+        }
+
+        # 3. App Link callback transport (GET only).
+        location = /mobile/callback {
+            if ($request_method != GET) { return 405; }
+            proxy_pass http://127.0.0.1:18794;
+        }
+
+        # 4. Token endpoint: code / refresh_token grant (POST only).
+        location = /oauth/token {
+            if ($request_method != POST) { return 405; }
+            proxy_pass http://127.0.0.1:18794;
+        }
+
+        # 5. Logout / revocation (POST only).
+        location = /oauth/logout {
+            if ($request_method != POST) { return 405; }
+            proxy_pass http://127.0.0.1:18794;
+        }
+
+        # 6. JWKS — proxied to the Mac auth-service (passive public readiness
+        # anchor per CTR-AH-HEALTH-001; no active probes exist on this edge).
+        location = /.well-known/jwks.json {
+            if ($request_method != GET) { return 405; }
+            proxy_pass http://127.0.0.1:18794;
+        }
+
+        # 7. Android App Link statement — STATIC delivery from the public
+        # host, NOT proxied (CTR-AH-WELLKNOWN-001). The file content is
+        # pinned by sha256 to the bytes supplied by mayf3/agent-core-mobile;
+        # pinning procedure in README.md. PLACEHOLDER root below.
+        location = /.well-known/assetlinks.json {
+            if ($request_method != GET) { return 405; }
+            alias www/well-known/assetlinks.json;
+            default_type application/json;
+        }
+
+        # ── deny-all default (CTR-AH-PATHS-001) ─────────────────────────────
+        # Every other method/path combination is rejected at the edge with 4xx
+        # and reaches 18794/4001 as ZERO bytes. In particular this denies:
+        #   /api/* (incl. /api/health, /api/auth/register, identity/admin/
+        #          internal routes), GET /oauth/authorize,
+        #   POST /oauth/authorize/authenticate, every unknown /oauth/* and
+        #   /.well-known/* path, and random probes.
+        # This is an explicit DENY — there is no catch-all proxy anywhere in
+        # this file.
+        location / {
+            return 404;
+        }
+    }
+}
