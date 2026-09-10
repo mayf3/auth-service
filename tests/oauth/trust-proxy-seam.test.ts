@@ -236,6 +236,7 @@ describe('trust-proxy seam wiring (source level, server.ts + env.ts)', () => {
   it('gates the trust proxy setting on AUTH_TRUST_PROXY_HOPS > 0 and never enables the loose true', () => {
     assert.match(serverSource, /if \(env\.AUTH_TRUST_PROXY_HOPS > 0\)/);
     assert.match(serverSource, /app\.set\('trust proxy', env\.AUTH_TRUST_PROXY_HOPS\)/);
+    assert.match(serverSource, /installDegradedIdentityAlarm\(app\)/);
     assert.doesNotMatch(serverSource, /trust proxy',\s*true/);
   });
 

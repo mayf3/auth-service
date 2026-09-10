@@ -84,10 +84,13 @@ namespace, so the committed config is exercised verbatim:
 docker run -d --name auth-shadow-nginx -p 18443:443 -v "$SHADOW:/shadow" \
   nginx:1.27-alpine nginx -g 'daemon off;' -p /shadow -c /shadow/conf/auth.shadow.conf
 
-docker run --rm --network container:auth-shadow-nginx -v "$SHADOW:/shadow" \
-  node:22-alpine node -e 'require("http").createServer((req,res)=>{let b="";req.on("data",c=>b+=c);req.on("end",()=>{require("fs").appendFileSync("/shadow/upstream-seen.jsonl", JSON.stringify({method:req.method,url:req.url,headers:req.headers,bytes:Buffer.byteLength(b)})+"\n");res.end("up-ok")})}).listen(18794,"127.0.0.1",()=>console.log("inspector up"))' \
-  > "$SHADOW/upstream.out" 2>&1 &
+docker run -d --name auth-shadow-upstream --network container:auth-shadow-nginx \
+  -v "$SHADOW:/shadow" node:22-alpine node -e 'require("http").createServer((req,res)=>{let b="";req.on("data",c=>b+=c);req.on("end",()=>{require("fs").appendFileSync("/shadow/upstream-seen.jsonl", JSON.stringify({method:req.method,url:req.url,headers:req.headers,bytes:Buffer.byteLength(b)})+"\n");res.end("up-ok")})}).listen(18794,"127.0.0.1",()=>console.log("inspector up"))'
 ```
+
+(The upstream runs named and detached — not `--rm` — so the tunnel-down
+probe below can `docker stop` / `docker start` it. `docker logs
+auth-shadow-upstream` shows "inspector up" when ready.)
 
 Run the asserting probe matrix (allow-list arrival, deny zero-byte arrival,
 header boundary; synthetic ZZ* markers only):
@@ -95,6 +98,7 @@ header boundary; synthetic ZZ* markers only):
 ```bash
 PORT=18443 UPSTREAM_SEEN="$SHADOW/upstream-seen.jsonl" \
   bash deploy/auth-hosting/shadow-compose-probe.sh
+```
 
 **Tunnel-down + query-string probe (ACC-AH-LOG-001 negative sweep):** with the
 composition still up, stop the recording upstream, fire a code/state-bearing
