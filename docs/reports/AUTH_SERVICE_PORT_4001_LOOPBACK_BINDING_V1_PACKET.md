@@ -23,11 +23,11 @@ plist env  = 无任何 HOST/BIND 变量（grep 计数 0）
 |---|---|---|
 | dsh-agent-core Broker | plist `BROKER_AUTH_ORIGIN=http://127.0.0.1:4001`（唯一 4001 plist 引用） | ✅ loopback |
 | svc-forum 容器 JWKS | `AUTH_JWKS_URL=http://host.docker.internal:4001/...`；**race 实证**：容器经 host.docker.internal 发起时，host 侧捕获 `127.0.0.1.4001 ← 127.0.0.1.56222 ESTABLISHED`（Docker Desktop backend 代拨 host 环回） | ✅ 仍走 127.0.0.1 |
-| svc-workflow（host 进程） | env 仅 AUTH_SECRET（本地 JWT 校验），无 auth URL | ✅ 不触 :4001 网络面 |
+| svc-workflow（host 进程） | Rust JWKS-only：`WORKFLOW_JWKS_URL=http://127.0.0.1:4001/.well-known/jwks.json`（.env:7；评审更正——其为 :4001 的 loopback 消费者） | ✅ loopback |
 | mobile public hosting | PR #66/#67/#68 全部 MERGED 但显式 **non-production/shadow-only**；影子栈已拆除（无容器）、auth.mayf3.com = NXDOMAIN、上游为 stub 捕获器（仅 1 条探针记录） | 非消费者（如未来激活=新依赖、新生产包） |
 | 反向代理/隧道 | 无 nginx/caddy/cloudflared/frp 指向 4001；Tailscale 虽在跑（utun0 100.103.205.36）但零消费者证据 | ✅ |
 | 活动连接采样 | 3× netstat 采样：4001 非环回 established = **0**；唯一 TIME_WAIT 来自 127.0.0.1 | ✅ |
-| 诚实限制 | auth 无 per-request IP 日志，历史访问不可由日志证明；wildcard 期间 Tailscale/LAN 面理论可达（无消费者证据） | 记录在案 |
+| 诚实限制 | auth 无 per-request IP 日志，历史访问不可由日志证明；wildcard 期间 Tailscale/LAN 面理论可达（无消费者证据）；`com.openclaw.*` 4 个 plist 对本 uid 不可读（评审记录在案） | 记录在案 |
 
 **判定：NON_LOOPBACK_DIRECT_CONSUMER = NONE ⇒ SAFE_TO_REBIND_LOOPBACK = YES。**
 
