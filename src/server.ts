@@ -4,6 +4,7 @@ import express from 'express';
 import helmet from 'helmet';
 import rateLimit from 'express-rate-limit';
 import { env } from './config/env.js';
+import { installDegradedIdentityAlarm } from './config/trust-proxy-hops.js';
 import { authRouter } from './routes/auth.js';
 import { serviceRegistrationRouter } from './routes/service-registrations.js';
 import { usersRouter } from './routes/users.js';
@@ -36,6 +37,7 @@ const app = express();
 // influence identity. `trust proxy = true` is deliberately not expressible.
 if (env.AUTH_TRUST_PROXY_HOPS > 0) {
   app.set('trust proxy', env.AUTH_TRUST_PROXY_HOPS);
+  installDegradedIdentityAlarm(app);
 }
 
 const authContract = initializeAuthContract(env.AUTH_CONTRACT_MODE);
