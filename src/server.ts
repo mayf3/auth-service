@@ -23,6 +23,21 @@ import { initializeAuthContract } from './lib/oauth/v1/contract.js';
 import { initializeV1TokenIssuer } from './lib/oauth/v1/signer.js';
 
 const app = express();
+
+// CTR-AH-EDGE-002 (AUTH_SERVICE_MOBILE_PUBLIC_HOSTING_V1): trust EXACTLY one
+// loopback reverse-proxy hop when running behind the public hosting edge
+// (AUTH_TRUST_PROXY_HOPS=1). req.ip — and therefore every express-rate-limit
+// identity — then derives from the single edge-injected X-Forwarded-For entry
+// ($remote_addr; the edge deletes all client-supplied forwarding headers), so
+// public clients keep independent rate-limit identities and the loopback
+// tunnel address is never a public request's rate-limit key. With the default
+// 0 the setting stays untouched (`false`): behavior is byte-identical to
+// existing local deployments, and a client-supplied X-Forwarded-For can never
+// influence identity. `trust proxy = true` is deliberately not expressible.
+if (env.AUTH_TRUST_PROXY_HOPS > 0) {
+  app.set('trust proxy', env.AUTH_TRUST_PROXY_HOPS);
+}
+
 const authContract = initializeAuthContract(env.AUTH_CONTRACT_MODE);
 if (env.AUTH_CONTRACT_MODE !== 'v0') initializeV1TokenIssuer();
 

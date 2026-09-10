@@ -1,5 +1,6 @@
 import dotenv from 'dotenv';
 import crypto from 'node:crypto';
+import { parseTrustProxyHops } from './trust-proxy-hops.js';
 dotenv.config();
 
 function getOrDeriveSecret(primary: string | undefined, fallback: string, label: string): string {
@@ -66,6 +67,18 @@ export const env = {
   RATE_LIMIT_WINDOW_MS: parseInt(process.env.RATE_LIMIT_WINDOW_MS ?? '900000', 10),   // 15 min
   RATE_LIMIT_MAX_REQUESTS: parseInt(process.env.RATE_LIMIT_MAX_REQUESTS ?? '20', 10),  // 20 requests per window
   RATE_LIMIT_LOGIN_MAX_FAILS: parseInt(process.env.RATE_LIMIT_LOGIN_MAX_FAILS ?? '5', 10), // 5 fails per 15 min
+
+  // CTR-AH-EDGE-002 (AUTH_SERVICE_MOBILE_PUBLIC_HOSTING_V1): number of
+  // reverse-proxy hops in front of this process trusted for X-Forwarded-For
+  // identity derivation. 0 (default) = no proxy trust, req.ip is the socket
+  // address (existing local/Tailscale deployments unchanged). 1 = the hosting
+  // edge (Nginx SNI block on the public host, which deletes all client-supplied
+  // forwarding headers and injects exactly one entry via
+  // `proxy_set_header X-Forwarded-For $remote_addr` toward 127.0.0.1:18794) —
+  // req.ip then derives from that single trusted entry, giving every public
+  // client an independent rate-limit identity instead of collapsing onto the
+  // loopback tunnel address. Values >1 are rejected by parseTrustProxyHops.
+  AUTH_TRUST_PROXY_HOPS: parseTrustProxyHops(process.env.AUTH_TRUST_PROXY_HOPS),
 } as const;
 
 // Validate required secrets
