@@ -188,7 +188,7 @@ app.use((err: Error, _req: express.Request, res: express.Response, _next: expres
 
 // ─── Start ──────────────────────────────────────────────────────────────
 
-app.listen(env.PORT, () => {
+app.listen(env.PORT, env.AUTH_HTTP_BIND_HOST, () => {
   console.log(`\n  🔐 auth-service v1.0.0`);
   console.log(`  📡 http://localhost:${env.PORT}`);
   console.log(`  🏷️  issuer: ${env.JWT_ISSUER} | audience: ${env.JWT_AUDIENCE}`);

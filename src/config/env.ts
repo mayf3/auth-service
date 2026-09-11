@@ -20,6 +20,11 @@ if (!['v0', 'v1_shadow', 'v1'].includes(authContractMode)) {
 export const env = {
   NODE_ENV: process.env.NODE_ENV ?? 'development',
   PORT: parseInt(process.env.PORT ?? '4001', 10),
+  // HTTP listener bind host. Default loopback preserves every existing
+  // deployment's reachability; the public hosting topology
+  // (AUTH_SERVICE_MOBILE_PUBLIC_HOSTING_V1) requires
+  // MAC_AUTH_SERVICE_LISTEN = LOOPBACK_ONLY behind the reverse tunnel.
+  AUTH_HTTP_BIND_HOST: process.env.AUTH_HTTP_BIND_HOST ?? '127.0.0.1',
   AUTH_CONTRACT_MODE: authContractMode as 'v0' | 'v1_shadow' | 'v1',
 
   // Database — connects to ADC's PostgreSQL
