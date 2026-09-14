@@ -358,6 +358,25 @@ function auditedAfter(clientId: string, clientUuid: string, bystander: string): 
   return { ...base, postimage_digest: digest(grantProjection({ machineClientId: clientUuid, audienceId: AUDIENCE_ID, scopes: [...TARGET_SCOPES], version: TARGET_VERSION }, clientId)) };
 }
 
+function auditedRollbackAfter(clientId: string, clientUuid: string, bystander: string): Record<string, unknown> {
+  return {
+    agent_id: AGENT_ID,
+    audience: AUDIENCE_ID,
+    bystander_digest: bystander,
+    client_id: clientId,
+    client_uuid: clientUuid,
+    principal_id: PRINCIPAL_ID,
+    postimage_digest: digest(grantProjection({
+      machineClientId: clientUuid,
+      audienceId: AUDIENCE_ID,
+      scopes: [...SOURCE_SCOPES],
+      version: ROLLBACK_VERSION,
+    }, clientId)),
+    scopes: [...SOURCE_SCOPES],
+    version: ROLLBACK_VERSION,
+  };
+}
+
 function exactApplyAudit(row: SecurityAuditRow, clientId: string, clientUuid: string, bystander: string): boolean {
   return isUuid(row.id)
     && row.migrationId === MIGRATION_ID
@@ -371,6 +390,29 @@ function exactApplyAudit(row: SecurityAuditRow, clientId: string, clientUuid: st
     && row.resultingGrantVersion === TARGET_VERSION
     && same(row.beforeValue, auditedBefore(clientId, clientUuid, bystander))
     && same(row.afterValue, auditedAfter(clientId, clientUuid, bystander))
+    && row.timestamp instanceof Date && !Number.isNaN(row.timestamp.getTime());
+}
+
+function exactRollbackAudit(
+  row: SecurityAuditRow,
+  applyAudit: SecurityAuditRow,
+  clientId: string,
+  clientUuid: string,
+  bystander: string,
+): boolean {
+  return isUuid(row.id)
+    && row.migrationId === ROLLBACK_MIGRATION_ID
+    && row.sourceGitCommit === applyAudit.sourceGitCommit
+    && isHex(row.sourceGitCommit, 40)
+    && typeof row.operatorId === 'string' && row.operatorId.length > 0
+    && typeof row.approvalRef === 'string' && row.approvalRef.length > 0
+    && row.reason === ROLLBACK_AUDIT_REASON
+    && row.clientId === clientId
+    && row.changeType === 'replace'
+    && row.expectedGrantVersion === TARGET_VERSION
+    && row.resultingGrantVersion === ROLLBACK_VERSION
+    && same(row.beforeValue, auditedAfter(clientId, clientUuid, bystander))
+    && same(row.afterValue, auditedRollbackAfter(clientId, clientUuid, bystander))
     && row.timestamp instanceof Date && !Number.isNaN(row.timestamp.getTime());
 }
 
@@ -448,7 +490,10 @@ export async function planGrant(db: GrantDatabase, input: PlanInput): Promise<Gr
       orderBy: [{ timestamp: 'asc' }, { id: 'asc' }],
     });
     if (audits.length !== 1 || !exactApplyAudit(audits[0], client.clientId, client.id, bystander)
-        || rollbackAudits.length !== 1) auditConflict = 'ROLLBACK_AUDIT_CONFLICT';
+        || rollbackAudits.length !== 1
+        || !exactRollbackAudit(rollbackAudits[0], audits[0], client.clientId, client.id, bystander)) {
+      auditConflict = 'ROLLBACK_AUDIT_CONFLICT';
+    }
   }
 
   const outcome: PlanOutcome = auditConflict !== null ? 'CONFLICT'
@@ -581,7 +626,7 @@ export async function reconcileGrant(db: GrantDatabase, input: PlanInput): Promi
   const plan = await planGrant(db, input);
   const state = plan.outcome === 'APPLY' ? 'SOURCE_NO_AUDIT'
     : plan.outcome === 'NOOP' ? 'TARGET_EXACT_AUDIT'
-      : plan.classification === 'ROLLED_BACK' || plan.reason === 'ROLLED_BACK' ? 'ROLLED_BACK' : 'CONFLICT';
+      : plan.classification === 'ROLLED_BACK' && plan.reason === 'ROLLED_BACK' ? 'ROLLED_BACK' : 'CONFLICT';
   return { state, writes: 0 };
 }
 
@@ -611,6 +656,23 @@ function parseReceipt(value: unknown): ApplyReceipt {
   return value as unknown as ApplyReceipt;
 }
 
+function receiptMatchesActivationAudit(
+  receipt: ApplyReceipt,
+  audit: SecurityAuditRow,
+  bystander: string,
+): boolean {
+  if (!exactApplyAudit(audit, receipt.client_id, receipt.client_uuid, bystander)) return false;
+  const before = audit.beforeValue as Record<string, unknown>;
+  const after = audit.afterValue as Record<string, unknown>;
+  return audit.id === receipt.audit_id
+    && audit.sourceGitCommit === receipt.source_git_commit
+    && audit.operatorId === receipt.operator_id
+    && audit.approvalRef === receipt.approval_ref
+    && before.preimage_digest === receipt.preimage_digest
+    && after.postimage_digest === receipt.postimage_digest
+    && receipt.bystander_digest === bystander;
+}
+
 export async function rollbackGrant(
   db: GrantDatabase,
   receiptValue: unknown,
@@ -637,7 +699,8 @@ export async function rollbackGrant(
       const audits = await tx.grantChangeAudit.findMany({
         where: { migrationId: MIGRATION_ID, clientId: receipt.client_id }, orderBy: [{ timestamp: 'asc' }],
       });
-      if (audits.length !== 1 || audits[0].id !== receipt.audit_id) {
+      if (audits.length !== 1
+          || !receiptMatchesActivationAudit(receipt, audits[0], plan.bystanderDigest as string)) {
         callbackCompleted = true;
         return { outcome: 'REFUSED', reason: 'APPLY_AUDIT_RECEIPT_MISMATCH', retryAttempted: false, bystanderDigest: plan.bystanderDigest };
       }
@@ -660,12 +723,7 @@ export async function rollbackGrant(
       const bystander = stableBystanderDigest(afterRows, receipt.client_uuid);
       if (bystander !== receipt.bystander_digest) fail('bystander digest changed during rollback');
       const rollbackBefore = auditedAfter(receipt.client_id, receipt.client_uuid, bystander);
-      const rollbackAfter = {
-        agent_id: AGENT_ID, audience: AUDIENCE_ID, bystander_digest: bystander,
-        client_id: receipt.client_id, client_uuid: receipt.client_uuid, principal_id: PRINCIPAL_ID,
-        postimage_digest: digest(grantProjection({ machineClientId: receipt.client_uuid, audienceId: AUDIENCE_ID, scopes: [...SOURCE_SCOPES], version: ROLLBACK_VERSION }, receipt.client_id)),
-        scopes: [...SOURCE_SCOPES], version: ROLLBACK_VERSION,
-      };
+      const rollbackAfter = auditedRollbackAfter(receipt.client_id, receipt.client_uuid, bystander);
       await tx.grantChangeAudit.create({ data: {
         id: randomUUID(), migrationId: ROLLBACK_MIGRATION_ID, sourceGitCommit: receipt.source_git_commit,
         operatorId: input.operatorId, approvalRef: input.approvalRef, reason: ROLLBACK_AUDIT_REASON,
@@ -762,7 +820,19 @@ function requiredArg(args: Record<string, string | true>, key: string): string {
   return boundedText(args[key], key, 2048);
 }
 
-async function main(): Promise<void> {
+export function outcomeExitCode(
+  mode: 'plan' | 'apply' | 'verify' | 'rollback' | 'reconcile',
+  outcome: string,
+): number {
+  const success = mode === 'plan' ? outcome === 'APPLY' || outcome === 'NOOP'
+    : mode === 'apply' ? outcome === 'APPLIED' || outcome === 'NOOP'
+      : mode === 'verify' ? outcome === 'PASS'
+        : mode === 'rollback' ? outcome === 'ROLLED_BACK'
+          : outcome === 'SOURCE_NO_AUDIT' || outcome === 'TARGET_EXACT_AUDIT' || outcome === 'ROLLED_BACK';
+  return success ? 0 : 1;
+}
+
+async function main(): Promise<number> {
   const args = parseArgs(process.argv.slice(2));
   const modes = ['--apply', '--reconcile', '--verify', '--rollback'].filter((key) => args[key] === true);
   if (modes.length > 1) fail('execution modes are mutually exclusive');
@@ -779,23 +849,25 @@ async function main(): Promise<void> {
     if (mode === 'plan') {
       const plan = await planGrant(db, { suppliedClientId: clientId, bundleVersion: runtimeBundleVersion(), nonce: typeof args['--nonce'] === 'string' ? args['--nonce'] : undefined });
       process.stdout.write(`${JSON.stringify({ ...plan.planDocument, plan_sha256: plan.planSha256, writes: 0 }, null, 2)}\n`);
-      return;
+      return outcomeExitCode('plan', plan.outcome);
     }
     if (mode === '--reconcile') {
-      process.stdout.write(`${JSON.stringify(await reconcileGrant(db, { suppliedClientId: clientId, bundleVersion: runtimeBundleVersion() }), null, 2)}\n`);
-      return;
+      const result = await reconcileGrant(db, { suppliedClientId: clientId, bundleVersion: runtimeBundleVersion() });
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      return outcomeExitCode('reconcile', result.state);
     }
     if (mode === '--verify') {
       const result = await verifyGrant(db, { suppliedClientId: clientId, bundleVersion: runtimeBundleVersion(), expectedBystanderDigest: requiredArg(args, '--bystander-digest') });
       process.stdout.write(`${JSON.stringify({ ...result, writes: 0 }, null, 2)}\n`);
-      return;
+      return outcomeExitCode('verify', result.outcome);
     }
     const operatorId = boundedText(process.env[OPERATOR_ENV], OPERATOR_ENV, 256);
     const approvalRef = boundedText(process.env[APPROVAL_ENV], APPROVAL_ENV, 2048);
     if (mode === '--rollback') {
       const receipt = JSON.parse(readFileSync(requiredArg(args, '--receipt-file'), 'utf8')) as unknown;
-      process.stdout.write(`${JSON.stringify(await rollbackGrant(db, receipt, { operatorId, approvalRef }), null, 2)}\n`);
-      return;
+      const result = await rollbackGrant(db, receipt, { operatorId, approvalRef });
+      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+      return outcomeExitCode('rollback', result.outcome);
     }
     const result = await applyGrant(db, {
       suppliedClientId: clientId, bundleVersion: runtimeBundleVersion(), nonce: requiredArg(args, '--nonce'),
@@ -804,8 +876,12 @@ async function main(): Promise<void> {
       sourceGitCommit: gitHead(), environment: process.env.NODE_ENV ?? 'unspecified',
     });
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
+    return outcomeExitCode('apply', result.outcome);
   } finally { await prisma.$disconnect(); }
 }
 
 const direct = process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1];
-if (direct) main().catch((error) => { process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`); process.exitCode = 1; });
+if (direct) main().then(
+  (code) => { process.exitCode = code; },
+  (error) => { process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`); process.exitCode = 1; },
+);
