@@ -99,7 +99,19 @@ Evidence references are provenance, never proof by themselves or credentials.
 DDL enforces enums, keys, restrictive FKs and shape checks. Cross-table invariant
 triggers serialize affected lifecycle/successor/Principal identity-status changes
 using one transaction-scoped advisory lock and validate the affected graph before
-transaction commit. Concurrent attempts cannot create a chain/cycle, make an
+transaction commit. Lifecycle/successor mutations require SERIALIZABLE isolation;
+a DB trigger rejects weaker isolation, including fixed-snapshot REPEATABLE READ.
+Under that lock, each mutation applies an MVCC write fence to every involved
+source/target MachinePrincipal in ascending UUID order (`UPDATE id=id`), retaining
+ALL business fields including updated_at unchanged. This causes a pre-snapshot
+RR/SERIALIZABLE Principal writer racing enrollment or an edge update to abort on
+its stale row version. Principal identity/type/status UPDATE validates under the
+same advisory lock: READ COMMITTED uses fresh trigger-query snapshots; stronger
+isolation either sees the already-established relation or conflicts with its row
+fence. A fence with no identity/type/status delta skips recursive Principal
+validation. Transaction deadlock/serialization/lock-timeout is whole-transaction
+failure, not success or an automatic retry. A trigger that only locks at deferred
+validation with a stale snapshot does not satisfy this protocol. Concurrent attempts cannot create a chain/cycle, make an
 existing target noncanonical, or invalidate an enrolled canonical Principal's
 active/type/ID conditions. Existing unresolved Principal rows retain prior behavior.
 Constraint failure rolls back the entire transaction. No application-only precheck
@@ -107,9 +119,10 @@ may substitute for DB integrity. Out-of-band privileged DDL bypass is outside th
 application guarantee and is not authorized by this Spec.
 
 The new tables are append-preserving evidence surfaces: application operations must
-not DELETE lifecycle/successor rows, mutate existing source/target/evidence identity,
-or change retired back to another state. Revision must increase exactly by one
-when lifecycle state or evidence changes; same state no-write readback is permitted.
+not DELETE lifecycle/successor rows, mutate an existing successor source/target/evidence identity,
+or change retired back to another state. Lifecycle evidence_ref is amendment provenance and may change only with a state
+transition; successor evidence_ref is immutable. Revision must increase exactly by one
+when lifecycle state changes; same state no-write readback is permitted.
 Canonical to legacy/retired with incoming successors is rejected until a separately
 authorized controlled whole-graph migration resolves the dependency. This Spec
 contains no such graph folding operation. Principal deletion with a lifecycle or
@@ -226,7 +239,7 @@ Independent review checks the affected accepted authorities and source closure.
 | ID | Contracts | Method and environment | Required result | Failure |
 |---|---|---|---|---|
 | ACC-CIF-001 | 001,006 | empty and populated isolated Pg migration; before/after row snapshots | zero old row changes; missing lifecycle unresolved; multiple clients preserved | automatic enrollment or identity/profile rewrite |
-| ACC-CIF-002 | 001,002 | real Pg invalid inserts/updates/deletes; concurrent transactions | reject self/chain/cycle, invalid canonical, target demotion, evidence retarget, retired resurrection; transaction rollback | race permits invalid committed graph |
+| ACC-CIF-002 | 001,002 | real Pg invalid inserts/updates/deletes; concurrent transactions including fixed-snapshot Principal writer racing enrollment and edge creation racing target demotion in both orders | reject self/chain/cycle, invalid canonical, target demotion, successor evidence retarget, retired resurrection and unsupported isolation; transaction rollback | race permits invalid committed graph |
 | ACC-CIF-003 | 003 | unit plus Pg reads | both exact directions and pair success; each error case, deadline and unavailable; no writes | alias fallback or partial-pair success |
 | ACC-CIF-004 | 004 | source/target fixture matrix | explicit edge returns true + provenance; absent/inconsistent fail; same target many sources valid | silent canonical NOOP or migration success used as admission |
 | ACC-CIF-005 | 005,006 | dependency/source review and existing exact/directory tests | no public auth/claim/read behavior change; Core/activation limitations explicit | new permission or production activation path |
