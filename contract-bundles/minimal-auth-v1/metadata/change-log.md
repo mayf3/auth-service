@@ -1,5 +1,32 @@
 # Change Log
 
+## 1.12.0 — 2026-09-14
+
+- CCR: `AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2` (accepted exact
+  reviewed head `9eeb896abb5adb6298df73a4c9b489ae65bafce6`) supersedes the historical
+  send-only Audience authority and promotes the Bundle/registry from `1.11.0`
+  to `1.12.0` without an in-place version disguise.
+- The existing machine-only Agent Audience remains
+  `audience_id=resource_service=agent-session-messaging`, namespace `agent`,
+  human/delegated access disabled, and now registers the ASCII-sorted exact
+  independent scopes
+  `["agent.session.inspect_own_dispatch","agent.session.send"]`.
+- Existing send-only fixture `direct-agent-session-messaging` is preserved.
+  Added inspect-only `direct-agent-session-inspection` and combined
+  `direct-agent-session-messaging-and-inspection`; each binds issued Scope,
+  requested Scope, and its exact Audience Grant subset. Added fail-closed
+  fixtures for missing and opposite-scope Grants, unknown/alias/wildcard/extra/
+  wrong-namespace scopes, and human/service/delegated profiles. All compact JWT
+  fixtures use the existing tracked RS256 test key and contain no secret.
+- Version linkage advances the manifest, registry, manifest schema, fixtures,
+  schema instances, freeze gates, consumer matrix, ADC map and llm-todo
+  candidate to `1.12.0`; runtime compatibility adds only `1.12.0`. Validator
+  assertions require the exact V2 Audience and the independent positive and
+  negative fixture families.
+- Auth registers Scope claims only. It adds no trace coordinate or ownership
+  evidence and performs no Principal, Client, credential, Grant, database,
+  deployment, token-minting, Session, message, or production mutation.
+
 ## 1.8.0 — 2026-09-05
 
 - CCR: `AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V1` (accepted @
