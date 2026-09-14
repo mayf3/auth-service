@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_CANONICAL_IDENTITY_FOUNDATION_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -247,6 +247,18 @@ Independent review checks the affected accepted authorities and source closure.
 
 ## Status
 
-CONTRACT_COUNT=8; CONTRACTS_WITH_ACCEPTANCE=8. Proposed child, no implementation
-until independent exact-head review, preauthorized acceptance and merge into main.
+CONTRACT_COUNT=8; CONTRACTS_WITH_ACCEPTANCE=8. Accepted child under the Owner
+preauthorization; active implementation authority begins after final-head recheck
+and merge of this accepted snapshot into main.
 Program and all remaining census/consumer/migration/retirement work stay open.
+
+## Acceptance record
+
+Acceptance actor: mayf3, 2026-09-14, via explicit child workflow preauthorization
+in `UNBLOCK_IDENTITY_CANONICALIZATION_PROGRAM` section 2. Independent reviewer
+`/root/identity_authority_audit` returned ACCEPT/PASS, zero blockers for exact
+`e18fb73e7a53014e9ef661d9e788064d83fa82e2` against
+`60c59792e9497f62e001388cfe8272cf99dfa832`. Concurrency finding B1 was closed
+in that reviewed head. Lifecycle finalization preserves all Decisions, Contracts
+and Acceptance rows. Final accepted-head recheck is required before merge.
+Implementation conformance has not run; production apply remains none.
