@@ -541,3 +541,41 @@ test('read-only reconciliation rejects a malformed rollback audit', async () => 
   assert.equal(reconciled.state, 'CONFLICT');
   assert.deepEqual(handle.writes, writesBefore);
 });
+
+test('SOURCE and TARGET reject orphan or extra rollback audits with zero writes', async (t) => {
+  const completed = fixture();
+  const applied = await applyGrant(completed.db, await applyInput(completed.db));
+  assert.equal(applied.outcome, 'APPLIED');
+  const rolled = await rollbackGrant(completed.db, applied.receipt, {
+    operatorId: 'rollback-op',
+    approvalRef: 'rollback-ref',
+  });
+  assert.equal(rolled.outcome, 'ROLLED_BACK');
+  const rollbackAudit = structuredClone(completed.state.audits[1]);
+
+  await t.test('SOURCE with orphan rollback audit is CONFLICT', async () => {
+    const handle = fixture((state) => { state.audits.push(rollbackAudit); });
+    const plan = await planGrant(handle.db, planInput());
+    assert.equal(plan.outcome, 'CONFLICT');
+    assert.equal(plan.reason, 'UNEXPECTED_ROLLBACK_AUDIT');
+    assert.deepEqual(handle.writes, []);
+  });
+
+  await t.test('TARGET with extra rollback audit is CONFLICT and verify cannot PASS', async () => {
+    const handle = fixture();
+    const target = await applyGrant(handle.db, await applyInput(handle.db));
+    assert.equal(target.outcome, 'APPLIED');
+    handle.writes.splice(0);
+    handle.state.audits.push(rollbackAudit);
+    const plan = await planGrant(handle.db, planInput());
+    assert.equal(plan.outcome, 'CONFLICT');
+    assert.equal(plan.reason, 'UNEXPECTED_ROLLBACK_AUDIT');
+    const verified = await verifyGrant(handle.db, {
+      suppliedClientId: CLIENT_ID,
+      bundleVersion: BUNDLE_VERSION,
+      expectedBystanderDigest: target.bystanderDigest!,
+    });
+    assert.equal(verified.outcome, 'FAIL');
+    assert.deepEqual(handle.writes, []);
+  });
+});

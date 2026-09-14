@@ -478,17 +478,20 @@ export async function planGrant(db: GrantDatabase, input: PlanInput): Promise<Gr
     where: { migrationId: MIGRATION_ID, clientId: client.clientId },
     orderBy: [{ timestamp: 'asc' }, { id: 'asc' }],
   });
+  const rollbackAudits = await db.grantChangeAudit.findMany({
+    where: { migrationId: ROLLBACK_MIGRATION_ID, clientId: client.clientId },
+    orderBy: [{ timestamp: 'asc' }, { id: 'asc' }],
+  });
   let auditConflict: string | null = null;
   if (classification === 'SOURCE' && audits.length !== 0) auditConflict = 'SOURCE_AUDIT_CONFLICT';
   if (classification === 'TARGET'
       && (audits.length !== 1 || !exactApplyAudit(audits[0], client.clientId, client.id, bystander))) {
     auditConflict = 'TARGET_AUDIT_CONFLICT';
   }
+  if ((classification === 'SOURCE' || classification === 'TARGET') && rollbackAudits.length !== 0) {
+    auditConflict = 'UNEXPECTED_ROLLBACK_AUDIT';
+  }
   if (classification === 'ROLLED_BACK') {
-    const rollbackAudits = await db.grantChangeAudit.findMany({
-      where: { migrationId: ROLLBACK_MIGRATION_ID, clientId: client.clientId },
-      orderBy: [{ timestamp: 'asc' }, { id: 'asc' }],
-    });
     if (audits.length !== 1 || !exactApplyAudit(audits[0], client.clientId, client.id, bystander)
         || rollbackAudits.length !== 1
         || !exactRollbackAudit(rollbackAudits[0], audits[0], client.clientId, client.id, bystander)) {
