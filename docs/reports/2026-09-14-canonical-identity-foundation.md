@@ -76,3 +76,24 @@ LIVE_CONSUMER_COUNT=0. Production apply, actual enrollment, Core checks, consume
 strict-write integration, full census and retirement remain outside this slice.
 One global advisory lock is intentionally conservative and may constrain future
 management throughput. No performance or production readiness claim is made.
+
+## Final integration coordinates
+
+Original implementation commit: `d93209f`.
+Current integration Base: `4e68f83ee4d3648f3e8203b8a7090372335d711a`.
+Exact code/schema candidate tested: `17dea97c17e6903ccc2f29fb4f77d6cf6887df34`
+(merge of current Base into isolated implementation branch, no conflicts).
+At 2026-09-14 16:04:36 UTC, repeated focused tests: 15/15 PASS; existing combined
+exact/external-ref/directory compatibility regressions: 74/74 PASS; strict targeted
+TypeScript: PASS. Full build still exhibits the identical Base TS2322 limitation.
+Diff against current Base contains exactly seven source/test files and the plan
+and this report. The final report-only commit changes no tested source/schema.
+
+Schema/migration SHA256:
+`e5f58f20772f00ad5f26dc514ca7eeb19a96e96e8b9978524e3758625c8301d0`.
+Library SHA256:
+`e78b6ac7fa16331ac9a14726403c60d2498d94ee46d3b19107af65b0bd1dd0cb`.
+Report script SHA256:
+`0cd57b43214a5f322f1500d28376363cfa2f0abe9d39dc1cf8b5dc7d3d72c83e`.
+No main/source integration, production effects or independent acceptance is
+claimed by this author; root owns exact-head independent review and source merge.
