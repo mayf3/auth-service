@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.11.0",
+  "contract_version": "1.12.0",
   "cases": [
     {
       "name": "human-forbidden-scope",
@@ -446,6 +446,96 @@
         { "op": "set", "path": "/authorization_context/requested_scope", "value": "agent.session.read agent.session.send" }
       ],
       "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-session-inspection-missing-grant-rejected",
+      "base_fixture": "direct-agent-session-inspection",
+      "mutations": [
+        { "op": "set", "path": "/authorization_context/machine_access_grants/agent-session-messaging", "value": [] }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "direct-session-send-only-grant-requesting-inspection-rejected",
+      "base_fixture": "direct-agent-session-messaging",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "agent.session.inspect_own_dispatch" },
+        { "op": "set", "path": "/authorization_context/requested_scope", "value": "agent.session.inspect_own_dispatch" }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "direct-session-inspect-only-grant-requesting-send-rejected",
+      "base_fixture": "direct-agent-session-inspection",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "agent.session.send" },
+        { "op": "set", "path": "/authorization_context/requested_scope", "value": "agent.session.send" }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "direct-session-inspection-unknown-scope-rejected",
+      "base_fixture": "direct-agent-session-inspection",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "agent.session.inspect" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-session-inspection-alias-scope-rejected",
+      "base_fixture": "direct-agent-session-inspection",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "agent.session.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-session-inspection-wildcard-scope-rejected",
+      "base_fixture": "direct-agent-session-inspection",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "agent.*" }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "direct-session-inspection-extra-scope-rejected",
+      "base_fixture": "direct-agent-session-inspection",
+      "mutations": [
+        { "op": "set", "path": "/authorization_context/requested_scope", "value": "agent.session.inspect_own_dispatch agent.session.unknown" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-session-inspection-wrong-namespace-rejected",
+      "base_fixture": "direct-agent-session-inspection",
+      "mutations": [
+        { "op": "set", "path": "/claims/scope", "value": "workflow.read" }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "direct-session-inspection-human-access-rejected",
+      "base_fixture": "human-svc-okr",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "agent-session-messaging" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "direct-session-inspection-service-principal-rejected",
+      "base_fixture": "direct-service-notification-ingress",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "agent-session-messaging" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "direct-session-inspection-obo-delegation-rejected",
+      "base_fixture": "obo-adc-v2-to-svc-workflow",
+      "mutations": [
+        { "op": "set", "path": "/claims/aud", "value": "agent-session-messaging" }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
     },
     {
       "name": "direct-scheduler-service-principal-rejected",

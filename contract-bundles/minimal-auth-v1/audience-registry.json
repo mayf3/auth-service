@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "registry_version": "1.11.0",
+  "registry_version": "1.12.0",
   "status": "frozen",
   "audiences": [
     {
@@ -89,10 +89,10 @@
       "human_access_enabled": false,
       "machine_access_enabled": true,
       "delegated_access_enabled": false,
-      "registered_scopes": ["agent.session.send"],
+      "registered_scopes": ["agent.session.inspect_own_dispatch", "agent.session.send"],
       "status": "active",
       "freeze_ready": true,
-      "notes": "Registered by AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1; machine-only agent access for the canonical agent_session_send resource consumed by dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V1."
+      "notes": "Registered by AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2 for canonical send and independently granted caller-owned exact-turn inspection consumed by dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V2."
     },
     {
       "audience_id": "scheduler",
