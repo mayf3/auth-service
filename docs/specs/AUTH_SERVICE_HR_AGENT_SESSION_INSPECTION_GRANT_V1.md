@@ -1,10 +1,10 @@
 ---
 spec_id: AUTH_SERVICE_HR_AGENT_SESSION_INSPECTION_GRANT_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
-production_apply_authority: none
+implementation_authority: contracts
+production_apply_authority: contracts
 date: 2026-09-14
 revision: r1
 scope:
@@ -28,19 +28,22 @@ authoring_authority_basis: >-
   authority authoring and independent security review only. HR Grant mutation,
   credentials, tokens, production inspection, and production mutation remain
   forbidden until exact-head acceptance and the controlled gates below.
-accepted_date: null
-accepted_by: null
-accepted_reviewed_head: null
-independent_security_review: null
-independent_review_blockers: null
+accepted_date: 2026-09-14
+accepted_by: mayf3
+accepted_reviewed_head: 9eeb896abb5adb6298df73a4c9b489ae65bafce6
+independent_security_review: PASS
+independent_review_blockers: NONE
 ---
 
 # AUTH_SERVICE_HR_AGENT_SESSION_INSPECTION_GRANT_V1
 
-> **PROPOSED / NO IMPLEMENTATION OR PRODUCTION AUTHORITY.** This is a new,
-> subsequent one-row operation. It does not amend or supersede the accepted HR
-> send-supply authority; that authority's exact completed send-only poststate is
-> this operation's required source prestate.
+> **ACCEPTED / CONTRACT IMPLEMENTATION AUTHORITY; PRODUCTION APPLY SEPARATELY
+> CONTROLLED.** Owner `mayf3` accepted exact reviewed head
+> `9eeb896abb5adb6298df73a4c9b489ae65bafce6` on 2026-09-14 after independent
+> security review `PASS` with blockers `NONE`. This is a new, subsequent one-row
+> operation; acceptance causes no implementation or production mutation. It does
+> not amend or supersede accepted HR Send Grant V2, whose exact completed
+> send-only poststate remains this operation's required source prestate.
 
 ## 1. Goal and exact subject
 

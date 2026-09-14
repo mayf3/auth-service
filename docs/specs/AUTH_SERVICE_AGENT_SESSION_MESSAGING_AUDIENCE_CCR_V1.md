@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1
-status: accepted
+status: superseded
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -26,7 +26,7 @@ external_authorities: []  # DAG ROOT (ASM -> downstream dsh-agent-core deploymen
                           # accepted head as their Phase-A prerequisite, never
                           # the reverse.
 supersedes: []
-superseded_by: null
+superseded_by: AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2
 owners:
   - mayf3
 ---

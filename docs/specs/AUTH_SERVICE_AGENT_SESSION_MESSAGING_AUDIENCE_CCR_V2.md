@@ -1,10 +1,10 @@
 ---
 spec_id: AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
-implementation_authority: none
-production_apply_authority: none
+implementation_authority: contracts
+production_apply_authority: contracts
 date: 2026-09-14
 revision: r1
 scope:
@@ -28,19 +28,23 @@ authoring_authority_basis: >-
   authority authoring and independent security review only. It does not
   authorize registry/database mutation, Auth deployment/restart, Grant or
   credential mutation, token minting, production inspection, or production use.
-accepted_date: null
-accepted_by: null
-accepted_reviewed_head: null
-independent_security_review: null
-independent_review_blockers: null
+accepted_date: 2026-09-14
+accepted_by: mayf3
+accepted_reviewed_head: 9eeb896abb5adb6298df73a4c9b489ae65bafce6
+independent_security_review: PASS
+independent_review_blockers: NONE
 ---
 
 # AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2
 
-> **PROPOSED / NO IMPLEMENTATION OR PRODUCTION AUTHORITY.** This is a complete
-> whole-authority successor to accepted Audience CCR V1. V1 remains active and
-> unchanged until an independent exact-head security review passes and Owner
-> `mayf3` accepts this exact head through the atomic lifecycle gate in §9.
+> **ACCEPTED / CONTRACT IMPLEMENTATION AUTHORITY; PRODUCTION APPLY SEPARATELY
+> CONTROLLED.** Owner `mayf3` accepted exact reviewed head
+> `9eeb896abb5adb6298df73a4c9b489ae65bafce6` on 2026-09-14 after independent
+> security review `PASS` with blockers `NONE`. This acceptance authorizes only
+> the exact §5 implementation closure and §6 controlled-activation contracts;
+> it causes no implementation, Grant/credential change, deployment, token
+> minting, inspection, or production mutation. Audience CCR V1 is superseded
+> through the reciprocal lifecycle backlink and remains historical authority.
 
 ## 1. Goal and complete Audience contract
 
