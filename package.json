@@ -21,7 +21,9 @@
     "contract:v1:candidate": "node scripts/prepare-candidate-snapshot.mjs",
     "contract:v1:backfill": "npm run contract:v1:prepare && tsx scripts/backfill-minimal-auth-v1.ts",
     "contract:v1:readiness": "npm run contract:v1:prepare && tsx scripts/check-minimal-auth-v1-readiness.ts",
-    "verify:hosting-logs": "node scripts/verify-auth-hosting-logs.mjs"
+    "verify:hosting-logs": "node scripts/verify-auth-hosting-logs.mjs",
+    "test:canonical-identity": "tsx --test tests/oauth/canonical-identity.test.ts tests/oauth/canonical-identity-postgres.test.ts",
+    "check:canonical-identity": "tsx scripts/check-canonical-identity-conformance.ts"
   },
   "bin": {
     "agent-identity": "dist/src/cli/agent-identity.js"
