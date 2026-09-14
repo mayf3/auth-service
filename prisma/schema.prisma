@@ -116,6 +116,9 @@ model MachinePrincipal {
   disabledAt    DateTime?       @map("disabled_at")
 
   owner        User?           @relation(fields: [ownerUserId], references: [id], onDelete: Restrict)
+  identityLifecycle AgentIdentityLifecycle?
+  identitySuccessor AgentIdentitySuccessor? @relation("IdentitySource")
+  identityPredecessors AgentIdentitySuccessor[] @relation("IdentityTarget")
   clients      MachineClient[]
   trustedProxy TrustedProxy?   @relation("ProxyPrincipal")
 
@@ -515,4 +518,34 @@ model MachineClientRotation {
   createdAt            DateTime @default(now()) @map("created_at") @db.Timestamp(3)
 
   @@map("machine_client_rotations")
+}
+
+
+enum AgentIdentityState {
+  unresolved
+  canonical
+  legacy
+  retired
+}
+
+model AgentIdentityLifecycle {
+  principalId String @id @map("principal_id") @db.Uuid
+  state AgentIdentityState
+  revision BigInt
+  evidenceRef String @map("evidence_ref")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @default(now()) @map("updated_at")
+  principal MachinePrincipal @relation(fields: [principalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  @@map("agent_identity_lifecycle")
+}
+
+model AgentIdentitySuccessor {
+  sourcePrincipalId String @id @map("source_principal_id") @db.Uuid
+  targetPrincipalId String @map("target_principal_id") @db.Uuid
+  evidenceRef String @map("evidence_ref")
+  createdAt DateTime @default(now()) @map("created_at")
+  source MachinePrincipal @relation("IdentitySource", fields: [sourcePrincipalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  target MachinePrincipal @relation("IdentityTarget", fields: [targetPrincipalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  @@index([targetPrincipalId], map: "agent_identity_successors_target_idx")
+  @@map("agent_identity_successors")
 }
