@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { spawnSync } from 'node:child_process';
 import test from 'node:test';
 import {
   ADVISORY_LOCK_KEY,
@@ -13,6 +14,7 @@ import {
   SOURCE_SCOPES,
   TARGET_SCOPES,
   applyGrant,
+  outcomeExitCode,
   planGrant,
   projectTokenClaims,
   reconcileGrant,
@@ -469,4 +471,73 @@ test('token evidence retains only the frozen nonsecret projection and drops a se
   ]);
   assert.equal(JSON.stringify(projection).includes(canary), false);
   assert.throws(() => projectTokenClaims({ ...projection, scope: `${SEND_SCOPE} agent.session.admin` }), /exact two-scope/);
+});
+
+test('CLI outcome mapping returns zero only for successful business outcomes', () => {
+  const cases: Array<[Parameters<typeof outcomeExitCode>[0], string, number]> = [
+    ['plan', 'APPLY', 0], ['plan', 'NOOP', 0], ['plan', 'CONFLICT', 1],
+    ['apply', 'APPLIED', 0], ['apply', 'NOOP', 0], ['apply', 'CONFLICT', 1],
+    ['apply', 'PRECOMMIT_FAILED', 1], ['apply', 'OUTCOME_UNKNOWN', 1],
+    ['verify', 'PASS', 0], ['verify', 'FAIL', 1],
+    ['rollback', 'ROLLED_BACK', 0], ['rollback', 'REFUSED', 1],
+    ['rollback', 'PRECOMMIT_FAILED', 1], ['rollback', 'OUTCOME_UNKNOWN', 1],
+    ['reconcile', 'SOURCE_NO_AUDIT', 0], ['reconcile', 'TARGET_EXACT_AUDIT', 0],
+    ['reconcile', 'ROLLED_BACK', 0], ['reconcile', 'CONFLICT', 1],
+  ];
+  for (const [mode, outcome, expected] of cases) assert.equal(outcomeExitCode(mode, outcome), expected, `${mode}:${outcome}`);
+});
+
+test('CLI apply gate refuses before attempting a database connection', () => {
+  const result = spawnSync(process.execPath, [
+    '--import', 'tsx',
+    'scripts/supply-hr-session-inspection-grant-v1.ts',
+    '--apply', '--client-id', CLIENT_ID,
+  ], {
+    cwd: process.cwd(),
+    encoding: 'utf8',
+    env: {
+      ...process.env,
+      DATABASE_URL: 'postgresql://secret-canary.invalid:1/must-not-connect',
+      HR_SESSION_INSPECTION_GRANT_APPLY: 'NO',
+    },
+  });
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /requires its exact controlled-operation gate/);
+  assert.doesNotMatch(result.stderr, /secret-canary|connect|Prisma/i);
+});
+
+test('rollback binds receipt provenance and fields to the exact activation audit', async (t) => {
+  for (const [field, value] of [
+    ['source_git_commit', 'b'.repeat(40)],
+    ['operator_id', 'tampered-operator'],
+    ['approval_ref', 'tampered-approval'],
+    ['preimage_digest', 'b'.repeat(64)],
+    ['postimage_digest', 'd'.repeat(64)],
+  ] as const) {
+    await t.test(field, async () => {
+      const handle = fixture();
+      const applied = await applyGrant(handle.db, await applyInput(handle.db));
+      assert.equal(applied.outcome, 'APPLIED');
+      handle.writes.splice(0);
+      const tampered = { ...(applied.receipt as object), [field]: value };
+      const result = await rollbackGrant(handle.db, tampered, { operatorId: 'rollback-op', approvalRef: 'rollback-ref' });
+      assert.equal(result.outcome, 'REFUSED');
+      assert.equal(result.reason, 'APPLY_AUDIT_RECEIPT_MISMATCH');
+      assert.deepEqual(handle.writes, []);
+      assert.equal(handle.state.grants[0].version, 2);
+    });
+  }
+});
+
+test('read-only reconciliation rejects a malformed rollback audit', async () => {
+  const handle = fixture();
+  const applied = await applyGrant(handle.db, await applyInput(handle.db));
+  assert.equal(applied.outcome, 'APPLIED');
+  const rolledBack = await rollbackGrant(handle.db, applied.receipt, { operatorId: 'rollback-op', approvalRef: 'rollback-ref' });
+  assert.equal(rolledBack.outcome, 'ROLLED_BACK');
+  handle.state.audits[1].reason = 'wrong rollback reason';
+  const writesBefore = [...handle.writes];
+  const reconciled = await reconcileGrant(handle.db, planInput());
+  assert.equal(reconciled.state, 'CONFLICT');
+  assert.deepEqual(handle.writes, writesBefore);
 });
