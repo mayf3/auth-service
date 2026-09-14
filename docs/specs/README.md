@@ -30,7 +30,7 @@ Program 或 governance adoption Spec 使用 `implementation_authority: none` 时
 
 | Spec ID | Kind | Status | Implementation authority | Purpose |
 |---|---|---|---|---|
-| `AUTH_SERVICE_CANONICAL_IDENTITY_FOUNDATION_V1` | implementation | proposed | contracts after acceptance | Auth lifecycle/direct-successor persistence and read-only strict/migration boundaries; isolated conformance; no production apply or write-adapter activation. |
+| `AUTH_SERVICE_CANONICAL_IDENTITY_FOUNDATION_V1` | implementation | accepted (Owner preauthorization, independent e18fb73 review PASS) | contracts | Auth lifecycle/direct-successor persistence and read-only strict/migration boundaries; isolated conformance; no production apply or write-adapter activation. |
 | `AUTH_SERVICE_AGENT_IDENTITY_CANONICALIZATION_PROGRAM_V1` | program | accepted (Owner mayf3, 2026-09-14; reviewed direction f6133a3…) | none | 全量 canonical identity / successor ownership / strict-write / retirement Program；保留 owning child authority、完整 census、Owner ambiguity、零 live-ref 和生产 canary gates；不授权实现或生产操作。 |
 | `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_V1` | implementation | accepted | contracts | 两阶段 canary Grant supply：Stage W（svc-workflow 2 行）与 Stage F（svc-forum `forum.read` + `forum.write`）source implementation 已在 main；source merge 不证明 production Grant apply |
 | `AUTH_SERVICE_AGENTCORE_CANARY_GRANT_SUPPLY_STAGE_W_EXECUTION_V1` | implementation | superseded | contracts | 已由 Stage W Execution V2 whole-Spec supersede；保留为历史 accepted authority。 |
