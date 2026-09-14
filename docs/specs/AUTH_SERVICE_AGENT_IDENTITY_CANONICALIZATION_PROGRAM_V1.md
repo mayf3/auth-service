@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_AGENT_IDENTITY_CANONICALIZATION_PROGRAM_V1
-status: proposed
+status: accepted
 spec_kind: program
 authority_level: governing_spec
 implementation_authority: none
@@ -37,7 +37,7 @@ that Principal; rotation does not create a second business identity. Legacy
 identities remain interpretable as history, explicit successor relations, or
 retired objects, and cannot receive new business authority.
 
-This proposed Program preserves the full Owner Goal
+This Program preserves the full Owner Goal
 `AGENT_IDENTITY_CANONICALIZATION_AND_LEGACY_RETIREMENT_V1`: complete identity and
 reference census, one Auth-owned successor truth, strict new writes, safe migration,
 retirement, compatibility removal, CI/runtime invariants, and actual production
@@ -124,7 +124,7 @@ writes. Do not turn those successful reads into canonical readiness or silently
 change their errors. Forum's local immutable actor projection and alias-conflict
 rules are preserved; a needed alias transfer requires its own owning authority.
 
-Selected proposed direction: canonical lifecycle and successor truth live in Auth's
+Selected direction: canonical lifecycle and successor truth live in Auth's
 existing persistence boundary, extending existing Principal relations and only the
 minimum alias representation required by census. Exact schema/API/locking closure
 belongs to the Auth implementation child; no second registry or service is selected.
@@ -300,7 +300,7 @@ executed evidence and independent review appropriate to the affected Contract.
 
 ```text
 SPEC_GOVERNANCE_MODE = AUTHOR
-STATUS = proposed
+STATUS = accepted
 CONTRACT_COUNT = 12
 CONTRACTS_WITH_ACCEPTANCE = 12
 PARTIAL_SUPERSESSION = NONE
@@ -311,5 +311,24 @@ AUTHORING_READY_FOR_REVIEW = YES_AS_NON_EXECUTABLE_PROGRAM
 IMPLEMENTATION_READY = NO
 PRODUCTION_READY = NO
 GLOBAL_CENSUS_COMPLETE = NO
-NEXT_ACTION = INDEPENDENT_PROGRAM_REVIEW_AND_CONTINUE_READ_ONLY_EVIDENCE
+NEXT_ACTION = FINAL_HEAD_RECHECK_AND_MERGE_THEN_CONTINUE_READ_ONLY_EVIDENCE
 ```
+
+## 9. Owner acceptance record — 2026-09-14
+
+Owner `mayf3` accepted the exact Program direction at reviewed candidate
+`f6133a3ab6589230aceb51f7540626bec3375631` in
+`OWNER_DECISION=UNBLOCK_IDENTITY_CANONICALIZATION_PROGRAM`, section 1.
+Independent semantic review: `/root/identity_authority_audit`, PASS, no blockers.
+This lifecycle finalization does not change any Decision, Contract, or Acceptance
+criterion. The route and original mandate in section 2 record authoring provenance.
+The final acceptance commit requires an independent exact-head recheck before merge.
+Active authority begins only after the accepted snapshot is merged into `main`.
+
+`implementation_authority: none` and `production_apply_authority: none` remain
+unchanged. Owner sections 2–13 separately preauthorize owning child authority
+workflows and metadata-only census, partition ambiguous identities from proven
+successors, and retain all stated production gates. That execution mandate does
+not grant this Program implementation or production authority.
+
+Owner decision attachment SHA-256: `87e42bdd8d143af6990839ed842f614eca27787011251a7942282e2c5b4057c2`.
