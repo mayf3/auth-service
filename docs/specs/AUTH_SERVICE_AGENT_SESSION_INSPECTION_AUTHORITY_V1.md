@@ -6,7 +6,8 @@ authority_level: governing_spec
 implementation_authority: none
 production_apply_authority: none
 date: 2026-09-14
-revision: r1
+revision: r2
+revision_date: 2026-09-14
 scope:
   - agent-session-messaging exact inspection scope registration
   - canonical HR machine client own-dispatch inspection Grant
@@ -23,7 +24,9 @@ external_authorities:
     accepted_reviewed_head: b9893400a98f627aa2ce6411e078d6ef03749288
     implementation_head: 435cc464877b5761e84108a052a5685ab547b6de
     merge_commit: 49a5d42c053401036550aac84d2427a61832a457
-supersedes: []
+supersedes:
+  - AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1
+  - AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V2
 superseded_by: null
 owners:
   - mayf3
@@ -42,8 +45,9 @@ independent_review_blockers: null
 
 # AUTH_SERVICE_AGENT_SESSION_INSPECTION_AUTHORITY_V1
 
-> **PROPOSED / NO IMPLEMENTATION OR PRODUCTION AUTHORITY.** This focused
-> amendment defines one new inspection scope and one exact HR Grant delta. Until
+> **PROPOSED / NO IMPLEMENTATION OR PRODUCTION AUTHORITY.** This combined
+> whole-authority successor defines one new inspection scope and one exact HR
+> Grant delta while carrying forward all unaffected parent contracts. Until
 > independent exact-head security review passes and Owner `mayf3` explicitly
 > accepts that exact head, no bundle, registry, database, Grant, credential,
 > token, service, or production state may change.
@@ -74,14 +78,28 @@ Agent Core remains responsible for independently verifying trusted caller
 identity, caller-owned dispatch evidence, exact target/session/message match,
 and opaque fail-closed foreign/unrelated denials.
 
-## 2. Scope and non-goals
+## 2. Whole-authority scope and non-goals
 
-This authority is a focused additive amendment to accepted
+This document is the complete combined successor for the two intersecting
+subjects previously owned separately by accepted
 `AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1` and
-`AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V2`. Those authorities remain active;
-only their exact single-scope and exact HR-row clauses are amended as stated
-here. Every other identity, machine-only, audit, transaction, secret-handling,
-and fail-closed boundary is preserved.
+`AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V2`: the complete
+`agent-session-messaging` Audience contract and the complete canonical HR Grant
+contract. While this candidate is proposed, both predecessors remain active and
+unchanged. Only the atomic lifecycle transaction in §11 may accept this document
+and supersede both predecessors with reciprocal backlinks.
+
+The accepted meaning changes only where unavoidable: the Audience exact scope
+set changes from send-only to send plus own-dispatch inspection, and the exact
+HR Grant advances from send-only v1 to the two-scope v2 row. This document
+replaces, rather than partially amends, those conflicting clauses. It carries
+forward the complete unaffected parent contract: canonical resource/audience and
+agent namespace; machine-only active agent profile; no human/service/delegated
+access; exact direct-token registry/DB/Grant consistency; canonical HR identity
+and unique Broker-bound active machine client; no new Principal/Client/secret;
+serializable compare-and-set; same-transaction closed audit; exact rerun NOOP;
+fail-closed drift and unknown-outcome reconciliation; secret-safe verification;
+zero unrelated Grant mutation; and separately gated production execution.
 
 Out of scope: arbitrary Session browsing; historical enumeration; another
 caller's dispatch; global Session administration; content write/delete/edit;
@@ -197,6 +215,15 @@ ambiguous, disabled, mismatched, tombstoned, extra-scope, wrong-version, or
 credential-binding drift fails closed with zero writes. Legacy Principal
 `bc970ced-710f-4479-9ff0-e295a1c59424` (`hr-agent`) is never selected.
 
+The current HR business subject is exclusively Principal
+`dc702687-6515-4a2a-91ae-e572a9bbd766`, `principal_type=agent`, active,
+`disabled_at=NULL`, canonical `agent_id=agt_hr-agent`, and its unique active
+Broker-bound MachineClient. Name similarity, a second client, a substituted
+Principal, credential rebinding, client creation, or secret rotation is
+forbidden. All other existing HR permissions and every other principal/client
+row are bystanders included in the stable before/after digest and receive zero
+writes.
+
 The row remains revocable and auditable. A known activation-verification failure
 may use the same accepted authority's reviewed rollback vehicle to forward
 replace only exact target version 2 with version 3 and scopes
@@ -273,6 +300,26 @@ audience, exact before/after scopes and versions, preimage/plan digests,
 timestamp, change ID, and action `replace`. It must contain no secret or token.
 Audit append failure rolls back Audience and Grant atomically.
 
+The only compatible transaction prestates are the exact source state (Bundle
+and DB Audience `1.11.0` with send-only registration, exact canonical HR Grant
+send-only @v1, and no governed migration audit) or the exact target state
+(Bundle/DB Audience `1.12.0` with the two frozen scopes, exact HR Grant @v2, and
+exactly one governed audit). The source state applies; the target state is an
+all-write-zero NOOP. Every mixed face, missing/extra scope, wrong version,
+duplicate/missing audit, identity drift, or bystander digest drift is conflict
+with Audience/Grant/audit writes all zero. No union, broad upsert, overwrite,
+DELETE, alternate client, or best-effort repair is allowed.
+
+Post-activation `verify-state` must prove exact executable/DB Audience equality,
+exact HR Grant @v2, exactly one governed audit, healthy Auth, and unchanged
+unrelated digest. A bounded `verify-mint` may request only the exact resource and
+the exact two-scope set through the already-existing HR credential held only in
+memory, and may retain only safe claim projection
+`iss,aud,sub,client_id,principal_type,agent_id,scope,exp`. Wrong scope, alias,
+wildcard, ungranted client, human/service/delegated profile, and DB/registry
+mismatch must issue no token. No raw token or Authorization material may be
+printed or persisted.
+
 ## 10. Acceptance and security tests
 
 Independent security review must verify:
@@ -312,11 +359,19 @@ acceptance of the exact reviewed head, one lifecycle-only commit may change:
 2. `implementation_authority: none -> contracts`;
 3. `production_apply_authority: none -> contracts`;
 4. null acceptance/review fields to exact accepted values;
-5. the proposal banner to an accepted banner with no semantic delta;
-6. this Spec's README lifecycle and authority cells only.
+5. each predecessor `status: accepted -> superseded` while preserving its
+   historical `implementation_authority: contracts` and normative body;
+6. each predecessor `superseded_by: null ->
+   AUTH_SERVICE_AGENT_SESSION_INSPECTION_AUTHORITY_V1`;
+7. the proposal banner to an accepted banner with no semantic delta;
+8. this Spec's README lifecycle/authority cells plus only the two predecessor
+   README lifecycle/backlink descriptions.
 
-Every other byte is frozen. A fresh independent final-head recheck must prove
-the exhaustive allowlist and `SEMANTIC_DELTA=NONE` before merge. Even after
+Every other byte, including both historical predecessor authority fields and
+normative bodies, is frozen. A fresh independent final-head recheck must prove
+the exhaustive allowlist, reciprocal relationships, exactly one accepted
+authority for the combined subject, and `SEMANTIC_DELTA=NONE` beyond the already
+reviewed successor semantics before merge. Even after
 acceptance, execution must satisfy §9; no credential export or arbitrary token
 mint is authorized.
 
@@ -326,12 +381,16 @@ mint is authorized.
 - Register `agent.session.read` or wildcard: rejected as overbroad.
 - Create another HR client or Grant row: rejected; use the exact bound client.
 - Put trace coordinates in Auth: rejected; ownership is an Agent Core concern.
+- Keep both conflicting predecessors accepted as partial amendments: rejected by
+  the repository whole-authority invariant.
 - Split registry and Grant into unrelated production windows: rejected because
   the service must not serve a DB/executable scope mismatch.
 
 ```text
 OPEN_OWNER_DECISIONS = NONE
 NORMATIVE_TBD = NONE
+WHOLE_AUTHORITY_SUCCESSOR = YES
+PREDECESSOR_COUNT = 2
 HR_GRANT_MUTATION_THIS_ROUND = NONE
 AUTH_SCOPE_REGISTRATION_THIS_ROUND = NONE
 READY_FOR_INDEPENDENT_SECURITY_REVIEW = YES
