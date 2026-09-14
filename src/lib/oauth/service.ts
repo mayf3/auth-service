@@ -312,7 +312,7 @@ export async function createClient(
 export async function rotateClientSecret(
   clientId: string,
   opts: { operationId?: string; rotatedBy?: string } = {},
-): Promise<{ client: MachineClientResult; newSecret: string; rotation: { operationId: string; receiptId: string; replayed: boolean } }> {
+): Promise<{ client: MachineClientResult; newSecret?: string; secretMaterialReplayed?: boolean; rotation: { operationId: string; receiptId: string; replayed: boolean } }> {
   const client = await prisma.machineClient.findUnique({
     where: { clientId },
   });
@@ -327,13 +327,50 @@ export async function rotateClientSecret(
   const newHash = hashClientSecret(newSecret);
   const operationId = opts.operationId ?? generateRotationOperationId('machine-admin');
 
-  const seam = await rotateMachineClientSecretViaSeam({
-    machineClientUuid: client.id,
-    newSecretHash: newHash,
-    preimageFingerprint: secretHashFingerprint(client.secretHash),
-    operationId,
-    rotatedBy: opts.rotatedBy ?? 'machine-admin',
-  });
+  let seam;
+  try {
+    seam = await rotateMachineClientSecretViaSeam({
+      machineClientUuid: client.id,
+      newSecretHash: newHash,
+      preimageFingerprint: secretHashFingerprint(client.secretHash),
+      operationId,
+      rotatedBy: opts.rotatedBy ?? 'machine-admin',
+    });
+  } catch (error) {
+    // AUTH_ROTATION_REPLAY_CONSISTENCY (T36+T43): the seam raises typed
+    // replay-consistency violations; surface them as 409s without ever
+    // returning credential material.
+    const message = String((error as Error)?.message ?? error);
+    if (message.includes('IDEMPOTENCY_CONFLICT')) {
+      throw Object.assign(new Error(message), { statusCode: 409 });
+    }
+    if (message.includes('STALE_IDEMPOTENCY_RECEIPT')) {
+      throw Object.assign(new Error(message), { statusCode: 409 });
+    }
+    throw error;
+  }
+  if (seam.replayed) {
+    // OWNER secret semantics: a replay NEVER re-emits credential secret
+    // material. The original committed rotation response is the only carrier
+    // of the fresh secret; after response loss the caller performs a NEW
+    // authorized rotation instead of relying on replay for recovery.
+    return {
+      client: {
+        id: client.id,
+        clientId: client.clientId,
+        machinePrincipalId: client.machinePrincipalId,
+        status: client.status,
+        allowedResources: client.allowedResources,
+        allowedScopes: client.allowedScopes,
+        createdAt: client.createdAt,
+        rotatedAt: seam.rotatedAt,
+        revokedAt: client.revokedAt,
+      },
+      newSecret: undefined,
+      secretMaterialReplayed: false as const,
+      rotation: { operationId, receiptId: seam.receiptId, replayed: true },
+    };
+  }
 
   auditLog({
     timestamp: new Date().toISOString(),
