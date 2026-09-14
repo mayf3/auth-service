@@ -405,6 +405,20 @@ for (const audience of registry.audiences) {
   check(!audience.machine_access_enabled || audience.accepted_principal_types.some((type) => type === 'agent' || type === 'service'), `registry: Machine Audience ${audience.audience_id} has no machine principal type`);
   check(!(audience.machine_access_enabled || audience.delegated_access_enabled) || audience.registered_scopes.length > 0, `registry: Machine Audience ${audience.audience_id} has no Scopes`);
 }
+const sessionMessagingAudience = audienceById.get('agent-session-messaging');
+check(JSON.stringify(sessionMessagingAudience) === JSON.stringify({
+  audience_id: 'agent-session-messaging',
+  resource_service: 'agent-session-messaging',
+  scope_namespace: 'agent',
+  accepted_principal_types: ['agent'],
+  human_access_enabled: false,
+  machine_access_enabled: true,
+  delegated_access_enabled: false,
+  registered_scopes: ['agent.session.inspect_own_dispatch', 'agent.session.send'],
+  status: 'active',
+  freeze_ready: true,
+  notes: 'Registered by AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2 for canonical send and independently granted caller-owned exact-turn inspection consumed by dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V2.',
+}), 'registry: agent-session-messaging V2 Audience changed');
 
 check(adcScopeMap.consumer_git_sha === 'ddeeab2ff394af64b78d9820c9e64d5bf0952ebd', 'ADC Scope map: unexpected consumer SHA');
 const adcAudience = audienceById.get(adcScopeMap.source_audience);
@@ -456,6 +470,18 @@ for (const error of validateSignatureCases(negative.signature_cases, positiveByN
   errors.push(`signature fixture ${error}`);
 }
 check(positiveByName.size === positive.fixtures.length, 'positive fixture names must be unique and valid');
+for (const [fixtureName, exactScope] of [
+  ['direct-agent-session-messaging', 'agent.session.send'],
+  ['direct-agent-session-inspection', 'agent.session.inspect_own_dispatch'],
+  ['direct-agent-session-messaging-and-inspection', 'agent.session.inspect_own_dispatch agent.session.send'],
+]) {
+  const fixture = positiveByName.get(fixtureName);
+  check(Boolean(fixture), `session messaging V2: missing positive fixture ${fixtureName}`);
+  check(fixture?.claims?.scope === exactScope
+    && fixture?.authorization_context?.requested_scope === exactScope
+    && fixture?.authorization_context?.machine_access_grants?.['agent-session-messaging']?.join(' ') === exactScope,
+  `session messaging V2: fixture ${fixtureName} does not prove exact independent scope issuance`);
+}
 
 for (const testCase of negative.cases) {
   const base = positiveByName.get(testCase.base_fixture);
@@ -479,6 +505,22 @@ for (const testCase of negative.cases) {
       errors.push(`negative fixture ${testCase.name}: expected ${testCase.expected_error}, got ${error.code ?? 'ERROR'} (${error.message})`);
     }
   }
+}
+for (const fixtureName of [
+  'direct-session-inspection-missing-grant-rejected',
+  'direct-session-send-only-grant-requesting-inspection-rejected',
+  'direct-session-inspect-only-grant-requesting-send-rejected',
+  'direct-session-inspection-unknown-scope-rejected',
+  'direct-session-inspection-alias-scope-rejected',
+  'direct-session-inspection-wildcard-scope-rejected',
+  'direct-session-inspection-extra-scope-rejected',
+  'direct-session-inspection-wrong-namespace-rejected',
+  'direct-session-inspection-human-access-rejected',
+  'direct-session-inspection-service-principal-rejected',
+  'direct-session-inspection-obo-delegation-rejected',
+]) {
+  check(negative.cases.some((entry) => entry.name === fixtureName),
+    `session messaging V2: missing negative fixture ${fixtureName}`);
 }
 
 for (const relativePath of [

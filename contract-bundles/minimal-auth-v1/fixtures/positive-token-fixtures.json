@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.11.0",
+  "contract_version": "1.12.0",
   "now": 1784300000,
   "fixtures": [
     {
@@ -301,6 +301,68 @@
         }
       },
       "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI3MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1zZXNzaW9uLW1lc3NhZ2luZyIsInByaW5jaXBhbF90eXBlIjoiYWdlbnQiLCJjbGllbnRfaWQiOiJhZ2VudC1jbGllbnQtc2Vzc2lvbi1tZXNzYWdpbmciLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJ0eXBlIjoiYWNjZXNzIiwidmVyc2lvbiI6InYxIiwic2NvcGUiOiJhZ2VudC5zZXNzaW9uLnNlbmQiLCJhZ2VudF9pZCI6ImFnZW50LXNlc3Npb24tbWVzc2VuZ2VyIiwianRpIjoiZGlyZWN0LWp0aS1zZXNzaW9uLW1lc3NhZ2luZy0wMDAwMSIsImlhdCI6MTc4NDMwMDAwMCwibmJmIjoxNzg0MzAwMDAwLCJleHAiOjE3ODQzMDA2MDB9.YCsVIBBllGyrlBwSc3gzGZ70t87_-OB9Lg_SZXr7_ya8n1qcrLDSvft87OR-YwHeazVJDO97PoM539QSudxp2OauN_ILM3NCjk2psLPLbKhj4lL0XUE6hkRFxtLBwcxNn-wwVJfvpJePVYTxeTnoSfLZh91UkanR96nUXrjgMl6r8-qxcpOpDQ09LJHgfT7l9bDCjN-EZlKNokaWotQevhKsQCc1nAMCzlhM476lwH3Ote6PHGz2_d5HtFb-cssNEeWkI8sRYd2G7dtP3UYYcn-UeWnLfqXpfd0M6evOEGflvQDQ88VKU4baUj8Vd1_dj3h4R8pwAtbp547APzCCSw"
+    },
+    {
+      "name": "direct-agent-session-inspection",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-svc-okr-canary-20260719"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "70000000-0000-4000-8000-000000000002",
+        "aud": "agent-session-messaging",
+        "principal_type": "agent",
+        "client_id": "agent-client-session-inspection",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "agent.session.inspect_own_dispatch",
+        "agent_id": "agent-session-inspector",
+        "jti": "direct-jti-session-inspection-00001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "agent.session.inspect_own_dispatch",
+        "machine_access_grants": {
+          "agent-session-messaging": ["agent.session.inspect_own_dispatch"]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI3MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDIiLCJhdWQiOiJhZ2VudC1zZXNzaW9uLW1lc3NhZ2luZyIsInByaW5jaXBhbF90eXBlIjoiYWdlbnQiLCJjbGllbnRfaWQiOiJhZ2VudC1jbGllbnQtc2Vzc2lvbi1pbnNwZWN0aW9uIiwidG9rZW5fdXNlIjoiYWNjZXNzIiwidHlwZSI6ImFjY2VzcyIsInZlcnNpb24iOiJ2MSIsInNjb3BlIjoiYWdlbnQuc2Vzc2lvbi5pbnNwZWN0X293bl9kaXNwYXRjaCIsImFnZW50X2lkIjoiYWdlbnQtc2Vzc2lvbi1pbnNwZWN0b3IiLCJqdGkiOiJkaXJlY3QtanRpLXNlc3Npb24taW5zcGVjdGlvbi0wMDAwMSIsImlhdCI6MTc4NDMwMDAwMCwibmJmIjoxNzg0MzAwMDAwLCJleHAiOjE3ODQzMDA2MDB9.x-ezCHFuHlR6j32KfIPhPo9ImqgZMFpT2z1TRLulWZiklm6A4sXpRpjzonfs8wKJ8YoZYZ213WOzxV57yyGXAWASz4tBRJV4f3I-7kcfcfGoIHlTQLKuFjxBoTXE59jGIFiO0V7zBWvVz0bQBksJfJF77_PT57nqvP8rZ1MhGsw9ApJRepUtN9CEveLpq1sYGxDyEoWwD7xg7IvcxgK8ON3Yfy3Zo55eQdCo6czIVCX5l-sVZQ8eLkdTCjqhkbSpshV0Jm-tKecrAm_NUZz5hEvx0wuUt-CYuy2YiI2mEtFe0gztbqQxdcfWiejYVSMJY_0CTEobtPA-oSmc5Dimmw"
+    },
+    {
+      "name": "direct-agent-session-messaging-and-inspection",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-svc-okr-canary-20260719"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "70000000-0000-4000-8000-000000000003",
+        "aud": "agent-session-messaging",
+        "principal_type": "agent",
+        "client_id": "agent-client-session-messaging-inspection",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "agent.session.inspect_own_dispatch agent.session.send",
+        "agent_id": "agent-session-messaging-inspector",
+        "jti": "direct-jti-session-messaging-inspection-00001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "agent.session.inspect_own_dispatch agent.session.send",
+        "machine_access_grants": {
+          "agent-session-messaging": ["agent.session.inspect_own_dispatch", "agent.session.send"]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI3MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDMiLCJhdWQiOiJhZ2VudC1zZXNzaW9uLW1lc3NhZ2luZyIsInByaW5jaXBhbF90eXBlIjoiYWdlbnQiLCJjbGllbnRfaWQiOiJhZ2VudC1jbGllbnQtc2Vzc2lvbi1tZXNzYWdpbmctaW5zcGVjdGlvbiIsInRva2VuX3VzZSI6ImFjY2VzcyIsInR5cGUiOiJhY2Nlc3MiLCJ2ZXJzaW9uIjoidjEiLCJzY29wZSI6ImFnZW50LnNlc3Npb24uaW5zcGVjdF9vd25fZGlzcGF0Y2ggYWdlbnQuc2Vzc2lvbi5zZW5kIiwiYWdlbnRfaWQiOiJhZ2VudC1zZXNzaW9uLW1lc3NhZ2luZy1pbnNwZWN0b3IiLCJqdGkiOiJkaXJlY3QtanRpLXNlc3Npb24tbWVzc2FnaW5nLWluc3BlY3Rpb24tMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.xiaWyJ7aJJS7IEmVtzZldfdkWkkYu7_e5mlDQUNIdaYfOBwenLGTKu74Zs9DhYj9ictDIo3lKLEBL6EJqf87OxbH1K8IRDW7wKDW6fSgH_a41qDaIq99J4jMmsWvUFRd8UJkGp5ky0XWEEm0nDWovXOQe93mzwHzXyss2EoJV4vuHQo1qmjZVEu_4q840pKogrT_1BQC4oVspN0uI_P-XTvHK7juPeFFFFCqE9VvTMTFvHIathB6Z0XWJ5UIqjvvWl5VjWF1c56MsSUpevwd6TloRrwtUTuT1lakn5cmU2RxZu__zeFPmnZ79gMQN7xSPxW1jJKhV0LpAAk1OqeOJQ"
     },
     {
       "name": "direct-agent-scheduler-admin",
