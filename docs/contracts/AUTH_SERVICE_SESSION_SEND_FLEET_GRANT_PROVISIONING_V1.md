@@ -79,10 +79,11 @@ OUT: token issuance / deny code paths (I4: unchanged)
   - R2 DRY_RUN default; prints census
     (`productionCanonicalAgentCount`, `sendEntitlementMissingCount`,
     ADD/KEEP/NORMALIZE counts, non-fleet count) + per-pair plan.
-  - R3 `--apply` performs idempotent ADD (create) / NORMALIZE (exact-scope
-    set + version increment) only; **zero DELETE** — non-fleet rows are
-    counted and never mutated; their inertness is enforced by issuance-time
-    active checks.
+  - R3 `--apply` performs idempotent ADD (create) / NORMALIZE (writes the
+    planner's make-lawful target `entry.planScopes` + version increment)
+    only, via the shared `materializeFleetGrantPlan`; **zero DELETE** —
+    non-fleet rows are counted and never mutated; their inertness is
+    enforced by issuance-time active checks.
   - R4 `--selftest` is offline (pure planner fixtures, no DB, no
     agents.json) and must be ALL_OK before any Owner handoff.
   - R5 every mutation emits one `[AUDIT]` JSON line; a post-apply

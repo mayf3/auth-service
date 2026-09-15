@@ -1,6 +1,7 @@
 /**
- * AGENT_CORE_CANONICAL_AGENT_FLEET_SEND_POLICY_V1 (accepted,
- * dsh-agent-core @ 6bce155) — fleet reconciliation for the baseline
+ * AGENT_CORE_CANONICAL_AGENT_FLEET_SEND_POLICY_V1 (accepted r4
+ * AMENDMENT_1_INSPECTION_PRESERVATION, dsh-agent-core @ 5dd41e2) — fleet
+ * reconciliation for the baseline
  * `agent.session.send` entitlement (Spec §5, requirements R1–R6).
  *
  * Recomputes PRODUCTION_CANONICAL_FLEET membership FRESH at execution time
@@ -41,6 +42,7 @@ import { PrismaClient } from '@prisma/client';
 import {
   FLEET_SEND_AUDIENCE_ID,
   FLEET_SEND_SCOPES,
+  materializeFleetGrantPlan,
   planFleetSendGrants,
   type FleetGrantPlan,
   type FleetMemberPair,
@@ -299,46 +301,10 @@ async function main(): Promise<number> {
 
   // R3 — idempotent upserts only; zero DELETE. Non-fleet rows are never
   // touched (their inertness is enforced by issuance-time active checks).
-  for (const entry of plan.entries) {
-    if (entry.action === 'ADD') {
-      await prisma.machineAccessGrant.create({
-        data: {
-          machineClientId: entry.clientId,
-          audienceId: FLEET_SEND_AUDIENCE_ID,
-          scopes: [...FLEET_SEND_SCOPES],
-        },
-      });
-      audit({
-        type: 'fleet_send_grant.materialized',
-        action: 'ADD',
-        agentId: entry.agentId,
-        clientId: entry.clientId,
-        resource: FLEET_SEND_AUDIENCE_ID,
-        scopes: FLEET_SEND_SCOPES.join(' '),
-        success: true,
-      });
-    } else if (entry.action === 'NORMALIZE') {
-      await prisma.machineAccessGrant.update({
-        where: {
-          machineClientId_audienceId: {
-            machineClientId: entry.clientId,
-            audienceId: FLEET_SEND_AUDIENCE_ID,
-          },
-        },
-        data: { scopes: [...FLEET_SEND_SCOPES], version: { increment: 1 } },
-      });
-      audit({
-        type: 'fleet_send_grant.materialized',
-        action: 'NORMALIZE',
-        agentId: entry.agentId,
-        clientId: entry.clientId,
-        resource: FLEET_SEND_AUDIENCE_ID,
-        scopes: FLEET_SEND_SCOPES.join(' '),
-        previousScopes: (entry.currentScopes ?? []).join(' '),
-        success: true,
-      });
-    }
-  }
+  // NORMALIZE writes the planner's make-lawful target (entry.planScopes):
+  // enumerated independent scopes present in the current row are preserved
+  // verbatim (dsh r4 §3; RG1-apply regression covers this).
+  await materializeFleetGrantPlan(prisma, plan.entries, (event) => audit(event));
 
   // R5 — convergence verification: recompute fresh and require zero missing.
   const recheck = await resolveFreshMembership(agentsJson);

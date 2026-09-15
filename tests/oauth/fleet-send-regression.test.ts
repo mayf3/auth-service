@@ -22,6 +22,7 @@ import {
   FLEET_SEND_AUDIENCE_ID,
   FLEET_SEND_SCOPE,
   ensureFleetSessionSendGrant,
+  materializeFleetGrantPlan,
   planFleetSendGrants,
   type FleetSendGrantStore,
 } from '../../src/lib/oauth/v1/fleet-send-grant.js';
@@ -156,6 +157,37 @@ test('RG1_HR_dual_scope_row_reentry_unchanged_version_stable', async () => {
   assert.equal(plan.entries[0].action, 'KEEP');
   assert.deepEqual([...plan.entries[0].planScopes].sort(), dual.sort());
   assert.equal(plan.census.sendEntitlementMissingCount, 0);
+
+  // Apply path (reconcile --apply materializer): a NON-lawful row carrying
+  // the enumerated scope (inspect-only) must be normalized to send+inspect —
+  // the write goes to the make-lawful target (planScopes), never send-only.
+  // Regression for the consolidated-review blocker (apply branch had written
+  // the send-only constant, destroying the independent authorization).
+  const applyStore = makeTxStore();
+  applyStore.state.grants.push({
+    machineClientId: CLIENT_DB_ID,
+    audienceId: FLEET_SEND_AUDIENCE_ID,
+    scopes: ['agent.session.inspect_own_dispatch'],
+    version: 1,
+  });
+  const applyPlan = planFleetSendGrants({
+    audiencePresent: true,
+    members: [{ agentId: 'agt_hr-agent', principalId: PRINCIPAL_ID, clientId: CLIENT_DB_ID }],
+    grantsByClientId: new Map([[CLIENT_DB_ID, { scopes: ['agent.session.inspect_own_dispatch'], version: 1 }]]),
+    nonFleetGrantCount: 0,
+  });
+  assert.equal(applyPlan.entries[0].action, 'NORMALIZE');
+  const auditLines: string[] = [];
+  await materializeFleetGrantPlan(applyStore.store as unknown as FleetSendGrantStore, applyPlan.entries, (e) => {
+    auditLines.push(`${e.action}:${e.scopes}`);
+  });
+  assert.deepEqual(
+    [...applyStore.state.grants[0].scopes].sort(),
+    dual.sort(),
+    'apply writes the make-lawful target: send added, inspection preserved',
+  );
+  assert.equal(applyStore.state.grants[0].version, 2, 'one increment for one actual set change');
+  assert.ok(auditLines.some((l) => l === `NORMALIZE:${[...dual].sort().join(' ')}`), 'audit reports the written (make-lawful) scopes');
 });
 
 // ─── RG2 (P1-A): stamp failure rolls back the client; retry returns a secret ─
@@ -169,19 +201,20 @@ test('RG2_stamp_failure_no_orphan_client_retry_returns_one_time_secret', async (
   assert.equal(failing.state.clients.length, 0, 'T1: client row rolled back with the failed grant');
   assert.equal(failing.state.grants.length, 0);
 
-  // Retry with the same external_ref on a healthy store: fresh create with
-  // a returned one-time secret (T3).
-  const healthy = makeTxStore();
+  // Retry with the SAME external_ref on a healed store: the rollback left
+  // the ref unbound, so this re-enters the fresh-create branch and returns
+  // a NEW one-time secret (T3, literal same-ref retry).
+  const healed = makeTxStore();
   const retried = await createOrGetClient(
-    { externalRef: 'test:rg2:retry', principalId: PRINCIPAL_ID },
-    healthy.store,
+    { externalRef: 'test:rg2:fail', principalId: PRINCIPAL_ID },
+    healed.store,
   );
   assert.equal(retried.created, true);
   assert.equal(typeof retried.secret, 'string');
   assert.ok((retried.secret ?? '').length >= 20, 'one-time secret returned on fresh create');
-  assert.equal(healthy.state.clients.length, 1);
-  assert.equal(healthy.state.grants.length, 1, 'grant row committed with the client');
-  assert.deepEqual(healthy.state.grants[0].scopes, [FLEET_SEND_SCOPE]);
+  assert.equal(healed.state.clients.length, 1);
+  assert.equal(healed.state.grants.length, 1, 'grant row committed with the client');
+  assert.deepEqual(healed.state.grants[0].scopes, [FLEET_SEND_SCOPE]);
 });
 
 // ─── RG3 (P2): concurrent first stamps converge to the winner ──────────────

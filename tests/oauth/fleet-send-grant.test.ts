@@ -3,7 +3,8 @@
  * birth-stamp unit tests (DB-free; the store delegate is injected).
  *
  * Governing Spec: AGENT_CORE_CANONICAL_AGENT_FLEET_SEND_POLICY_V1
- * (dsh-agent-core, accepted @ 6bce155) §3/§4/§5.
+ * (dsh-agent-core, accepted r4 AMENDMENT_1 @ 5dd41e2; r3 accepted @ 6bce155)
+ * §3/§4/§5.
  *
  * RUN: npx tsx --test tests/oauth/fleet-send-grant.test.ts
  */
