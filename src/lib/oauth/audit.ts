@@ -22,6 +22,11 @@ export type AuditEventType =
   | 'client.resolved'
   | 'client.rotated'
   | 'client.revoked'
+  // ─── AGENT_CORE_CANONICAL_AGENT_FLEET_SEND_POLICY_V1 (fleet send entitlement,
+  //     birth-stamp + reconcile audit surface; issuance/deny paths untouched) ──
+  | 'client.fleet_grant_ensured'
+  | 'client.fleet_grant_skipped'
+  | 'fleet_send_grant.materialized'
   | 'token.issued'
   | 'token.failed'
   | 'v1.direct.issued'

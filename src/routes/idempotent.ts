@@ -27,6 +27,8 @@ import {
   resolvePrincipalByExternalRef,
   toIdentityResolutionError,
 } from '../lib/oauth/v1/resolution.js';
+import { ensureFleetSessionSendGrant } from '../lib/oauth/v1/fleet-send-grant.js';
+import { prisma } from '../lib/prisma.js';
 
 export const idempotentRouter = Router();
 
@@ -147,6 +149,15 @@ idempotentRouter.post(
       externalRef: body.external_ref,
       principalId: body.principal_id,
       expectedClientId: body.expected_client_id,
+    });
+
+    // AGENT_CORE_CANONICAL_AGENT_FLEET_SEND_POLICY_V1 (§4): birth-provision
+    // the fleet-default agent.session.send grant inside the same channel
+    // flow, for create, claim, resolve, and concurrent-winner outcomes alike
+    // (idempotent; agent principals only; see fleet-send-grant.ts).
+    await ensureFleetSessionSendGrant(prisma, {
+      id: result.id,
+      machinePrincipalId: result.machinePrincipalId,
     });
 
     const responseBody: Record<string, unknown> = {
