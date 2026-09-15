@@ -39,6 +39,15 @@ async function cleanupPrincipal(externalRef: string): Promise<void> {
 }
 
 async function cleanupClient(externalRef: string): Promise<void> {
+  // FLEET_SEND_GRANT_PROVISIONING T1: create-path stamping writes a
+  // machineAccessGrant row for agent principals; delete grants first so the
+  // FK does not block client cleanup.
+  try {
+    const client = await prisma.machineClient.findUnique({ where: { externalRef } });
+    if (client) {
+      await prisma.machineAccessGrant.deleteMany({ where: { machineClientId: client.id } });
+    }
+  } catch { /* ok */ }
   try { await prisma.machineClient.delete({ where: { externalRef } }); } catch { /* ok */ }
 }
 

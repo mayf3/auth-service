@@ -3,14 +3,15 @@
 > **NORMATIVE STATUS: NONE.** This document is a NON-NORMATIVE
 > implementation/conformance record. It creates no authority, adds no
 > product semantics, and imposes no independent acceptance obligations.
-> The sole normative authority for the fleet send entitlement is
-> `AGENT_CORE_CANONICAL_AGENT_FLEET_SEND_POLICY_V1`
-> (dsh-agent-core `docs/specs/`, accepted by Owner exact-head acceptance at
-> **6bce155**, 2026-09-15); every requirement cited below — including all
-> lifecycle and provisioning rules — is inherited from that Spec verbatim
-> and is restated here only to record how the implementation conforms to
-> it. On any divergence, the governing Spec prevails and this record must
-> be corrected.
+> The sole normative authorities are: (a) the fleet-send product semantics
+> `AGENT_CORE_CANONICAL_AGENT_FLEET_SEND_POLICY_V1` **r4** (dsh-agent-core
+> `docs/specs/`, r3 accepted @6bce155 2026-09-15; r4 AMENDMENT_1
+> INSPECTION_PRESERVATION accepted @5dd41e2 2026-09-16, joint acceptance);
+> and (b) the Auth-local materialization implementation authority
+> `AUTH_SERVICE_CANONICAL_AGENT_FLEET_SEND_GRANT_PROVISIONING_V1`
+> (accepted @a7ca28e 2026-09-16, same joint decision). Everything below is
+> restated only to record how the implementation conforms to them. On any
+> divergence, those Specs prevail and this record must be corrected.
 
 ## A. Scope
 
@@ -24,38 +25,51 @@ OUT: token issuance / deny code paths (I4: unchanged)
      any other audience, scope, principal, or registry row (hygiene boundary)
 ```
 
-## B. Birth provisioning — implementation coordinates
+## B. Birth provisioning — implementation coordinates (post-REVISE)
 
-- Route: `POST /api/v1/clients` (`src/routes/idempotent.ts`) — after
-  `createOrGetClient` succeeds, inside the same channel flow, for create /
-  claim / resolve / concurrent-winner outcomes alike (the stamp is
-  convergent on every path).
+- Transactional create (T1, closes P1-A): the CREATE outcome of
+  `createOrGetClient` (`src/lib/oauth/v1/idempotent.ts`) runs client
+  creation and the fleet grant stamp inside ONE `prisma.$transaction`; any
+  grant/storage failure rolls the client row and secret hash back with it,
+  so the first one-time secret is never orphaned in a dead call frame. The
+  idempotent external_ref retry then re-creates fresh and returns a new
+  secret (T3). Claim/resolve paths return no secret by channel design.
+- Route convergence (`src/routes/idempotent.ts`, `POST /api/v1/clients`):
+  the route-level stamp now runs only for non-create outcomes
+  (fast-resolve / claim / concurrent-winner) — all idempotent make-lawful
+  no-ops when already lawful; the create outcome is already stamped in-tx.
 - Module: `src/lib/oauth/v1/fleet-send-grant.ts`
-  (`ensureFleetSessionSendGrant`).
-- Guard (as the governing Spec §3/§4 requires): only
-  `principal_type='agent'` principals (Prisma lowercase literal; the enum
-  is `agent | service`; humans are `User` rows and never
-  MachinePrincipals, so they are structurally unreachable).
-- Target row (governing Spec §3): `{ machineClientId, audienceId =
-  'agent-session-messaging', scopes = ['agent.session.send'], version >= 1 }`
-  — grant physical PK is `(machine_client_id, audience_id)`; the model has
-  **no revoked_at column**.
-- Failure semantics (as the governing Spec's fail-closed posture requires):
-  storage errors propagate (provisioning call fails closed; the idempotent
-  external_ref retry heals). A missing or inactive audience row is skipped
-  with audit `client.fleet_grant_skipped`
-  (`audience_absent_or_inactive`) — without the audience there is no lawful
-  entitlement to materialize; the reconcile script refuses in that state.
-- Audit events added to the closed `AuditEventType` union:
+  (`ensureFleetSessionSendGrant`, injectable store; also `makeLawfulScopes`
+  and the `ENUMERATED_INDEPENDENT_SCOPES` closed set).
+- Guard (governing Spec §3/§4): only `principal_type='agent'` principals
+  (Prisma lowercase literal; humans are `User` rows, structurally
+  unreachable).
+- Make-lawful (dsh r4 §3, closes P1-B): ADD always writes exactly
+  `['agent.session.send']`; an existing row is normalized to
+  `makeLawfulScopes(current)` = send ∪ (current ∩ ENUMERATED) — send added
+  when absent, enumerated independent scopes preserved verbatim
+  (`agent.session.inspect_own_dispatch` ← its own accepted Auth authority;
+  never granted/removed/created by FLEET), only non-enumerated extras
+  stripped, version incremented only on actual set change.
+- Concurrency (T2, closes P2): a unique violation (P2002) on the grant
+  create is caught, the winner's row re-read, and the make-lawful decision
+  converged against it — P2002 is never rethrown from the stamp.
+- Failure semantics: storage errors outside the convergence path propagate
+  (fail closed). A missing/inactive audience row skips with audit
+  `client.fleet_grant_skipped` (`audience_absent_or_inactive`); the
+  reconcile script refuses in that state.
+- Audit events in the closed `AuditEventType` union (additive only):
   `client.fleet_grant_ensured`, `client.fleet_grant_skipped`,
-  `fleet_send_grant.materialized` (additive only).
-- Deployment note: the birth-stamp takes effect only after auth-service is
-  redeployed from a build containing it; the reconcile script converges the
-  existing fleet independently of any deploy.
+  `fleet_send_grant.materialized`.
+- Deployment note: effective only after auth-service is redeployed; the
+  reconcile script converges the existing fleet independently of deploy.
 
 ## C. Reconciliation — implementation coordinates
 
 - Script: `scripts/reconcile-fleet-send-grants.ts`.
+- Reconcile NORMALIZE uses the same make-lawful semantics (§B); census
+  `sendEntitlementMissingCount` counts ADD + NORMALIZE pairs (send absent
+  or set unlawful), so an HR dual-scope row counts as entitled.
 - Governing Spec §5 requirements R1–R6, and how the implementation conforms:
   - R1 fresh membership recompute at execution time: G1 agents.json
     (`--agents-json`, default the runtime config path) ∩ G2
@@ -128,17 +142,19 @@ audience_id)` means both authorities would collide on one row).
   "bundle backport DEBT" that implementation-time evidence recorded is
   therefore **discharged upstream**; nothing remains owed by this record.
 
-## F. Issuance invariance (I4) — verification record
+## F. Issuance invariance (I4) — verification record (post-REVISE)
 
-Untouched across the rebase, verified by `git diff <base>..<head> --stat`:
 `src/lib/oauth/v1/direct.ts` (issuance + the
-`client_or_principal_inactive` active check — anchor now at L102),
-`src/lib/oauth/v1/idempotent.ts` (`createOrGetPrincipal` /
-`createOrGetClient` bodies), `grant-migration.ts`,
-`token-issuance.ts`: zero diff lines. The grant row stays the sole
-issuance predicate for this audience; row inertness comes exclusively from
-issuance-time `client.status`/`principal.status` checks — there is
-deliberately no row-level revocation flag on `MachineAccessGrant`.
+`client_or_principal_inactive` active check), `grant-migration.ts`, and
+`token-issuance.ts`: still ZERO diff — token issuance and deny semantics
+are untouched. `src/lib/oauth/v1/idempotent.ts` IS changed under the
+accepted Auth-local spec's T4 authority (provisioning wiring only):
+injectable `CreateOrGetClientStore` delegate, and the create path wrapped
+in `prisma.$transaction` with the in-transaction fleet stamp (T1). The
+grant row remains the sole issuance predicate for this audience; row
+inertness comes exclusively from issuance-time
+`client.status`/`principal.status` checks — there is deliberately no
+row-level revocation flag on `MachineAccessGrant`.
 
 ## G. Lifecycle discipline (restatement of governing Spec §6 — no new rule)
 
@@ -153,23 +169,27 @@ guaranteed only on the deactivation path. This section adds nothing; it
 records that the implementation relies on exactly that inherited
 discipline.
 
-## H. Verification inventory (rebased candidate, base af617ae)
+## H. Verification inventory (post-REVISE candidate)
 
 ```text
-tests/oauth/fleet-send-grant.test.ts       8/8 (DB-free; injected store)
-scripts/reconcile-fleet-send-grants --selftest   SELFTEST_ALL_OK (3 fixtures)
+tests/oauth/fleet-send-regression.test.ts  RG1/RG2/RG3 all PASS (promoted
+  from the 3/3 RED reproductions; transactional-rollback + PK-enforcing
+  store doubles)
+tests/oauth/fleet-send-grant.test.ts       10/10 (DB-free; injected store;
+  make-lawful cases: dual-scope kept, non-enumerated stripped, send added
+  preserving inspection)
+scripts/reconcile-fleet-send-grants --selftest   SELFTEST_ALL_OK (fixtures
+  updated to make-lawful expectations)
 npm run contract:v1:validate               MINIMAL_AUTH_V1_BUNDLE_VALID=true
 npx tsc --noEmit -p tsconfig.json          1 error — PRE-EXISTING AT BASE:
-  src/lib/oauth/forum-direct-agent-token.ts uses audit type
-  'forum.direct_agent_token.minted', which upstream main (af617ae) never
-  added to the AuditEventType union. Present at base and head identically
-  (NEW_FAILURES=0); upstream-domain breakage, untouched here.
-npm run test:contract-v1                   see PR base/head double-run
-  evidence; the only expected failure is the PRE-EXISTING static hygiene
-  test 'prisma/schema.prisma exceeds 500 lines' (551 lines at base and head).
-tests/idempotent-conformance.test.ts       unchanged; exercises the
-  createOrGetClient LIBRARY (not the route), so it is unaffected by the
-  route-level stamp; requires a live DB (Owner environment)
+  forum-direct-agent-token.ts audit-type union gap (unchanged by this work)
+npm run test:contract-v1                   base/head double-run on the PR:
+  identical failing sets, NEW_FAILURES=0 (pre-existing: schema>500-line
+  static debt; upstream frozen-snapshot test)
+tests/idempotent-conformance.test.ts       cleanup helper now deletes
+  machineAccessGrant rows before the client (mechanically required by T1:
+  create-path stamping writes grant rows for agent principals; FK would
+  block client cleanup); still requires a live DB (Owner environment)
 ```
 
 ## I. Provenance
