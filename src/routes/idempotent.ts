@@ -27,6 +27,8 @@ import {
   resolvePrincipalByExternalRef,
   toIdentityResolutionError,
 } from '../lib/oauth/v1/resolution.js';
+import { ensureFleetSessionSendGrant } from '../lib/oauth/v1/fleet-send-grant.js';
+import { prisma } from '../lib/prisma.js';
 
 export const idempotentRouter = Router();
 
@@ -148,6 +150,20 @@ idempotentRouter.post(
       principalId: body.principal_id,
       expectedClientId: body.expected_client_id,
     });
+
+    // AGENT_CORE_CANONICAL_AGENT_FLEET_SEND_POLICY_V1 r4 (§4) / Auth local
+    // spec §3: birth-provision the fleet-default agent.session.send grant in
+    // the same channel flow. The CREATE outcome is stamped transactionally
+    // INSIDE createOrGetClient (T1); this route-level stamp converges the
+    // remaining channel outcomes — fast-resolve, claim, concurrent-winner —
+    // none of which return a one-time secret (T3), and all of which are
+    // idempotent make-lawful no-ops when already lawful.
+    if (!result.created) {
+      await ensureFleetSessionSendGrant(prisma, {
+        id: result.id,
+        machinePrincipalId: result.machinePrincipalId,
+      });
+    }
 
     const responseBody: Record<string, unknown> = {
       id: result.id,
