@@ -99,3 +99,4 @@ V2 accepted 不等于 production effective，也不等于 PR #2 implementation a
 - Implementation conformance：implementation PR 的 Contract matrix；
 - 跨环境、生产、迁移或时间窗口证据：`docs/audits/` 或明确链接的稳定报告；
 - rejected / no-change / reuse 调查：Investigation Record、Issue 或 investigation PR。
+| `AUTH_SERVICE_CANONICAL_AGENT_FLEET_SEND_GRANT_PROVISIONING_V1` | implementation | accepted (Owner joint acceptance 2026-09-16 with dsh r4; reviewed head `a7ca28e…`, fresh independent review PASS/0 blockers) | contracts（machinery only；production apply 另行控制） | fleet-default `agent.session.send` Grant materialization 机器权威：T1 事务化 client create+grant（首次 secret 零丢失）、T2 并发 P2002 收敛到胜者、T3 重试 credential 语义、T4 仅解冻 provisioning wiring（issuance/deny 冻结）；make-lawful 保留 ENUMERATED 独立授权 scope（HR inspection）；产品语义唯一权威=外部 dsh fleet Spec r4 |
