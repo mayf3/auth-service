@@ -343,6 +343,71 @@ export async function ensureFleetSessionSendGrant(
   return 'normalized';
 }
 
+/**
+ * Apply the plan's mutations (reconcile --apply / R3): idempotent upserts
+ * only — ADD creates the send-only baseline; NORMALIZE writes the
+ * make-lawful target computed by the planner (entry.planScopes — NOT a
+ * send-only constant: enumerated independent scopes present in the current
+ * row are preserved verbatim). Zero DELETE; one audit line per mutation
+ * via the injected `audit` sink.
+ */
+export async function materializeFleetGrantPlan(
+  store: FleetSendGrantStore,
+  entries: ReadonlyArray<FleetGrantPlanEntry>,
+  audit: (event: {
+    type: 'fleet_send_grant.materialized';
+    action: FleetGrantAction;
+    agentId: string;
+    clientId: string;
+    resource: string;
+    scopes: string;
+    previousScopes?: string;
+    success: true;
+  }) => void,
+): Promise<void> {
+  for (const entry of entries) {
+    if (entry.action === 'KEEP') continue;
+    if (entry.action === 'ADD') {
+      await store.machineAccessGrant.create({
+        data: {
+          machineClientId: entry.clientId,
+          audienceId: FLEET_SEND_AUDIENCE_ID,
+          scopes: [...FLEET_SEND_SCOPES],
+        },
+      });
+      audit({
+        type: 'fleet_send_grant.materialized',
+        action: 'ADD',
+        agentId: entry.agentId,
+        clientId: entry.clientId,
+        resource: FLEET_SEND_AUDIENCE_ID,
+        scopes: FLEET_SEND_SCOPES.join(' '),
+        success: true,
+      });
+      continue;
+    }
+    await store.machineAccessGrant.update({
+      where: {
+        machineClientId_audienceId: {
+          machineClientId: entry.clientId,
+          audienceId: FLEET_SEND_AUDIENCE_ID,
+        },
+      },
+      data: { scopes: [...entry.planScopes], version: { increment: 1 } },
+    });
+    audit({
+      type: 'fleet_send_grant.materialized',
+      action: 'NORMALIZE',
+      agentId: entry.agentId,
+      clientId: entry.clientId,
+      resource: FLEET_SEND_AUDIENCE_ID,
+      scopes: entry.planScopes.join(' '),
+      previousScopes: (entry.currentScopes ?? []).join(' '),
+      success: true,
+    });
+  }
+}
+
 function auditFleetGrantEnsured(principalId: string, clientId: string): void {
   auditLog({
     timestamp: new Date().toISOString(),
