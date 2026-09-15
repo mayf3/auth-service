@@ -95,20 +95,29 @@ interface SelftestCase {
 function selftestCases(): SelftestCase[] {
   return [
     {
-      name: 'mixed_add_keep_normalize_multi_client',
+      name: 'make_lawful_add_keep_normalize_multi_client',
       audiencePresent: true,
       members: [
         { agentId: 'agt_a', principalId: 'p-a1', clientId: 'c-a1' },
         { agentId: 'agt_a', principalId: 'p-a1', clientId: 'c-a2' },
         { agentId: 'agt_b', principalId: 'p-b1', clientId: 'c-b1' },
         { agentId: 'agt_c', principalId: 'p-c1', clientId: 'c-c1' },
+        { agentId: 'agt_d', principalId: 'p-d1', clientId: 'c-d1' },
+        { agentId: 'agt_e', principalId: 'p-e1', clientId: 'c-e1' },
       ],
       grants: [
+        // lawful send-only → KEEP
         { clientId: 'c-a1', scopes: ['agent.session.send'], version: 1 },
+        // HR-shaped dual-scope row (enumerated inspection present) → KEEP,
+        // version stable, inspection preserved (AMENDMENT_1 / RG1)
         { clientId: 'c-b1', scopes: ['agent.session.send', 'agent.session.inspect_own_dispatch'], version: 3 },
+        // non-enumerated extra → NORMALIZE strips only the extra
+        { clientId: 'c-d1', scopes: ['agent.session.send', 'agent.session.bogus'], version: 2 },
+        // send missing, enumerated present → NORMALIZE adds send, preserves inspect
+        { clientId: 'c-e1', scopes: ['agent.session.inspect_own_dispatch'], version: 1 },
       ],
       nonFleetGrantCount: 2,
-      expect: { add: 2, keep: 1, normalize: 1, missing: 3, agents: 3 },
+      expect: { add: 2, keep: 2, normalize: 2, missing: 4, agents: 5 },
     },
     {
       name: 'empty_fleet_zero_everything',

@@ -108,7 +108,8 @@ test('FLEET_STAMP_IDEMPOTENT_REENTRY_IS_KEEP_WITH_NO_WRITE', async () => {
   assert.equal(grantRows[0].version, 2, 'exact row must be untouched (version stable)');
 });
 
-test('FLEET_STAMP_NORMALIZES_DIVERGENT_SCOPES_TO_EXACT_SET', async () => {
+test('FLEET_STAMP_PRESERVES_ENUMERATED_INSPECTION_SCOPE', async () => {
+  // HR-shaped dual-scope row (AMENDMENT_1): lawful as-is → kept, no write, version stable.
   const existing = {
     machineClientId: 'mc_testclient0000000000000',
     audienceId: FLEET_SEND_AUDIENCE_ID,
@@ -117,9 +118,38 @@ test('FLEET_STAMP_NORMALIZES_DIVERGENT_SCOPES_TO_EXACT_SET', async () => {
   };
   const { store, grantRows, client } = makeStore({ principalType: 'agent', audienceStatus: 'active', existingGrant: existing });
   const result = await ensureFleetSessionSendGrant(store, client);
+  assert.equal(result, 'kept');
+  assert.deepEqual([...grantRows[0].scopes].sort(), ['agent.session.inspect_own_dispatch', FLEET_SEND_SCOPE].sort());
+  assert.equal(grantRows[0].version, 3, 'lawful row: no set change, version stable');
+});
+
+test('FLEET_STAMP_NORMALIZES_STRIPS_ONLY_NON_ENUMERATED_EXTRAS', async () => {
+  const existing = {
+    machineClientId: 'mc_testclient0000000000000',
+    audienceId: FLEET_SEND_AUDIENCE_ID,
+    scopes: [FLEET_SEND_SCOPE, 'agent.session.bogus'],
+    version: 2,
+  };
+  const { store, grantRows, client } = makeStore({ principalType: 'agent', audienceStatus: 'active', existingGrant: existing });
+  const result = await ensureFleetSessionSendGrant(store, client);
   assert.equal(result, 'normalized');
-  assert.deepEqual(grantRows[0].scopes, [FLEET_SEND_SCOPE], 'superset must collapse to the exact closure');
-  assert.equal(grantRows[0].version, 4, 'scope-set change increments version');
+  assert.deepEqual(grantRows[0].scopes, [FLEET_SEND_SCOPE], 'non-enumerated extra is stripped');
+  assert.equal(grantRows[0].version, 3, 'actual set change increments version');
+});
+
+test('FLEET_STAMP_NORMALIZE_ADDS_SEND_PRESERVING_INSPECTION', async () => {
+  const existing = {
+    machineClientId: 'mc_testclient0000000000000',
+    audienceId: FLEET_SEND_AUDIENCE_ID,
+    scopes: ['agent.session.inspect_own_dispatch'],
+    version: 1,
+  };
+  const { store, grantRows, client } = makeStore({ principalType: 'agent', audienceStatus: 'active', existingGrant: existing });
+  const result = await ensureFleetSessionSendGrant(store, client);
+  assert.equal(result, 'normalized');
+  assert.deepEqual([...grantRows[0].scopes].sort(), ['agent.session.inspect_own_dispatch', FLEET_SEND_SCOPE].sort(),
+    'send is added while the enumerated independent scope survives');
+  assert.equal(grantRows[0].version, 2);
 });
 
 test('FLEET_STAMP_SERVICE_PRINCIPAL_NEVER_STAMPED', async () => {
@@ -168,6 +198,16 @@ test('FLEET_PLAN_CLIENT_KEYED_PAIRS_AND_CENSUS', () => {
     plan.entries.map((e) => `${e.clientId}:${e.action}`),
     ['c1:KEEP', 'c2:ADD', 'c3:NORMALIZE'],
   );
+  const dual = planFleetSendGrants({
+    audiencePresent: true,
+    members: [{ agentId: 'agt_hr', principalId: 'p', clientId: 'c-hr' }],
+    grantsByClientId: new Map([
+      ['c-hr', { scopes: [FLEET_SEND_SCOPE, 'agent.session.inspect_own_dispatch'], version: 2 } ],
+    ]),
+    nonFleetGrantCount: 0,
+  });
+  assert.equal(dual.entries[0].action, 'KEEP', 'HR dual-scope row is lawful (make-lawful no-op)');
+  assert.equal(dual.census.sendEntitlementMissingCount, 0, 'dual-scope row does not count as missing');
   assert.equal(plan.census.productionCanonicalAgentCount, 2, 'agents counted once, clients keyed per pair');
   assert.equal(plan.census.sendEntitlementMissingCount, 2, 'ADD + NORMALIZE both lack the exact row');
   assert.equal(plan.census.nonFleetGrantCount, 4, 'non-fleet rows counted, never mutated');

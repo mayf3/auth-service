@@ -22,8 +22,9 @@
  */
 
 import crypto from 'node:crypto';
-import { Prisma } from '@prisma/client';
+import { Prisma, type PrismaClient } from '@prisma/client';
 import { prisma } from '../../../lib/prisma.js';
+import { ensureFleetSessionSendGrant } from './fleet-send-grant.js';
 import {
   generateClientSecret,
   hashClientSecret,
@@ -370,13 +371,23 @@ export async function createOrGetPrincipal(
  * No resources or scopes are set on creation — client permissions are managed
  * separately via MachineAccessGrant.
  */
+/**
+ * Injectable delegate for the surfaces createOrGetClient touches. Production
+ * callers omit it (global prisma); tests inject a double with transactional
+ * rollback semantics (T1 regression coverage).
+ */
+export type CreateOrGetClientStore = Pick<PrismaClient, 'machineClient' | 'machinePrincipal'> & {
+  $transaction: PrismaClient['$transaction'];
+};
+
 export async function createOrGetClient(
   params: IdempotentClientParams,
+  store: CreateOrGetClientStore = prisma,
 ): Promise<IdempotentClientResult> {
   const { externalRef, principalId, expectedClientId } = params;
 
   // ── Fast path: existing external_ref → return existing ────────────────
-  const existingSearch = await prisma.machineClient.findUnique({
+  const existingSearch = await store.machineClient.findUnique({
     where: { externalRef },
   });
   if (existingSearch) {
@@ -414,7 +425,7 @@ export async function createOrGetClient(
   if (expectedClientId) {
     // Atomic claim: only bind if the client exists, is active, belongs to
     // the expected principal, and externalRef is not already set
-    const claimed = await prisma.machineClient.updateMany({
+    const claimed = await store.machineClient.updateMany({
       where: {
         id: expectedClientId,
         machinePrincipalId: principalId,
@@ -425,7 +436,7 @@ export async function createOrGetClient(
     });
 
     if (claimed.count === 0) {
-      const client = await prisma.machineClient.findUnique({
+      const client = await store.machineClient.findUnique({
         where: { id: expectedClientId },
       });
       if (!client) {
@@ -477,7 +488,7 @@ export async function createOrGetClient(
     }
 
     // Re-query to get the updated record
-    const client = await prisma.machineClient.findUnique({
+    const client = await store.machineClient.findUnique({
       where: { id: expectedClientId },
     });
     if (!client) throw Object.assign(new Error('Client disappeared after claim'), { statusCode: 500 });
@@ -494,7 +505,7 @@ export async function createOrGetClient(
   }
 
   // ── Verify the principal exists and is active ─────────────────────────
-  const principal = await prisma.machinePrincipal.findUnique({
+  const principal = await store.machinePrincipal.findUnique({
     where: { id: principalId },
   });
   if (!principal) {
@@ -516,15 +527,26 @@ export async function createOrGetClient(
   const secretHash = hashClientSecret(secret);
 
   try {
-    const created = await prisma.machineClient.create({
-      data: {
-        clientId,
-        machinePrincipalId: principalId,
-        secretHash,
-        externalRef,
-        allowedResources: [],
-        allowedScopes: [],
-      },
+    const created = await store.$transaction(async (tx) => {
+      const row = await tx.machineClient.create({
+        data: {
+          clientId,
+          machinePrincipalId: principalId,
+          secretHash,
+          externalRef,
+          allowedResources: [],
+          allowedScopes: [],
+        },
+      });
+      // AGENT_CORE_CANONICAL_AGENT_FLEET_SEND_POLICY_V1 r4 / Auth local spec
+      // T1: birth-provision the fleet-default agent.session.send grant in the
+      // SAME transaction — grant failure rolls the client back, so the first
+      // one-time secret is never orphaned in a dead call frame.
+      await ensureFleetSessionSendGrant(tx, {
+        id: row.id,
+        machinePrincipalId: row.machinePrincipalId,
+      });
+      return row;
     });
 
     auditLog({
@@ -551,7 +573,7 @@ export async function createOrGetClient(
       error instanceof Prisma.PrismaClientKnownRequestError &&
       error.code === UNIQUE_CONSTRAINT_ERROR
     ) {
-      const concurrent = await prisma.machineClient.findUnique({
+      const concurrent = await store.machineClient.findUnique({
         where: { externalRef },
       });
       if (concurrent) {
