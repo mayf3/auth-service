@@ -229,12 +229,17 @@ authRouter.post(
       where: { id: payload.sub },
       select: {
         id: true, name: true, email: true, role: true,
-        internalRole: true, okrRole: true, agentId: true,
+        internalRole: true, okrRole: true, agentId: true, status: true,
       },
     });
 
     if (!user) {
       throw new HttpError(401, '用户不存在或已被禁用');
+    }
+
+    // T84: enforce User.status — disabled Users must not refresh tokens.
+    if (user.status !== 'active') {
+      throw new HttpError(403, '账户已被禁用');
     }
 
     // SECURITY: Revoke the old refresh token
