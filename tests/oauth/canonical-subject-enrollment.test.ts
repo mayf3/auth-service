@@ -155,6 +155,33 @@ test('IMPORT is deterministic, strict and supports the 73/89/147 packet shape', 
   assert.throws(() => importCanonicalSubjectPacket(packet([activation(1, { target: { machinePrincipalId: id(1), canonicalAgentId: 'agt_isolated-1', displayName: 'forbidden' } })])), (e: any) => e.code === 'INVALID_PACKET');
 });
 
+test('IMPORT rejects duplicate mutation targets and logical source keys', () => {
+  const duplicateCases: unknown[][] = [
+    [
+      { mutationKey: 'revoke-a', operation: 'REVOKE_ATTESTATION', subjectAttestationId: id(1001), businessSubjectId: id(2001), subjectType: 'agent', target: { machinePrincipalId: id(1), canonicalAgentId: 'agt_isolated-1' }, authority: { kind: 'owner_exact', ref: 'owner:revoke', digest: digest('a'), requestedOperation: 'revoke', intendedDisposition: 'revoked' }, expectedRevision: '1', evidenceRef: 'revoke' },
+      { mutationKey: 'revoke-b', operation: 'REVOKE_ATTESTATION', subjectAttestationId: id(1001), businessSubjectId: id(2001), subjectType: 'agent', target: { machinePrincipalId: id(1), canonicalAgentId: 'agt_isolated-1' }, authority: { kind: 'owner_exact', ref: 'owner:revoke', digest: digest('a'), requestedOperation: 'revoke', intendedDisposition: 'revoked' }, expectedRevision: '1', evidenceRef: 'revoke' },
+    ],
+    [
+      { mutationKey: 'delegation-a', operation: 'REVOKE_ATTESTATION_DELEGATION', delegationId: id(3001), expectedRevision: '1', revocationAuthorityRef: 'owner:revoke', revocationAuthorityDigest: digest('a') },
+      { mutationKey: 'delegation-b', operation: 'REVOKE_ATTESTATION_DELEGATION', delegationId: id(3001), expectedRevision: '1', revocationAuthorityRef: 'owner:revoke', revocationAuthorityDigest: digest('a') },
+    ],
+    [
+      { mutationKey: 'lifecycle-a', operation: 'TRANSITION_AGENT_LIFECYCLE', principalId: id(3), fromState: 'legacy', toState: 'retired', expectedRevision: '1', authorityRef: 'owner:retire', authorityDigest: digest('a'), evidenceRef: 'retire' },
+      { mutationKey: 'lifecycle-b', operation: 'TRANSITION_AGENT_LIFECYCLE', principalId: id(3), fromState: 'legacy', toState: 'retired', expectedRevision: '1', authorityRef: 'owner:retire', authorityDigest: digest('a'), evidenceRef: 'retire' },
+    ],
+    [
+      { mutationKey: 'exit-a', operation: 'EXIT_SOURCE_BINDING', sourceBindingId: id(4001), sourceNamespace: 'isolated', sourceLocalValue: 'same', expectedRevision: '1', exitEvidenceRef: 'owner:zero' },
+      { mutationKey: 'exit-b', operation: 'EXIT_SOURCE_BINDING', sourceBindingId: id(4001), sourceNamespace: 'isolated', sourceLocalValue: 'same', expectedRevision: '1', exitEvidenceRef: 'owner:zero' },
+    ],
+    [
+      { mutationKey: 'binding-a', operation: 'ACTIVATE_SOURCE_BINDING', sourceBindingId: id(4101), sourceNamespace: 'isolated', sourceLocalValue: 'same-logical-key', subjectAttestationId: id(1001), effectiveAt: '2026-09-16T11:00:00.000Z', evidenceRef: 'row-a', expectedRevision: null },
+      { mutationKey: 'binding-b', operation: 'ACTIVATE_SOURCE_BINDING', sourceBindingId: id(4102), sourceNamespace: 'isolated', sourceLocalValue: 'same-logical-key', subjectAttestationId: id(1002), effectiveAt: '2026-09-16T11:00:00.000Z', evidenceRef: 'row-b', expectedRevision: null },
+    ],
+  ];
+  for (const mutations of duplicateCases)
+    assert.throws(() => importCanonicalSubjectPacket(packet(mutations)), (error: any) => error.code === 'INVALID_PACKET');
+});
+
 test('PLAN validates exact typed targets without labels or Agent projection', async () => {
   const imported = importCanonicalSubjectPacket(packet());
   const plan = await planCanonicalSubjectEnrollment(imported, store(), evidence(), { now });

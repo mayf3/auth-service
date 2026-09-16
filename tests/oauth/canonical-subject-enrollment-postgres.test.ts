@@ -119,6 +119,15 @@ VALUES('${id(4002)}','isolated','old-live','${id(1004)}','prospective_binding',n
       await rejected(`UPDATE canonical_subject_source_bindings SET status='active',revision=3 WHERE source_binding_id='${id(4002)}'`);
     });
 
+    await t.test('duplicate mutation target is rejected before a real PostgreSQL write', async () => {
+      const module = await import('../../src/lib/oauth/v1/canonical-subject-enrollment.js');
+      const duplicateExit = (mutationKey: string) => ({ mutationKey, operation: 'EXIT_SOURCE_BINDING', sourceBindingId: id(4003), sourceNamespace: 'isolated', sourceLocalValue: 'planned-value', expectedRevision: '2', exitEvidenceRef: 'source-owner:zero-live' });
+      const input = { packetVersion: '1', operationId: id(822), environment: 'isolated-test', actorRef: `user:${id(900)}`, authorityRef: 'owner:packet', authorityDigest: dg('2'), sourceArtifacts: [{ ref: 'isolated:ledger', digest: dg('3') }], mutations: [duplicateExit('exit-duplicate-a'), duplicateExit('exit-duplicate-b')], createdAt: '2026-09-16T11:30:00.000Z', expiresAt: '2026-09-16T13:00:00.000Z' };
+      assert.throws(() => module.importCanonicalSubjectPacket(input), (error: any) => error.code === 'INVALID_PACKET');
+      assert.deepEqual((await query(`SELECT status::text,revision::text FROM canonical_subject_source_bindings WHERE source_binding_id='${id(4003)}'`))[0], { status: 'active', revision: '2' });
+      assert.equal((await query(`SELECT count(*)::int n FROM canonical_subject_operations WHERE operation_id='${id(822)}'`))[0].n, 0);
+    });
+
     await t.test('operation audit manifest is exact, heterogeneous and immutable', async () => {
       await serial(`INSERT INTO canonical_subject_operations
 (operation_id,environment,actor_ref,packet_digest,authority_digest,prestate_digest,plan_digest,core_evidence_digest,attestation_authority_manifest_digest,poststate_digest,mutation_counts)
