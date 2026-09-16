@@ -818,24 +818,37 @@ export async function verifyCanonicalSubjectOperation(plan: CanonicalSubjectPlan
   const poststate = await actualPoststate(store, plan.mutations);
   const digest = hashCanonical(poststate);
   const actualManifest = await store.readOperationAuthorityManifest(plan.operationId);
-  let targetsValid = true;
+  let externalEvidenceValid = true;
   try {
     for (const mutation of plan.mutations) {
-      if (!['ACTIVATE_ATTESTATION', 'SUPERSEDE_ATTESTATION', 'REVOKE_ATTESTATION'].includes(mutation.operation)) continue;
-      const attestation = mutation as AttestationMutation;
-      await validateTarget(attestation, await store.readTarget(attestation.target));
-      if (attestation.subjectType === 'agent') {
-        const core = await evidence.validateCoreAgent(attestation.target, verifiedAt);
-        if (!core.valid || core.principalId !== attestation.target.machinePrincipalId || core.agentId !== attestation.target.canonicalAgentId || Date.parse(core.expiresAt) <= verifiedAt.getTime())
-          targetsValid = false;
+      if (mutation.operation === 'ACTIVATE_ATTESTATION' || mutation.operation === 'SUPERSEDE_ATTESTATION' || mutation.operation === 'REVOKE_ATTESTATION') {
+        const attestation = mutation as AttestationMutation;
+        await validateTarget(attestation, await store.readTarget(attestation.target));
+        if (attestation.subjectType === 'agent') {
+          const core = await evidence.validateCoreAgent(attestation.target, verifiedAt);
+          if (!core.valid || core.principalId !== attestation.target.machinePrincipalId || core.agentId !== attestation.target.canonicalAgentId || Date.parse(core.expiresAt) <= verifiedAt.getTime() || !plan.coreEvidenceDigests.includes(core.evidenceDigest))
+            externalEvidenceValid = false;
+        }
+      }
+      else if (mutation.operation === 'EXIT_SOURCE_BINDING') {
+        const exit = await evidence.validateSourceExit({ sourceNamespace: mutation.sourceNamespace, sourceLocalValue: mutation.sourceLocalValue }, verifiedAt);
+        if (!exit.valid || !exit.zeroLive || !plan.coreEvidenceDigests.includes(exit.evidenceDigest))
+          externalEvidenceValid = false;
+      }
+      else if (mutation.operation === 'TRANSITION_AGENT_LIFECYCLE' && mutation.toState === 'canonical' && mutation.canonicalAgentId) {
+        const target = { machinePrincipalId: mutation.principalId, canonicalAgentId: mutation.canonicalAgentId };
+        validateAgentPrincipalCandidate(mutation.mutationKey, mutation.canonicalAgentId, await store.readTarget(target), ['canonical']);
+        const core = await evidence.validateCoreAgent(target, verifiedAt);
+        if (!core.valid || core.principalId !== mutation.principalId || core.agentId !== mutation.canonicalAgentId || Date.parse(core.expiresAt) <= verifiedAt.getTime() || !plan.coreEvidenceDigests.includes(core.evidenceDigest))
+          externalEvidenceValid = false;
       }
     }
   }
   catch {
-    targetsValid = false;
+    externalEvidenceValid = false;
   }
   const operationMatches = operation.environment === plan.environment && operation.actorRef === plan.actorRef && operation.packetDigest === plan.packetDigest && operation.authorityDigest === plan.authorityDigest && operation.prestateDigest === plan.prestateDigest && operation.planDigest === plan.planDigest && operation.authorityManifestDigest === plan.authorityManifestDigest && operation.poststateDigest === plan.expectedPoststateDigest && canonicalJson(operation.mutationCounts) === canonicalJson(plan.mutationCounts);
-  const result = operationMatches && hashCanonical(actualManifest) === plan.authorityManifestDigest && digest === plan.expectedPoststateDigest && targetsValid ? 'PASS' as const : 'FAIL' as const;
+  const result = operationMatches && hashCanonical(actualManifest) === plan.authorityManifestDigest && digest === plan.expectedPoststateDigest && externalEvidenceValid ? 'PASS' as const : 'FAIL' as const;
   return { ...baseReceipt, poststateDigest: digest, commitObservedAt: operation.committedAt, result };
 }
 

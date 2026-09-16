@@ -6,6 +6,7 @@ import {
   hashCanonical,
   planCanonicalSubjectEnrollment,
   reconcileCanonicalSubjectOutcome,
+  verifyCanonicalSubjectOperation,
   type CanonicalSubjectEvidenceProvider,
   type CanonicalSubjectReadStore,
 } from '../../src/lib/oauth/v1/canonical-subject-enrollment.js';
@@ -229,6 +230,13 @@ test('source binding supersession remains live and EXIT requires exact zero-live
   const activationPlan = await planCanonicalSubjectEnrollment(importCanonicalSubjectPacket(packet([activatePlanned])), store({ readSourceBinding: async () => planned, readAttestation: async () => attestation }), evidence(), { now });
   assert.equal(activationPlan.expectedPoststateDigest.length, 64);
   await rejects('REVISION_CONFLICT', planCanonicalSubjectEnrollment(importCanonicalSubjectPacket(packet([{ ...activatePlanned, expectedRevision: '2' }])), store({ readSourceBinding: async () => planned, readAttestation: async () => attestation }), evidence(), { now }));
+
+  const exitPlan = await planCanonicalSubjectEnrollment(importCanonicalSubjectPacket(packet([exit])), store({ readSourceBindingById: async () => predecessor }), evidence(), { now });
+  const exitedStore = store({
+    readSourceBindingById: async () => ({ ...predecessor, status: 'exited', revision: '2' }),
+    readCommittedOperation: async () => committed(exitPlan),
+  });
+  assert.equal((await verifyCanonicalSubjectOperation(exitPlan, exitedStore, evidence({ validateSourceExit: async () => ({ valid: true, zeroLive: false, evidenceDigest: digest('e') }) }), { observedAt: now })).result, 'FAIL');
 });
 
 test('delegation install/revoke is exact and cannot wildcard or resurrect', async () => {
