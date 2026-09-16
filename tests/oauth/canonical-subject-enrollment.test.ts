@@ -1,5 +1,8 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import {
   importCanonicalSubjectPacket,
   applyCanonicalSubjectPlan,
@@ -10,6 +13,7 @@ import {
   type CanonicalSubjectEvidenceProvider,
   type CanonicalSubjectReadStore,
 } from '../../src/lib/oauth/v1/canonical-subject-enrollment.js';
+import { requireTrustedCanonicalSubjectEvidenceProvider, runCanonicalSubjectEnrollmentCli } from '../../scripts/canonical-subject-enrollment.js';
 
 const id = (n: number) => `20000000-0000-0000-0000-${String(n).padStart(12, '0')}`;
 const digest = (c: string) => c.repeat(64);
@@ -101,6 +105,24 @@ async function rejects(code: string, fn: Promise<unknown>) {
     return true;
   });
 }
+
+test('controlled CLI cannot convert caller-authored files into authority', async () => {
+  assert.throws(() => requireTrustedCanonicalSubjectEvidenceProvider(), error => {
+    assert.deepEqual(error, { code: 'AUTHORITY_NOT_ACCEPTED', status: 409, recordKey: null, field: 'trustedEvidenceProvider' });
+    return true;
+  });
+  const trusted = evidence();
+  assert.equal(requireTrustedCanonicalSubjectEvidenceProvider(trusted), trusted);
+  const root = mkdtempSync(join(tmpdir(), 'canonical-subject-cli-'));
+  try {
+    const packetPath = join(root, 'packet.json');
+    writeFileSync(packetPath, JSON.stringify(packet()));
+    await rejects('AUTHORITY_NOT_ACCEPTED', runCanonicalSubjectEnrollmentCli(['node', 'canonical-subject-enrollment', 'plan', '--packet', packetPath]));
+  }
+  finally {
+    rmSync(root, { recursive: true, force: true });
+  }
+});
 
 test('IMPORT is deterministic, strict and supports the 73/89/147 packet shape', () => {
   const first = importCanonicalSubjectPacket(packet([activation(2), activation(1)]));
@@ -222,6 +244,13 @@ test('source binding supersession remains live and EXIT requires exact zero-live
   assert.equal(JSON.stringify(plan).includes('exited'), false);
 
   const exit = { mutationKey: 'binding-exit', operation: 'EXIT_SOURCE_BINDING', sourceBindingId: id(4001), sourceNamespace: 'isolated', sourceLocalValue: 'old-live', expectedRevision: '1', exitEvidenceRef: 'owner:zero-live' };
+  let observedEvidenceRef: string | undefined;
+  assert.equal((await planCanonicalSubjectEnrollment(importCanonicalSubjectPacket(packet([exit])), store({ readSourceBindingById: async () => predecessor }), evidence({ validateSourceExit: async input => {
+    observedEvidenceRef = input.evidenceRef;
+    return { valid: input.evidenceRef === 'owner:zero-live', zeroLive: true, evidenceDigest: digest('e') };
+  } }), { now })).disposition, 'APPLY');
+  assert.equal(observedEvidenceRef, 'owner:zero-live');
+  await rejects('SOURCE_BINDING_CONFLICT', planCanonicalSubjectEnrollment(importCanonicalSubjectPacket(packet([{ ...exit, exitEvidenceRef: 'owner:wrong' }])), store({ readSourceBindingById: async () => predecessor }), evidence({ validateSourceExit: async input => ({ valid: input.evidenceRef === 'owner:zero-live', zeroLive: true, evidenceDigest: digest('e') }) }), { now }));
   await rejects('SOURCE_BINDING_CONFLICT', planCanonicalSubjectEnrollment(importCanonicalSubjectPacket(packet([exit])), store({ readSourceBindingById: async () => predecessor }), evidence({ validateSourceExit: async () => ({ valid: true, zeroLive: false, evidenceDigest: digest('e') }) }), { now }));
   assert.equal((await planCanonicalSubjectEnrollment(importCanonicalSubjectPacket(packet([exit])), store({ readSourceBindingById: async () => predecessor }), evidence(), { now })).disposition, 'APPLY');
 
@@ -314,7 +343,14 @@ test('explicit successor requires legacy/retired source and canonical target', a
   const mutation = { mutationKey: 'successor', operation: 'INSTALL_EXPLICIT_SUCCESSOR', sourcePrincipalId: id(3), targetPrincipalId: id(1), authorityRef: 'owner:historical-equivalence', authorityDigest: digest('7'), evidenceRef: 'frozen-successor' };
   const valid = store({ readAgentLifecycle: async principalId => ({ principalId, state: principalId === id(3) ? 'legacy' : 'canonical', revision: '1' }) });
   assert.equal((await planCanonicalSubjectEnrollment(importCanonicalSubjectPacket(packet([mutation])), valid, evidence(), { now })).disposition, 'APPLY');
-  await rejects('AUTHORITY_NOT_ACCEPTED', planCanonicalSubjectEnrollment(importCanonicalSubjectPacket(packet([mutation])), store({ readAgentLifecycle: async principalId => ({ principalId, state: 'canonical', revision: '1' }) }), evidence(), { now }));
+  const canonical = store({ readAgentLifecycle: async principalId => ({ principalId, state: 'canonical', revision: '1' }) });
+  await rejects('AUTHORITY_NOT_ACCEPTED', planCanonicalSubjectEnrollment(importCanonicalSubjectPacket(packet([mutation])), canonical, evidence(), { now }));
+  const retire = {
+    mutationKey: 'retire', operation: 'TRANSITION_AGENT_LIFECYCLE', principalId: id(3), fromState: 'canonical', toState: 'retired', expectedRevision: '1',
+    authorityRef: 'owner:retirement', authorityDigest: digest('f'), evidenceRef: 'isolated-retirement',
+    predicates: { liveWritableReferences: 0, activeWorkOwnerReferences: 0, activeGrantsRequired: 0, activeClientRequired: 0, successorMappingVerified: true },
+  };
+  assert.equal((await planCanonicalSubjectEnrollment(importCanonicalSubjectPacket(packet([retire, mutation])), canonical, evidence(), { now })).disposition, 'APPLY');
 });
 
 test('APPLY maps serialization and uncertain transport once without automatic retry', async () => {

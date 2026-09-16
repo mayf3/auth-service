@@ -128,7 +128,10 @@ the change.
    file/stdout boundaries. Diagnostics expose closed codes and safe record keys only.
 2. `import` is offline. `plan` is read-only. `apply` requires an exact unexpired
    reviewed plan. `verify` performs fresh consistent readback and emits a sanitized
-   receipt. None is a server route or automatic startup path.
+   receipt. None is a server route or automatic startup path. Direct process
+   invocation cannot accept caller-authored files as authority: controlled
+   `plan|apply|verify` requires an independently trusted evidence provider injected
+   by an authorized host integration and otherwise fails closed.
 3. Reconcile `OUTCOME_UNKNOWN` only by the same operation ID plus exact operation
    row and poststate; never replay an unknown attempt.
 
