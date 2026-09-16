@@ -3,7 +3,7 @@
 ```text
 GOAL = AUTH_SERVICE_CANONICAL_SUBJECT_ENROLLMENT_IMPLEMENTATION_V1
 BASE_MAIN_SHA = af285a78582c050100ed0d234a98c8bd77910f2c
-IMPLEMENTATION_SOURCE_HEAD = 39a6b7d91c66b695460e3d5f51c8302767be6121
+IMPLEMENTATION_SOURCE_HEAD = b8394c3d6fb8cfeadd775cad8f03330a6311cb0e
 PRIMARY_AUTHORITY = AUTH_SERVICE_CANONICAL_SUBJECT_ENROLLMENT_AND_SOURCE_BINDING_V1
 AUTHORITY_STATUS = accepted
 ASSURANCE_LEVEL = CONTROLLED
@@ -24,6 +24,13 @@ The packet and plan paths use exact typed IDs and injected exact authority evide
 Business labels, names, roles, Agent-ID grammar, UUID shape, Client IDs, external
 aliases, and consumer-owned identity maps never enter target resolution. Actor
 attribution is checked separately from typed attestation authority.
+
+The direct CLI has no caller-authored authority registry. Offline `import` remains
+available, while `plan`, `apply`, and `verify` fail closed unless an authorized host
+injects an independently trusted evidence provider. Source EXIT evidence is bound
+to the packet's exact `exitEvidenceRef`. Atomic revoke-plus-retire orders dependent
+writes safely, and VERIFY rechecks retirement predicates, successor state, and the
+absence of active attestations.
 
 ## Contract and Acceptance conformance
 
@@ -47,7 +54,7 @@ attribution is checked separately from typed attestation authority.
 
 ```text
 npm run test:canonical-subject-enrollment
-PASS: 24/24
+PASS: 26/26
 
 npm test
 PASS: 48/48
