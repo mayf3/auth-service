@@ -3,7 +3,7 @@
 ```text
 GOAL = AUTH_SERVICE_CANONICAL_SUBJECT_ENROLLMENT_IMPLEMENTATION_V1
 BASE_MAIN_SHA = af285a78582c050100ed0d234a98c8bd77910f2c
-IMPLEMENTATION_SOURCE_HEAD = b8394c3d6fb8cfeadd775cad8f03330a6311cb0e
+IMPLEMENTATION_SOURCE_HEAD = d2eff5ea78611b196134fffdd45926307fc15e35
 PRIMARY_AUTHORITY = AUTH_SERVICE_CANONICAL_SUBJECT_ENROLLMENT_AND_SOURCE_BINDING_V1
 AUTHORITY_STATUS = accepted
 ASSURANCE_LEVEL = CONTROLLED
@@ -31,6 +31,10 @@ injects an independently trusted evidence provider. Source EXIT evidence is boun
 to the packet's exact `exitEvidenceRef`. Atomic revoke-plus-retire orders dependent
 writes safely, and VERIFY rechecks retirement predicates, successor state, and the
 absence of active attestations.
+IMPORT also rejects duplicate mutation target IDs and duplicate current logical
+source keys. Every conditional single-row UPDATE must affect exactly one row or the
+transaction fails with `PRESTATE_CHANGED`; a disposable PostgreSQL test proves a
+duplicate target is rejected with zero write and zero audit row.
 
 ## Contract and Acceptance conformance
 
@@ -54,7 +58,7 @@ absence of active attestations.
 
 ```text
 npm run test:canonical-subject-enrollment
-PASS: 26/26
+PASS: 28/28
 
 npm test
 PASS: 48/48
