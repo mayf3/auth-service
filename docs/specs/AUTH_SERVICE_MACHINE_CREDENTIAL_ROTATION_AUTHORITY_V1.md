@@ -21,7 +21,7 @@ owners: [mayf3]
 
 # Machine credential rotation authority
 
-## 1. Goal, route and authority boundary
+## 1. Goal
 
 Establish the narrow active Auth Product Authority needed to govern the exact
 credential-rotation enforcement and replay-consistency migrations already merged
@@ -59,25 +59,137 @@ conditional acceptance and merge, then a separately controlled production operat
 only after the accepted authority is active on `main`. The mandate does not itself
 create Product Authority and does not authorize mutation before that gate.
 
-## 2. Evidence, preserved authority and non-promotion
+## 2. Scope and non-goals
 
-OBS-MCRA-001: at Base, the two named migration files are already merged and their
-bytes have the digests above, but production `_prisma_migrations` and object
-readback recorded neither migration as installed. Code merge is not production
-authority or proof of production effect.
+### In scope
 
-OBS-MCRA-002: repository-local governance explicitly records
-`MACHINE_CLIENT_CREDENTIALS_V0.md` as `Draft — Ready for Review` and excludes it
-from governing authority. The accepted external Agent Core provisioning Spec
-requires a secret-mutation enforcement seam but explicitly states that it does not
-authorize changes in auth-service. A narrow local governing Spec is therefore
-load-bearing.
+- ownership separation for `machine_clients` secret-bearing columns;
+- the exact privileged rotation function, receipt ledger and row-DML guard;
+- target-bound, live-generation-aware, metadata-only replay;
+- separate controlled installation and administrator seal for both named bytes;
+- zero credential or other business-data mutation during installation.
 
-CLM-MCRA-001 = SUPPORTED: the exact migrations require local Product Authority for
-ownership separation, column privilege restriction, the privileged rotation seam,
-receipt persistence, replay consistency and production sealing. Evidence is the
-named Base, exact migration bytes and the two repository governance observations.
-Migration comments and prior repair mandates are provenance, not authority.
+### Out of scope
+
+The historical V0, all unrelated MachineClient semantics, credential rotation
+operations, secret generation, Principal/Grant mutation, enrollment, source
+migration, retirement, downstream mutation and deployment are out of scope.
+
+## 3. Authority and dependencies
+
+```text
+PRIMARY_PARENT_AUTHORITY = MINIMAL_AUTH_FOUNDATION_V2
+EXTERNAL_CONSTRAINT = mayf3/dsh-agent-core/AGENT_CORE_AGENT_CREDENTIAL_PROVISIONING_V1@763985a46cb063536834a5c452ab3e3e34adf93b
+AUTHORITY_CONFLICT = NONE
+```
+
+The external Spec requires the enforcement property but explicitly does not
+authorize auth-service mutation. This local Spec owns only the bounded Auth
+semantics. The Owner mandate is execution authority, not Product Authority.
+
+## 4. Current State
+
+### STATE-MCRA-001 — Exact implementation exists without local authority
+
+- Subject: the two named auth-service migration files
+- As of commit/artifact: auth-service `785d7430fd0b6b9dd3aa7c110ed857fed9fea865`
+- Environment: repository `main`
+- Observed at: 2026-09-16T23:45:00+08:00
+- Projection: exact migration bytes are merged; complete local Product Authority
+  for those bytes is absent.
+- Basis: `OBS-MCRA-001`, `OBS-MCRA-002`, `CLM-MCRA-001`
+
+### STATE-MCRA-002 — Production state remains an operation-time fact
+
+- Subject: production `agent_dev_center/public`
+- As of commit/artifact: not fixed by this Product Authority
+- Environment: production PostgreSQL
+- Observed at: fresh observation required for every controlled attempt
+- Projection: `UNKNOWN_UNTIL_FRESH_CONTROLLED_PREFLIGHT`
+- Basis: `CLM-MCRA-002`
+
+This Spec does not promote an older database snapshot into durable Product
+Authority. The operation must freshly classify clean, partial, drifted or already
+installed state immediately before any mutation.
+
+## 5. Observations
+
+### OBS-MCRA-001 — Exact migration bytes are merged
+
+- Subject: the two migration SQL files named in §1
+- Repository/source: `mayf3/auth-service`
+- Commit/artifact: `785d7430fd0b6b9dd3aa7c110ed857fed9fea865`
+- Environment: repository `main`
+- Observed at: 2026-09-16T23:45:00+08:00
+- Method: fresh remote-main readback and SHA-256 of tracked bytes
+- Result: both files exist with the §1 digests; this candidate changes neither.
+- Provenance: Git object database and tracked migration files
+
+### OBS-MCRA-002 — The old V0 is non-governing
+
+- Subject: `docs/contracts/MACHINE_CLIENT_CREDENTIALS_V0.md`
+- Repository/source: `mayf3/auth-service`
+- Commit/artifact: `785d7430fd0b6b9dd3aa7c110ed857fed9fea865`
+- Environment: repository `main`
+- Observed at: 2026-09-16T23:45:00+08:00
+- Method: read its header and `.agents/local/README.md` authority inventory
+- Result: it says `Draft — Ready for Review`; local governance explicitly excludes
+  it from governing authority.
+- Provenance: the two tracked documents at the named commit
+
+### OBS-MCRA-003 — External authority does not authorize Auth mutation
+
+- Subject: `AGENT_CORE_AGENT_CREDENTIAL_PROVISIONING_V1` Amendment 7
+- Repository/source: `mayf3/dsh-agent-core`
+- Commit/artifact: `763985a46cb063536834a5c452ab3e3e34adf93b`
+- Environment: external accepted authority
+- Observed at: 2026-09-16T23:45:00+08:00
+- Method: exact-revision source review
+- Result: it requires an enforcement seam but explicitly does not authorize
+  changing auth-service.
+- Provenance: exact external revision in frontmatter
+
+## 6. Claims and assumptions
+
+### CLM-MCRA-001 — A narrow local Product Authority is load-bearing
+
+- Support state: SUPPORTED
+- Supported by evidence: `EVD-MCRA-001`
+- Contradicted by evidence: none known
+- Uncertainty: none for the exact two-file authority gap at the Base
+
+### CLM-MCRA-002 — Production prestate must remain fresh operational evidence
+
+- Support state: SUPPORTED
+- Supported by evidence: `EVD-MCRA-002`
+- Contradicted by evidence: none known
+- Uncertainty: production may change after any observation; no snapshot in this
+  Spec authorizes a later attempt.
+
+## 7. Evidence relations
+
+### EVD-MCRA-001 — Repository observations support the authority-gap Claim
+
+- Source observations: `OBS-MCRA-001`, `OBS-MCRA-002`, `OBS-MCRA-003`
+- Target: `CLM-MCRA-001`, `STATE-MCRA-001`
+- Relation: SUPPORTS
+- Bound coordinates: auth-service `785d7430fd0b6b9dd3aa7c110ed857fed9fea865`;
+  dsh-agent-core `763985a46cb063536834a5c452ab3e3e34adf93b`;
+  observed 2026-09-16T23:45:00+08:00
+- Strength/sufficiency: strong for the authority gap and exact implementation bytes
+- Limitations: establishes no production installation state or conformance
+- Provenance: tracked documents and SHA-256 results
+
+### EVD-MCRA-002 — Volatile-state boundary supports mandatory fresh preflight
+
+- Source observations: `OBS-MCRA-001`
+- Target: `CLM-MCRA-002`, `STATE-MCRA-002`
+- Relation: SUPPORTS
+- Bound coordinates: exact migration digests at the Base and production coordinate
+  `agent_dev_center/public`
+- Strength/sufficiency: sufficient to require fresh state classification
+- Limitations: deliberately does not assert the current database state
+- Provenance: Owner controlled-operation mandate and repository migration identity
 
 All independently accepted Principal, Client, Grant, token, provisioning and
 identity contracts remain unchanged. In particular, this Spec does not declare or
@@ -90,32 +202,63 @@ restore:
 - a generic credential-rotation operation mandate;
 - historical sections 1–10 of `MACHINE_CLIENT_CREDENTIALS_V0.md`.
 
-## 3. Decisions
+## 8. Decisions
 
-DEC-MCRA-001: `machine_clients` secret material is protected by database ownership
-separation and column-level privilege restrictions. Ordinary supported application
-and operator roles cannot directly update `secret_hash` or `rotated_at`.
+### DEC-MCRA-001 — Separate ownership from ordinary application privileges
 
-DEC-MCRA-002: `rotate_machine_client_secret(...)` is the only supported database
-path for changing existing MachineClient secret material. It is a narrowly granted
-`SECURITY DEFINER` function owned by the NOLOGIN boundary role.
+- Decision owner: mayf3
+- Decision: protect secret-bearing columns through NOLOGIN ownership separation
+  and column-level UPDATE restrictions.
+- Rejected alternatives: `ALT-MCRA-002`
+- Reason: application convention cannot prevent direct secret mutation.
+- Owner decision remaining: NONE
 
-DEC-MCRA-003: every successful new rotation appends one immutable receipt. The
-receipt operation identity is bound to the rotation operation and exact target.
+### DEC-MCRA-002 — Use one privileged, receipted rotation seam
 
-DEC-MCRA-004: replay is metadata-only and must remain consistent with both the
-original target and the current live credential generation. Conflict or stale
-receipt is zero mutation and never re-emits secret material.
+- Decision owner: mayf3
+- Decision: the exact `SECURITY DEFINER` function is the sole supported database
+  path for changing an existing MachineClient secret generation.
+- Rejected alternatives: `ALT-MCRA-002`
+- Reason: target, preimage, atomic mutation and receipt share one transaction.
+- Owner decision remaining: NONE
 
-DEC-MCRA-005: installing either named migration in production is a controlled
-three-step administrator handshake. Temporary boundary-role membership is an
-installation capability and must be revoked before conformance can pass.
+### DEC-MCRA-003 — Persist one immutable receipt per new rotation
 
-DEC-MCRA-006: installing these migrations changes schema, ownership, grants,
-functions, triggers and migration ledger only. It performs no credential rotation
-and changes no MachineClient, MachinePrincipal or Grant business row.
+- Decision owner: mayf3
+- Decision: every successful new rotation appends one immutable target-bound receipt.
+- Rejected alternatives: `ALT-MCRA-002`
+- Reason: mutation without durable lineage is not an accepted rotation.
+- Owner decision remaining: NONE
 
-## 4. Contracts
+### DEC-MCRA-004 — Bind replay to target and live generation
+
+- Decision owner: mayf3
+- Decision: replay is metadata-only and succeeds only for the same target while
+  its receipt postimage remains the live generation.
+- Rejected alternatives: `ALT-MCRA-003`
+- Reason: operation ID alone permits foreign or stale false success.
+- Owner decision remaining: NONE
+
+### DEC-MCRA-005 — Seal every production migration attempt
+
+- Decision owner: mayf3
+- Decision: each migration uses a separate administrator GRANT, exact apply and
+  mandatory REVOKE followed by membership and SET ROLE negative proof.
+- Rejected alternatives: `ALT-MCRA-004`
+- Reason: temporary membership can bypass the intended boundary.
+- Owner decision remaining: NONE
+
+### DEC-MCRA-006 — Install schema only and recover forward
+
+- Decision owner: mayf3
+- Decision: installation changes only permitted schema/ledger surfaces and performs
+  zero rotation/business mutation; a sealed migration 1 remains when migration 2
+  fails and recovery is a new controlled forward attempt.
+- Rejected alternatives: `ALT-MCRA-005`
+- Reason: automatic reversal can reopen the security hole after partial uncertainty.
+- Owner decision remaining: NONE
+
+## 9. Contracts
 
 ### CTR-MCRA-001 — Ownership and ordinary role boundary
 
@@ -274,25 +417,189 @@ THIS_AUTHORITY_DOES_NOT_PROMOTE_MACHINE_CLIENT_CREDENTIALS_V0_AS_A_WHOLE = YES
 PERMANENT_LEGACY_COMPATIBILITY_CREATED = NO
 ```
 
-## 5. Acceptance
+### CTR-MCRA-009 — Partial-state, unknown-outcome and forward recovery
+
+If migration 1 is installed, independently verified and sealed but migration 2
+fails or is not attempted, production MUST enter
+`PARTIAL_PREDECESSOR_STATE_M1_SEALED`. The installed security boundary MUST remain
+active. Operators MUST NOT automatically delete ledger state, reverse ownership,
+widen privileges or apply manual repair SQL. A later migration 2 attempt MUST first
+freshly reconcile ledger and exact object definitions, revalidate zero business
+drift, prove unchanged migration 2 bytes and acquire the controlled mutation slot.
+
+If an attempt has unknown outcome, operators MUST stop and use read-only ledger,
+object and business-digest reconciliation. Exact complete poststate MAY be accepted
+only with a qualified receipt and independent review. Partial or drifted poststate
+requires new repair authority. Rollback of a correctly sealed migration 1 is not
+supported here. Emergency containment preserves the seal, stops rotation calls and
+stops all further migration attempts.
+
+## 10. Acceptance
 
 All evidence binds the exact accepted Spec head, the two migration digests,
 production database coordinate, application/migration role, observation time and
 sanitized receipts. Independent review covers every Contract and the excluded
 historical V0 surface.
 
-| ID | Contracts | Method | Required result | Failure |
-|---|---|---|---|---|
-| ACC-MCRA-001 | 001,008 | exact docs/source diff and authority graph review | narrow new authority; old V0 stays Draft and non-governing; exact two-file closure | whole V0 or unrelated MachineClient semantics activated |
-| ACC-MCRA-002 | 001,002,004 | isolated PostgreSQL migration plus privilege/owner/trigger inspection | NOLOGIN owner; allowed non-secret DML; secret columns not directly updatable; raw secret DML rejected | application role can bypass seam |
-| ACC-MCRA-003 | 002,003 | isolated successful rotation and failure matrix | exact active target and preimage; atomic three-column update plus one immutable receipt; no receipt DML grant | partial update, missing receipt or mutable receipt |
-| ACC-MCRA-004 | 005 | same-target replay, foreign-target collision and advanced-live-generation probes | metadata-only replay; conflict/stale errors with zero mutation and no secret emission | second mutation, wrong-target replay, stale success or secret replay |
-| ACC-MCRA-005 | 006 | controlled production handshake receipt after each migration | exact GRANT/migration/REVOKE order; membership false; SET ROLE fails | temporary membership remains or seal is unproven |
-| ACC-MCRA-006 | 007 | production before/after counts and safe digests | all seven business-mutation counters are zero | credential, Client, Principal, Grant or receipt business mutation |
-| ACC-MCRA-007 | 006,007 | migration ledger and exact object-definition readback | migration 1 then migration 2 installed separately and definitions match reviewed bytes | partial/drifted install or combined indistinguishable attempt |
-| ACC-MCRA-008 | 001-008 | independent semantic review and poststate review | review ACCEPT with zero blockers/spec gaps; poststate PASS before dependent foundation work | authority gap, scope expansion or unverifiable evidence |
+### ACC-MCRA-001 — Narrow authority and old-V0 exclusion
 
-## 6. Lifecycle and activation boundary
+- Contracts: `CTR-MCRA-008`
+- Method: exact docs/source diff and authority-graph review
+- Environment: isolated worktree against the exact Base
+- Required evidence: candidate Head, changed-file list, old-V0 status and migration digests
+- Expected result: old V0 remains Draft/non-governing and only the exact two-file semantics are owned
+- Failure condition: whole V0 or unrelated MachineClient semantics activate
+
+### ACC-MCRA-002 — Ownership, privileges and guard
+
+- Contracts: `CTR-MCRA-001`, `CTR-MCRA-002`, `CTR-MCRA-004`
+- Method: isolated PostgreSQL migration plus catalog and rejected-DML inspection
+- Environment: disposable PostgreSQL matching production major version
+- Required evidence: role flags, owners, grants, definitions and negative-DML receipts
+- Expected result: NOLOGIN owner, allowed non-secret DML and denied direct secret mutation
+- Failure condition: application or SET ROLE bypasses the seam
+
+### ACC-MCRA-003 — Atomic rotation and immutable receipt
+
+- Contracts: `CTR-MCRA-002`, `CTR-MCRA-003`
+- Method: isolated success and target/preimage failure matrix
+- Environment: disposable PostgreSQL with fixture credentials only
+- Required evidence: before/after fixture digests, function result, receipt cardinality and grants
+- Expected result: one atomic generation change and one immutable receipt; failure paths zero mutation
+- Failure condition: partial update, absent/mutable receipt or production credential contact
+
+### ACC-MCRA-004 — Replay consistency
+
+- Contracts: `CTR-MCRA-005`
+- Method: same-target replay, foreign-target collision and advanced-generation probes
+- Environment: isolated fixture database and existing service replay tests
+- Required evidence: exact implementation Head, results, mutation counts and response fields
+- Expected result: metadata replay, conflict/stale errors, no second mutation and no secret emission
+- Failure condition: wrong-target/stale success, second mutation or secret replay
+
+### ACC-MCRA-005 — Per-migration production seal
+
+- Contracts: `CTR-MCRA-006`
+- Method: controlled handshake and fresh poststate after each migration
+- Environment: production `agent_dev_center/public`
+- Required evidence: sanitized GRANT/apply/REVOKE receipt, ledger row, membership false and SET ROLE denial
+- Expected result: each exact migration is separately installed and sealed
+- Failure condition: membership remains, seal is unknown or attempts are indistinguishable
+
+### ACC-MCRA-006 — Zero business mutation during install
+
+- Contracts: `CTR-MCRA-007`
+- Method: before/after counts and safe aggregate digests
+- Environment: production `agent_dev_center/public`
+- Required evidence: Client/Principal/Grant counts, secret/rotated-at digests and receipt delta without raw values
+- Expected result: all forbidden business-mutation counters are zero
+- Failure condition: any credential, Client, Principal, Grant or rotation-receipt business mutation
+
+### ACC-MCRA-007 — Exact object and ledger conformance
+
+- Contracts: `CTR-MCRA-006`, `CTR-MCRA-007`
+- Method: catalog and ledger readback against reviewed SQL definitions
+- Environment: production `agent_dev_center/public`
+- Required evidence: ledger rows, definition digests, owners and grants after each attempt
+- Expected result: migration 1 then migration 2 match the exact reviewed bytes
+- Failure condition: partial/drifted object, wrong owner/grant or combined unreviewable apply
+
+### ACC-MCRA-008 — Partial-state and unknown-outcome behavior
+
+- Contracts: `CTR-MCRA-009`
+- Method: runbook review plus simulated migration-2 failure and uncertain-exit reconciliation
+- Environment: disposable PostgreSQL; production uses read-only reconciliation on actual failure
+- Required evidence: state classification, preserved seal, zero rollback writes and retry prerequisites
+- Expected result: sealed migration 1 remains; retry is a new exact attempt; unknown is never success before reconciliation
+- Failure condition: automatic rollback, ledger fabrication, privilege widening or blind replay
+
+### ACC-MCRA-009 — Independent lifecycle and poststate review
+
+- Contracts: `CTR-MCRA-001` through `CTR-MCRA-009`
+- Method: independent semantic review before acceptance and independent production poststate review
+- Environment: exact candidate/Base, then exact accepted-main/production tuple
+- Required evidence: reviewed Head/body digest, zero-gap verdict, final-head recheck, merge readback and sanitized poststate receipt
+- Expected result: active narrow authority and verified controlled installation
+- Failure condition: authority gap, scope expansion, normative drift or unverifiable poststate
+
+### Contract coverage
+
+| Contract | Acceptance | Covered |
+|---|---|---|
+| `CTR-MCRA-001` | `ACC-MCRA-002`, `ACC-MCRA-009` | YES |
+| `CTR-MCRA-002` | `ACC-MCRA-002`, `ACC-MCRA-003`, `ACC-MCRA-009` | YES |
+| `CTR-MCRA-003` | `ACC-MCRA-003`, `ACC-MCRA-009` | YES |
+| `CTR-MCRA-004` | `ACC-MCRA-002`, `ACC-MCRA-009` | YES |
+| `CTR-MCRA-005` | `ACC-MCRA-004`, `ACC-MCRA-009` | YES |
+| `CTR-MCRA-006` | `ACC-MCRA-005`, `ACC-MCRA-007`, `ACC-MCRA-009` | YES |
+| `CTR-MCRA-007` | `ACC-MCRA-006`, `ACC-MCRA-007`, `ACC-MCRA-009` | YES |
+| `CTR-MCRA-008` | `ACC-MCRA-001`, `ACC-MCRA-009` | YES |
+| `CTR-MCRA-009` | `ACC-MCRA-008`, `ACC-MCRA-009` | YES |
+
+## 11. Alternatives and disposition
+
+### ALT-MCRA-001 — Accept the old V0 wholesale
+
+- Disposition: rejected
+- Reason: it contains broader historical semantics not required here.
+- Evidence/Claims considered: `OBS-MCRA-002`, `CLM-MCRA-001`
+- What would reopen: separate whole-authority review and explicit Owner decision
+
+### ALT-MCRA-002 — Preserve application-owned secret columns by convention
+
+- Disposition: rejected
+- Reason: direct SQL/ORM secret mutation would remain possible and unreceipted.
+- Evidence/Claims considered: exact migration 1 and the external constraint
+- What would reopen: accepted proof of an equivalent database enforcement mechanism
+
+### ALT-MCRA-003 — Treat operation ID alone as replay identity
+
+- Disposition: rejected
+- Reason: permits foreign-target or stale-generation false success.
+- Evidence/Claims considered: exact migration 2
+- What would reopen: NONE under this authority
+
+### ALT-MCRA-004 — Leave temporary membership for later cleanup
+
+- Disposition: rejected
+- Reason: the application role could SET ROLE and defeat the boundary.
+- Evidence/Claims considered: `CTR-MCRA-006`
+- What would reopen: NONE under this authority
+
+### ALT-MCRA-005 — Automatically reverse migration 1 if migration 2 fails
+
+- Disposition: rejected
+- Reason: reversal can reopen direct secret mutation and cannot safely infer repair after uncertainty.
+- Evidence/Claims considered: `CTR-MCRA-009`
+- What would reopen: a new accepted rollback/repair authority with exact prestate
+
+## 12. Migration, compatibility, and rollback
+
+```text
+MIGRATION = TWO_SEPARATE_FORWARD_CONTROLLED_ATTEMPTS_IN_LEDGER_ORDER
+COMPATIBILITY = EXISTING_NON_SECRET_DML_PRESERVED_BY_EXPLICIT_COLUMN_GRANTS
+ROLLBACK = NO_AUTOMATIC_SCHEMA_OR_OWNERSHIP_ROLLBACK
+PARTIAL_STATE = MIGRATION_1_SEALED_MIGRATION_2_PENDING_IS_SAFE_BUT_INCOMPLETE
+REENTRY = FRESH_READ_ONLY_RECONCILIATION_THEN_NEW_CONTROLLED_MIGRATION_2_ATTEMPT
+UNKNOWN_OUTCOME = READ_ONLY_RECONCILE_NEVER_BLIND_REPLAY
+EMERGENCY_CONTAINMENT = PRESERVE_SEAL_STOP_CALLS_AND_STOP_FURTHER_MIGRATIONS
+```
+
+Migration 1 changes the supported route for existing secret material while
+preserving listed non-secret DML. A correctly installed and sealed migration 1
+remains authoritative when migration 2 is pending. Migration 2 refines replay in
+place. Removal or reversal requires new Product Authority and a new controlled
+operation; this Spec supplies no down migration.
+
+## 13. Open questions
+
+```text
+OPEN_OWNER_DECISIONS = NONE
+NORMATIVE_TBD = NONE
+UNRESOLVED_AUTHORITY_CONFLICT = NONE
+PARTIAL_SUPERSESSION = NONE
+READY_TO_MARK_ACCEPTED = NO_PENDING_INDEPENDENT_REVIEW
+```
 
 At `status: proposed`, this document authorizes no implementation, merge or
 production mutation. Owner acceptance is preauthorized only if an independent
@@ -306,6 +613,6 @@ production attempts. Acceptance alone is not an operation and does not imply tha
 either migration or the canonical identity foundation is installed.
 
 ```text
-CONTRACT_COUNT = 8
-CONTRACTS_WITH_ACCEPTANCE = 8
+CONTRACT_COUNT = 9
+CONTRACTS_WITH_ACCEPTANCE = 9
 ```
