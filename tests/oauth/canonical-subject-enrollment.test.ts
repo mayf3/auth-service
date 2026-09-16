@@ -64,7 +64,7 @@ function store(change: Partial<CanonicalSubjectReadStore> = {}): CanonicalSubjec
     readAgentLifecycle: async () => null,
     readSuccessor: async () => null,
     readIncomingSuccessorCount: async () => 0,
-    readActiveAttestationForMachinePrincipal: async () => null,
+    readActiveAttestationsForMachinePrincipal: async () => [],
     readCommittedOperation: async () => null,
     readOperationAuthorityManifest: async () => [],
     ...change,
@@ -295,6 +295,10 @@ test('Agent lifecycle matrix permits only the frozen cross-state transitions', a
     assert.equal((await planCanonicalSubjectEnrollment(importCanonicalSubjectPacket(packet([make(fromState, toState)])), matrixStore(fromState), evidence(), { now })).disposition, 'APPLY', `${fromState}>${toState}`);
   for (const [fromState, toState] of [['absent', 'retired'], ['unresolved', 'retired'], ['retired', 'canonical'], ['retired', 'legacy']] as const)
     await rejects('AUTHORITY_NOT_ACCEPTED', planCanonicalSubjectEnrollment(importCanonicalSubjectPacket(packet([make(fromState, toState)])), matrixStore(fromState), evidence(), { now }));
+  const activeAttestation = { subjectAttestationId: id(1003), businessSubjectId: id(2003), subjectType: 'agent' as const, target: { machinePrincipalId: id(3), canonicalAgentId: 'agt_isolated-3' }, status: 'active' as const, revision: '1' };
+  await rejects('ATTESTATION_CONFLICT', planCanonicalSubjectEnrollment(importCanonicalSubjectPacket(packet([make('canonical', 'legacy')])), store({
+    ...matrixStore('canonical'), readActiveAttestationsForMachinePrincipal: async () => [activeAttestation],
+  }), evidence(), { now }));
   assert.equal((await planCanonicalSubjectEnrollment(importCanonicalSubjectPacket(packet([make('canonical', 'canonical')])), matrixStore('canonical'), evidence(), { now })).disposition, 'NOOP');
 });
 
