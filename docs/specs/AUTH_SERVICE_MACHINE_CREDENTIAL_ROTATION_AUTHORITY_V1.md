@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_MACHINE_CREDENTIAL_ROTATION_AUTHORITY_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -17,6 +17,11 @@ external_authorities:
 supersedes: []
 superseded_by: null
 owners: [mayf3]
+accepted_date: 2026-09-16
+accepted_by: mayf3
+accepted_reviewed_head: 7e4058812fa12e9a47af58e92771f42f92766dbc
+accepted_reviewed_body_sha256: c5dfc55f1bb80de682a271b0ffcb0f9627818200296b7d881a85e950eb388c51
+review_status: INDEPENDENT_SEMANTIC_REVIEW_ACCEPT_BLOCKERS_0_SPEC_GAPS_0
 ---
 
 # Machine credential rotation authority
@@ -610,15 +615,16 @@ OPEN_OWNER_DECISIONS = NONE
 NORMATIVE_TBD = NONE
 UNRESOLVED_AUTHORITY_CONFLICT = NONE
 PARTIAL_SUPERSESSION = NONE
-READY_TO_MARK_ACCEPTED = NO_PENDING_INDEPENDENT_REVIEW
+READY_TO_MARK_ACCEPTED = YES
 ```
 
-At `status: proposed`, this document authorizes no implementation, merge or
-production mutation. Owner acceptance is preauthorized only if an independent
-semantic review of the exact candidate returns ACCEPT with zero blockers and zero
-Spec gaps, the normative body is unchanged through final-head recheck, and the
-candidate satisfies the narrow scope above. Active Product Authority begins only
-after the accepted snapshot is merged into `main` and freshly read back there.
+At `status: proposed`, this document authorized no implementation, merge or
+production mutation. Owner conditional acceptance was exercised only after the
+independent review of exact Head `7e4058812fa12e9a47af58e92771f42f92766dbc`
+returned ACCEPT with zero blockers and zero Spec gaps. This lifecycle finalization
+changes no Decision, Contract or Acceptance meaning. Active Product Authority
+begins only after this accepted snapshot is merged into `main` and freshly read
+back there.
 
 After activation, the current Owner mandate may authorize the exact controlled
 production attempts. Acceptance alone is not an operation and does not imply that
