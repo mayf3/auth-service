@@ -39,11 +39,12 @@ INSERT INTO users VALUES('${id(900)}','isolated','isolated@example.invalid','x',
 INSERT INTO machine_principals(id,principal_type,agent_id,status) VALUES
  ('${id(1)}','agent','agt_isolated-1','active'),('${id(2)}','agent','agt_isolated-2','active'),
  ('${id(3)}','agent','agt_legacy-3','active'),('${id(4)}','service',NULL,'active'),
- ('${id(5)}','agent','agt_disabled-5','disabled');`);
+ ('${id(5)}','agent','agt_disabled-5','disabled'),('${id(6)}','agent','agt_isolated-6','active');`);
     sql(readFileSync(foundation, 'utf8'));
     sql(`BEGIN ISOLATION LEVEL SERIALIZABLE;
 INSERT INTO agent_identity_lifecycle(principal_id,state,revision,evidence_ref) VALUES
  ('${id(1)}','canonical',1,'isolated'),('${id(2)}','canonical',1,'isolated'),('${id(3)}','legacy',1,'isolated'),('${id(5)}','legacy',1,'isolated'); COMMIT;`);
+    sql(`BEGIN ISOLATION LEVEL SERIALIZABLE; INSERT INTO agent_identity_lifecycle(principal_id,state,revision,evidence_ref) VALUES('${id(6)}','canonical',1,'isolated'); COMMIT;`);
     const before = sql('SELECT count(*) FROM users; SELECT count(*) FROM machine_principals; SELECT count(*) FROM agent_identity_lifecycle;');
     sql(readFileSync(migration, 'utf8'));
     assert.equal(sql('SELECT count(*) FROM users; SELECT count(*) FROM machine_principals; SELECT count(*) FROM agent_identity_lifecycle;'), before);
@@ -85,7 +86,7 @@ VALUES('${id(1000 + n)}','${id(2000 + n)}','${subjectType}','context only',${tar
       await rejected(attestation(5));
       await rejected(attestation(4, 'agent', `'${id(4)}',NULL,'agt_inferred'`));
       await rejected(attestation(7, 'service', `'${id(1)}',NULL,NULL`));
-      assert.equal((await query(`SELECT count(*)::int n FROM machine_principals`))[0].n, 5);
+      assert.equal((await query(`SELECT count(*)::int n FROM machine_principals`))[0].n, 6);
     });
 
     await t.test('delegation scope is explicit, immutable, expiring and terminal', async () => {
@@ -193,6 +194,45 @@ VALUES('${id(800)}','c','${id(2001)}','${id(1001)}','agent','{"userId":"${id(900
       }
     });
 
+    await t.test('atomic revoke plus canonical retirement passes and VERIFY rejects predicate drift', async () => {
+      const module = await import('../../src/lib/oauth/v1/canonical-subject-enrollment.js');
+      await serial(attestation(106, 'agent', `'${id(6)}',NULL,'agt_isolated-6'`));
+      const input = {
+        packetVersion: '1', operationId: id(821), environment: 'isolated-test', actorRef: `user:${id(900)}`,
+        authorityRef: 'owner:packet', authorityDigest: dg('2'), sourceArtifacts: [{ ref: 'isolated:ledger', digest: dg('3') }],
+        mutations: [{
+          mutationKey: 'retire-6', operation: 'TRANSITION_AGENT_LIFECYCLE', principalId: id(6), fromState: 'canonical', toState: 'retired', expectedRevision: '1',
+          authorityRef: 'owner:retire-6', authorityDigest: dg('f'), evidenceRef: 'isolated-retire-6',
+          predicates: { liveWritableReferences: 0, activeWorkOwnerReferences: 0, activeGrantsRequired: 0, activeClientRequired: 0, successorMappingVerified: true },
+        }, {
+          mutationKey: 'revoke-6', operation: 'REVOKE_ATTESTATION', subjectAttestationId: id(1106), businessSubjectId: id(2106), subjectType: 'agent',
+          target: { machinePrincipalId: id(6), canonicalAgentId: 'agt_isolated-6' }, expectedRevision: '1', evidenceRef: 'owner:revoke-6',
+          authority: { kind: 'owner_exact', ref: 'owner:revoke-6', digest: dg('a'), requestedOperation: 'revoke', intendedDisposition: 'revoked' },
+        }, {
+          mutationKey: 'successor-6', operation: 'INSTALL_EXPLICIT_SUCCESSOR', sourcePrincipalId: id(6), targetPrincipalId: id(1),
+          authorityRef: 'owner:successor-6', authorityDigest: dg('7'), evidenceRef: 'owner:successor-6',
+        }], createdAt: '2026-09-16T11:30:00.000Z', expiresAt: '2026-09-16T13:00:00.000Z',
+      };
+      const validEvidence = {
+        validatePacketAuthority: async (entry: any) => ({ valid: true as const, authorityDigest: entry.authorityDigest }),
+        validateAttestationAuthority: async (entry: any) => ({ valid: true as const, authorityDigest: entry.authorityDigest }),
+        validateCoreAgent: async (target: any) => ({ valid: true as const, evidenceDigest: dg('d'), principalId: target.machinePrincipalId, agentId: target.canonicalAgentId, expiresAt: '2026-09-16T12:30:00.000Z' }),
+        validateSourceExit: async () => ({ valid: true, zeroLive: true, evidenceDigest: dg('e') }),
+        validateLifecyclePredicates: async () => ({ valid: true, evidenceDigest: dg('f'), liveWritableReferences: 0, activeWorkOwnerReferences: 0, activeGrantsRequired: 0, activeClientRequired: 0, successorMappingVerified: true }),
+      };
+      const imported = module.importCanonicalSubjectPacket(input);
+      const store = module.createCanonicalSubjectReadStore(client as any);
+      const plan = await module.planCanonicalSubjectEnrollment(imported, store, validEvidence, { now: new Date('2026-09-16T12:00:00.000Z') });
+      assert.equal((await module.applyCanonicalSubjectPlan(imported, plan, validEvidence, client as any, { now: new Date('2026-09-16T12:00:00.000Z') })).result, 'APPLIED');
+      const staleEvidence = { ...validEvidence, validateCoreAgent: async () => ({ valid: false as const }), validateLifecyclePredicates: async () => ({ valid: false, evidenceDigest: dg('0'), liveWritableReferences: 1, activeWorkOwnerReferences: 1, activeGrantsRequired: 1, activeClientRequired: 1, successorMappingVerified: false }) };
+      assert.equal((await module.applyCanonicalSubjectPlan(imported, plan, staleEvidence, client as any, { now: new Date('2026-09-16T12:00:30.000Z') })).result, 'NOOP');
+      assert.equal((await module.verifyCanonicalSubjectOperation(plan, store, validEvidence, { observedAt: new Date('2026-09-16T12:01:00.000Z') })).result, 'PASS');
+      const driftedEvidence = { ...validEvidence, validateLifecyclePredicates: async () => ({ valid: true, evidenceDigest: dg('f'), liveWritableReferences: 0, activeWorkOwnerReferences: 0, activeGrantsRequired: 0, activeClientRequired: 1, successorMappingVerified: true }) };
+      assert.equal((await module.verifyCanonicalSubjectOperation(plan, store, driftedEvidence, { observedAt: new Date('2026-09-16T12:01:00.000Z') })).result, 'FAIL');
+      assert.deepEqual((await query(`SELECT state::text,revision::text FROM agent_identity_lifecycle WHERE principal_id='${id(6)}'`))[0], { state: 'retired', revision: '2' });
+      assert.equal((await query(`SELECT status::text FROM canonical_subject_attestations WHERE subject_attestation_id='${id(1106)}'`))[0].status, 'revoked');
+    });
+
     await t.test('database audit failure rolls back the entire APPLY', async () => {
       const module = await import('../../src/lib/oauth/v1/canonical-subject-enrollment.js');
       const subject = { mutationKey: 'rollback-audit', operation: 'ACTIVATE_ATTESTATION', subjectAttestationId: id(1130), businessSubjectId: id(2130), subjectType: 'agent', businessSubjectDescription: 'context only', target: { machinePrincipalId: id(1), canonicalAgentId: 'agt_isolated-1' }, authoritySource: 'owner:packet', attestedBy: { kind: 'user', id: id(900) }, authority: { kind: 'owner_exact', ref: 'owner:audit', digest: dg('a'), requestedOperation: 'activate', intendedDisposition: 'active' }, effectiveAt: '2026-09-16T11:00:00.000Z', evidenceRef: 'isolated' };
@@ -284,10 +324,10 @@ VALUES('${id(3002)}','user','${id(900)}','agent',ARRAY['${id(2020)}','${id(2021)
       assert.equal((await query(`SELECT count(*)::int n FROM canonical_subject_attestations WHERE subject_attestation_id='${id(1221)}'`))[0].n, 0);
     });
 
-    await t.test('foundation bytes and canonical graph remain unchanged', async () => {
-      assert.equal((await query(`SELECT count(*)::int n FROM agent_identity_successors`))[0].n, 0);
-      assert.equal((await query(`SELECT count(*)::int n FROM agent_identity_lifecycle`))[0].n, 4);
-      assert.equal((await query(`SELECT count(*)::int n FROM machine_principals`))[0].n, 5);
+    await t.test('fixture graph reflects only the controlled isolated retirement', async () => {
+      assert.equal((await query(`SELECT count(*)::int n FROM agent_identity_successors`))[0].n, 1);
+      assert.equal((await query(`SELECT count(*)::int n FROM agent_identity_lifecycle`))[0].n, 5);
+      assert.equal((await query(`SELECT count(*)::int n FROM machine_principals`))[0].n, 6);
     });
   }
   finally {

@@ -271,7 +271,7 @@ export interface CanonicalSubjectEvidenceProvider {
   validatePacketAuthority(input: { operationId: string; packetDigest: string; authorityRef: string; authorityDigest: string; actorRef: string; mutationKeys: string[] }, at: Date): Promise<{ valid: true; authorityDigest: string } | { valid: false }>;
   validateAttestationAuthority(entry: AuthorityManifestEntry, actorRef: string, at: Date): Promise<{ valid: true; authorityDigest: string } | { valid: false; code: EvidenceFailureCode }>;
   validateCoreAgent(target: TargetReference, at: Date): Promise<{ valid: true; evidenceDigest: string; principalId: string; agentId: string; expiresAt: string } | { valid: false }>;
-  validateSourceExit(input: { sourceNamespace: string; sourceLocalValue: string }, at: Date): Promise<{ valid: boolean; zeroLive: boolean; evidenceDigest: string }>;
+  validateSourceExit(input: { sourceNamespace: string; sourceLocalValue: string; evidenceRef: string }, at: Date): Promise<{ valid: boolean; zeroLive: boolean; evidenceDigest: string }>;
   validateLifecyclePredicates(input: { principalId: string; targetState: string }, at: Date): Promise<{ valid: boolean; evidenceDigest: string; liveWritableReferences: number; activeWorkOwnerReferences: number; activeGrantsRequired: number; activeClientRequired: number; successorMappingVerified: boolean }>;
 }
 
@@ -495,7 +495,7 @@ export async function planCanonicalSubjectEnrollment(imported: ImportedCanonical
       prestate.push({ mutationKey: mutation.mutationKey, binding });
       if (!binding || !['planned', 'active', 'superseded'].includes(binding.status) || binding.revision !== mutation.expectedRevision || binding.sourceNamespace !== mutation.sourceNamespace || binding.sourceLocalValue !== mutation.sourceLocalValue)
         fail(binding?.revision === mutation.expectedRevision ? 'SOURCE_BINDING_CONFLICT' : 'REVISION_CONFLICT', mutation.mutationKey, 'sourceBindingId');
-      const zero = await evidence.validateSourceExit({ sourceNamespace: mutation.sourceNamespace, sourceLocalValue: mutation.sourceLocalValue }, at);
+      const zero = await evidence.validateSourceExit({ sourceNamespace: mutation.sourceNamespace, sourceLocalValue: mutation.sourceLocalValue, evidenceRef: mutation.exitEvidenceRef }, at);
       if (!zero.valid || !zero.zeroLive)
         fail('SOURCE_BINDING_CONFLICT', mutation.mutationKey, 'exitEvidenceRef');
       coreDigests.push(zero.evidenceDigest);
@@ -560,14 +560,18 @@ export async function planCanonicalSubjectEnrollment(imported: ImportedCanonical
         fail('AUTHORITY_NOT_ACCEPTED', mutation.mutationKey, 'incomingSuccessors');
       if (actual === 'canonical' && mutation.toState === 'legacy') {
         const successor = await store.readSuccessor(mutation.principalId);
-        if (successor)
-          validateAgentPrincipalCandidate(mutation.mutationKey, undefined, await store.readTarget({ machinePrincipalId: successor.targetPrincipalId }), ['canonical']);
+        const planned = imported.packet.mutations.find((item): item is Extract<CanonicalSubjectMutation, { operation: 'INSTALL_EXPLICIT_SUCCESSOR' }> => item.operation === 'INSTALL_EXPLICIT_SUCCESSOR' && item.sourcePrincipalId === mutation.principalId);
+        const targetPrincipalId = successor?.targetPrincipalId ?? planned?.targetPrincipalId;
+        if (targetPrincipalId)
+          validateAgentPrincipalCandidate(mutation.mutationKey, undefined, await store.readTarget({ machinePrincipalId: targetPrincipalId }), ['canonical']);
       }
       if (mutation.toState === 'retired') {
         const successor = await store.readSuccessor(mutation.principalId);
-        if (!successor)
+        const planned = imported.packet.mutations.find((item): item is Extract<CanonicalSubjectMutation, { operation: 'INSTALL_EXPLICIT_SUCCESSOR' }> => item.operation === 'INSTALL_EXPLICIT_SUCCESSOR' && item.sourcePrincipalId === mutation.principalId);
+        const targetPrincipalId = successor?.targetPrincipalId ?? planned?.targetPrincipalId;
+        if (!targetPrincipalId)
           fail('AUTHORITY_NOT_ACCEPTED', mutation.mutationKey, 'successor');
-        const successorTarget = await store.readTarget({ machinePrincipalId: successor.targetPrincipalId });
+        const successorTarget = await store.readTarget({ machinePrincipalId: targetPrincipalId });
         validateAgentPrincipalCandidate(mutation.mutationKey, undefined, successorTarget, ['canonical']);
       }
       writes++;
@@ -577,7 +581,9 @@ export async function planCanonicalSubjectEnrollment(imported: ImportedCanonical
       const target = await store.readAgentLifecycle(mutation.targetPrincipalId);
       const existing = await store.readSuccessor(mutation.sourcePrincipalId);
       prestate.push({ mutationKey: mutation.mutationKey, source, target, existing });
-      if (existing || !source || !['legacy', 'retired'].includes(source.state) || target?.state !== 'canonical' || mutation.sourcePrincipalId === mutation.targetPrincipalId)
+      const plannedTransition = imported.packet.mutations.find(item => item.operation === 'TRANSITION_AGENT_LIFECYCLE' && item.principalId === mutation.sourcePrincipalId && item.fromState === 'canonical' && (item.toState === 'legacy' || item.toState === 'retired'));
+      const sourceEligible = !!source && (['legacy', 'retired'].includes(source.state) || (source.state === 'canonical' && !!plannedTransition));
+      if (existing || !sourceEligible || target?.state !== 'canonical' || mutation.sourcePrincipalId === mutation.targetPrincipalId)
         fail('AUTHORITY_NOT_ACCEPTED', mutation.mutationKey, 'successor');
       validateAgentPrincipalCandidate(mutation.mutationKey, undefined, await store.readTarget({ machinePrincipalId: mutation.targetPrincipalId }), ['canonical']);
       writes++;
@@ -706,15 +712,15 @@ async function executeMutation(tx: RawClient, mutation: CanonicalSubjectMutation
 function executionRank(mutation: CanonicalSubjectMutation): number {
   switch (mutation.operation) {
     case 'INSTALL_ATTESTATION_DELEGATION': return 10;
-    case 'TRANSITION_AGENT_LIFECYCLE': return 20;
-    case 'INSTALL_EXPLICIT_SUCCESSOR': return 30;
+    case 'TRANSITION_AGENT_LIFECYCLE': return mutation.toState === 'canonical' ? 20 : 70;
     case 'ACTIVATE_ATTESTATION':
     case 'SUPERSEDE_ATTESTATION': return 40;
     case 'ACTIVATE_SOURCE_BINDING':
     case 'SUPERSEDE_SOURCE_BINDING':
     case 'EXIT_SOURCE_BINDING': return 50;
     case 'REVOKE_ATTESTATION': return 60;
-    case 'REVOKE_ATTESTATION_DELEGATION': return 70;
+    case 'INSTALL_EXPLICIT_SUCCESSOR': return 80;
+    case 'REVOKE_ATTESTATION_DELEGATION': return 90;
   }
 }
 
@@ -763,7 +769,6 @@ export async function applyCanonicalSubjectPlan(imported: ImportedCanonicalSubje
   const at = options.now ?? new Date();
   assertPlanIntegrity(imported, reviewedPlan);
   if (at.getTime() >= Date.parse(reviewedPlan.expiresAt)) fail('PLAN_EXPIRED', reviewedPlan.operationId, 'expiresAt');
-  await refreshCoreEvidenceImmediatelyBeforeApply(reviewedPlan, evidence, at);
   const timeout = options.timeoutMs ?? 5000;
   const execution = { phase: 'mutation' as 'mutation' | 'audit' };
   try {
@@ -779,6 +784,7 @@ export async function applyCanonicalSubjectPlan(imported: ImportedCanonicalSubje
           fail('IDEMPOTENCY_CONFLICT', reviewedPlan.operationId, 'planDigest');
         return { result: 'NOOP', operationId: reviewedPlan.operationId, planDigest: reviewedPlan.planDigest, poststateDigest: prior.poststateDigest };
       }
+      await refreshCoreEvidenceImmediatelyBeforeApply(reviewedPlan, evidence, at);
       const fresh = await planCanonicalSubjectEnrollment(imported, store, evidence, { now: at });
       if (fresh.planDigest !== reviewedPlan.planDigest || fresh.prestateDigest !== reviewedPlan.prestateDigest)
         fail('PRESTATE_CHANGED', reviewedPlan.operationId, 'prestateDigest');
@@ -821,7 +827,7 @@ export async function verifyCanonicalSubjectOperation(plan: CanonicalSubjectPlan
   let externalEvidenceValid = true;
   try {
     for (const mutation of plan.mutations) {
-      if (mutation.operation === 'ACTIVATE_ATTESTATION' || mutation.operation === 'SUPERSEDE_ATTESTATION' || mutation.operation === 'REVOKE_ATTESTATION') {
+      if (mutation.operation === 'ACTIVATE_ATTESTATION' || mutation.operation === 'SUPERSEDE_ATTESTATION') {
         const attestation = mutation as AttestationMutation;
         await validateTarget(attestation, await store.readTarget(attestation.target));
         if (attestation.subjectType === 'agent') {
@@ -831,7 +837,7 @@ export async function verifyCanonicalSubjectOperation(plan: CanonicalSubjectPlan
         }
       }
       else if (mutation.operation === 'EXIT_SOURCE_BINDING') {
-        const exit = await evidence.validateSourceExit({ sourceNamespace: mutation.sourceNamespace, sourceLocalValue: mutation.sourceLocalValue }, verifiedAt);
+        const exit = await evidence.validateSourceExit({ sourceNamespace: mutation.sourceNamespace, sourceLocalValue: mutation.sourceLocalValue, evidenceRef: mutation.exitEvidenceRef }, verifiedAt);
         if (!exit.valid || !exit.zeroLive || !plan.coreEvidenceDigests.includes(exit.evidenceDigest))
           externalEvidenceValid = false;
       }
@@ -840,6 +846,19 @@ export async function verifyCanonicalSubjectOperation(plan: CanonicalSubjectPlan
         validateAgentPrincipalCandidate(mutation.mutationKey, mutation.canonicalAgentId, await store.readTarget(target), ['canonical']);
         const core = await evidence.validateCoreAgent(target, verifiedAt);
         if (!core.valid || core.principalId !== mutation.principalId || core.agentId !== mutation.canonicalAgentId || Date.parse(core.expiresAt) <= verifiedAt.getTime() || !plan.coreEvidenceDigests.includes(core.evidenceDigest))
+          externalEvidenceValid = false;
+      }
+      else if (mutation.operation === 'TRANSITION_AGENT_LIFECYCLE' && (mutation.toState === 'retired' || (mutation.fromState === 'canonical' && mutation.toState === 'legacy'))) {
+        const predicates = await evidence.validateLifecyclePredicates({ principalId: mutation.principalId, targetState: mutation.toState }, verifiedAt);
+        const exact = predicates.valid && predicates.liveWritableReferences === 0 && predicates.activeWorkOwnerReferences === 0 && predicates.activeGrantsRequired === 0 && predicates.activeClientRequired === 0 && (mutation.toState !== 'retired' || predicates.successorMappingVerified) && plan.coreEvidenceDigests.includes(predicates.evidenceDigest);
+        if (!exact || await store.readIncomingSuccessorCount(mutation.principalId) !== 0)
+          externalEvidenceValid = false;
+        const successor = await store.readSuccessor(mutation.principalId);
+        if (mutation.toState === 'retired' && !successor)
+          externalEvidenceValid = false;
+        if (successor)
+          validateAgentPrincipalCandidate(mutation.mutationKey, undefined, await store.readTarget({ machinePrincipalId: successor.targetPrincipalId }), ['canonical']);
+        if ((await store.readActiveAttestationsForMachinePrincipal(mutation.principalId)).length !== 0)
           externalEvidenceValid = false;
       }
     }
