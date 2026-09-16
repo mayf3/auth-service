@@ -202,7 +202,7 @@ child claims no cross-service atomicity or perpetual Core runtime attestation.
 ### CTR-CSESB-003 — Prospective source-binding registry
 
 Add enum `SourceBindingSemantics = prospective_binding`, enum
-`SourceBindingStatus = planned|active|exited`, and table
+`SourceBindingStatus = planned|active|superseded|exited`, and table
 `canonical_subject_source_bindings` with:
 
 ```text
@@ -217,26 +217,52 @@ status                     SourceBindingStatus not null
 revision                   positive bigint
 created_at                 timestamptz not null
 updated_at                 timestamptz not null
+superseded_at              nullable timestamptz
+supersession_evidence_ref  nullable nonempty text
 exited_at                  nullable timestamptz
 exit_evidence_ref          nullable nonempty text
 supersedes_source_binding_id nullable uuid FK same table RESTRICT
 ```
 
 At most one planned/active binding may exist for `(source_namespace,
-source_local_value)`; historical EXITED rows may coexist. The pair identifies one
+source_local_value)`; historical superseded/EXITED rows may coexist. The pair identifies one
 governed source-local binding, not a global subject, and the value remains opaque.
 Binding insert requires an active attestation. Its subject, namespace, value,
 semantics, effective time and initial evidence are immutable. DELETE and in-place
 retarget are prohibited. A separately authorized prospective correction atomically
-EXITS the predecessor and inserts a new row naming it in
-`supersedes_source_binding_id`; cycles, forks and silent reactivation are rejected.
+transitions the predecessor to `superseded` and inserts a replacement row that names
+it in `supersedes_source_binding_id`. The replacement contains the new immutable
+subject target; cycles, forks and silent reactivation are rejected.
 
-Allowed lifecycle is `planned -> active -> exited` or `planned -> exited`; revision
-increases exactly by one per transition. EXITED requires `exited_at` and exact
-`exit_evidence_ref`, is terminal and cannot return to planned/active. Before EXITED,
-VERIFY must prove the named source has no live read, write, lookup, routing, ownership
-or authorization dependency on the old value under separately accepted source-owner
-evidence. This registry cannot itself prove that source-side predicate.
+Binding-authority supersession and source-value exit are different facts:
+
+```text
+MAPPING_SUPERSESSION != SOURCE_VALUE_EXIT
+
+planned -> active       allowed
+planned -> superseded   allowed only with atomic replacement insert
+active  -> superseded   allowed only with atomic replacement insert
+planned -> exited       allowed only with zero-live source evidence
+active  -> exited       allowed only with zero-live source evidence
+superseded -> exited    allowed only with zero-live source evidence
+
+superseded -> planned|active|superseded  forbidden
+exited -> *                              forbidden
+```
+
+Every transition increases revision exactly by one. `superseded` requires
+`superseded_at`, exact `supersession_evidence_ref` and exactly one replacement that
+points to the predecessor. It means only that binding authority moved to that
+replacement; the old source value may still have live read, write, lookup, routing,
+ownership or authorization dependencies. Supersession requires no false zero-live
+claim and must never populate `exited_at` or `exit_evidence_ref`.
+
+`exited` requires `exited_at` and exact `exit_evidence_ref`, is terminal and cannot
+return to any other state. Before any transition to EXITED, VERIFY must prove under
+separately accepted source-owner evidence that the named old source value has zero
+live read, write, lookup, routing, ownership and authorization dependency. A mapping
+correction cannot stand in for that proof. This registry cannot itself prove the
+source-side zero-live predicate.
 
 ```text
 ORDINARY_CANONICAL_ADMISSION_READS_SOURCE_BINDING_REGISTRY = NO
@@ -262,6 +288,28 @@ when its input authority is one of:
 
 It never creates a Principal or Agent Definition. Core's enabled Agent Definition
 check remains an independent fresh precondition supplied by the controlled plan.
+
+The controlled command freezes the following complete Agent lifecycle matrix.
+`ABSENT` is treated as foundation `unresolved` for enrollment. Same-state requests
+are readback-only NOOPs and write no revision. Any transition not listed as allowed
+is forbidden with zero write.
+
+| Transition | Required authority | Required preconditions | Allowed effect | Forbidden effect |
+|---|---|---|---|---|
+| `ABSENT|unresolved -> canonical` | exact accepted enrollment authority under CTR-CSESB-002/004 | exact active AGENT Principal/Agent pair; fresh unique enabled Core Definition; no outgoing successor; reviewed evidence and expected prestate | insert/transition lifecycle to canonical, revision 1/+1 | grammar/name promotion, Principal/Definition creation, implicit successor |
+| `ABSENT|unresolved -> legacy` | accepted exact legacy-classification authority naming the Principal | exact AGENT Principal; evidence proves legacy disposition without guessing; expected prestate | insert/transition lifecycle to legacy, revision 1/+1 | successor inference, authority/Grant change, retirement claim |
+| `legacy -> canonical` | exact accepted canonical enrollment or correction authority naming the pair | CTR-CSESB-002 exact target checks; fresh Core Definition; no existing outgoing successor; no conflicting current canonical subject | transition to canonical, revision +1 | deleting/rewriting a successor edge, inferred rehabilitation, pair replacement |
+| `legacy -> retired` | separately authorized retirement plus verified exact successor authority | all five CTR-AICP-007 predicates are exactly true: `LIVE_WRITABLE_REFERENCES=0`, `ACTIVE_WORK_OWNER_REFERENCES=0`, `ACTIVE_GRANTS_REQUIRED=0`, `ACTIVE_CLIENT_REQUIRED=0`, `SUCCESSOR_MAPPING_VERIFIED=YES`; successor target remains exact active canonical | transition lifecycle to retired, revision +1 | transition when any predicate is false/unknown, credential/Grant/client mutation, physical deletion |
+| `canonical -> legacy` | separately accepted demotion authority naming source, reason and intended disposition | `LIVE_WRITABLE_REFERENCES=0`, `ACTIVE_WORK_OWNER_REFERENCES=0`, `ACTIVE_GRANTS_REQUIRED=0`, `ACTIVE_CLIENT_REQUIRED=0`; no incoming successor edges; if logical continuity is claimed, exact reviewed successor authority and canonical target are present and the direct edge is installed atomically | transition to legacy, revision +1, plus separately authorized direct edge when applicable | breaking an incoming successor target, implicit successor, preserving canonical admission, unrelated permission mutation |
+| `canonical -> retired` | separately authorized retirement naming the exact canonical Principal | all five CTR-AICP-007 predicates exactly true; no incoming successor edges; exact verified successor is installed where the logical Agent continues | transition lifecycle to retired, revision +1 | direct retirement with any false/unknown predicate, orphaning incoming successors, physical deletion |
+| `retired -> *` | none can authorize under this Contract | not applicable | none | every resurrection, canonicalization, legacy reactivation or revision write |
+
+`unresolved -> retired`, `canonical -> unresolved`, `legacy -> unresolved` and every
+other unlisted cross-state transition are forbidden. Predicate evidence is exact,
+fresh, environment-bound and included in the reviewed plan digest. Missing,
+permission-filtered, stale or unknown predicate evidence is not zero and blocks the
+operation. In particular, `legacy -> retired` missing any one of the five required
+CTR-AICP-007 predicates MUST fail the whole transaction with zero write.
 
 ### CTR-CSESB-005 — PLAN and IMPORT
 
@@ -366,14 +414,16 @@ The command surface supports only explicit plan operations:
 - `TRANSITION_AGENT_LIFECYCLE`: accepted foundation state transition;
 - `INSTALL_EXPLICIT_SUCCESSOR`: exact separately authorized direct edge;
 - `ACTIVATE_SOURCE_BINDING`: planned to active;
+- `SUPERSEDE_SOURCE_BINDING`: planned/active predecessor to superseded plus atomic
+  replacement insert; source value may remain live;
 - `EXIT_SOURCE_BINDING`: terminal exit with source-owner zero-live evidence.
 
 Revoking or superseding an attestation with active source bindings is rejected unless
-the same atomic plan EXITS every affected binding and, where still needed, inserts a
-new binding to the replacement attestation under a separately authorized prospective
-decision. Canonical Agent demotion/retirement continues to obey all incoming-successor
-and Program retirement predicates. No operation physically deletes evidence or
-rewrites immutable historical audit records.
+the same atomic plan supersedes every affected binding and inserts its replacement,
+or independently proves zero-live and transitions it to EXITED. Supersession never
+claims source exit. Canonical Agent transitions must match the complete matrix in
+CTR-CSESB-004; no generic state mutation exists. No operation physically deletes
+evidence or rewrites immutable historical audit records.
 
 ### CTR-CSESB-009 — Initial packet denominator
 
@@ -511,11 +561,11 @@ are labeled and prove no production enrollment.
 |---|---|---|---|---|
 | ACC-CSESB-001 | 001,004 | schema review plus isolated PostgreSQL constraints | typed FK/check matrix; immutable targets/provenance; no duplicate Agent lifecycle/successor table; DELETE rejected | second identity root, duplicate successor truth, label used as key |
 | ACC-CSESB-002 | 002 | isolated exact target matrix against User/MachinePrincipal/foundation fixtures | valid AGENT/HUMAN/SERVICE targets pass; every not-found/type/pair/inactive/noncanonical case fails with zero writes | name/grammar/client inference or HUMAN Agent projection |
-| ACC-CSESB-003 | 003,011 | isolated binding lifecycle plus dependency adapter tests | unique namespace/value; prospective-only; terminal EXITED; ordinary auth/admission dependency inventory equals zero | retarget, resurrection, runtime fallback or exit without source evidence |
+| ACC-CSESB-003 | 003,011 | isolated binding lifecycle plus dependency adapter tests | unique current namespace/value; prospective-only; append-preserving supersession; terminal EXITED; (a) with live refs, active binding may atomically become superseded with an explicit replacement but MUST NOT report EXITED; (b) only after exact source-owner zero-live proof may planned/active/superseded transition to EXITED; ordinary auth/admission dependency inventory equals zero | correction represented as EXITED, in-place retarget, predecessor reactivation, runtime fallback or exit without source evidence |
 | ACC-CSESB-004 | 005 | canonical packet fixtures and read-only database snapshot | deterministic IMPORT digest; PLAN exact counts/mutations/digests; malformed/duplicate/stale input rejected; DB byte-identical | normalization changes meaning or PLAN writes |
 | ACC-CSESB-005 | 006 | real PostgreSQL concurrent/stale/timeout/audit-failure tests | one SERIALIZABLE atomic commit; exact rerun NOOP; changed digest conflict; all failures roll back | partial commit, automatic retry or weaker isolation succeeds |
 | ACC-CSESB-006 | 007,010 | committed, failed and uncertain isolated operations | exact readback/closed receipt; same-operation unknown reconciliation; secret scan PASS | unverified success, second attempt or sensitive output |
-| ACC-CSESB-007 | 008 | lifecycle transition matrix and graph invariants | allowed transitions only; active dependencies block revoke/supersede; successor requires separate exact authority | prospective binding creates successor or evidence is overwritten |
+| ACC-CSESB-007 | 004,008 | exhaustive Agent and binding lifecycle transition matrix plus graph/predicate invariants | every listed transition enforces its exact authority/preconditions/effect; every unlisted transition and retired resurrection fail with zero write; `legacy -> retired` is tested five times, omitting each CTR-AICP-007 predicate in turn, and every case MUST fail with byte-identical lifecycle/successor/audit state; live-ref binding correction may supersede but cannot EXIT; successor requires separate exact authority | implementation chooses an unspecified transition, any retirement gate is bypassed, prospective binding creates successor, correction fakes exit, or evidence is overwritten |
 | ACC-CSESB-008 | 009 | reviewed initial packet conformance, no apply | 73 subjects = 72 AGENT + 1 HUMAN; 89 bindings cover 147 ledger rows exactly; six frozen-target inputs provenance-bound; 67 exact typed attestations | count drift hidden, labels treated as pair proof, Principal creation inferred |
 | ACC-CSESB-009 | 011 | source-owner readback and consumer/runtime dependency census | every EXITED binding has zero live legacy reference and zero ordinary-reader/writer dependency; history remains readable | compatibility path or ambiguous write remains live |
 | ACC-CSESB-010 | 012 | exact implementation diff, targeted tests, migration inspection and route/dependency scan | only accepted slices; foundation unchanged; no public permission/credential/Principal/source mutation; production apply false | source merge represented as production activation or scope expansion |
