@@ -253,7 +253,9 @@ restore:
 - Decision owner: mayf3
 - Decision: installation changes only permitted schema/ledger surfaces and performs
   zero rotation/business mutation; a sealed migration 1 remains when migration 2
-  fails and recovery is a new controlled forward attempt.
+  fails, all rotation calls remain disabled, and recovery is a new controlled
+  forward attempt. Rotation calls resume only after migration 2 object, seal and
+  poststate verification pass.
 - Rejected alternatives: `ALT-MCRA-005`
 - Reason: automatic reversal can reopen the security hole after partial uncertainty.
 - Owner decision remaining: NONE
@@ -422,7 +424,10 @@ PERMANENT_LEGACY_COMPATIBILITY_CREATED = NO
 If migration 1 is installed, independently verified and sealed but migration 2
 fails or is not attempted, production MUST enter
 `PARTIAL_PREDECESSOR_STATE_M1_SEALED`. The installed security boundary MUST remain
-active. Operators MUST NOT automatically delete ledger state, reverse ownership,
+active and `ROTATION_CALLS_ENABLED` MUST be `NO` for the entire partial interval.
+No application, CLI, operator or function caller may invoke a credential rotation
+until migration 2 object-definition, administrator seal and poststate verification
+all pass. Operators MUST NOT automatically delete ledger state, reverse ownership,
 widen privileges or apply manual repair SQL. A later migration 2 attempt MUST first
 freshly reconcile ledger and exact object definitions, revalidate zero business
 drift, prove unchanged migration 2 bytes and acquire the controlled mutation slot.
@@ -510,8 +515,11 @@ historical V0 surface.
 - Method: runbook review plus simulated migration-2 failure and uncertain-exit reconciliation
 - Environment: disposable PostgreSQL; production uses read-only reconciliation on actual failure
 - Required evidence: state classification, preserved seal, zero rollback writes and retry prerequisites
-- Expected result: sealed migration 1 remains; retry is a new exact attempt; unknown is never success before reconciliation
-- Failure condition: automatic rollback, ledger fabrication, privilege widening or blind replay
+- Expected result: sealed migration 1 remains with rotation calls disabled throughout
+  the partial interval; retry is a new exact attempt; calls resume only after
+  migration 2 object, seal and poststate PASS; unknown is never success before reconciliation
+- Failure condition: any rotation call in the partial interval, early re-enable,
+  automatic rollback, ledger fabrication, privilege widening or blind replay
 
 ### ACC-MCRA-009 — Independent lifecycle and poststate review
 
@@ -579,7 +587,9 @@ historical V0 surface.
 MIGRATION = TWO_SEPARATE_FORWARD_CONTROLLED_ATTEMPTS_IN_LEDGER_ORDER
 COMPATIBILITY = EXISTING_NON_SECRET_DML_PRESERVED_BY_EXPLICIT_COLUMN_GRANTS
 ROLLBACK = NO_AUTOMATIC_SCHEMA_OR_OWNERSHIP_ROLLBACK
-PARTIAL_STATE = MIGRATION_1_SEALED_MIGRATION_2_PENDING_IS_SAFE_BUT_INCOMPLETE
+PARTIAL_STATE = MIGRATION_1_SEALED_ROTATION_DISABLED_MIGRATION_2_PENDING
+ROTATION_CALLS_ENABLED_DURING_PARTIAL_STATE = NO
+ROTATION_CALL_REENABLE_GATE = MIGRATION_2_OBJECT_AND_SEAL_AND_POSTSTATE_PASS
 REENTRY = FRESH_READ_ONLY_RECONCILIATION_THEN_NEW_CONTROLLED_MIGRATION_2_ATTEMPT
 UNKNOWN_OUTCOME = READ_ONLY_RECONCILE_NEVER_BLIND_REPLAY
 EMERGENCY_CONTAINMENT = PRESERVE_SEAL_STOP_CALLS_AND_STOP_FURTHER_MIGRATIONS
@@ -587,9 +597,11 @@ EMERGENCY_CONTAINMENT = PRESERVE_SEAL_STOP_CALLS_AND_STOP_FURTHER_MIGRATIONS
 
 Migration 1 changes the supported route for existing secret material while
 preserving listed non-secret DML. A correctly installed and sealed migration 1
-remains authoritative when migration 2 is pending. Migration 2 refines replay in
-place. Removal or reversal requires new Product Authority and a new controlled
-operation; this Spec supplies no down migration.
+remains authoritative when migration 2 is pending, but credential rotation stays
+disabled throughout that interval because replay lacks the migration 2 target and
+live-generation checks. Migration 2 refines replay in place. Removal or reversal
+requires new Product Authority and a new controlled operation; this Spec supplies
+no down migration.
 
 ## 13. Open questions
 
