@@ -204,10 +204,49 @@ export function importCanonicalSubjectPacket(input: unknown): ImportedCanonicalS
   if (Date.parse(parsed.data.expiresAt) <= Date.parse(parsed.data.createdAt))
     return fail('INVALID_PACKET', null, 'expiresAt', 400);
   const keys = new Set<string>();
+  const targets = new Set<string>();
+  const claimTarget = (mutationKey: string, kind: string, value: string, field: string) => {
+    const target = `${kind}:${value}`;
+    if (targets.has(target))
+      return fail('INVALID_PACKET', mutationKey, field, 400);
+    targets.add(target);
+  };
   for (const mutation of parsed.data.mutations) {
     if (keys.has(mutation.mutationKey))
       return fail('INVALID_PACKET', mutation.mutationKey, 'mutationKey', 400);
     keys.add(mutation.mutationKey);
+    if (mutation.operation === 'ACTIVATE_ATTESTATION') {
+      claimTarget(mutation.mutationKey, 'attestation', mutation.subjectAttestationId.toLowerCase(), 'subjectAttestationId');
+      claimTarget(mutation.mutationKey, 'businessSubject', mutation.businessSubjectId.toLowerCase(), 'businessSubjectId');
+    }
+    else if (mutation.operation === 'SUPERSEDE_ATTESTATION') {
+      claimTarget(mutation.mutationKey, 'attestation', mutation.subjectAttestationId.toLowerCase(), 'subjectAttestationId');
+      claimTarget(mutation.mutationKey, 'attestation', mutation.predecessorAttestationId.toLowerCase(), 'predecessorAttestationId');
+      claimTarget(mutation.mutationKey, 'businessSubject', mutation.businessSubjectId.toLowerCase(), 'businessSubjectId');
+    }
+    else if (mutation.operation === 'REVOKE_ATTESTATION') {
+      claimTarget(mutation.mutationKey, 'attestation', mutation.subjectAttestationId.toLowerCase(), 'subjectAttestationId');
+      claimTarget(mutation.mutationKey, 'businessSubject', mutation.businessSubjectId.toLowerCase(), 'businessSubjectId');
+    }
+    else if (mutation.operation === 'INSTALL_ATTESTATION_DELEGATION' || mutation.operation === 'REVOKE_ATTESTATION_DELEGATION')
+      claimTarget(mutation.mutationKey, 'delegation', mutation.delegationId.toLowerCase(), 'delegationId');
+    else if (mutation.operation === 'TRANSITION_AGENT_LIFECYCLE')
+      claimTarget(mutation.mutationKey, 'lifecycle', mutation.principalId.toLowerCase(), 'principalId');
+    else if (mutation.operation === 'INSTALL_EXPLICIT_SUCCESSOR')
+      claimTarget(mutation.mutationKey, 'successorSource', mutation.sourcePrincipalId.toLowerCase(), 'sourcePrincipalId');
+    else if (mutation.operation === 'ACTIVATE_SOURCE_BINDING') {
+      claimTarget(mutation.mutationKey, 'sourceBinding', mutation.sourceBindingId.toLowerCase(), 'sourceBindingId');
+      claimTarget(mutation.mutationKey, 'sourceKey', canonicalJson([mutation.sourceNamespace, mutation.sourceLocalValue]), 'sourceLocalValue');
+    }
+    else if (mutation.operation === 'SUPERSEDE_SOURCE_BINDING') {
+      claimTarget(mutation.mutationKey, 'sourceBinding', mutation.predecessorSourceBindingId.toLowerCase(), 'predecessorSourceBindingId');
+      claimTarget(mutation.mutationKey, 'sourceBinding', mutation.replacementSourceBindingId.toLowerCase(), 'replacementSourceBindingId');
+      claimTarget(mutation.mutationKey, 'sourceKey', canonicalJson([mutation.sourceNamespace, mutation.sourceLocalValue]), 'sourceLocalValue');
+    }
+    else if (mutation.operation === 'EXIT_SOURCE_BINDING') {
+      claimTarget(mutation.mutationKey, 'sourceBinding', mutation.sourceBindingId.toLowerCase(), 'sourceBindingId');
+      claimTarget(mutation.mutationKey, 'sourceKey', canonicalJson([mutation.sourceNamespace, mutation.sourceLocalValue]), 'sourceLocalValue');
+    }
     if (mutation.operation === 'INSTALL_ATTESTATION_DELEGATION' && (new Set(mutation.authorizedBusinessSubjectIds).size !== mutation.authorizedBusinessSubjectIds.length || new Set(mutation.authorizedOperations).size !== mutation.authorizedOperations.length))
       return fail('INVALID_PACKET', mutation.mutationKey, 'delegation.scope', 400);
   }
@@ -671,27 +710,31 @@ export async function planCanonicalSubjectEnrollmentInSnapshot(imported: Importe
 function actorColumns(actor: { kind: string; id: string }): [string | null, string | null, string | null] {
   return actor.kind === 'user' ? [actor.id, null, null] : actor.kind === 'machine_principal' ? [null, actor.id, null] : [null, null, actor.id];
 }
+async function expectOneUpdate(tx: RawClient, mutationKey: string, field: string, query: string, ...values: unknown[]): Promise<void> {
+  if (await tx.$executeRawUnsafe(query, ...values) !== 1)
+    fail('PRESTATE_CHANGED', mutationKey, field);
+}
 async function executeMutation(tx: RawClient, mutation: CanonicalSubjectMutation): Promise<void> {
   switch (mutation.operation) {
     case 'ACTIVATE_ATTESTATION':
     case 'SUPERSEDE_ATTESTATION': {
       if (mutation.operation === 'SUPERSEDE_ATTESTATION')
-        await tx.$executeRawUnsafe("UPDATE canonical_subject_attestations SET status='superseded',revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE subject_attestation_id=$1::uuid AND status='active' AND revision=$2::bigint", mutation.predecessorAttestationId, mutation.expectedPredecessorRevision);
+        await expectOneUpdate(tx, mutation.mutationKey, 'predecessorAttestationId', "UPDATE canonical_subject_attestations SET status='superseded',revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE subject_attestation_id=$1::uuid AND status='active' AND revision=$2::bigint", mutation.predecessorAttestationId, mutation.expectedPredecessorRevision);
       const [byUser, byMachine, byExternal] = actorColumns(mutation.attestedBy);
       await tx.$executeRawUnsafe(`INSERT INTO canonical_subject_attestations(subject_attestation_id,business_subject_id,subject_type,business_subject_description,machine_principal_id,user_id,canonical_agent_id,authority_source,attested_by_kind,attested_by_user_id,attested_by_machine_principal_id,attested_by_external_ref,attestation_authority_kind,attestation_authority_ref,attestation_authority_digest,attestation_authority_operation,delegation_id,effective_at,evidence_ref,supersedes_attestation_id,revision,status) VALUES($1::uuid,$2::uuid,$3::"CanonicalSubjectType",$4,$5::uuid,$6::uuid,$7,$8,$9::"AttestationActorKind",$10::uuid,$11::uuid,$12,$13::"AttestationAuthorityKind",$14,$15,$16::"AttestationAuthorityOperation",$17::uuid,$18::timestamptz,$19,$20::uuid,1,'active')`, mutation.subjectAttestationId, mutation.businessSubjectId, mutation.subjectType, mutation.businessSubjectDescription, mutation.target.machinePrincipalId ?? null, mutation.target.userId ?? null, mutation.target.canonicalAgentId ?? null, mutation.authoritySource, mutation.attestedBy.kind, byUser, byMachine, byExternal, mutation.authority.kind, mutation.authority.ref, mutation.authority.digest, mutation.authority.requestedOperation, mutation.authority.delegationId ?? null, mutation.effectiveAt, mutation.evidenceRef, mutation.operation === 'SUPERSEDE_ATTESTATION' ? mutation.predecessorAttestationId : null);
       return;
     }
     case 'REVOKE_ATTESTATION':
-      await tx.$executeRawUnsafe("UPDATE canonical_subject_attestations SET status='revoked',revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE subject_attestation_id=$1::uuid AND status='active' AND revision=$2::bigint", mutation.subjectAttestationId, mutation.expectedRevision); return;
+      await expectOneUpdate(tx, mutation.mutationKey, 'subjectAttestationId', "UPDATE canonical_subject_attestations SET status='revoked',revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE subject_attestation_id=$1::uuid AND status='active' AND revision=$2::bigint", mutation.subjectAttestationId, mutation.expectedRevision); return;
     case 'INSTALL_ATTESTATION_DELEGATION':
       await tx.$executeRawUnsafe(`INSERT INTO identity_attestation_delegations(delegation_id,delegated_actor_type,delegated_user_id,delegated_machine_principal_id,authorized_subject_type,authorized_business_subject_ids,authorized_operations,owner_authority_ref,owner_authority_digest,effective_at,expires_at,status,revision) VALUES($1::uuid,$2::"DelegatedActorType",$3::uuid,$4::uuid,$5::"CanonicalSubjectType",$6::uuid[],$7::text[],$8,$9,$10::timestamptz,$11::timestamptz,'active',1)`, mutation.delegationId, mutation.delegatedActor.kind, mutation.delegatedActor.kind === 'user' ? mutation.delegatedActor.id : null, mutation.delegatedActor.kind === 'machine_principal' ? mutation.delegatedActor.id : null, mutation.authorizedSubjectType, mutation.authorizedBusinessSubjectIds, mutation.authorizedOperations, mutation.ownerAuthorityRef, mutation.ownerAuthorityDigest, mutation.effectiveAt, mutation.expiresAt); return;
     case 'REVOKE_ATTESTATION_DELEGATION':
-      await tx.$executeRawUnsafe("UPDATE identity_attestation_delegations SET status='revoked',revision=revision+1,revoked_at=CURRENT_TIMESTAMP,revocation_authority_ref=$3,updated_at=CURRENT_TIMESTAMP WHERE delegation_id=$1::uuid AND status='active' AND revision=$2::bigint", mutation.delegationId, mutation.expectedRevision, mutation.revocationAuthorityRef); return;
+      await expectOneUpdate(tx, mutation.mutationKey, 'delegationId', "UPDATE identity_attestation_delegations SET status='revoked',revision=revision+1,revoked_at=CURRENT_TIMESTAMP,revocation_authority_ref=$3,updated_at=CURRENT_TIMESTAMP WHERE delegation_id=$1::uuid AND status='active' AND revision=$2::bigint", mutation.delegationId, mutation.expectedRevision, mutation.revocationAuthorityRef); return;
     case 'TRANSITION_AGENT_LIFECYCLE':
       if (mutation.fromState === 'absent')
         await tx.$executeRawUnsafe('INSERT INTO agent_identity_lifecycle(principal_id,state,revision,evidence_ref) VALUES($1::uuid,$2::"AgentIdentityState",1,$3)', mutation.principalId, mutation.toState, mutation.evidenceRef);
       else
-        await tx.$executeRawUnsafe('UPDATE agent_identity_lifecycle SET state=$2::"AgentIdentityState",revision=revision+1,evidence_ref=$3,updated_at=CURRENT_TIMESTAMP WHERE principal_id=$1::uuid AND state=$4::"AgentIdentityState" AND revision=$5::bigint', mutation.principalId, mutation.toState, mutation.evidenceRef, mutation.fromState, mutation.expectedRevision);
+        await expectOneUpdate(tx, mutation.mutationKey, 'principalId', 'UPDATE agent_identity_lifecycle SET state=$2::"AgentIdentityState",revision=revision+1,evidence_ref=$3,updated_at=CURRENT_TIMESTAMP WHERE principal_id=$1::uuid AND state=$4::"AgentIdentityState" AND revision=$5::bigint', mutation.principalId, mutation.toState, mutation.evidenceRef, mutation.fromState, mutation.expectedRevision);
       return;
     case 'INSTALL_EXPLICIT_SUCCESSOR':
       await tx.$executeRawUnsafe('INSERT INTO agent_identity_successors(source_principal_id,target_principal_id,evidence_ref) VALUES($1::uuid,$2::uuid,$3)', mutation.sourcePrincipalId, mutation.targetPrincipalId, mutation.evidenceRef); return;
@@ -699,13 +742,13 @@ async function executeMutation(tx: RawClient, mutation: CanonicalSubjectMutation
       if (mutation.expectedRevision === null)
         await tx.$executeRawUnsafe(`INSERT INTO canonical_subject_source_bindings(source_binding_id,source_namespace,source_local_value,subject_attestation_id,semantics,effective_at,evidence_ref,status,revision) VALUES($1::uuid,$2,$3,$4::uuid,'prospective_binding',$5::timestamptz,$6,'active',1)`, mutation.sourceBindingId, mutation.sourceNamespace, mutation.sourceLocalValue, mutation.subjectAttestationId, mutation.effectiveAt, mutation.evidenceRef);
       else
-        await tx.$executeRawUnsafe("UPDATE canonical_subject_source_bindings SET status='active',revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE source_binding_id=$1::uuid AND source_namespace=$2 AND source_local_value=$3 AND subject_attestation_id=$4::uuid AND status='planned' AND revision=$5::bigint", mutation.sourceBindingId, mutation.sourceNamespace, mutation.sourceLocalValue, mutation.subjectAttestationId, mutation.expectedRevision);
+        await expectOneUpdate(tx, mutation.mutationKey, 'sourceBindingId', "UPDATE canonical_subject_source_bindings SET status='active',revision=revision+1,updated_at=CURRENT_TIMESTAMP WHERE source_binding_id=$1::uuid AND source_namespace=$2 AND source_local_value=$3 AND subject_attestation_id=$4::uuid AND status='planned' AND revision=$5::bigint", mutation.sourceBindingId, mutation.sourceNamespace, mutation.sourceLocalValue, mutation.subjectAttestationId, mutation.expectedRevision);
       return;
     case 'SUPERSEDE_SOURCE_BINDING':
-      await tx.$executeRawUnsafe("UPDATE canonical_subject_source_bindings SET status='superseded',revision=revision+1,superseded_at=CURRENT_TIMESTAMP,supersession_evidence_ref=$3,updated_at=CURRENT_TIMESTAMP WHERE source_binding_id=$1::uuid AND status IN ('planned','active') AND revision=$2::bigint", mutation.predecessorSourceBindingId, mutation.expectedPredecessorRevision, mutation.supersessionEvidenceRef);
+      await expectOneUpdate(tx, mutation.mutationKey, 'predecessorSourceBindingId', "UPDATE canonical_subject_source_bindings SET status='superseded',revision=revision+1,superseded_at=CURRENT_TIMESTAMP,supersession_evidence_ref=$3,updated_at=CURRENT_TIMESTAMP WHERE source_binding_id=$1::uuid AND status IN ('planned','active') AND revision=$2::bigint", mutation.predecessorSourceBindingId, mutation.expectedPredecessorRevision, mutation.supersessionEvidenceRef);
       await tx.$executeRawUnsafe(`INSERT INTO canonical_subject_source_bindings(source_binding_id,source_namespace,source_local_value,subject_attestation_id,semantics,effective_at,evidence_ref,status,revision,supersedes_source_binding_id) VALUES($1::uuid,$2,$3,$4::uuid,'prospective_binding',$5::timestamptz,$6,'active',1,$7::uuid)`, mutation.replacementSourceBindingId, mutation.sourceNamespace, mutation.sourceLocalValue, mutation.subjectAttestationId, mutation.effectiveAt, mutation.evidenceRef, mutation.predecessorSourceBindingId); return;
     case 'EXIT_SOURCE_BINDING':
-      await tx.$executeRawUnsafe("UPDATE canonical_subject_source_bindings SET status='exited',revision=revision+1,exited_at=CURRENT_TIMESTAMP,exit_evidence_ref=$3,updated_at=CURRENT_TIMESTAMP WHERE source_binding_id=$1::uuid AND status IN ('planned','active','superseded') AND revision=$2::bigint", mutation.sourceBindingId, mutation.expectedRevision, mutation.exitEvidenceRef); return;
+      await expectOneUpdate(tx, mutation.mutationKey, 'sourceBindingId', "UPDATE canonical_subject_source_bindings SET status='exited',revision=revision+1,exited_at=CURRENT_TIMESTAMP,exit_evidence_ref=$3,updated_at=CURRENT_TIMESTAMP WHERE source_binding_id=$1::uuid AND status IN ('planned','active','superseded') AND revision=$2::bigint", mutation.sourceBindingId, mutation.expectedRevision, mutation.exitEvidenceRef); return;
   }
 }
 

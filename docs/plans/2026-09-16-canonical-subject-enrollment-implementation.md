@@ -98,7 +98,7 @@ the change.
 ## Task 2 — Deterministic packet and validation library
 
 1. Write unit RED tests for strict unknown-field rejection, stable canonical bytes
-   and digest, duplicate keys, typed AGENT/HUMAN/SERVICE target checks, actor versus
+   and digest, duplicate mutation keys/target IDs/logical source keys, typed AGENT/HUMAN/SERVICE target checks, actor versus
    authority, operation/disposition matching and the 73/89/147 capacity fixture.
 2. Implement closed packet/result/error types. Canonicalization sorts only fields
    declared unordered by the packet contract and never normalizes identity values.
