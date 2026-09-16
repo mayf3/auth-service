@@ -62,6 +62,9 @@ model User {
   authorizationCodes        AuthorizationCode[]
   humanSessions             HumanSession[]
   refreshCredentials        RefreshCredential[]
+  canonicalSubjectAttestations CanonicalSubjectAttestation[] @relation("CanonicalSubjectHuman")
+  submittedSubjectAttestations CanonicalSubjectAttestation[] @relation("CanonicalSubjectAttestedByUser")
+  identityAttestationDelegations IdentityAttestationDelegation[]
 
   @@map("users")
 }
@@ -121,6 +124,9 @@ model MachinePrincipal {
   identityPredecessors AgentIdentitySuccessor[] @relation("IdentityTarget")
   clients      MachineClient[]
   trustedProxy TrustedProxy?   @relation("ProxyPrincipal")
+  canonicalSubjectAttestations CanonicalSubjectAttestation[] @relation("CanonicalSubjectMachine")
+  submittedSubjectAttestations CanonicalSubjectAttestation[] @relation("CanonicalSubjectAttestedByMachine")
+  identityAttestationDelegations IdentityAttestationDelegation[]
 
   @@map("machine_principals")
 }
@@ -548,4 +554,182 @@ model AgentIdentitySuccessor {
   target MachinePrincipal @relation("IdentityTarget", fields: [targetPrincipalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
   @@index([targetPrincipalId], map: "agent_identity_successors_target_idx")
   @@map("agent_identity_successors")
+}
+
+enum CanonicalSubjectType {
+  agent
+  human
+  service
+}
+
+enum SubjectAttestationStatus {
+  active
+  superseded
+  revoked
+}
+
+enum AttestationActorKind {
+  user
+  machine_principal
+  external_authority
+}
+
+enum AttestationAuthorityKind {
+  owner_exact
+  delegated
+  accepted_governing_authority
+}
+
+enum AttestationAuthorityOperation {
+  activate
+  supersede
+  revoke
+}
+
+enum SourceBindingSemantics {
+  prospective_binding
+}
+
+enum SourceBindingStatus {
+  planned
+  active
+  superseded
+  exited
+}
+
+enum DelegatedActorType {
+  user
+  machine_principal
+}
+
+enum IdentityAttestationDelegationStatus {
+  active
+  revoked
+}
+
+model IdentityAttestationDelegation {
+  delegationId String @id @map("delegation_id") @db.Uuid
+  delegatedActorType DelegatedActorType @map("delegated_actor_type")
+  delegatedUserId String? @map("delegated_user_id") @db.Uuid
+  delegatedMachinePrincipalId String? @map("delegated_machine_principal_id") @db.Uuid
+  authorizedSubjectType CanonicalSubjectType @map("authorized_subject_type")
+  authorizedBusinessSubjectIds String[] @map("authorized_business_subject_ids") @db.Uuid
+  authorizedOperations String[] @map("authorized_operations")
+  ownerAuthorityRef String @map("owner_authority_ref")
+  ownerAuthorityDigest String @map("owner_authority_digest")
+  effectiveAt DateTime @map("effective_at") @db.Timestamptz(3)
+  expiresAt DateTime @map("expires_at") @db.Timestamptz(3)
+  status IdentityAttestationDelegationStatus @default(active)
+  revision BigInt
+  revokedAt DateTime? @map("revoked_at") @db.Timestamptz(3)
+  revocationAuthorityRef String? @map("revocation_authority_ref")
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(3)
+  delegatedUser User? @relation(fields: [delegatedUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  delegatedMachinePrincipal MachinePrincipal? @relation(fields: [delegatedMachinePrincipalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  attestations CanonicalSubjectAttestation[]
+  operationAuthorities CanonicalSubjectOperationAuthority[]
+
+  @@map("identity_attestation_delegations")
+}
+
+model CanonicalSubjectAttestation {
+  subjectAttestationId String @id @map("subject_attestation_id") @db.Uuid
+  businessSubjectId String @map("business_subject_id") @db.Uuid
+  subjectType CanonicalSubjectType @map("subject_type")
+  businessSubjectDescription String @map("business_subject_description")
+  machinePrincipalId String? @map("machine_principal_id") @db.Uuid
+  userId String? @map("user_id") @db.Uuid
+  canonicalAgentId String? @map("canonical_agent_id")
+  authoritySource String @map("authority_source")
+  attestedByKind AttestationActorKind @map("attested_by_kind")
+  attestedByUserId String? @map("attested_by_user_id") @db.Uuid
+  attestedByMachinePrincipalId String? @map("attested_by_machine_principal_id") @db.Uuid
+  attestedByExternalRef String? @map("attested_by_external_ref")
+  attestationAuthorityKind AttestationAuthorityKind @map("attestation_authority_kind")
+  attestationAuthorityRef String @map("attestation_authority_ref")
+  attestationAuthorityDigest String @map("attestation_authority_digest")
+  attestationAuthorityOperation AttestationAuthorityOperation @map("attestation_authority_operation")
+  delegationId String? @map("delegation_id") @db.Uuid
+  effectiveAt DateTime @map("effective_at") @db.Timestamptz(3)
+  evidenceRef String @map("evidence_ref")
+  supersedesAttestationId String? @unique @map("supersedes_attestation_id") @db.Uuid
+  revision BigInt
+  status SubjectAttestationStatus
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(3)
+  machinePrincipal MachinePrincipal? @relation("CanonicalSubjectMachine", fields: [machinePrincipalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  user User? @relation("CanonicalSubjectHuman", fields: [userId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  attestedByUser User? @relation("CanonicalSubjectAttestedByUser", fields: [attestedByUserId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  attestedByMachinePrincipal MachinePrincipal? @relation("CanonicalSubjectAttestedByMachine", fields: [attestedByMachinePrincipalId], references: [id], onDelete: Restrict, onUpdate: Restrict)
+  delegation IdentityAttestationDelegation? @relation(fields: [delegationId], references: [delegationId], onDelete: Restrict, onUpdate: Restrict)
+  supersedes CanonicalSubjectAttestation? @relation("CanonicalSubjectAttestationChain", fields: [supersedesAttestationId], references: [subjectAttestationId], onDelete: Restrict, onUpdate: Restrict)
+  replacement CanonicalSubjectAttestation? @relation("CanonicalSubjectAttestationChain")
+  sourceBindings CanonicalSubjectSourceBinding[]
+
+  @@map("canonical_subject_attestations")
+}
+
+model CanonicalSubjectSourceBinding {
+  sourceBindingId String @id @map("source_binding_id") @db.Uuid
+  sourceNamespace String @map("source_namespace")
+  sourceLocalValue String @map("source_local_value")
+  subjectAttestationId String @map("subject_attestation_id") @db.Uuid
+  semantics SourceBindingSemantics @default(prospective_binding)
+  effectiveAt DateTime @map("effective_at") @db.Timestamptz(3)
+  evidenceRef String @map("evidence_ref")
+  status SourceBindingStatus
+  revision BigInt
+  createdAt DateTime @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt DateTime @default(now()) @map("updated_at") @db.Timestamptz(3)
+  supersededAt DateTime? @map("superseded_at") @db.Timestamptz(3)
+  supersessionEvidenceRef String? @map("supersession_evidence_ref")
+  exitedAt DateTime? @map("exited_at") @db.Timestamptz(3)
+  exitEvidenceRef String? @map("exit_evidence_ref")
+  supersedesSourceBindingId String? @unique @map("supersedes_source_binding_id") @db.Uuid
+  subjectAttestation CanonicalSubjectAttestation @relation(fields: [subjectAttestationId], references: [subjectAttestationId], onDelete: Restrict, onUpdate: Restrict)
+  supersedes CanonicalSubjectSourceBinding? @relation("CanonicalSubjectSourceBindingChain", fields: [supersedesSourceBindingId], references: [sourceBindingId], onDelete: Restrict, onUpdate: Restrict)
+  replacement CanonicalSubjectSourceBinding? @relation("CanonicalSubjectSourceBindingChain")
+
+  @@map("canonical_subject_source_bindings")
+}
+
+model CanonicalSubjectOperation {
+  operationId String @id @map("operation_id") @db.Uuid
+  environment String
+  actorRef String @map("actor_ref")
+  packetDigest String @map("packet_digest")
+  authorityDigest String @map("authority_digest")
+  prestateDigest String @map("prestate_digest")
+  planDigest String @unique @map("plan_digest")
+  coreEvidenceDigest String? @map("core_evidence_digest")
+  attestationAuthorityManifestDigest String @map("attestation_authority_manifest_digest")
+  poststateDigest String @map("poststate_digest")
+  mutationCounts Json @map("mutation_counts")
+  committedAt DateTime @default(now()) @map("committed_at") @db.Timestamptz(3)
+  authorityManifest CanonicalSubjectOperationAuthority[]
+
+  @@map("canonical_subject_operations")
+}
+
+model CanonicalSubjectOperationAuthority {
+  operationId String @map("operation_id") @db.Uuid
+  mutationKey String @map("mutation_key")
+  businessSubjectId String @map("business_subject_id") @db.Uuid
+  subjectAttestationId String @map("subject_attestation_id") @db.Uuid
+  predecessorId String? @map("predecessor_id") @db.Uuid
+  subjectType CanonicalSubjectType @map("subject_type")
+  target Json
+  authorityKind AttestationAuthorityKind @map("authority_kind")
+  authorityRef String @map("authority_ref")
+  authorityDigest String @map("authority_digest")
+  requestedOperation AttestationAuthorityOperation @map("requested_operation")
+  intendedDisposition SubjectAttestationStatus @map("intended_disposition")
+  delegationId String? @map("delegation_id") @db.Uuid
+  delegationRevision BigInt? @map("delegation_revision")
+  operation CanonicalSubjectOperation @relation(fields: [operationId], references: [operationId], onDelete: Restrict, onUpdate: Restrict)
+  delegation IdentityAttestationDelegation? @relation(fields: [delegationId], references: [delegationId], onDelete: Restrict, onUpdate: Restrict)
+
+  @@id([operationId, mutationKey])
+  @@map("canonical_subject_operation_authorities")
 }
