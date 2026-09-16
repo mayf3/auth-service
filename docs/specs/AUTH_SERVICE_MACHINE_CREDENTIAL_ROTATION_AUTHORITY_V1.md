@@ -10,7 +10,10 @@ scope:
   - controlled production installation requirements for those exact migrations
 governed_by: [MINIMAL_AUTH_FOUNDATION_V2]
 external_authorities:
-  - AGENT_CORE_AGENT_CREDENTIAL_PROVISIONING_V1 Amendment 7
+  - repository: mayf3/dsh-agent-core
+    authority_id: AGENT_CORE_AGENT_CREDENTIAL_PROVISIONING_V1
+    revision: 763985a46cb063536834a5c452ab3e3e34adf93b
+    relation: constrained_by
 supersedes: []
 superseded_by: null
 owners: [mayf3]
