@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_CANONICAL_SUBJECT_ENROLLMENT_AND_SOURCE_BINDING_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -17,6 +17,11 @@ external_authorities: []
 supersedes: []
 superseded_by: null
 owners: [mayf3]
+accepted_date: 2026-09-16
+accepted_by: mayf3
+accepted_reviewed_head: 4714fa0d814c870f0ac14a393d80fc885d8192b1
+accepted_reviewed_body_sha256: 064211bfadd65e5d03b6b36783565cf835f2cc078241f8c5a74292127d458aff
+review_status: INDEPENDENT_SEMANTIC_REVIEW_ACCEPT_BLOCKERS_0_SPEC_GAPS_0
 ---
 
 # Canonical subject enrollment and source binding
