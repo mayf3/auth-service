@@ -160,11 +160,18 @@ export const authRequired = asyncHandler(async (req: Request, _res: Response, ne
       internalRole: true,
       okrRole: true,
       agentId: true,
+      status: true,
     },
   });
 
   if (!user) {
     throw new HttpError(401, '用户不存在或已被禁用');
+  }
+
+  // T84: enforce User.status — a disabled User must not authenticate even
+  // with a valid (unexpired, correctly signed) legacy token.
+  if (user.status !== 'active') {
+    throw new HttpError(403, '账户已被禁用');
   }
 
   req.user = user as Express.AuthUser;
