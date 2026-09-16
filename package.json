@@ -23,7 +23,9 @@
     "contract:v1:readiness": "npm run contract:v1:prepare && tsx scripts/check-minimal-auth-v1-readiness.ts",
     "verify:hosting-logs": "node scripts/verify-auth-hosting-logs.mjs",
     "test:canonical-identity": "tsx --test tests/oauth/canonical-identity.test.ts tests/oauth/canonical-identity-postgres.test.ts",
-    "check:canonical-identity": "tsx scripts/check-canonical-identity-conformance.ts"
+    "check:canonical-identity": "tsx scripts/check-canonical-identity-conformance.ts",
+    "canonical-subject-enrollment": "tsx scripts/canonical-subject-enrollment.ts",
+    "test:canonical-subject-enrollment": "tsx --test tests/oauth/canonical-subject-enrollment.test.ts tests/oauth/canonical-subject-enrollment-postgres.test.ts"
   },
   "bin": {
     "agent-identity": "dist/src/cli/agent-identity.js"
