@@ -115,6 +115,13 @@ DEC-CSESB-006: source binding exit is subtraction, not compatibility. EXITED is
 terminal, preserved for evidence, excluded from runtime resolution and incapable of
 admitting the old value.
 
+DEC-CSESB-007: actor attribution and identity-attestation authority are separate.
+`attested_by_*` records who submitted or executed an operation; it grants no right to
+decide a business-subject binding. Creating, superseding or revoking a typed subject
+attestation requires one exact authority proof admitted by CTR-CSESB-013. Ordinary
+Auth administration, Principal existence, Client ownership or Grant possession never
+substitutes for that proof.
+
 ## 4. Data contracts and invariants
 
 ### CTR-CSESB-001 — Typed subject attestation persistence
@@ -136,6 +143,10 @@ attested_by_kind                user|machine_principal|external_authority
 attested_by_user_id             nullable uuid FK users(id) RESTRICT
 attested_by_machine_principal_id nullable uuid FK machine_principals(id) RESTRICT
 attested_by_external_ref        nullable nonempty text
+attestation_authority_kind      owner_exact|delegated|accepted_governing_authority
+attestation_authority_ref       nonempty exact authority coordinate
+attestation_authority_digest    sha256 text
+delegation_id                   nullable uuid FK identity_attestation_delegations RESTRICT
 effective_at                    timestamptz not null
 evidence_ref                    nonempty text
 supersedes_attestation_id       nullable uuid FK same table RESTRICT
@@ -153,10 +164,19 @@ Exactly one subject-target shape is valid:
 | `human` | null | required | null |
 | `service` | required | null | null |
 
-Exactly one `attested_by_*` target matching `attested_by_kind` is required. An
-external authority reference is a stable reviewed artifact/decision coordinate,
-not a display name. `authority_source`, `attested_by`, `effective_at` and
-`evidence_ref` are provenance; none independently proves target identity.
+Exactly one `attested_by_*` target matching `attested_by_kind` is required. Those
+columns record actor attribution only. They do not themselves grant attestation
+authority, even when the actor is an active User, MachinePrincipal or Auth
+administrator. An external actor reference is a stable actor coordinate, not a
+display name. `authority_source`, `attested_by`, `effective_at` and `evidence_ref`
+are provenance; a nonempty value in any of them independently proves neither target
+identity nor authority.
+
+`attestation_authority_kind/ref/digest` bind the exact authority admitted by
+CTR-CSESB-013. `delegation_id` is required only for `delegated` and null otherwise.
+The authority fields are immutable. A target-valid attestation with missing,
+invalid, stale, revoked, expired or out-of-scope authority is invalid and cannot be
+inserted, activated, superseded or used by APPLY.
 
 Target columns, subject type, effective time, authority source, attester identity,
 evidence identity, creation time and supersession predecessor are immutable after
@@ -325,13 +345,20 @@ the same bytes is identical.
 
 `PLAN` is database read-only. In one repeatable snapshot it resolves every exact
 target, checks foundation installation and current lifecycle/attestation/binding
-state, performs the fresh Core evidence check required for AGENT targets, calculates
-the exact mutation set, and emits:
+state, performs the fresh Core evidence check required for AGENT targets, and
+validates the exact identity-attestation authority under CTR-CSESB-013. Validation
+includes actor identity, permitted operation, subject type, exact business-subject
+scope, exact canonical target, authority acceptance/status/revision/digest,
+effective time, expiry and revocation. Any failed or unknown check yields
+`CONFLICT/FAIL`, emits no applicable plan and makes APPLY unavailable. PLAN then
+calculates the exact mutation set and emits:
 
 ```text
 operation_id
 packet_digest
 authority_digest
+attestation_authority_kind/ref/digest
+delegation_id/revision when applicable
 prestate_digest
 plan_digest
 subject/binding counts by operation
@@ -354,6 +381,15 @@ once. The required Core Agent Definition check runs immediately before the datab
 transaction, has a bounded expiry, and its exact response/evidence digest is included
 in the reviewed plan and operation record. No cross-service atomicity is claimed.
 
+Before any attestation mutation commits, APPLY revalidates CTR-CSESB-013 against the
+exact authority coordinates and acting subject bound into the plan. For delegated
+authority it locks and re-reads the delegation row, requires the planned revision,
+active status, exact scope and operation, and checks effective/expiry time at the
+transaction timestamp. Revoked, expired, changed or out-of-scope authority causes
+whole-transaction zero write. For Owner-exact or accepted-governing authority it
+revalidates the exact immutable artifact revision/digest and its explicit typed
+subject-to-target statement. Target validity alone never authorizes attribution.
+
 There is no partial success. Any stale revision, changed target status/pair, changed
 Core evidence, conflicting attestation/source binding, missing foundation table,
 lock timeout, serialization failure or audit failure rolls back the transaction.
@@ -370,6 +406,7 @@ authority_digest       sha256 text
 prestate_digest        sha256 text
 plan_digest            sha256 text unique
 core_evidence_digest   nullable sha256 text
+attestation_authority_digest nullable sha256 text
 poststate_digest       sha256 text
 mutation_counts        closed json object
 committed_at           timestamptz not null
@@ -411,6 +448,8 @@ The command surface supports only explicit plan operations:
 - `ACTIVATE_ATTESTATION`: insert an exact validated active enrollment;
 - `SUPERSEDE_ATTESTATION`: insert replacement plus transition predecessor;
 - `REVOKE_ATTESTATION`: terminal revocation, after dependency checks;
+- `INSTALL_ATTESTATION_DELEGATION`: exact Owner-issued, scoped, expiring delegation;
+- `REVOKE_ATTESTATION_DELEGATION`: terminal Owner-authorized revocation;
 - `TRANSITION_AGENT_LIFECYCLE`: accepted foundation state transition;
 - `INSTALL_EXPLICIT_SUCCESSOR`: exact separately authorized direct edge;
 - `ACTIVATE_SOURCE_BINDING`: planned to active;
@@ -441,9 +480,12 @@ BINDING_SEMANTICS = PROSPECTIVE_BINDING
 ```
 
 Six AGENT subjects may use their frozen reviewed mapping targets only after packet
-construction binds the exact mapping provenance and current exact Auth pair. Their
-business descriptions are not evidence. The remaining 66 AGENT subjects and the one
-HUMAN subject require typed exact-target attestation. The current HUMAN business
+construction binds both the exact mapping provenance and the Owner's frozen exact
+authority coordinate plus the current exact Auth pair. Their business descriptions
+are not evidence. The remaining 66 AGENT subjects and the one HUMAN subject require
+an exact typed Owner, delegated or accepted-governing-authority attestation under
+CTR-CSESB-013. Existing business attribution without an exact canonical target is
+not sufficient. The current HUMAN business
 subject description is `小马哥`; enrollment requires exact active `users.id` and
 creates no MachinePrincipal or Agent ID. Failure to establish that exact User fails
 closed and leaves the subject unenrolled.
@@ -467,6 +509,11 @@ TARGET_PAIR_MISMATCH
 NON_CANONICAL_AGENT_TARGET
 TARGET_INACTIVE
 TARGET_AUTHORITY_INCONSISTENT
+ATTESTATION_AUTHORITY_MISSING
+ATTESTATION_AUTHORITY_INVALID
+ATTESTATION_AUTHORITY_OUT_OF_SCOPE
+ATTESTATION_AUTHORITY_REVOKED
+ATTESTATION_AUTHORITY_EXPIRED
 ATTESTATION_CONFLICT
 SOURCE_BINDING_CONFLICT
 REVISION_CONFLICT
@@ -512,9 +559,11 @@ or assert historical identity equivalence.
 After this Spec is independently reviewed, accepted and merged, implementation may
 proceed in separately reviewable slices:
 
-1. persistence and invariant DDL for only the attestation, source-binding and
-   operation/audit records; reuse the existing foundation migration unchanged;
-2. exact target validation and controlled lifecycle management library;
+1. persistence and invariant DDL for only the attestation, delegation,
+   source-binding and operation/audit records; reuse the existing foundation
+   migration unchanged;
+2. exact target and typed-attestation-authority validation plus controlled lifecycle
+   management library;
 3. offline IMPORT plus read-only PLAN;
 4. gated APPLY and VERIFY vehicle with closed output;
 5. isolated unit/PostgreSQL concurrency, idempotency, negative and receipt tests;
@@ -531,6 +580,92 @@ retirement. Each production operation requires a separately accepted execution
 authority/runbook binding environment, exact reviewed plan, actor, attempt bound,
 preimage, rollback/containment, receipt and independent readback.
 
+### CTR-CSESB-013 — Typed-attestation authority
+
+```text
+ATTRIBUTION != AUTHORITY
+```
+
+Creating, superseding or revoking a canonical subject attestation is lawful only
+when exactly one of these authority classes proves the exact intended binding:
+
+1. **Owner exact typed attestation.** An immutable Owner decision names
+   `subject_type`, exact `business_subject_id` or `subject_attestation_id`, exact
+   canonical target and exact authority coordinate. AGENT names exact
+   `machine_principal_id + canonical_agent_id`; HUMAN names exact `users.id` with
+   null Agent ID; SERVICE names exact SERVICE MachinePrincipal with null Agent ID.
+2. **Owner-delegated identity-attestation authority.** An active Auth-owned
+   delegation names the exact actor, allowed subject type, enumerated business-
+   subject scope, allowed attestation operations, Owner authority source, effective
+   time and expiry. The acting subject must match the delegation exactly.
+3. **Accepted governing authority exact binding.** An accepted authority at an
+   exact repository revision/body digest explicitly states the exact business
+   subject to exact typed canonical target relation. A generic policy, label,
+   evidence reference or permission statement is insufficient.
+
+Exactly one authority class is selected per mutation. Conflicting authority proofs,
+multiple different targets, an unaccepted/mutable coordinate or a proof that does
+not name the exact business subject and target fails closed.
+
+For delegated authority, add `identity_attestation_delegations`:
+
+```text
+delegation_id                    uuid primary key
+delegated_actor_type             user|machine_principal
+delegated_user_id                nullable uuid FK users(id) RESTRICT
+delegated_machine_principal_id   nullable uuid FK machine_principals(id) RESTRICT
+authorized_subject_type          agent|human|service
+authorized_business_subject_ids nonempty uuid array, exact enumeration
+authorized_operations           nonempty subset activate|supersede|revoke
+owner_authority_ref              nonempty exact Owner authority coordinate
+owner_authority_digest           sha256 text
+effective_at                     timestamptz not null
+expires_at                       timestamptz not null and greater than effective_at
+status                           active|revoked
+revision                         positive bigint
+revoked_at                       nullable timestamptz
+revocation_authority_ref         nullable nonempty exact Owner coordinate
+created_at                       timestamptz not null
+updated_at                       timestamptz not null
+```
+
+Exactly one delegated actor FK matching `delegated_actor_type` is present. Scope is
+an explicit nonempty set of preassigned `business_subject_id` values and one subject
+type; wildcard subject, type or operation scope is forbidden. Creation requires an
+exact Owner delegation decision covering the complete row. Revocation requires exact
+Owner authority, is terminal, increments revision by one and preserves all original
+fields. Expiry is evaluated from transaction time even if status remains `active`.
+DELETE, extension, scope widening, actor replacement, self-delegation and delegated
+creation/revocation of delegation authority are forbidden. A new or broader mandate
+requires a new Owner-authorized delegation row.
+
+Delegation install/revoke and delegated attestation APPLY use SERIALIZABLE
+transactions and the same identity-management advisory-lock domain. Delegated APPLY
+locks and fences its exact delegation row before authority validation; revocation
+locks the same row. If revocation commits first, APPLY observes revoked state and
+writes nothing. If APPLY commits first, its operation record proves authority was
+active at that transaction's validation time and later revocation does not rewrite
+history. Serialization/lock conflict aborts the whole transaction and is never
+treated as authority success or automatically retried.
+
+`attested_by_*` identifies the submitting/executing actor and is always checked, but
+it grants no authority. None of the following is identity-attestation authority:
+
+- an ordinary User or MachinePrincipal identity;
+- Auth administrator status or ordinary Auth management permission alone;
+- Client ownership, credential possession, Grant possession or service access;
+- Agent role/name, display name, business-subject description or email;
+- nonempty `authority_source` or `evidence_ref` without an admitted authority proof;
+- Agent-ID grammar, UUID shape, source-local value or legacy mapping;
+- target validity or canonical status by itself.
+
+The authority proof is immutable provenance on every attestation and is included in
+PLAN, APPLY, operation audit and VERIFY digests. Ordinary authentication,
+authorization and canonical admission do not consult the delegation or attestation
+authority tables. This authority layer grants only the bounded right to attest the
+enumerated prospective binding; it grants no product permission, token, credential,
+Grant, Principal creation or source-reference mutation.
+
 ## 5. Rejected alternatives and explicit non-goals
 
 Rejected:
@@ -539,6 +674,8 @@ Rejected:
   Agent-ID grammar, Client ID or external alias as canonical authority;
 - copying lifecycle or successors into the new tables;
 - converting the HUMAN subject into an Agent or MachinePrincipal;
+- treating actor attribution, administrator status, Client/Grant possession or a
+  valid canonical target as identity-attestation authority;
 - automatically backfilling existing principals, users, source references or rows;
 - using source bindings as login, authorization, routing, ownership or write-admission
   fallback;
@@ -569,6 +706,7 @@ are labeled and prove no production enrollment.
 | ACC-CSESB-008 | 009 | reviewed initial packet conformance, no apply | 73 subjects = 72 AGENT + 1 HUMAN; 89 bindings cover 147 ledger rows exactly; six frozen-target inputs provenance-bound; 67 exact typed attestations | count drift hidden, labels treated as pair proof, Principal creation inferred |
 | ACC-CSESB-009 | 011 | source-owner readback and consumer/runtime dependency census | every EXITED binding has zero live legacy reference and zero ordinary-reader/writer dependency; history remains readable | compatibility path or ambiguous write remains live |
 | ACC-CSESB-010 | 012 | exact implementation diff, targeted tests, migration inspection and route/dependency scan | only accepted slices; foundation unchanged; no public permission/credential/Principal/source mutation; production apply false | source merge represented as production activation or scope expansion |
+| ACC-CSESB-011 | 001,005,006,008,009,010,013 | isolated exact authority matrix plus real PostgreSQL plan/apply rollback and delegation concurrency tests | (1) valid canonical AGENT target + ordinary MachinePrincipal actor without authority fails with zero write; (2) valid User/Admin actor + ordinary Auth management permission without delegation fails with zero write; (3) delegated actor outside exact subject/type/operation scope fails with zero write; (4) revoked and expired delegation each fail with zero write, including revocation racing APPLY; (5) Owner exact typed attestation + exact canonical target passes; (6) accepted governing authority explicitly naming exact subject→typed target passes; PLAN rejects every missing/invalid/stale authority and APPLY revalidates exact actor/scope/revision/status/time before commit | attribution treated as authority, permission-derived authority, scope wildcard, stale/revoked/expired delegation commits, target validity alone authorizes, or failure leaves any attestation/lifecycle/binding/operation row |
 
 ## 7. Authoring status and next gate
 
@@ -586,8 +724,8 @@ DOCS_FIRST_REQUIRED = YES
 OPEN_OWNER_DECISIONS = NONE
 NORMATIVE_TBD = NONE
 PARTIAL_SUPERSESSION = NONE
-CONTRACT_COUNT = 12
-CONTRACTS_WITH_ACCEPTANCE = 12
+CONTRACT_COUNT = 13
+CONTRACTS_WITH_ACCEPTANCE = 13
 AUTHORING_READY_FOR_REVIEW = YES
 IMPLEMENTATION_READY = NO
 PRODUCTION_READY = NO
