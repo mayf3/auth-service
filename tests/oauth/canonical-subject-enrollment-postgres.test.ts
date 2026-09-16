@@ -75,6 +75,7 @@ VALUES('${id(1000 + n)}','${id(2000 + n)}','${subjectType}','context only',${tar
       await serial(attestation(1));
       await rejected(`DELETE FROM canonical_subject_attestations WHERE subject_attestation_id='${id(1001)}'`);
       await rejected(`UPDATE canonical_subject_attestations SET canonical_agent_id='agt_other' WHERE subject_attestation_id='${id(1001)}'`);
+      await rejected(`UPDATE agent_identity_lifecycle SET state='legacy',revision=2,evidence_ref='invalid-demotion' WHERE principal_id='${id(1)}'`);
     });
 
     await t.test('typed AGENT HUMAN SERVICE target constraints fail closed', async () => {

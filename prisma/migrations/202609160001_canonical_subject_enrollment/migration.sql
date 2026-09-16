@@ -295,6 +295,14 @@ BEGIN
  RETURN NEW;
 END $$;
 
+CREATE FUNCTION canonical_subject_lifecycle_dependency_guard() RETURNS trigger LANGUAGE plpgsql AS $$
+BEGIN
+ IF NEW.state<>'canonical' AND EXISTS(SELECT 1 FROM canonical_subject_attestations WHERE machine_principal_id=NEW.principal_id AND subject_type='agent' AND status='active') THEN
+  RAISE EXCEPTION 'noncanonical lifecycle cannot retain active subject attestation' USING ERRCODE='23514';
+ END IF;
+ RETURN NEW;
+END $$;
+
 CREATE TRIGGER identity_attestation_delegations_write BEFORE INSERT OR UPDATE OR DELETE ON identity_attestation_delegations FOR EACH ROW EXECUTE FUNCTION canonical_subject_write_guard();
 CREATE TRIGGER identity_attestation_delegations_validate BEFORE INSERT OR UPDATE ON identity_attestation_delegations FOR EACH ROW EXECUTE FUNCTION canonical_subject_delegation_guard();
 CREATE TRIGGER canonical_subject_attestations_write BEFORE INSERT OR UPDATE OR DELETE ON canonical_subject_attestations FOR EACH ROW EXECUTE FUNCTION canonical_subject_write_guard();
@@ -307,3 +315,4 @@ CREATE CONSTRAINT TRIGGER canonical_subject_operations_manifest AFTER INSERT OR 
 CREATE CONSTRAINT TRIGGER canonical_subject_operation_authorities_manifest AFTER INSERT OR UPDATE ON canonical_subject_operation_authorities DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION canonical_subject_deferred_invariants();
 CREATE CONSTRAINT TRIGGER canonical_subject_attestations_dependencies AFTER INSERT OR UPDATE ON canonical_subject_attestations DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION canonical_subject_deferred_invariants();
 CREATE CONSTRAINT TRIGGER canonical_subject_source_bindings_replacement AFTER INSERT OR UPDATE ON canonical_subject_source_bindings DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION canonical_subject_deferred_invariants();
+CREATE CONSTRAINT TRIGGER canonical_subject_lifecycle_dependencies AFTER INSERT OR UPDATE ON agent_identity_lifecycle DEFERRABLE INITIALLY DEFERRED FOR EACH ROW EXECUTE FUNCTION canonical_subject_lifecycle_dependency_guard();

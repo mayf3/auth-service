@@ -259,7 +259,7 @@ export interface CanonicalSubjectReadStore {
   readAgentLifecycle(principalId: string): Promise<LifecycleRecord | null>;
   readSuccessor(principalId: string): Promise<SuccessorRecord | null>;
   readIncomingSuccessorCount(principalId: string): Promise<number>;
-  readActiveAttestationForMachinePrincipal(principalId: string): Promise<AttestationRecord | null>;
+  readActiveAttestationsForMachinePrincipal(principalId: string): Promise<AttestationRecord[]>;
   readCommittedOperation(operationId: string): Promise<CommittedOperationRecord | null>;
   readOperationAuthorityManifest(operationId: string): Promise<AuthorityManifestEntry[]>;
 }
@@ -532,7 +532,7 @@ export async function planCanonicalSubjectEnrollment(imported: ImportedCanonical
           fail('TARGET_PAIR_MISMATCH', mutation.mutationKey, 'canonicalAgentId');
         const target: TargetReference = { machinePrincipalId: mutation.principalId, canonicalAgentId: mutation.canonicalAgentId };
         validateAgentPrincipalCandidate(mutation.mutationKey, mutation.canonicalAgentId, await store.readTarget(target), actual === 'legacy' ? ['legacy'] : actual === 'absent' ? [null] : ['unresolved']);
-        if (await store.readActiveAttestationForMachinePrincipal(mutation.principalId))
+        if ((await store.readActiveAttestationsForMachinePrincipal(mutation.principalId)).length !== 0)
           fail('ATTESTATION_CONFLICT', mutation.mutationKey, 'principalId');
         const core = await evidence.validateCoreAgent(target, at);
         if (!core.valid || core.principalId !== mutation.principalId || core.agentId !== mutation.canonicalAgentId || Date.parse(core.expiresAt) <= at.getTime())
@@ -548,6 +548,13 @@ export async function planCanonicalSubjectEnrollment(imported: ImportedCanonical
         if (!exact)
           fail('AUTHORITY_NOT_ACCEPTED', mutation.mutationKey, 'predicates');
         coreDigests.push(predicates.evidenceDigest);
+      }
+      if (mutation.toState === 'retired' || (actual === 'canonical' && mutation.toState === 'legacy')) {
+        const activeAttestations = await store.readActiveAttestationsForMachinePrincipal(mutation.principalId);
+        prestate.push({ mutationKey: mutation.mutationKey, activeAttestations });
+        const covered = activeAttestations.every(attestation => imported.packet.mutations.some(item => (item.operation === 'REVOKE_ATTESTATION' && item.subjectAttestationId === attestation.subjectAttestationId) || (item.operation === 'SUPERSEDE_ATTESTATION' && item.predecessorAttestationId === attestation.subjectAttestationId)));
+        if (!covered)
+          fail('ATTESTATION_CONFLICT', mutation.mutationKey, 'principalId');
       }
       if (actual === 'canonical' && (mutation.toState === 'legacy' || mutation.toState === 'retired') && await store.readIncomingSuccessorCount(mutation.principalId) !== 0)
         fail('AUTHORITY_NOT_ACCEPTED', mutation.mutationKey, 'incomingSuccessors');
@@ -632,7 +639,7 @@ export function createCanonicalSubjectReadStore(client: RawClient): CanonicalSub
     readAgentLifecycle: async principalId => (await rows<any>(client, 'SELECT principal_id::text AS "principalId",state::text,revision::text FROM agent_identity_lifecycle WHERE principal_id=$1::uuid', principalId))[0] ?? null,
     readSuccessor: async principalId => (await rows<any>(client, 'SELECT source_principal_id::text AS "sourcePrincipalId",target_principal_id::text AS "targetPrincipalId" FROM agent_identity_successors WHERE source_principal_id=$1::uuid', principalId))[0] ?? null,
     readIncomingSuccessorCount: async principalId => Number((await rows<{ count: bigint }>(client, 'SELECT count(*)::bigint AS count FROM agent_identity_successors WHERE target_principal_id=$1::uuid', principalId))[0]?.count ?? 0),
-    readActiveAttestationForMachinePrincipal: async principalId => { const row = (await rows<any>(client, "SELECT subject_attestation_id::text AS \"subjectAttestationId\",business_subject_id::text AS \"businessSubjectId\",subject_type::text AS \"subjectType\",machine_principal_id::text AS \"machinePrincipalId\",user_id::text AS \"userId\",canonical_agent_id AS \"canonicalAgentId\",status::text,revision::text FROM canonical_subject_attestations WHERE machine_principal_id=$1::uuid AND status='active' ORDER BY subject_attestation_id LIMIT 1", principalId))[0]; return row ? attestationRecord(row) : null; },
+    readActiveAttestationsForMachinePrincipal: async principalId => (await rows<any>(client, "SELECT subject_attestation_id::text AS \"subjectAttestationId\",business_subject_id::text AS \"businessSubjectId\",subject_type::text AS \"subjectType\",machine_principal_id::text AS \"machinePrincipalId\",user_id::text AS \"userId\",canonical_agent_id AS \"canonicalAgentId\",status::text,revision::text FROM canonical_subject_attestations WHERE machine_principal_id=$1::uuid AND status='active' ORDER BY subject_attestation_id", principalId)).map(attestationRecord),
     readCommittedOperation: async operationId => (await rows<any>(client, 'SELECT operation_id::text AS "operationId",environment,actor_ref AS "actorRef",packet_digest AS "packetDigest",authority_digest AS "authorityDigest",prestate_digest AS "prestateDigest",plan_digest AS "planDigest",attestation_authority_manifest_digest AS "authorityManifestDigest",poststate_digest AS "poststateDigest",mutation_counts AS "mutationCounts",committed_at::text AS "committedAt" FROM canonical_subject_operations WHERE operation_id=$1::uuid', operationId))[0] ?? null,
     readOperationAuthorityManifest: async operationId => (await rows<any>(client, 'SELECT mutation_key AS "mutationKey",business_subject_id::text AS "businessSubjectId",subject_attestation_id::text AS "subjectAttestationId",predecessor_id::text AS "predecessorId",subject_type::text AS "subjectType",target,authority_kind::text AS "authorityKind",authority_ref AS "authorityRef",authority_digest AS "authorityDigest",requested_operation::text AS "requestedOperation",intended_disposition::text AS "intendedDisposition",delegation_id::text AS "delegationId",delegation_revision::text AS "delegationRevision" FROM canonical_subject_operation_authorities WHERE operation_id=$1::uuid ORDER BY mutation_key', operationId)).map(row => ({ mutationKey: row.mutationKey, businessSubjectId: row.businessSubjectId, subjectAttestationId: row.subjectAttestationId, ...(row.predecessorId ? { predecessorId: row.predecessorId } : {}), subjectType: row.subjectType, target: row.target, authorityKind: row.authorityKind, authorityRef: row.authorityRef, authorityDigest: row.authorityDigest, requestedOperation: row.requestedOperation, intendedDisposition: row.intendedDisposition, ...(row.delegationId ? { delegationId: row.delegationId, delegationRevision: row.delegationRevision } : {}) })),
   };
