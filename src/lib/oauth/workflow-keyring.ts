@@ -223,13 +223,35 @@ export function loadWorkflowKeyring(): WorkflowKeyring {
 }
 
 /**
- * Whether the workflow key ring is configured at all. Used by the issuer to
- * reject svc-workflow requests cleanly (instead of crashing) when the operator
- * hasn't provisioned RSA keys yet.
+ * Relevant keyring configuration variables. If ANY of them is set, the
+ * operator intends the workflow keyring to be active and the FULL keyring
+ * must validate (T88) — a partial configuration is a misconfiguration, not a
+ * supported disabled posture.
+ */
+const KEYRING_ENV_VARS = [
+  'JWT_PRIVATE_KEY',
+  'JWT_PRIVATE_KEY_FILE',
+  'JWT_KID',
+  'JWT_PREVIOUS_PUBLIC_KEYS',
+] as const;
+
+/**
+ * Whether the workflow key ring is configured at all.
+ *
+ * T88: all relevant variables absent → supported disabled posture (the issuer
+ * rejects svc-workflow requests cleanly). ANY relevant variable present → the
+ * complete keyring is validated RIGHT NOW; a partial/malformed configuration
+ * throws from this detection point so the startup gate in server.ts fails the
+ * process instead of serving with a silently disabled keyring. Partial config
+ * is never treated as absent.
  */
 export function isWorkflowKeyringConfigured(): boolean {
-  return Boolean(envVal('JWT_PRIVATE_KEY') || envVal('JWT_PRIVATE_KEY_FILE')) &&
-    Boolean(envVal('JWT_KID'));
+  const anyPresent = KEYRING_ENV_VARS.some((name) => envVal(name) !== '');
+  if (!anyPresent) {
+    return false;
+  }
+  getWorkflowKeyring(); // cached; throws on partial/malformed config
+  return true;
 }
 
 // ─── Singleton ────────────────────────────────────────────────────────────
