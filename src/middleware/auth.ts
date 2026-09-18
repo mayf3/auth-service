@@ -122,17 +122,20 @@ export const authRequired = asyncHandler(async (req: Request, _res: Response, ne
   }
 
   let payload: TokenPayload;
-  let verificationError: Error | null = null;
 
-  // Try unified auth-service JWT
+  // T85 (AUTH-SCOUT-20260914-C03): issuer/audience context-bound
+  // verification. A token rejected for its context MUST NOT authenticate
+  // merely because the signature matches JWT_SECRET — the former
+  // secret-only fallback (jwt.verify(token, JWT_SECRET)) was removed.
+  // Exactly two contexts verify:
+  //   unified auth-service: issuer=JWT_ISSUER  audience=JWT_AUDIENCE
+  //   legacy ADC:           issuer=agent-dev-center  audience=adc-api
   try {
     payload = jwt.verify(token, env.JWT_SECRET, {
       issuer: JWT_ISSUER,
       audience: JWT_AUDIENCE,
     }) as TokenPayload;
-  } catch (err) {
-    verificationError = err as Error;
-
+  } catch (unifiedError) {
     // Try legacy ADC JWT (backward compatibility)
     try {
       payload = jwt.verify(token, env.JWT_SECRET, {
@@ -140,12 +143,8 @@ export const authRequired = asyncHandler(async (req: Request, _res: Response, ne
         audience: 'adc-api',
       }) as TokenPayload;
     } catch {
-      // Last try: verify with secret only (for old tokens without strict issuer)
-      try {
-        payload = jwt.verify(token, env.JWT_SECRET) as TokenPayload;
-      } catch {
-        throw new HttpError(401, `登录状态已失效: ${verificationError?.message || '无效令牌'}`);
-      }
+      const detail = unifiedError instanceof Error ? unifiedError.message : '无效令牌';
+      throw new HttpError(401, `登录状态已失效: ${detail}`);
     }
   }
 
