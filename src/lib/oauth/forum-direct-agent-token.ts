@@ -119,7 +119,7 @@ export function mintForumDirectAgentToken(
     principal_type: 'agent',
     agent_id: params.agentId,
     client_id: params.machineClientId,
-    scopes: params.scope,
+    scope: params.scope,
     token_use: 'forum_direct_agent',
     type: 'access',
     version: env.JWT_VERSION,
@@ -139,11 +139,11 @@ export function mintForumDirectAgentToken(
 
   auditLog({
     timestamp: new Date().toISOString(),
-    type: 'principal.resolved' as any,
+    type: 'forum.direct_agent_token.minted',
     principalId: params.machinePrincipalId,
     clientId: params.machineClientId,
     agentId: params.agentId,
-    scopes: params.scope,
+    scope: params.scope,
     kid,
     success: true,
   });
