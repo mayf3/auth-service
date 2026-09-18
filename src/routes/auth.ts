@@ -6,7 +6,7 @@ import { prisma } from '../lib/prisma.js';
 import { asyncHandler } from '../utils/async-handler.js';
 import { HttpError } from '../utils/http-error.js';
 import { signAccessToken, signRefreshToken, verifyRefreshToken, authRequired, generatePassword } from '../middleware/auth.js';
-import { revokeRefreshToken, isRefreshTokenRevoked } from '../middleware/token-rotation.js';
+import { consumeRefreshToken } from '../lib/oauth/refresh-consumption.js';
 import { loginSchema, tokenLoginSchema, registerSchema, changePasswordSchema, refreshTokenSchema } from '../schemas/auth.js';
 import { env } from '../config/env.js';
 
@@ -213,15 +213,33 @@ authRouter.post(
   asyncHandler(async (req, res) => {
     const { body } = refreshTokenSchema.parse({ body: req.body });
 
-    let payload: { sub: string; jti?: string };
+    let payload: { sub: string; jti?: string; exp?: number };
     try {
       payload = verifyRefreshToken(body.refreshToken) as typeof payload;
     } catch {
       throw new HttpError(401, 'Refresh token 已失效，请重新登录');
     }
 
-    // SECURITY: Check if this refresh token has already been used (rotation)
-    if (payload.jti && isRefreshTokenRevoked(payload.jti)) {
+    // T86 (AUTH-SCOUT-20260914-C04): a refresh token without a jti has no
+    // canonical replay identity — reject with zero issuance (the former
+    // code skipped BOTH the revocation check and the revoke for it).
+    if (!payload.jti) {
+      throw new HttpError(401, 'Refresh token 已失效，请重新登录');
+    }
+
+    // T86: atomic durable single-consumption. The DB PRIMARY KEY decides
+    // the winner inside this call — concurrent requests, other service
+    // instances, and post-restart replays of the same jti all lose here
+    // (replaces the former process-local Map whose check -> await -> revoke
+    // window allowed two rotations). Consumption commits BEFORE minting:
+    // if minting were to throw, the burned token forces re-login
+    // (fail-closed); two successful rotations for one jti are impossible.
+    const refreshTtlMs =
+      typeof payload.exp === 'number'
+        ? Math.max(60_000, payload.exp * 1000 - Date.now())
+        : 30 * 24 * 60 * 60 * 1000;
+    const consumed = await consumeRefreshToken(payload.jti, refreshTtlMs, payload.sub);
+    if (!consumed) {
       throw new HttpError(401, 'Refresh token 已被使用，请重新登录');
     }
 
@@ -240,11 +258,6 @@ authRouter.post(
     // T84: enforce User.status — disabled Users must not refresh tokens.
     if (user.status !== 'active') {
       throw new HttpError(403, '账户已被禁用');
-    }
-
-    // SECURITY: Revoke the old refresh token
-    if (payload.jti) {
-      revokeRefreshToken(payload.jti);
     }
 
     const safeUser = toSafeUser(user);
