@@ -206,7 +206,8 @@ authRouter.post(
 
 // ---------------------------------------------------------------------------
 // POST /api/auth/refresh — Refresh tokens with rotation
-// SECURITY: Old refresh token is revoked after use (rotation)
+// SECURITY: the presented token's jti is atomically consumed ONCE in the
+// durable ledger (T86) before any new credential is issued
 // ---------------------------------------------------------------------------
 authRouter.post(
   '/refresh',
