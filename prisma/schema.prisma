@@ -733,3 +733,17 @@ model CanonicalSubjectOperationAuthority {
   @@id([operationId, mutationKey])
   @@map("canonical_subject_operation_authorities")
 }
+
+/// T86 (WF-GS-10/AUTH-SCOUT-20260914-C04): durable single-consumption ledger
+/// for refresh-token rotation. The jti PRIMARY KEY is the canonical replay
+/// identity — INSERT..ON CONFLICT DO NOTHING decides the atomic winner, so
+/// consumption is durable across process restarts and shared across service
+/// instances (replaces the former process-local revokedTokens Map).
+model RefreshTokenConsumption {
+  jti        String   @id
+  consumedAt DateTime @default(now()) @map("consumed_at")
+  expiresAt  DateTime @map("expires_at")
+  userId     String?  @map("user_id") @db.Uuid
+
+  @@map("refresh_token_consumptions")
+}
