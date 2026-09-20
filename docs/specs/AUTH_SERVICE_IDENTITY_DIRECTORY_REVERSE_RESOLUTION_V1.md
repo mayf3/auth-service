@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_IDENTITY_DIRECTORY_REVERSE_RESOLUTION_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -13,6 +13,12 @@ external_authorities: []
 supersedes: []
 superseded_by: null
 owners: [mayf3]
+accepted_by: mayf3
+accepted_date: 2026-09-21
+accepted_reviewed_spec_commit: cf9b474
+acceptance_review_verdict: PASS
+acceptance_review: independent two-round semantic review (round-1 head e48305c = REVISE / 1 blocker REQUIRED_GATE_FAILURE on closure determinism; fix applied exactly as MINIMAL_CLOSURE; round-2 head cf9b474 = ACCEPT / 0 blockers, reviewer = independent Agent not authoring the change, SPEC_GOVERNANCE_MODE=REVIEW)
+acceptance_record: Owner exact-head acceptance via GOAL AGENT_PRINCIPAL_REVERSE_LOOKUP_DELIVERY_V1 (OWNER_DECISION APPROVE_NARROW_REVERSE_READ_PATH, 2026-09-21) — persistent Owner authorization; residuals carried as follow-ups (parent-family malformed-status harmonization; parent Spec index row)
 ---
 
 # AUTH_SERVICE_IDENTITY_DIRECTORY_REVERSE_RESOLUTION_V1
@@ -208,7 +214,7 @@ Acceptance obligation: the acceptance transaction must record the independent
 semantic review verdict and the exact reviewed head in this frontmatter, and add
 this Spec to `docs/specs/README.md` in the same docs-only change.
 
-STATUS=proposed; IMPLEMENTATION_ALLOWED_NOW=NO; PRODUCTION_READY=NO. This Spec
-requires independent semantic review and exact-head Owner acceptance (mayf3, via
-GOAL `AGENT_PRINCIPAL_REVERSE_LOOKUP_DELIVERY_V1`) before any implementation
-begins under it.
+STATUS=accepted (2026-09-21; reviewed head cf9b474; independent review ACCEPT/0
+blockers after one closed round-1 blocker). Implementation proceeds under
+`implementation_authority: contracts` within CTR-IDR-001..005 only; production
+apply remains a separately authorized controlled operation.
