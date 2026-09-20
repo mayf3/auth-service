@@ -171,10 +171,13 @@ Exact changed-file set (bounded; no other file may change):
 | File | Change |
 |---|---|
 | `docs/specs/AUTH_SERVICE_IDENTITY_DIRECTORY_REVERSE_RESOLUTION_V1.md` | this Spec |
-| `docs/specs/README.md` | one index row |
-| `src/lib/oauth/v1/agent-principal-resolution.ts` | additive: `INVALID_AGENT_ID` + `AGENT_NOT_FOUND` error codes, `parseAgentIdParam`, `resolveAgentIdPrincipalDirectory` (mirrors the shared exact-read core; no change to existing exports) |
+| `docs/specs/README.md` | one index row (carried by the acceptance docs-only change, not the implementation change) |
+| `src/lib/oauth/v1/agent-principal-resolution.ts` | additive: the exported `AgentPrincipalResolutionErrorCode` union gains exactly the two named members `INVALID_AGENT_ID` and `AGENT_NOT_FOUND` (no existing member removed, renamed, or re-semantics; existing function signatures and behavior unchanged), plus new exports `parseAgentIdParam` and `resolveAgentIdPrincipalDirectory` mirroring the shared exact-read core |
 | `src/routes/workflow-admission.ts` | additive: second GET route on the existing router reusing the existing middleware/deps/deadline machinery |
 | `tests/oauth/identity-directory-reverse-resolution.test.ts` | new executable contract tests |
+
+The only delta to any existing export is the two-member union extension named
+above; every other delta in the two code files is purely additive.
 
 No schema change, no middleware change, no registry change, no provision
 permission expansion, no whole-main deployment. Production requires accepted
@@ -188,7 +191,7 @@ existing Production Deployment Control Plane with durable readback.
 | ACC-IDR-001 | 002 | real signed V1 fixtures: agent caller, service caller, disabled caller, revoked client, binding drift, wrong audience, wrong scope, missing token | valid agent+service callers reach the target read; every invalid profile denied before any target read (401/403) |
 | ACC-IDR-002 | 003 | signed real-route relational fixtures (synthetic identities; NO production canary UUID constants) | exact agentId success (active and disabled); malformed id 400; unknown 404; duplicate 409; non-agent 422; malformed row 500; extra query/body/framing 400; response keys exactly {principalId, agentId, principalStatus} |
 | ACC-IDR-003 | 004 | timeout/late-result/write-spy/log-sentinel fixtures over injected databases | WRITE_COUNT=0; TOKEN_ISSUANCE_SIDE_EFFECT=0; no cache; accurate 500/504; no field beyond the contract |
-| ACC-IDR-004 | 005 | exact diff vs frozen closure | bounded file set; existing exports byte-identical |
+| ACC-IDR-004 | 005 | exact diff vs frozen closure | bounded file set; the sole existing-export delta is the `AgentPrincipalResolutionErrorCode` union gaining exactly `INVALID_AGENT_ID` + `AGENT_NOT_FOUND`; all existing union members' values and all existing function signatures/behavior unchanged; every other code delta additive-only |
 | ACC-IDR-005 | all | production deployment readback through the control plane | live route fail-closed unauthenticated (401); authorized positive readback consistent with the authoritative store |
 
 ## Alternatives and status
