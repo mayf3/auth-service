@@ -181,6 +181,14 @@ Exact changed-file set (bounded; no other file may change):
 | `src/lib/oauth/v1/agent-principal-resolution.ts` | additive: the exported `AgentPrincipalResolutionErrorCode` union gains exactly the two named members `INVALID_AGENT_ID` and `AGENT_NOT_FOUND` (no existing member removed, renamed, or re-semantics; existing function signatures and behavior unchanged), plus new exports `parseAgentIdParam` and `resolveAgentIdPrincipalDirectory` mirroring the shared exact-read core |
 | `src/routes/workflow-admission.ts` | additive: second GET route on the existing router reusing the existing middleware/deps/deadline machinery |
 | `tests/oauth/identity-directory-reverse-resolution.test.ts` | new executable contract tests |
+| `tests/oauth/agent-principal-resolution.test.ts` | CLOSURE-CORRECTION-IDR-001 (bounded): the pre-existing source-shape guard `resolver source stays query-only` pins this file's `.findMany(` count at 4; the additive reverse read legitimately raises it to exactly 5. The ONLY permitted delta is that literal count (4 → 5) and its adjacent comment; every other assertion in the file is untouched |
+
+CLOSURE-CORRECTION-IDR-001 (2026-09-21, mechanical): discovered during
+implementation — the pre-existing machine gate in
+`tests/oauth/agent-principal-resolution.test.ts` pins an implementation-shape
+count that the additive reverse read necessarily changes. This correction adds
+that one guard-test file to the closure with the exact single-constant delta;
+no product semantics, error contract, or existing assertion behavior changes.
 
 The only delta to any existing export is the two-member union extension named
 above; every other delta in the two code files is purely additive.

@@ -404,7 +404,7 @@ test('resolver source stays query-only with the exact two-read shape', async () 
   for (const forbiddenCall of ['.create(', '.update(', '.updateMany(', '.upsert(', '.delete(', '.$executeRaw']) {
     assert.equal(source.includes(forbiddenCall), false, forbiddenCall);
   }
-  assert.equal((source.match(/\.findMany\(/g) ?? []).length, 4, 'forward + reverse + two adapter wrappers');
+  assert.equal((source.match(/\.findMany\(/g) ?? []).length, 5, 'forward + reverse + two adapter wrappers + reverse-directory read (CLOSURE-CORRECTION-IDR-001)');
   assert.match(source, /isolationLevel: 'Serializable'/);
 });
 
