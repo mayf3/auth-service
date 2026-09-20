@@ -17,7 +17,9 @@ import { prisma } from '../../../lib/prisma.js';
 
 export type AgentPrincipalResolutionErrorCode =
   | 'INVALID_PRINCIPAL_ID'
+  | 'INVALID_AGENT_ID'
   | 'INVALID_REQUEST'
+  | 'AGENT_NOT_FOUND'
   | 'PRINCIPAL_NOT_FOUND'
   | 'IDENTITY_RESOLUTION_AMBIGUOUS'
   | 'PRINCIPAL_NOT_AGENT'
@@ -299,4 +301,74 @@ export async function resolveAgentPrincipalDirectory(
     agentId: row.agentId,
     principalStatus: row.principalStatus === 'active' ? 'active' : 'disabled',
   };
+}
+
+/**
+ * Exact agent_id path grammar (CTR-IDR-003 of
+ * AUTH_SERVICE_IDENTITY_DIRECTORY_REVERSE_RESOLUTION_V1): the accepted
+ * canonical-identity stored-id grammar (`validAgent`), mirrored here so input
+ * validation is self-contained.
+ */
+const AGENT_ID_PATTERN = /^agt_[a-z0-9-]+$/;
+
+/**
+ * Validate the exact agent_id path grammar (CTR-IDR-003). Runs before any
+ * target identity query. No trimming, no case rewriting, no substring or
+ * prefix semantics.
+ */
+export function parseAgentIdParam(raw: unknown): string {
+  if (typeof raw !== 'string' || raw.length < 5 || raw.length > 128 || !AGENT_ID_PATTERN.test(raw)) {
+    return fail(400, 'INVALID_AGENT_ID');
+  }
+  return raw;
+}
+
+/**
+ * Resolve the exact Agent→Principal relation for the exact Agent ID as minimal
+ * directory data (CTR-IDR-003): one exact-agentId MachinePrincipal read with a
+ * two-row bound inside one read-only Serializable transaction snapshot. Zero
+ * rows = 404 AGENT_NOT_FOUND; more than one row, or a row whose stored agentId
+ * does not exactly equal the requested id = 409 IDENTITY_RESOLUTION_AMBIGUOUS;
+ * a non-AGENT row = 422 PRINCIPAL_NOT_AGENT; a row whose UUID or status is not
+ * well-formed = internal query failure (500). A disabled target is 200
+ * directory data (principalStatus='disabled'), never a 409. Strictly zero
+ * writes and no external_ref, display-name, or prefix fallback anywhere.
+ */
+export async function resolveAgentIdPrincipalDirectory(
+  rawAgentId: string,
+  database: AgentPrincipalResolutionDatabase = defaultDatabase,
+  options: AgentPrincipalResolutionOptions = {},
+): Promise<AgentPrincipalDirectoryResolution> {
+  const agentId = parseAgentIdParam(rawAgentId);
+  const timeoutMs = options.timeoutMs ?? AGENT_PRINCIPAL_RESOLUTION_DEFAULT_TIMEOUT_MS;
+  try {
+    return await withQueryDeadline(
+      database.$transaction(async (tx) => {
+        const rows = await tx.machinePrincipal.findMany({
+          where: { agentId },
+          select: PRINCIPAL_SELECT,
+          take: 2,
+        });
+        assertRowsArray(rows);
+        if (rows.length === 0) fail(404, 'AGENT_NOT_FOUND');
+        if (rows.length > 1) fail(409, 'IDENTITY_RESOLUTION_AMBIGUOUS');
+
+        const row = rows[0] as Record<string, unknown>;
+        if (row.agentId !== agentId) fail(409, 'IDENTITY_RESOLUTION_AMBIGUOUS');
+        if (typeof row.principalType !== 'string'
+          || typeof row.status !== 'string'
+          || typeof row.id !== 'string' || !PRINCIPAL_ID_PATTERN.test(row.id)) {
+          throw new TypeError('Agent principal reverse resolution query returned a malformed exact-match row');
+        }
+        if (row.principalType !== 'agent') fail(422, 'PRINCIPAL_NOT_AGENT');
+        if (row.status !== 'active' && row.status !== 'disabled') {
+          throw new TypeError('Agent principal reverse resolution query returned a malformed status');
+        }
+        return { principalId: row.id, agentId, principalStatus: row.status };
+      }, { isolationLevel: 'Serializable' }),
+      timeoutMs,
+    );
+  } catch (error) {
+    throw toAgentPrincipalResolutionError(error);
+  }
 }
