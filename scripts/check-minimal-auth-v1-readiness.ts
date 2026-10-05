@@ -60,7 +60,9 @@ async function main() {
   }
 
   for (const principal of principals) {
-    if (principal.principalType === 'agent' && (!principal.agentId || !principal.ownerUserId)) {
+    // AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1 §3: an Agent profile requires a
+    // non-empty agent_id only; owner_user_id is optional and never a defect here.
+    if (principal.principalType === 'agent' && !principal.agentId) {
       issues.push(`Agent principal ${principal.id} has an incomplete Agent profile`);
     }
     if (principal.principalType === 'service' && principal.agentId !== null) {
