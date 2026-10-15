@@ -37,13 +37,16 @@ function readBundle(relative: string): any {
   return JSON.parse(readFileSync(resolve(bundleRoot, relative), 'utf8'));
 }
 
-test('MCP CCR appends one exact SERVICE-only audience and preserves the twelve old projections', () => {
+test('MCP SERVICE audience and all thirteen base projections survive website composition', () => {
   const registry = readBundle('audience-registry.json');
-  assert.deepEqual(registry.audiences.at(-1), exactAudience);
-  assert.equal(registry.audiences.length, 13);
+  assert.deepEqual(registry.audiences[12], exactAudience);
+  assert.equal(registry.audiences.length, 15);
   // SHA256 of JSON.stringify(Base 6cf2663 registry.audiences): complete entries and order.
-  assert.equal(crypto.createHash('sha256').update(JSON.stringify(registry.audiences.slice(0, -1))).digest('hex'),
+  assert.equal(crypto.createHash('sha256').update(JSON.stringify(registry.audiences.slice(0, 12))).digest('hex'),
     '2c016106e6d5b01475132efc9baa9a4af57ce2f484440f8ef3190827d5d1510a');
+  // Preserve the complete 1.14.0 base, including the exact MCP entry.
+  assert.equal(crypto.createHash('sha256').update(JSON.stringify(registry.audiences.slice(0, 13))).digest('hex'),
+    '67a79cd4a65b5148d4305708c1f3820a841b974ccf65219cea63d779cbb90e6a');
   assert.equal(registry.registry_version, '1.14.0');
   assert.equal(readBundle('contract-manifest.json').contract_version, '1.14.0');
   assert.equal(readBundle('contract-manifest.json').audience_registry_version, '1.14.0');
