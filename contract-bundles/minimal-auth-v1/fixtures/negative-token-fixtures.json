@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.12.0",
+  "contract_version": "1.13.0",
   "cases": [
     {
       "name": "human-forbidden-scope",
@@ -813,6 +813,354 @@
         { "op": "set", "path": "/claims/aud", "value": "agent-principal-resolution" }
       ],
       "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "website-inquiry-human-missing-grant",
+      "base_fixture": "human-website-inquiry",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/authorization_context/human_audience_grants",
+          "value": []
+        }
+      ],
+      "expected_error": "AUDIENCE_NOT_GRANTED"
+    },
+    {
+      "name": "website-inquiry-human-cross-audience-grant",
+      "base_fixture": "human-website-inquiry",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/authorization_context/human_audience_grants",
+          "value": [
+            "svc-okr"
+          ]
+        }
+      ],
+      "expected_error": "AUDIENCE_NOT_GRANTED"
+    },
+    {
+      "name": "website-inquiry-human-scope-forbidden",
+      "base_fixture": "human-website-inquiry",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "conversation.intent.redeem"
+        }
+      ],
+      "expected_error": "PROFILE_FORBIDDEN_CLAIM"
+    },
+    {
+      "name": "website-inquiry-human-transport-profile",
+      "base_fixture": "human-website-inquiry",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/aud",
+          "value": "agent-core-website-transport-v1"
+        }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "website-inquiry-machine-human-profile",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/aud",
+          "value": "agent-core-website-human-v1"
+        }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "website-inquiry-agent-transport-profile",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/principal_type",
+          "value": "agent"
+        },
+        {
+          "op": "set",
+          "path": "/claims/agent_id",
+          "value": "synthetic-agent"
+        }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "website-inquiry-service-agent-id-forbidden",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/agent_id",
+          "value": "synthetic-agent"
+        }
+      ],
+      "expected_error": "PROFILE_FORBIDDEN_CLAIM"
+    },
+    {
+      "name": "website-inquiry-delegated-transport-profile",
+      "base_fixture": "obo-adc-v2-to-svc-workflow",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/aud",
+          "value": "agent-core-website-transport-v1"
+        }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "website-inquiry-missing-machine-grant",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/authorization_context/machine_access_grants",
+          "value": {}
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "website-inquiry-cross-audience-machine-grant",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/authorization_context/machine_access_grants",
+          "value": {
+            "agent-core-website-human-v1": [
+              "conversation.intent.redeem",
+              "conversation.own_events.read",
+              "conversation.own_result.read"
+            ]
+          }
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "website-inquiry-partial-grant-1",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/authorization_context/machine_access_grants",
+          "value": {
+            "agent-core-website-transport-v1": [
+              "conversation.intent.redeem"
+            ]
+          }
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "website-inquiry-partial-grant-2",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/authorization_context/machine_access_grants",
+          "value": {
+            "agent-core-website-transport-v1": [
+              "conversation.own_events.read"
+            ]
+          }
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "website-inquiry-partial-grant-3",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/authorization_context/machine_access_grants",
+          "value": {
+            "agent-core-website-transport-v1": [
+              "conversation.own_result.read"
+            ]
+          }
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "website-inquiry-empty-scope",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": ""
+        },
+        {
+          "op": "set",
+          "path": "/authorization_context/requested_scope",
+          "value": ""
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "website-inquiry-duplicate-scope",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "conversation.intent.redeem conversation.intent.redeem"
+        },
+        {
+          "op": "set",
+          "path": "/authorization_context/requested_scope",
+          "value": "conversation.intent.redeem conversation.intent.redeem"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "website-inquiry-wildcard-scope",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "conversation.*"
+        },
+        {
+          "op": "set",
+          "path": "/authorization_context/requested_scope",
+          "value": "conversation.*"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "website-inquiry-unknown-scope",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "conversation.admin"
+        },
+        {
+          "op": "set",
+          "path": "/authorization_context/requested_scope",
+          "value": "conversation.admin"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "website-inquiry-alias-scope",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "conversation.intent_redeem"
+        },
+        {
+          "op": "set",
+          "path": "/authorization_context/requested_scope",
+          "value": "conversation.intent_redeem"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "website-inquiry-wrong-namespace",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "workflow.read"
+        },
+        {
+          "op": "set",
+          "path": "/authorization_context/requested_scope",
+          "value": "workflow.read"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "website-inquiry-mixed-unknown-scope",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "conversation.intent.redeem conversation.unknown"
+        },
+        {
+          "op": "set",
+          "path": "/authorization_context/requested_scope",
+          "value": "conversation.intent.redeem conversation.unknown"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "website-inquiry-silent-downscope",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "conversation.intent.redeem"
+        }
+      ],
+      "expected_error": "SCOPE_OUTPUT_MISMATCH"
+    },
+    {
+      "name": "website-inquiry-alias-audience",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/aud",
+          "value": "agent_core_website_transport_v1"
+        }
+      ],
+      "expected_error": "UNKNOWN_AUDIENCE"
+    },
+    {
+      "name": "website-inquiry-case-audience",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/aud",
+          "value": "AGENT-CORE-WEBSITE-TRANSPORT-V1"
+        }
+      ],
+      "expected_error": "UNKNOWN_AUDIENCE"
+    },
+    {
+      "name": "website-inquiry-generic-audience",
+      "base_fixture": "direct-service-website-inquiry-7",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/aud",
+          "value": "all-services"
+        }
+      ],
+      "expected_error": "UNKNOWN_AUDIENCE"
     }
   ],
   "signature_cases": [

@@ -392,7 +392,7 @@ const audienceIds = registry.audiences.map((audience) => audience.audience_id);
 const audienceById = new Map(registry.audiences.map((audience) => [audience.audience_id, audience]));
 check(new Set(audienceIds).size === audienceIds.length, 'registry: duplicate Audience ID');
 check([...audienceIds].sort(asciiCompare).join('\0')
-  === ['adc-v2', 'agent-core-notification-ingress-v1', 'agent-directory', 'agent-principal-resolution', 'agent-session-messaging', 'identity-directory', 'life-workbench', 'scheduler', 'svc-auth', 'svc-forum', 'svc-okr', 'svc-workflow'].sort(asciiCompare).join('\0'), 'registry: first-wave Audience set changed');
+  === ['adc-v2', 'agent-core-notification-ingress-v1', 'agent-core-website-human-v1', 'agent-core-website-transport-v1', 'agent-directory', 'agent-principal-resolution', 'agent-session-messaging', 'identity-directory', 'life-workbench', 'scheduler', 'svc-auth', 'svc-forum', 'svc-okr', 'svc-workflow'].sort(asciiCompare).join('\0'), 'registry: first-wave Audience set changed');
 check(!audienceIds.includes('agent-forum'), 'registry: repository name agent-forum cannot be a Wire Audience');
 check(!audienceIds.includes('workflow-todo'), 'registry: workflow-todo is a Client, not a resource Audience');
 for (const audience of registry.audiences) {
@@ -419,6 +419,41 @@ check(JSON.stringify(sessionMessagingAudience) === JSON.stringify({
   freeze_ready: true,
   notes: 'Registered by AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2 for canonical send and independently granted caller-owned exact-turn inspection consumed by dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V2.',
 }), 'registry: agent-session-messaging V2 Audience changed');
+
+check(JSON.stringify(audienceById.get('agent-core-website-human-v1')) === JSON.stringify({
+  "audience_id": "agent-core-website-human-v1",
+  "resource_service": "agent-core-website-human-v1",
+  "scope_namespace": "agent-core-website-human",
+  "accepted_principal_types": [
+    "user"
+  ],
+  "human_access_enabled": true,
+  "machine_access_enabled": false,
+  "delegated_access_enabled": false,
+  "registered_scopes": [],
+  "status": "active",
+  "freeze_ready": true,
+  "notes": "Registered by AUTH_SERVICE_WEBSITE_INQUIRY_AUDIENCE_CCR_V1 for website Human inquiry access; no Machine or Delegation access and no Human scope claim."
+}), 'registry: agent-core-website-human-v1 exact entry changed');
+check(JSON.stringify(audienceById.get('agent-core-website-transport-v1')) === JSON.stringify({
+  "audience_id": "agent-core-website-transport-v1",
+  "resource_service": "agent-core-website-transport-v1",
+  "scope_namespace": "conversation",
+  "accepted_principal_types": [
+    "service"
+  ],
+  "human_access_enabled": false,
+  "machine_access_enabled": true,
+  "delegated_access_enabled": false,
+  "registered_scopes": [
+    "conversation.intent.redeem",
+    "conversation.own_events.read",
+    "conversation.own_result.read"
+  ],
+  "status": "active",
+  "freeze_ready": true,
+  "notes": "Registered by AUTH_SERVICE_WEBSITE_INQUIRY_AUDIENCE_CCR_V1 for original-controller redeem and caller-bound inquiry result/event reads; Service direct-machine access only."
+}), 'registry: agent-core-website-transport-v1 exact entry changed');
 
 check(adcScopeMap.consumer_git_sha === 'ddeeab2ff394af64b78d9820c9e64d5bf0952ebd', 'ADC Scope map: unexpected consumer SHA');
 const adcAudience = audienceById.get(adcScopeMap.source_audience);
@@ -481,6 +516,58 @@ for (const [fixtureName, exactScope] of [
     && fixture?.authorization_context?.requested_scope === exactScope
     && fixture?.authorization_context?.machine_access_grants?.['agent-session-messaging']?.join(' ') === exactScope,
   `session messaging V2: fixture ${fixtureName} does not prove exact independent scope issuance`);
+}
+
+const websiteHumanFixture = positiveByName.get('human-website-inquiry');
+check(websiteHumanFixture?.profile === 'human_access'
+  && websiteHumanFixture?.claims?.aud === 'agent-core-website-human-v1'
+  && !('scope' in (websiteHumanFixture?.claims ?? {}))
+  && JSON.stringify(websiteHumanFixture?.authorization_context?.human_audience_grants) === JSON.stringify(['agent-core-website-human-v1']),
+'website inquiry: missing exact scopeless Human fixture');
+for (const [name, exactScope] of [
+  ['direct-service-website-inquiry-1', 'conversation.intent.redeem'],
+  ['direct-service-website-inquiry-2', 'conversation.own_events.read'],
+  ['direct-service-website-inquiry-3', 'conversation.intent.redeem conversation.own_events.read'],
+  ['direct-service-website-inquiry-4', 'conversation.own_result.read'],
+  ['direct-service-website-inquiry-5', 'conversation.intent.redeem conversation.own_result.read'],
+  ['direct-service-website-inquiry-6', 'conversation.own_events.read conversation.own_result.read'],
+  ['direct-service-website-inquiry-7', 'conversation.intent.redeem conversation.own_events.read conversation.own_result.read'],
+]) {
+  const fixture = positiveByName.get(name);
+  check(fixture?.profile === 'direct_machine_access' && fixture?.claims?.principal_type === 'service'
+    && fixture?.claims?.aud === 'agent-core-website-transport-v1' && fixture?.claims?.scope === exactScope
+    && fixture?.authorization_context?.requested_scope === exactScope
+    && fixture?.authorization_context?.machine_access_grants?.['agent-core-website-transport-v1']?.join(' ') === exactScope,
+  `website inquiry: missing independent Service scope subset ${name}`);
+}
+for (const [name, expectedError] of [
+  ['website-inquiry-human-missing-grant', 'AUDIENCE_NOT_GRANTED'],
+  ['website-inquiry-human-cross-audience-grant', 'AUDIENCE_NOT_GRANTED'],
+  ['website-inquiry-human-scope-forbidden', 'PROFILE_FORBIDDEN_CLAIM'],
+  ['website-inquiry-human-transport-profile', 'AUDIENCE_PROFILE_NOT_ACCEPTED'],
+  ['website-inquiry-machine-human-profile', 'AUDIENCE_PROFILE_NOT_ACCEPTED'],
+  ['website-inquiry-agent-transport-profile', 'AUDIENCE_PROFILE_NOT_ACCEPTED'],
+  ['website-inquiry-service-agent-id-forbidden', 'PROFILE_FORBIDDEN_CLAIM'],
+  ['website-inquiry-delegated-transport-profile', 'AUDIENCE_PROFILE_NOT_ACCEPTED'],
+  ['website-inquiry-missing-machine-grant', 'INVALID_SCOPE_GRANT'],
+  ['website-inquiry-cross-audience-machine-grant', 'INVALID_SCOPE_GRANT'],
+  ['website-inquiry-partial-grant-1', 'INVALID_SCOPE_GRANT'],
+  ['website-inquiry-partial-grant-2', 'INVALID_SCOPE_GRANT'],
+  ['website-inquiry-partial-grant-3', 'INVALID_SCOPE_GRANT'],
+  ['website-inquiry-empty-scope', 'INVALID_SCOPE_WIRE'],
+  ['website-inquiry-duplicate-scope', 'INVALID_SCOPE_WIRE'],
+  ['website-inquiry-wildcard-scope', 'INVALID_SCOPE_WIRE'],
+  ['website-inquiry-unknown-scope', 'INVALID_SCOPE_NAMESPACE'],
+  ['website-inquiry-alias-scope', 'INVALID_SCOPE_NAMESPACE'],
+  ['website-inquiry-wrong-namespace', 'INVALID_SCOPE_NAMESPACE'],
+  ['website-inquiry-mixed-unknown-scope', 'INVALID_SCOPE_NAMESPACE'],
+  ['website-inquiry-silent-downscope', 'SCOPE_OUTPUT_MISMATCH'],
+  ['website-inquiry-alias-audience', 'UNKNOWN_AUDIENCE'],
+  ['website-inquiry-case-audience', 'UNKNOWN_AUDIENCE'],
+  ['website-inquiry-generic-audience', 'UNKNOWN_AUDIENCE'],
+]) {
+  check(negative.cases.some((entry) => entry.name === name && entry.expected_error === expectedError),
+    'website inquiry: missing fail-closed fixture ' + name);
 }
 
 for (const testCase of negative.cases) {
