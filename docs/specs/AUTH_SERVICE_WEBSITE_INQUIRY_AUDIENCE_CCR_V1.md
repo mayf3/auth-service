@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_WEBSITE_INQUIRY_AUDIENCE_CCR_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -22,11 +22,19 @@ consumer_proposals:
 supersedes: []
 superseded_by: null
 owners: [mayf3]
+accepted_by: mayf3
+accepted_date: "2026-10-15"
+accepted_reviewed_spec_commit: 249772ed5a30a59ad88cbf934ea8e7bc777f50e9
+accepted_reviewed_spec_sha256: c4e0b8c1fad2940fd2aae7f4c9e2f99d51a439d517d018ed9ea2ce09aff9b6f4
+acceptance_review_verdict: ACCEPT
+acceptance_record: docs/audits/2026-10-15-website-inquiry-audience-acceptance.json
 ---
 
 # AUTH_SERVICE_WEBSITE_INQUIRY_AUDIENCE_CCR_V1
 
-**PROPOSED — DOCS ONLY.** Authoring base
+**ACCEPTED — DOCS ONLY; ACTIVE ONLY AFTER MERGE INTO `main`.** Owner
+`mayf3` accepted the exact independently reviewed proposal
+`249772ed5a30a59ad88cbf934ea8e7bc777f50e9` on 2026-10-15. Authoring base
 `862eab36677d214b2ce340f49bb141173b51efea`, isolated branch
 `codex/website-human-inquiry-auth-ccr`, 2026-10-15. This candidate creates
 no registration, Client, Principal, credential, Grant, database or runtime
@@ -267,16 +275,18 @@ is independent exact-head Owner lifecycle action, never author assertion.
 ## 6. Authoring status and stop boundary
 
 ```text
-STATUS = proposed
+STATUS = accepted
 CONTRACT_COUNT = 5
 CONTRACTS_WITH_ACCEPTANCE = 5
-OPEN_OWNER_DECISIONS = NONE for these two proposed registration entries
+OPEN_OWNER_DECISIONS = NONE for these two accepted registration entries
 NORMATIVE_TBD = NONE for the bounded registry/source delta
 PARTIAL_SUPERSESSION = NONE
-AUTHORING_READY_FOR_REVIEW = YES
-IMPLEMENTATION_ALLOWED_NOW = NO
+INDEPENDENT_SPEC_REVIEW = ACCEPT (0 blockers; 0 Spec gaps)
+OWNER_ACCEPTED = YES (mayf3; 2026-10-15; exact reviewed head in frontmatter)
+AUTHORITY_ACTIVE = NO until accepted snapshot is merged into main
+IMPLEMENTATION_ALLOWED_NOW = NO until accepted authority is in implementation base
 PRODUCTION_ALLOWED_NOW = NO
-NEXT_ACTION = REVIEW
+NEXT_ACTION = INDEPENDENT_FINAL_HEAD_RECHECK_THEN_MERGE
 ```
 
 No whole-authority successor is required by these entries: the incorporated
