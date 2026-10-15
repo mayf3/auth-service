@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.12.0",
+  "contract_version": "1.13.0",
   "now": 1784300000,
   "fixtures": [
     {
@@ -456,6 +456,263 @@
         }
       },
       "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI5MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1wcmluY2lwYWwtcmVzb2x1dGlvbiIsInByaW5jaXBhbF90eXBlIjoiYWdlbnQiLCJjbGllbnRfaWQiOiJhZ2VudC1jbGllbnQtcHJpbmNpcGFsLXJlc29sdXRpb24iLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJ0eXBlIjoiYWNjZXNzIiwidmVyc2lvbiI6InYxIiwic2NvcGUiOiJhdXRoLmFnZW50LnJlc29sdmUiLCJhZ2VudF9pZCI6ImFnZW50LXByaW5jaXBhbC1yZXNvbHZlciIsImp0aSI6ImRpcmVjdC1qdGktcHJpbmNpcGFsLXJlc29sdXRpb24tMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.WZFs54nNAckFQZJY1EGK2PaaAljT4BFhhykLMd4IzCXaXceCWFYi3QoXeTBkPhN6aE1uYop8jggpBo43oaX_7uVRWJeGVv7MyKCgBDT4Kzq4_wFCwxHx4oTZgP-fAy9dawX4hVVGAp-sm97MSmqbXDoQx_armySBKuxXjTPNzEGZJ-3la1bP7twxu-5Nv999ZwY_Zs80KKK3p9euGFCYvjzzZLDoQuKQGTpJCTYWMmhpU-sZZSrxP2Tg4vRKa5R-kQ-i6KPYPo4_nZE5tzzkjv-6KGRe6u8wc5UCh-7NgvtKsxrJvHQOIkLqRMllo1-8VMn2Jxy5_w5CLEwtfnv7_A"
+    },
+    {
+      "name": "human-website-inquiry",
+      "profile": "human_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-svc-okr-canary-20260719"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "10000000-0000-4000-8000-000000000001",
+        "aud": "agent-core-website-human-v1",
+        "principal_type": "user",
+        "client_id": "synthetic-website-human",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "jti": "human-website-inquiry-000001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300900
+      },
+      "authorization_context": {
+        "human_audience_grants": [
+          "agent-core-website-human-v1"
+        ]
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIxMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1jb3JlLXdlYnNpdGUtaHVtYW4tdjEiLCJwcmluY2lwYWxfdHlwZSI6InVzZXIiLCJjbGllbnRfaWQiOiJzeW50aGV0aWMtd2Vic2l0ZS1odW1hbiIsInRva2VuX3VzZSI6ImFjY2VzcyIsInR5cGUiOiJhY2Nlc3MiLCJ2ZXJzaW9uIjoidjEiLCJqdGkiOiJodW1hbi13ZWJzaXRlLWlucXVpcnktMDAwMDAxIiwiaWF0IjoxNzg0MzAwMDAwLCJuYmYiOjE3ODQzMDAwMDAsImV4cCI6MTc4NDMwMDkwMH0.yJC19PmXUfqJJ0ntaAXZe0U6eItKq8jwj_O1pACxcCWQ7SWr84MU9kGKFtlCQqPiw1tgYQM99cdI1ICU1x8zSUFwzB0W_jG8H9ZsEkTKc8bORRp3qBP8KBwnxPhBfGyjdxNingEPIE3zwvtZLTuip6Eq9ZU3HMfMT5zEGuuJRLFotHtrYTCqfxvOXDxBZvs78yupvX8TXo-sO6fw6KPa1mVC3vl1MXXuUaS7qh2FO32MX4-_ZXPhmB8JUwJJfO4ykekb7CL59Swk0LxWzRnOFV_A8t8Y2bbHfppB1iDgH7If1MxjC6KO7ykggqGx-KGA2lHiCZbqg655oNYgdQTQsg"
+    },
+    {
+      "name": "direct-service-website-inquiry-1",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-svc-okr-canary-20260719"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "a0000000-0000-4000-8000-000000000001",
+        "aud": "agent-core-website-transport-v1",
+        "principal_type": "service",
+        "client_id": "synthetic-website-transport",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "conversation.intent.redeem",
+        "jti": "service-website-inquiry-1-00001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "conversation.intent.redeem",
+        "machine_access_grants": {
+          "agent-core-website-transport-v1": [
+            "conversation.intent.redeem"
+          ]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiJhMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1jb3JlLXdlYnNpdGUtdHJhbnNwb3J0LXYxIiwicHJpbmNpcGFsX3R5cGUiOiJzZXJ2aWNlIiwiY2xpZW50X2lkIjoic3ludGhldGljLXdlYnNpdGUtdHJhbnNwb3J0IiwidG9rZW5fdXNlIjoiYWNjZXNzIiwidHlwZSI6ImFjY2VzcyIsInZlcnNpb24iOiJ2MSIsInNjb3BlIjoiY29udmVyc2F0aW9uLmludGVudC5yZWRlZW0iLCJqdGkiOiJzZXJ2aWNlLXdlYnNpdGUtaW5xdWlyeS0xLTAwMDAxIiwiaWF0IjoxNzg0MzAwMDAwLCJuYmYiOjE3ODQzMDAwMDAsImV4cCI6MTc4NDMwMDYwMH0.DlSmzdczF5sBmPvF5ghBIFWQrjUUWGQBPyio48IEbZLtUGyk55yhlsAf19LCk5XrC0dN1h64nOvxhYqoOwz3_54R-GlbSM9Q9fGO3Nd9_7bV8rZAjuA-Zii121AEeLqHPdXXgKuARQw1MNNKCGC95Mc_-UDLEZASLZaspyJ__bYn3ydOE27bJz1vf4G-a0XFu5KyYndCziyxkHfJUbTcOlHXUv3XgOI67GS2diG8R2aOCsVmRJaz1IQ_X_NA3aAzVmjBMA_8Wn2W9pD-ZJt_j9z4p1784HCCWXRaRYL8K9uenwL-GXLWM2E2JnDBZ-HWJOFd9OxnJqhSCrVwsiWcmw"
+    },
+    {
+      "name": "direct-service-website-inquiry-2",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-svc-okr-canary-20260719"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "a0000000-0000-4000-8000-000000000001",
+        "aud": "agent-core-website-transport-v1",
+        "principal_type": "service",
+        "client_id": "synthetic-website-transport",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "conversation.own_events.read",
+        "jti": "service-website-inquiry-2-00001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "conversation.own_events.read",
+        "machine_access_grants": {
+          "agent-core-website-transport-v1": [
+            "conversation.own_events.read"
+          ]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiJhMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1jb3JlLXdlYnNpdGUtdHJhbnNwb3J0LXYxIiwicHJpbmNpcGFsX3R5cGUiOiJzZXJ2aWNlIiwiY2xpZW50X2lkIjoic3ludGhldGljLXdlYnNpdGUtdHJhbnNwb3J0IiwidG9rZW5fdXNlIjoiYWNjZXNzIiwidHlwZSI6ImFjY2VzcyIsInZlcnNpb24iOiJ2MSIsInNjb3BlIjoiY29udmVyc2F0aW9uLm93bl9ldmVudHMucmVhZCIsImp0aSI6InNlcnZpY2Utd2Vic2l0ZS1pbnF1aXJ5LTItMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.u_UT2qB8rfq2UroI2E4vFJPuCY8jfBGBaMuo0SKXWYwhgXYSVDnLs2I-wZVlsX-6j-f5k9hVC2Z-iHqtpb0s57LFu-Ynzzf2fnlViu1AykRzyX4NFf7vtRSvqt_zU6WitKiwCux60sne4QsIhQDCGWLQTYXRh3LNfjTbYs0rWzfe-yqCxlrU9JSxBofOBJXfYjqQfAsIuqhITSI8iG-1bfiN6mCgf8y4FTNwWtLXS4wT8cEGhCkRciLBDL1GqoC0XguogzcgUgbc86dmMj2TbgWybk0F5UnHkGik_SOuCT8-LHamJVBPrflHLLLm77ywHeuzTwVOUErr-MX1__OSdQ"
+    },
+    {
+      "name": "direct-service-website-inquiry-3",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-svc-okr-canary-20260719"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "a0000000-0000-4000-8000-000000000001",
+        "aud": "agent-core-website-transport-v1",
+        "principal_type": "service",
+        "client_id": "synthetic-website-transport",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "conversation.intent.redeem conversation.own_events.read",
+        "jti": "service-website-inquiry-3-00001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "conversation.intent.redeem conversation.own_events.read",
+        "machine_access_grants": {
+          "agent-core-website-transport-v1": [
+            "conversation.intent.redeem",
+            "conversation.own_events.read"
+          ]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiJhMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1jb3JlLXdlYnNpdGUtdHJhbnNwb3J0LXYxIiwicHJpbmNpcGFsX3R5cGUiOiJzZXJ2aWNlIiwiY2xpZW50X2lkIjoic3ludGhldGljLXdlYnNpdGUtdHJhbnNwb3J0IiwidG9rZW5fdXNlIjoiYWNjZXNzIiwidHlwZSI6ImFjY2VzcyIsInZlcnNpb24iOiJ2MSIsInNjb3BlIjoiY29udmVyc2F0aW9uLmludGVudC5yZWRlZW0gY29udmVyc2F0aW9uLm93bl9ldmVudHMucmVhZCIsImp0aSI6InNlcnZpY2Utd2Vic2l0ZS1pbnF1aXJ5LTMtMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.SyhjFyTayBJCskUuuHFIhUfQsmBVASLclGyeksk9o1x0mi15fLE9UnPMh1UvWbBcD-h79bfPDKIPvFnJ84RhSBMmP24Uc2VSrDuiTdtbHiLko-34Ygj6jKkts6VYk8dAVeqABIymcKTGWNZop-BfhzfME2cLIHbjFdklrX7Zg6Mc3MwL30gNsvgAoE47ryyKNMkMYeMMPemTpLpbWXIhF7hLNeM__F7c9WRvCgIpGNfzmlJk1o9Mu5_O_PdMfQLRkyUvKuk4laEKNbXNV2epLML9BCm1aWAUJ5hTqknzX8IsyGkmeb55pIYishB67oy0eKW0cHder2uUHzW-tttkvg"
+    },
+    {
+      "name": "direct-service-website-inquiry-4",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-svc-okr-canary-20260719"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "a0000000-0000-4000-8000-000000000001",
+        "aud": "agent-core-website-transport-v1",
+        "principal_type": "service",
+        "client_id": "synthetic-website-transport",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "conversation.own_result.read",
+        "jti": "service-website-inquiry-4-00001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "conversation.own_result.read",
+        "machine_access_grants": {
+          "agent-core-website-transport-v1": [
+            "conversation.own_result.read"
+          ]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiJhMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1jb3JlLXdlYnNpdGUtdHJhbnNwb3J0LXYxIiwicHJpbmNpcGFsX3R5cGUiOiJzZXJ2aWNlIiwiY2xpZW50X2lkIjoic3ludGhldGljLXdlYnNpdGUtdHJhbnNwb3J0IiwidG9rZW5fdXNlIjoiYWNjZXNzIiwidHlwZSI6ImFjY2VzcyIsInZlcnNpb24iOiJ2MSIsInNjb3BlIjoiY29udmVyc2F0aW9uLm93bl9yZXN1bHQucmVhZCIsImp0aSI6InNlcnZpY2Utd2Vic2l0ZS1pbnF1aXJ5LTQtMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.18f_NwlEFayVcgIKiiuL0bAt_-VBlbfDL6fos-cijwcje2kzSXprx_noO8ROOBUKESSX0UTPspiG-MCgvSD6HuyhDgvcm7QrF4EUhCQrW93If95Ii4_f5tClHQJamJ_3A52K3GgWO34ijKkWz-TeCzAGcZ3tBMYxIuTUV5hwNlloNY7FTWEqK92qk75bRNuHJ_cj4E-UU4Drl_cp3A914gtxDAnlxJp09L41ISaVYFZmp_SenOFhm8Li17alKsESwZchmGtu7lQXI7gVPnOP4lk6HIXvRh8F8jgJJOf0cb3Zd2Wa2fBMt5RHUzQ-SRD9MOr4e8nJhCkiIqKIYw2Adg"
+    },
+    {
+      "name": "direct-service-website-inquiry-5",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-svc-okr-canary-20260719"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "a0000000-0000-4000-8000-000000000001",
+        "aud": "agent-core-website-transport-v1",
+        "principal_type": "service",
+        "client_id": "synthetic-website-transport",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "conversation.intent.redeem conversation.own_result.read",
+        "jti": "service-website-inquiry-5-00001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "conversation.intent.redeem conversation.own_result.read",
+        "machine_access_grants": {
+          "agent-core-website-transport-v1": [
+            "conversation.intent.redeem",
+            "conversation.own_result.read"
+          ]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiJhMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1jb3JlLXdlYnNpdGUtdHJhbnNwb3J0LXYxIiwicHJpbmNpcGFsX3R5cGUiOiJzZXJ2aWNlIiwiY2xpZW50X2lkIjoic3ludGhldGljLXdlYnNpdGUtdHJhbnNwb3J0IiwidG9rZW5fdXNlIjoiYWNjZXNzIiwidHlwZSI6ImFjY2VzcyIsInZlcnNpb24iOiJ2MSIsInNjb3BlIjoiY29udmVyc2F0aW9uLmludGVudC5yZWRlZW0gY29udmVyc2F0aW9uLm93bl9yZXN1bHQucmVhZCIsImp0aSI6InNlcnZpY2Utd2Vic2l0ZS1pbnF1aXJ5LTUtMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.M4QIbKdAZP87_A4GzkY97ppTuEopyVCYXVVnsFsQxtwDyObimOjJybELbWJXDO1BY8tiFrG69rLIsTB_LY6SimvO8f6spN3Gd41OBLLS-x3WFllBot__8JnOIU0jpy93GZ9qVIf4kqixrBJF_jvAalkr86bDmkWIsBP1OImMerFL1_otlwhBIoywqLhnN9rGF4K7005pQkUQg_k6HDnnfVtgU7FioqVnKVS60frqha1xKHx4GA6c3JU3Lx-ya73VcK9tY9XS4PUMJPCyebLICzIi8u1Wph5n9qEsO4D3VIcWSEQkLOrkVHJQQWi0hoT1Cw4ZKwa-lQs0q4NOf_f2ng"
+    },
+    {
+      "name": "direct-service-website-inquiry-6",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-svc-okr-canary-20260719"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "a0000000-0000-4000-8000-000000000001",
+        "aud": "agent-core-website-transport-v1",
+        "principal_type": "service",
+        "client_id": "synthetic-website-transport",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "conversation.own_events.read conversation.own_result.read",
+        "jti": "service-website-inquiry-6-00001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "conversation.own_events.read conversation.own_result.read",
+        "machine_access_grants": {
+          "agent-core-website-transport-v1": [
+            "conversation.own_events.read",
+            "conversation.own_result.read"
+          ]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiJhMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1jb3JlLXdlYnNpdGUtdHJhbnNwb3J0LXYxIiwicHJpbmNpcGFsX3R5cGUiOiJzZXJ2aWNlIiwiY2xpZW50X2lkIjoic3ludGhldGljLXdlYnNpdGUtdHJhbnNwb3J0IiwidG9rZW5fdXNlIjoiYWNjZXNzIiwidHlwZSI6ImFjY2VzcyIsInZlcnNpb24iOiJ2MSIsInNjb3BlIjoiY29udmVyc2F0aW9uLm93bl9ldmVudHMucmVhZCBjb252ZXJzYXRpb24ub3duX3Jlc3VsdC5yZWFkIiwianRpIjoic2VydmljZS13ZWJzaXRlLWlucXVpcnktNi0wMDAwMSIsImlhdCI6MTc4NDMwMDAwMCwibmJmIjoxNzg0MzAwMDAwLCJleHAiOjE3ODQzMDA2MDB9.LMZOt8r7oBCMMgEzo5Vo57zFSZFrGZB-NeLy8UsEiYUORwsKG0P2h917o4AL7hQf8pBwl28H4T7QY3TFO-9Xtd0RHuxpdqwt_hmZeUIH30oGC4YmOEEaFxOrPfqMPJent-j52IHhNPdbD2S6POJIgvRkLKkP--93XheNOScpk-Wb_6J6ridC5IrMsMdGO1zQo0KV3q5Q1QSZ5awgMYQT4mMSMWw5BaMJjzPGLw17KbPPK_q9yncRWztZ26dA0A2aLoQA3rogcAbqutO657XSd2b2qbJIaMa0Zv-Zc2gLuawrHodVZlBM0suGIo9fxGcxvangd9shTETrXV_Jub9rXw"
+    },
+    {
+      "name": "direct-service-website-inquiry-7",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "fixture-key-v1-svc-okr-canary-20260719"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "a0000000-0000-4000-8000-000000000001",
+        "aud": "agent-core-website-transport-v1",
+        "principal_type": "service",
+        "client_id": "synthetic-website-transport",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "conversation.intent.redeem conversation.own_events.read conversation.own_result.read",
+        "jti": "service-website-inquiry-7-00001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "conversation.intent.redeem conversation.own_events.read conversation.own_result.read",
+        "machine_access_grants": {
+          "agent-core-website-transport-v1": [
+            "conversation.intent.redeem",
+            "conversation.own_events.read",
+            "conversation.own_result.read"
+          ]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiJhMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1jb3JlLXdlYnNpdGUtdHJhbnNwb3J0LXYxIiwicHJpbmNpcGFsX3R5cGUiOiJzZXJ2aWNlIiwiY2xpZW50X2lkIjoic3ludGhldGljLXdlYnNpdGUtdHJhbnNwb3J0IiwidG9rZW5fdXNlIjoiYWNjZXNzIiwidHlwZSI6ImFjY2VzcyIsInZlcnNpb24iOiJ2MSIsInNjb3BlIjoiY29udmVyc2F0aW9uLmludGVudC5yZWRlZW0gY29udmVyc2F0aW9uLm93bl9ldmVudHMucmVhZCBjb252ZXJzYXRpb24ub3duX3Jlc3VsdC5yZWFkIiwianRpIjoic2VydmljZS13ZWJzaXRlLWlucXVpcnktNy0wMDAwMSIsImlhdCI6MTc4NDMwMDAwMCwibmJmIjoxNzg0MzAwMDAwLCJleHAiOjE3ODQzMDA2MDB9.IS9JhI4W6c3vmgK0TJ3npfVkZhEv2kpyK_RwX2eQzdxlG1nvRABq-bEiXDyoaXAH1k1vmv5N-OBClsP1uu750PhRDB3bDKLYPRsxrCQDGjrhOW1ZyO_MyjGuw3A6OCl6QBQPZ8ecufaYXV7mFy-Te8EZDDc6rVKZNGWx5FN1hHj68D1Ab2PFetKKEO2hTKiad_B0LBC4GJ2xXLL23tUSnqUw6fXZZX5U2DjshbNBgat_pGOrhgwqOxwdExcF7AOVWPD_ixZrRaarweiO6XK-iA79v4kES4EcHt62qZN1PQAYH9lQYw7x_-54btxVN5vl2JX3PHC_SKePY7xKFl73eg"
     }
   ]
 }

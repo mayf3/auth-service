@@ -1,5 +1,19 @@
 # Change Log
 
+## 1.13.0 — 2026-10-15
+
+- Implements accepted `AUTH_SERVICE_WEBSITE_INQUIRY_AUDIENCE_CCR_V1` at
+  merged authority `57f459804df1b6526a164016ea3aefa12836286d`. Appends exactly
+  the scopeless Human-only website audience and the SERVICE-only transport
+  audience with its three independent conversation scopes; prior entries and
+  fixture assertions remain unchanged.
+- Advances coherent Bundle/registry/schema/fixture metadata linkage from
+  `1.12.0` to `1.13.0` and appends runtime compatibility for this source version.
+  Adds signed Human and all seven nonempty SERVICE scope-subset fixtures,
+  focused negative fixtures and real isolated issuer regression coverage.
+- No Client, Principal, credential, Grant, database, deployed registry, consumer
+  activation or production effect is supplied or claimed by this source change.
+
 ## 1.12.0 — 2026-09-14
 
 - CCR: `AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2` (accepted exact
