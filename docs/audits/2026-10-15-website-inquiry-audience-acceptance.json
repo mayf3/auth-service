@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "record_kind": "OWNER_SPEC_ACCEPTANCE",
+  "repository": "mayf3/auth-service",
+  "spec_id": "AUTH_SERVICE_WEBSITE_INQUIRY_AUDIENCE_CCR_V1",
+  "spec_path": "docs/specs/AUTH_SERVICE_WEBSITE_INQUIRY_AUDIENCE_CCR_V1.md",
+  "acceptance_actor": "mayf3",
+  "accepted_date": "2026-10-15",
+  "recorded_at_utc": "2026-10-15T11:02:52.427671+00:00",
+  "recorded_by": "/root/auth_accept_and_source",
+  "recorder_is_acceptance_actor": false,
+  "owner_instruction": {
+    "quote": "确认接受 PR #7（a58f65f）所列四份精确合同及本站计划，按原流程完成最终复核、合并并继续非生产源码实现。新增 Grant、凭据、发布、加载或启用前再给我具体差量确认，其余已授权工作直接推进。",
+    "source": "https://github.com/mayf3/project-progress-desk/pull/7#issuecomment-6190498903",
+    "provenance": "Human Owner instruction in the parent Codex chat, relayed verbatim by /root; persistent comment URL supplied by /root. This phase did not independently fetch or create the comment.",
+    "hub_reviewed_head": "a58f65f99f1523a5b08abd6bd8eedc4f2599d7b6",
+    "bound_auth_proposal_head": "249772ed5a30a59ad88cbf934ea8e7bc777f50e9",
+    "bound_auth_proposal_sha256": "c4e0b8c1fad2940fd2aae7f4c9e2f99d51a439d517d018ed9ea2ce09aff9b6f4",
+    "effect": "Owner accepts this exact reviewed Auth authority proposal and authorizes its docs-only lifecycle/final-review/merge route. Non-production source implementation remains a later REUSE task after the accepted authority is merged into its base.",
+    "explicit_separate_confirmation_boundary": [
+      "new Grant",
+      "credential",
+      "publish",
+      "load",
+      "enable"
+    ]
+  },
+  "independent_review": {
+    "spec_review": "ACCEPT",
+    "spec_gap_count": 0,
+    "review_is_owner_acceptance": false,
+    "receipts": [
+      {
+        "kind": "INITIAL_FULL_SPEC_REVIEW",
+        "path": "/Users/yanfenma/workspace/site-audits/site-progress-continuation-20261015/site-hr-recovery-notify/docs/evidence/2026-10-15-agent-conversation/auth-human-inquiry-ccr-review.json",
+        "sha256": "497f8d4da99336e13b1c0834e11fbdedb28e0b75923404eaced837f8d54eafa5",
+        "reviewer_id": "/root/dsh_human_inquiry_spec_review",
+        "author_independence": "PASS",
+        "blocker_count": 0
+      },
+      {
+        "kind": "BOUNDED_BASE_IMPACT",
+        "path": "/Users/yanfenma/workspace/site-audits/site-progress-continuation-20261015/site-hr-recovery-notify/docs/evidence/2026-10-15-agent-conversation/auth-human-inquiry-base-impact.json",
+        "sha256": "4d522690dcc29b36f2a912bafce8deee9902f13794f320a39f3904ebb4ee5392",
+        "reviewer_id": "/root/dsh_human_inquiry_spec_review",
+        "author_independence": "PASS",
+        "blocker_count": 0
+      }
+    ]
+  },
+  "coordinates": {
+    "isolated_worktree": "/Users/yanfenma/workspace/site-audits/site-progress-continuation-20261015/auth-website-audience-contract",
+    "isolated_branch": "codex/website-human-inquiry-auth-ccr",
+    "reviewed_proposal_head": "249772ed5a30a59ad88cbf934ea8e7bc777f50e9",
+    "reviewed_proposal_spec_sha256": "c4e0b8c1fad2940fd2aae7f4c9e2f99d51a439d517d018ed9ea2ce09aff9b6f4",
+    "authoring_base_head": "862eab36677d214b2ce340f49bb141173b51efea",
+    "current_base_head": "cb44e8bb2e2ac73d5a91c840e3d1a99607b824c1",
+    "current_base_ref": "refs/remotes/auth-wiac-acceptance-20261015/main",
+    "current_base_observation": "Fresh git fetch --no-tags from https://github.com/mayf3/auth-service.git into the isolated check ref; no push, merge or shared checkout mutation.",
+    "base_diff_sha256": "823b33a49c2800199ef0607f02ff747a1ace196792e4c2537bc0d1eb467718de",
+    "base_changed_paths": [
+      "package.json",
+      "scripts/check-minimal-auth-v1-readiness.ts",
+      "tests/helpers/minimal-auth-v1-readiness-fixture.ts",
+      "tests/oauth/v1-readiness-ownerless-agent-errors.test.ts",
+      "tests/oauth/v1-readiness-ownerless-agent-ready.test.ts"
+    ],
+    "protected_paths_unchanged": [
+      ".agents",
+      "AGENTS.md",
+      "docs/specs",
+      "docs/contracts",
+      "contract-bundles/minimal-auth-v1",
+      "src/lib/oauth/v1",
+      "prisma"
+    ],
+    "base_impact": "BOUNDED; identical to the independently reviewed base-impact receipt; no effect on the reviewed CCR premises, entry semantics or source version candidate.",
+    "final_accepted_head_binding": "The exact commit containing this acceptance transaction must be bound by the separate independent final-head review before merge; no final-head review is claimed by this recorder."
+  },
+  "development_preflight": {
+    "spec_governance_mode": "PREFLIGHT",
+    "goal_or_target": "Persist Owner acceptance of the exact reviewed Auth CCR without normative or product delta.",
+    "current_gap": "Independent ACCEPT exists; Owner lifecycle acceptance must be recorded before final-head recheck and merge.",
+    "authority_action": "AMEND",
+    "authority_action_scope": "Named proposal lifecycle only; unchanged scope, ownership, Decisions, Contracts and Acceptance definitions.",
+    "primary_authority": [
+      "MINIMAL_AUTH_FOUNDATION_V2",
+      "AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V2"
+    ],
+    "plan_level": "BRIEF",
+    "assurance_level": "CONTROLLED",
+    "route_stage": "AUTHORITY_AUTHORING",
+    "authority_accepted_in_base": "NO",
+    "mutation_authorization": "VALID; attributable Owner acceptance plus bounded /root phase-A task",
+    "isolated_write_surface": "YES",
+    "controlled_runbook_required": "NO; docs-only authority lifecycle, no controlled runtime operation",
+    "spec_gap_dependency": "NONE",
+    "evidence_reviewability": "PASS; parent final reviewer can read Owner source and exact hashed independent receipts",
+    "implementation_allowed": "NO in this phase",
+    "merge_ready": "NO until independent final-head recheck",
+    "operation_allowed": "NO",
+    "done_when": "Lifecycle-only three-file commit with deterministic integrity checks passed, then hand exact Head to /root and stop.",
+    "expansion_trigger": "Normative, schema, scope, entry, source closure, supplied identity, credential, Grant or runtime delta requires stopping this phase.",
+    "next_action": "INDEPENDENT_FINAL_HEAD_RECHECK_THEN_MERGE"
+  },
+  "permitted_lifecycle_delta": {
+    "changed_paths": [
+      "docs/specs/AUTH_SERVICE_WEBSITE_INQUIRY_AUDIENCE_CCR_V1.md",
+      "docs/specs/README.md",
+      "docs/audits/2026-10-15-website-inquiry-audience-acceptance.json"
+    ],
+    "spec_regions": [
+      "frontmatter status plus additive acceptance metadata",
+      "acceptance banner",
+      "section 6 lifecycle status block"
+    ],
+    "other_changes": [
+      "one navigation-only Spec index row",
+      "this attributable acceptance/phase-boundary record"
+    ],
+    "sections_1_through_5_sha256": "10550789fde99920f3c937577d3a661522caba8eb87e3439092baa453992d28a",
+    "contract_count": 5,
+    "acceptance_definition_count": 4,
+    "normative_semantic_delta": "NONE",
+    "registry_source_or_runtime_delta": "NONE"
+  },
+  "phase_boundary": {
+    "spec_status_after_transaction": "accepted",
+    "authority_active_before_merge": false,
+    "independent_final_head_review_performed_by_recorder": false,
+    "push_or_merge_performed_by_recorder": false,
+    "source_implementation_performed": false,
+    "registry_version": "1.12.0 unchanged",
+    "new_audiences_in_source": false,
+    "client_principal_credential_or_grant_supply_authorized": false,
+    "db_api_admin_or_credential_calls_performed": false,
+    "production_apply_authority": "none",
+    "publish_load_enable_or_deploy_authorized": false,
+    "implementation_or_runtime_conformance_claimed": false,
+    "next_actor": "/root for independent lifecycle-only final-head review and separately authorized merge; source implementation waits for merged accepted authority in base"
+  },
+  "executed_lifecycle_integrity_checks": {
+    "observed_at_utc": "2026-10-15T11:03:44.862211+00:00",
+    "target_frontmatter_schema": "PASS; .agents/schemas/spec-frontmatter.schema.json via Draft202012Validator",
+    "target_lifecycle_transition": "PASS; .agents/tools/validate_spec_transition.py over exact proposed and accepted target frontmatters",
+    "vendored_governance_integrity": "PASS; python3 .agents/tools/verify_governance.py --target . --require-accepted",
+    "original_non_lifecycle_frontmatter": "UNCHANGED parsed values",
+    "sections_1_through_5": "BYTE_IDENTICAL; SHA-256 10550789fde99920f3c937577d3a661522caba8eb87e3439092baa453992d28a; 5 Contracts and 4 Acceptance definitions",
+    "post_status_normative_tail": "BYTE_IDENTICAL",
+    "changed_paths": "PASS; exactly the three allowed docs paths",
+    "index_delta": "PASS; exactly one navigation row; original index bytes unchanged otherwise",
+    "git_diff_check": "PASS",
+    "product_tests": "NOT_RUN; no implementation, token issuance, DB/API or runtime validation in phase A",
+    "final_head_recheck": "PENDING separate independent reviewer after this lifecycle commit"
+  }
+}
