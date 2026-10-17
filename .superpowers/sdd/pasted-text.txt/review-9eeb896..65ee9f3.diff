@@ -1,0 +1,229 @@
+# Review package: 9eeb896abb5adb6298df73a4c9b489ae65bafce6..65ee9f30d505f4ea5e68501082596ab467532f5d
+
+## Commits
+65ee9f3 docs: accept session inspection auth authorities
+
+## Files changed
+ ...VICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1.md |  4 ++--
+ ...VICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2.md | 28 ++++++++++++----------
+ ...SERVICE_HR_AGENT_SESSION_INSPECTION_GRANT_V1.md | 27 +++++++++++----------
+ docs/specs/README.md                               |  6 ++---
+ 4 files changed, 36 insertions(+), 29 deletions(-)
+
+## Diff
+diff --git a/docs/specs/AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1.md b/docs/specs/AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1.md
+index 6fe4cae..9b38107 100644
+--- a/docs/specs/AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1.md
++++ b/docs/specs/AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1.md
+@@ -1,13 +1,13 @@
+ ---
+ spec_id: AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1
+-status: accepted
++status: superseded
+ spec_kind: implementation
+ authority_level: governing_spec
+ implementation_authority: contracts
+ production_apply_authority: none
+ date: 2026-09-03
+ accepted_date: 2026-09-03
+ accepted_by: mayf3
+ accepted_reviewed_base: 05fcf4074fe15d7f29ce1ef0f68767fbbebd54de
+ accepted_reviewed_spec_commit: e5a1b8b5ea7801ac9aa6d7fd1170ffa7c5d654e6
+ acceptance_review_verdict: PASS
+@@ -19,21 +19,21 @@ governed_by:
+   - AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V1
+ external_authorities: []  # DAG ROOT (ASM -> downstream dsh-agent-core deployment
+                           # chain): this Spec pins NO external head and takes no
+                           # authority from any proposed downstream artifact;
+                           # downstream Specs (mayf3/dsh-agent-core
+                           # AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V1,
+                           # accepted @ a0ce485, CTR-DEP-002) pin THIS Spec's
+                           # accepted head as their Phase-A prerequisite, never
+                           # the reverse.
+ supersedes: []
+-superseded_by: null
++superseded_by: AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2
+ owners:
+   - mayf3
+ ---
+ 
+ # AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1
+ 
+ > **ACCEPTED / AUDIENCE-REGISTRATION AUTHORITY.** Owner、exact reviewed head
+ > 与 PASS verdict 只取本文件 frontmatter 的 accepted_by、
+ > accepted_reviewed_spec_commit 与 acceptance_review_verdict。本 acceptance
+ > 仅授权 CTR-ASM-004 冻结的 16 文件实现闭包与 CTR-ASM-005 的版本判定；
+diff --git a/docs/specs/AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2.md b/docs/specs/AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2.md
+index a8703d8..b6b49db 100644
+--- a/docs/specs/AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2.md
++++ b/docs/specs/AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2.md
+@@ -1,17 +1,17 @@
+ ---
+ spec_id: AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2
+-status: proposed
++status: accepted
+ spec_kind: implementation
+ authority_level: governing_spec
+-implementation_authority: none
+-production_apply_authority: none
++implementation_authority: contracts
++production_apply_authority: contracts
+ date: 2026-09-14
+ revision: r1
+ scope:
+   - agent-session-messaging machine-only Audience
+   - send and caller-owned exact-turn inspection scope registration
+ governed_by:
+   - MINIMAL_AUTH_FOUNDATION_V2
+   - AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V2
+ external_authorities:
+   - repository: mayf3/dsh-agent-core
+@@ -21,33 +21,37 @@ external_authorities:
+     merge_commit: 49a5d42c053401036550aac84d2427a61832a457
+ supersedes:
+   - AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1
+ superseded_by: null
+ owners: [mayf3]
+ authoring_authority_basis: >-
+   OWNER_DECISION=APPROVE_NARROW_AUTHORITY_DESIGN on 2026-09-14 authorizes
+   authority authoring and independent security review only. It does not
+   authorize registry/database mutation, Auth deployment/restart, Grant or
+   credential mutation, token minting, production inspection, or production use.
+-accepted_date: null
+-accepted_by: null
+-accepted_reviewed_head: null
+-independent_security_review: null
+-independent_review_blockers: null
++accepted_date: 2026-09-14
++accepted_by: mayf3
++accepted_reviewed_head: 9eeb896abb5adb6298df73a4c9b489ae65bafce6
++independent_security_review: PASS
++independent_review_blockers: NONE
+ ---
+ 
+ # AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2
+ 
+-> **PROPOSED / NO IMPLEMENTATION OR PRODUCTION AUTHORITY.** This is a complete
+-> whole-authority successor to accepted Audience CCR V1. V1 remains active and
+-> unchanged until an independent exact-head security review passes and Owner
+-> `mayf3` accepts this exact head through the atomic lifecycle gate in §9.
++> **ACCEPTED / CONTRACT IMPLEMENTATION AUTHORITY; PRODUCTION APPLY SEPARATELY
++> CONTROLLED.** Owner `mayf3` accepted exact reviewed head
++> `9eeb896abb5adb6298df73a4c9b489ae65bafce6` on 2026-09-14 after independent
++> security review `PASS` with blockers `NONE`. This acceptance authorizes only
++> the exact §5 implementation closure and §6 controlled-activation contracts;
++> it causes no implementation, Grant/credential change, deployment, token
++> minting, inspection, or production mutation. Audience CCR V1 is superseded
++> through the reciprocal lifecycle backlink and remains historical authority.
+ 
+ ## 1. Goal and complete Audience contract
+ 
+ V2 carries the complete accepted V1 Audience identity and adds exactly one
+ independent scope:
+ 
+ ```json
+ {
+   "audience_id": "agent-session-messaging",
+   "resource_service": "agent-session-messaging",
+diff --git a/docs/specs/AUTH_SERVICE_HR_AGENT_SESSION_INSPECTION_GRANT_V1.md b/docs/specs/AUTH_SERVICE_HR_AGENT_SESSION_INSPECTION_GRANT_V1.md
+index c9b4db0..12a17b3 100644
+--- a/docs/specs/AUTH_SERVICE_HR_AGENT_SESSION_INSPECTION_GRANT_V1.md
++++ b/docs/specs/AUTH_SERVICE_HR_AGENT_SESSION_INSPECTION_GRANT_V1.md
+@@ -1,17 +1,17 @@
+ ---
+ spec_id: AUTH_SERVICE_HR_AGENT_SESSION_INSPECTION_GRANT_V1
+-status: proposed
++status: accepted
+ spec_kind: implementation
+ authority_level: governing_spec
+-implementation_authority: none
+-production_apply_authority: none
++implementation_authority: contracts
++production_apply_authority: contracts
+ date: 2026-09-14
+ revision: r1
+ scope:
+   - canonical HR own-dispatch inspection Grant
+   - exact one-row forward replacement and rollback
+ governed_by:
+   - MINIMAL_AUTH_FOUNDATION_V2
+   - AUTH_SERVICE_DEVELOPMENT_GOVERNANCE_ADOPTION_V2
+ related_specs:
+   - AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V2
+@@ -21,33 +21,36 @@ external_authorities:
+     spec: AGENT_CORE_AGENT_SESSION_MESSAGING_V2
+     accepted_reviewed_head: b9893400a98f627aa2ce6411e078d6ef03749288
+ supersedes: []
+ superseded_by: null
+ owners: [mayf3]
+ authoring_authority_basis: >-
+   OWNER_DECISION=APPROVE_NARROW_AUTHORITY_DESIGN on 2026-09-14 authorizes
+   authority authoring and independent security review only. HR Grant mutation,
+   credentials, tokens, production inspection, and production mutation remain
+   forbidden until exact-head acceptance and the controlled gates below.
+-accepted_date: null
+-accepted_by: null
+-accepted_reviewed_head: null
+-independent_security_review: null
+-independent_review_blockers: null
++accepted_date: 2026-09-14
++accepted_by: mayf3
++accepted_reviewed_head: 9eeb896abb5adb6298df73a4c9b489ae65bafce6
++independent_security_review: PASS
++independent_review_blockers: NONE
+ ---
+ 
+ # AUTH_SERVICE_HR_AGENT_SESSION_INSPECTION_GRANT_V1
+ 
+-> **PROPOSED / NO IMPLEMENTATION OR PRODUCTION AUTHORITY.** This is a new,
+-> subsequent one-row operation. It does not amend or supersede the accepted HR
+-> send-supply authority; that authority's exact completed send-only poststate is
+-> this operation's required source prestate.
++> **ACCEPTED / CONTRACT IMPLEMENTATION AUTHORITY; PRODUCTION APPLY SEPARATELY
++> CONTROLLED.** Owner `mayf3` accepted exact reviewed head
++> `9eeb896abb5adb6298df73a4c9b489ae65bafce6` on 2026-09-14 after independent
++> security review `PASS` with blockers `NONE`. This is a new, subsequent one-row
++> operation; acceptance causes no implementation or production mutation. It does
++> not amend or supersede accepted HR Send Grant V2, whose exact completed
++> send-only poststate remains this operation's required source prestate.
+ 
+ ## 1. Goal and exact subject
+ 
+ Authorize only the canonical HR business Agent to add the independently
+ registered scope `agent.session.inspect_own_dispatch` to its existing
+ `agent-session-messaging` Grant.
+ 
+ ```text
+ Principal UUID = dc702687-6515-4a2a-91ae-e572a9bbd766
+ principal_type = agent
+diff --git a/docs/specs/README.md b/docs/specs/README.md
+index b7b5c01..aa8b753 100644
+--- a/docs/specs/README.md
++++ b/docs/specs/README.md
+@@ -43,23 +43,23 @@ Program 或 governance adoption Spec 使用 `implementation_authority: none` 时
+ | `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_BUNDLE_RETARGET_V2` | implementation | accepted (BASE `1de2311e`, reviewed/accepted Head `81383523`, DIFF_DIGEST `85dea49e…`, independent audit ACCEPT 0 blockers, Owner acceptance PR #63 issuecomment-5586354195 @ 2026-09-08T14:00:41Z preceding lifecycle commit; supersedes RETARGET_V1 pin authority) | contracts（仅三文件：vehicle script + 其测试 + harness 前置常量；另加本 Spec 文档 + README 索引行） | 前一 mechanical amendment 的机械重绑继任（非语义变更）：车辆 Bundle pin `1.8.0`→`1.11.0`（BASE `1de2311e` 现行役 Bundle；svc-forum registry entry 与 1.8.0 代 canonical 字节一致，sha256 `14763850c3b5b1e8…`），使车辆可对现役 Bundle 执行 plan/conformance/verify；identity/scope/事务原子性/审计封装/CTR-FMG-016 生产授权边界全部字节不变 |
+ | `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_PRESTATE_REBASELINE_V1` | implementation | accepted (BASE `a15ce50`, reviewed/accepted Head `9cc9101`, DIFF_DIGEST `b8171265…`, independent audit ACCEPT 0 blockers, Owner acceptance PR #64 issuecomment-5592248721 @ 2026-09-08T21:40:57Z preceding lifecycle commit) | contracts（FMG 车辆 + 其测试 + 本 Spec 文档 + README 行） | FMG 前置所有权收窄 amendment（真实语义修正，非 mechanical）：FMG 只拥有 identity tuple + svc-forum Audience 行 + svc-forum Grant 行 + governed audit；同 Client 一切其他 Grant 行为 bystander（0..N，进 invariant digest 与完整 before/after 快照，事务字节保全，任何 bystander 漂移经 prestate digest fail-closed）；解除 total-row-count==2 与 CTR-FMG-005 svc-workflow `[workflow.read]@v1` exact pin 作为 APPLY gate（WORKFLOW_GRANT_MUTATION 仍 FORBIDDEN，EXACT_STATE_REQUIRED=NO）；同时冻结 CTR-FMG-016 apply activation closure（14-field exact descriptor、pre-connection 校验、implementation commit=clean HEAD、bundle file digest、plan/prestate digest 事务内复验、ATTEMPTS_MAX=1、sanitized receipt）；当前生产 5 行 prestate 仅作 acceptance fixture（T2），T3 证明任意新增 bystander 不再使车辆失效；WRITE_SET_CHANGED=NO，PERMISSION_TARGET_CHANGED=NO |
+ | `AUTH_SERVICE_OWNERLESS_AGENT_PRINCIPAL_V1` | implementation | accepted | contracts（仅 §5 冻结五文件范围） | ownerless agent direct-token profile 与数据库 CHECK 联合修复；封闭五文件实现范围 |
+ | `AUTH_SERVICE_AGENTCORE_TRUSTED_FLEET_GRANT_SUPPLY_V1` | implementation | accepted | contracts | exact-86 trusted fleet Grant supply（Phase A 恢复的 86 Client）：每 Client `svc-workflow[workflow.read]` + `svc-forum[forum.read, forum.write]` 一次性完整 grant-set create（v1）；Build-in-Public fleet canary 先行、same-transaction closed-envelope audit、exact rerun NOOP、conflict fail-closed；绑定 CLIENT_MAPPING_SHA256 与 GRANT_PLAN_SHA256 |
+ | `AUTH_SERVICE_SVC_FORUM_AUDIENCE_CCR_V1` | implementation | superseded | contracts（仅 CTR-FR-009 冻结的 13 个 Auth 文件 + 8 个 Forum 文件范围） | 已由 `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` whole-Spec supersede；保留为历史 accepted authority。 |
+ | `AUTH_SERVICE_SVC_FORUM_AUDIENCE_REGISTRY_RECONCILIATION_V1` | implementation | superseded | contracts（仅 CTR-RR-001 冻结的三文件闭包） | 已由 `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` whole-Spec supersede；保留为历史 accepted authority。 |
+ | `AUTH_SERVICE_SVC_FORUM_LEGACY_GRANT_NARROWING_V1` | implementation | accepted | contracts（仅 CTR-NG-001 冻结的三文件闭包：`scripts/narrow-svc-forum-legacy-grant-v1.ts`；`scripts/run-svc-forum-legacy-grant-narrowing-v1-conformance.sh`；`tests/oauth/narrow-svc-forum-legacy-grant-v1.test.ts`） | svc-forum 遗留 Grant 最小降权子 Spec；preserved implementation 当前不 conformant、未获 merge authority，production apply 不因 acceptance 自动授权 |
+ | `AUTH_SERVICE_SVC_FORUM_VERSION_LINKAGE_V1` | implementation | superseded | contracts（仅 CTR-VL-002 冻结的 18 文件闭包） | 已由 `AUTH_SERVICE_FORUM_MODERATOR_GRANT_SUPPLY_V1` whole-Spec supersede；保留为历史 accepted authority。 |
+ | `AUTH_SERVICE_AGENT_WAKE_AUDIENCE_CCR_V1` | implementation | accepted | contracts（仅 CTR-AW-007 冻结的 16 文件闭包） | 注册 `agent-wake` Audience（machine-only、agent-profile、仅 `agent.wake` scope）的 bounded child CCR：冻结 exact entry、versioned registry delta + 版本联动、positive/negative conformance 与 16 文件 exact implementation closure（含 validate.mjs first-wave 集合 gate 单行 delta，PROVEN_NECESSARY）；不创建 Client、不写 Grant、零生产效果。五 Spec 单向依赖链（WAKE → PR #31 identity → svc-workflow PR #14 → dsh-agent-core PR #83 → PR #87）的根节点 |
+ | `AUTH_SERVICE_SCHEDULER_AUDIENCE_CCR_V1` | implementation | accepted | contracts（仅 CTR-SCH-004 冻结的 16 文件闭包） | 注册 `scheduler` Audience（machine-only、agent-profile、恰 `scheduler.admin` + `scheduler.audit` 两 scope）的 bounded child CCR：scope 语义锚点 = accepted AGENT_CORE_SCHEDULER_RUN_HISTORY_V1 R8（blob 双点一致）；manage-any 线格式/本地标签/global definition-read 一律不注册；16 文件 exact implementation closure（NI closure V2 同构）；版本判定延迟到实现时点并规避占用/预留/sibling pending CCR；下游 = dsh-agent-core scheduler 部署链 prerequisite（DAG ROOT，无下游 head pin；proposed PR #144 仅 context）；不创建 Principal/Client/Grant、不写 DB、零生产效果 |
+-| `AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1` | implementation | accepted | contracts（仅 CTR-ASM-004 冻结的 16 文件闭包） | 注册 `agent-session-messaging` Audience（machine-only、agent-profile、仅 `agent.session.send` scope）的 bounded child CCR：冻结 exact entry、16 文件 exact implementation closure（NI closure V2 同构，含 validate.mjs first-wave 集合单行追加）、positive/negative conformance；版本判定延迟到实现时点并显式规避 accepted forum-moderator 预留的 `1.5.0`；下游 = dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V1 CTR-DEP-002 的 Phase A prerequisite（DAG ROOT，无下游 authority pin）；不创建 Principal/Client/Grant、不写 DB、零生产效果 |
+-| `AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2` | implementation | proposed whole-authority successor（acceptance 时原子 supersede Audience CCR V1 并回填 backlink） | none | V1 complete successor：保留 machine-only agent audience 与 `agent.session.send`，精确新增独立 `agent.session.inspect_own_dispatch`，Bundle/registry 1.11.0→1.12.0，14-file closure；Agent Core 独立验证 trusted caller + owned exact `(targetAgentId,sessionId,messageId)`；无 Grant/credential/history/browser/write；当前 docs-only、零 production mutation |
+-| `AUTH_SERVICE_HR_AGENT_SESSION_INSPECTION_GRANT_V1` | implementation | proposed NEW subsequent operation | none | canonical HR Principal `dc702687…` / `agt_hr-agent` 的唯一 Broker-bound MachineClient：以已合法 send-only @v1 poststate 为精确 prestate，仅前向替换为 `[agent.session.inspect_own_dispatch,agent.session.send]@v2`；two-file vehicle、serializable CAS + closed audit、NOOP/conflict/unknown reconciliation、@v3 send-only rollback；不 supersede/改写历史 send Grant authority，不含 wildcard/admin/write/credential；当前零 Grant/production mutation |
++| `AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1` | implementation | superseded by `AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2` | contracts（历史 implementation authority 保留；仅 CTR-ASM-004 冻结的 16 文件闭包） | 历史 `agent-session-messaging` send-only Audience authority；已由 V2 whole-authority successor 原子 supersede 并回填 backlink，normative body 保留不变。 |
++| `AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2` | implementation | accepted (reviewed head `9eeb896…`, Owner `mayf3`, 2026-09-14; independent security review PASS, blockers NONE) | contracts（§5 exact 14-file implementation closure；§6 production activation 仍须独立 controlled execution） | V1 complete successor：保留 machine-only agent audience 与 `agent.session.send`，精确新增独立 `agent.session.inspect_own_dispatch`，Bundle/registry 1.11.0→1.12.0，14-file closure；Agent Core 独立验证 trusted caller + owned exact `(targetAgentId,sessionId,messageId)`；acceptance 本身无 Grant/credential/deploy/production mutation。 |
++| `AUTH_SERVICE_HR_AGENT_SESSION_INSPECTION_GRANT_V1` | implementation | accepted (reviewed head `9eeb896…`, Owner `mayf3`, 2026-09-14; independent security review PASS, blockers NONE) | contracts（仅 exact two-file vehicle；production apply 仍须独立 controlled execution） | canonical HR Principal `dc702687…` / `agt_hr-agent` 的唯一 Broker-bound MachineClient：以已合法 send-only @v1 poststate 为精确 prestate，仅前向替换为 `[agent.session.inspect_own_dispatch,agent.session.send]@v2`；serializable CAS + closed audit、NOOP/conflict/unknown reconciliation、@v3 send-only rollback；不 supersede/改写 HR Send Grant V2，不含 wildcard/admin/write/credential；acceptance 本身零 Grant/production mutation。 |
+ | `AUTH_SERVICE_AGENT_SESSION_MESSAGING_TEMP_GRANT_V1` | implementation | accepted | contracts（apply/revoke 脚本另受 §2–§5 Gate 约束；production apply 另行 Owner 原生授权） | ONE named source Agent（`agt_efficiency-agent` / `mc_cF81DF…`，client uuid `695d1eeb…`）的 TEMPORARY canary Grant Authority：`agent-session-messaging` × `{agent.session.send}` v1 单行 grant（one-shot guard、同事务 closed-envelope audit、target blog-agent/agt_blog-agent 零授权、terminal revoke REQUIRED）；仅供 A2A canary E2E，非日常运营 Grant（permanent operational Grant 另行 Authority） |
+ | `AUTH_SERVICE_AGENT_SESSION_SEND_OPERATIONAL_GRANT_V1` | implementation | accepted | contracts（apply 另行 Owner native gate，顺序冻结于 canary→revoke 之后） | TEMPORARY canary Grant 的 PERMANENT operational 后继（CTR-DEP-006 retention 条款要求的 separate activation authority）：同一 frozen identity（`agt_efficiency-agent` / `mc_cF81DF…` uuid `695d1eeb…`）× `agent-session-messaging` × `{agent.session.send}` v1，purpose = daily A2A orchestration；**reactivation-safe upsert**（`ON CONFLICT (machine_client_id, audience_id) DO UPDATE`，tombstone 行占 PK）+ one-shot guard + 同事务 audit（created|reactivated）；target 零授权；无 revoke 计划（tombstone 安全网保留）；强制顺序 canary → revoke → operational |
+ | `AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V1` | implementation | superseded (2026-09-05 by `AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V2` whole-Spec subject successor；reviewed head 9b3b4bd…) | contracts（生产 apply 另受 shared mutation slot + controlled runbook + 原生特权 gate 约束） | 独立的最小 HR orchestration send Grant supply：exact Principal `bc970ced…`(hr-agent) 的唯一 active MachineClient × `agent-session-messaging` × `[agent.session.send]` v1 恒久 operational Grant；tombstone-only 回滚 + 同事务 nonce audit + bounded reason（`HR_WORKFLOW_ORCHESTRATION_AGENT_SESSION_SEND_ACTIVATION`）；零 scheduler.admin / agent_wake / 跨 Agent mutation / credential 变更；不复用不改 supersede efficiency 的 operational Grant |
+ | `AUTH_SERVICE_HR_AGENT_SESSION_SEND_GRANT_V2` | implementation | accepted (reviewed head 3a5e01e…, Owner batched exact-head acceptance 2026-09-05) | contracts（生产 apply 另受 shared mutation slot + controlled runbook + 原生特权 gate 约束） | V1 的 whole-Spec subject successor：唯一语义修正=HR 业务主体 bc970ced…(hr-agent, legacy) → dc702687…(agt_hr-agent, 现行正式 HR 业务身份) + legacy 主体 MUST NOT 否定条款；capability 语义字节保留（最小 send Grant、零 scheduler.admin/agent_wake/跨 Agent mutation/credential/admin）；原子接受 V2 accepted + V1 superseded 回填 |
+ | `AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V1` | implementation | superseded (2026-09-05 by `AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V2` whole-Spec subject successor；reviewed head 0359575…) | contracts（生产 apply 另受 shared mutation slot + controlled runbook 约束，`production_apply_authority: conditional_controlled_operation`） | 独立 bounded 读操作：`GET /api/v1/agent-principals/:principal_id/agent`（exact UUID → active AGENT Principal 的 canonical agentId；fail-closed 404/409/422/500/504 全族；正反向 duplicate 双行界；无 name/external-ref inference）+ additive child CCR entry `agent-principal-resolution` × `auth.agent.resolve`（machine-only，bundle additive minor）+ HR 唯一 tuple 读 Grant（机械绑定 exact active client）；不改 supersede external-ref discovery Spec；下游 = dsh AGENT_CORE_EXACT_PRINCIPAL_AGENT_RESOLUTION_V1 depends_on pin；零 credential/secret 披露 |
+ | `AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V2` | implementation | accepted (reviewed head 87beb77…, Owner batched exact-head acceptance 2026-09-05) | contracts（生产 apply 另受 shared mutation slot + controlled runbook 约束，`production_apply_authority: conditional_controlled_operation`） | V1 的 whole-Spec subject successor：唯一语义修正=HR 读 Grant 接收者 bc970ced…(legacy) → dc702687…(agt_hr-agent) + legacy MUST NOT 条款；subject-generic resolution 契约（registration entry、route、error taxonomy、lifecycle）字节保留；下游 = dsh AGENT_CORE_EXACT_PRINCIPAL_AGENT_RESOLUTION_V2 pin |
+ | `AUTH_SERVICE_AGENTCORE_HR_DISPATCHER_IDENTITY_V1` | implementation | accepted | contracts（仅 §3.1 PLAN/APPLY/VERIFY 执行契约；APPLY 轮仍需独立 owner 授权） | 专用 system Agent `agt_workflow-dispatcher-hr-agent` 的独立 Principal/Client/exact 最小 grant 面（svc-workflow[workflow.read] + agent-wake；workflow.execute/admin 与一切 scheduler scope FORBIDDEN）、secret handoff、exact-rerun NOOP、rollback/revoke；不治理 svc-workflow 角色授予与 dsh-agent-core Agent/scheduler 面。proposed 阶段零实现/生产权限；唯一规范上游 = agent-wake Audience CCR（WAKE -> 31 -> 14 -> 83 -> 87 的节点 2） |
+ | `AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V2` | implementation | accepted | contracts（仅 CTR-NIC2-001 冻结的 16 文件闭包） | Accepted `AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V1` 的 whole-Spec successor：完整重述 NI Bundle `1.3.0` -> `1.4.0` 全部仍有效 authority（Goal/Scope/Decisions/Contracts/Acceptance/版本联动/candidate loader/正负 conformance/production 边界/rollback），仅做封闭修正——closure 15 -> 16、新增 `contract-bundles/minimal-auth-v1/validate.mjs`（`NOT_NECESSARY` -> `PROVEN_NECESSARY`；唯一允许 validator delta = first-wave Audience set 单行追加恰 `agent-core-notification-ingress-v1`，其余 Audience/validator/profile/scope/digest/错误语义不变），`EXTRA_FILE_COUNT = 0`（无第 17 文件）；撤回未接受的 elaboration proposal（同 PR 删除）；acceptance transaction 已原子完成——V2 accepted/contracts，V1 superseded 并回填 backlink（V1 normative body 字节保留）；PR #29 保持 DRAFT/NOT FOR MERGE 待独立实现审计 |
+ | `AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_SERVICE_CREDENTIAL_GRANT_V1` | implementation | accepted | contracts（仅 `CTR-NSC-006` 冻结的 exact 三文件闭包；`production_apply_authority: none`） | PR #28 未接受候选的 accepted focused amendment：严格分离 Audience 注册与 Client/Grant 供应；冻结两个 exact Client ID、exact 三文件闭包、plan/apply/verify、exact-rerun NOOP、drift fail-closed、非目标 Client/Grant digest 不变、secret 零披露、Phase B 完整回滚与不完整回滚 fail-loud；当前 integrated WIP runner 保持 BLOCKED/unchanged；acceptance 仅授权 contracts，零生产效果。 |
+ | `LIFE_WORKBENCH_AGENT_ACCESS_POLICY_V1` | policy | accepted | none（三层访问政策：ACCESS_ENTITLEMENT / GRANT_PROVISIONING_PRECONDITIONS / RUNTIME_READINESS；`ELIGIBLE_BUT_IDENTITY_NOT_READY` 与 `AUTHORIZED_BUT_RUNTIME_NOT_READY` 语义分离；PILOT_ROSTER != FINAL_ELIGIBILITY_RULE；acceptance 不授权任何 rollout） | 生命工作台 Agent 基础访问（workbench.read + workbench.propose）的产品规则权威；membership 权威 = accepted `AGENT_CORE_AGENT_CREDENTIAL_PROVISIONING_V1` 的 canonical Agent Definition config。 |
