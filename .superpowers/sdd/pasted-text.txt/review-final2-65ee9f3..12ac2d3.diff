@@ -1,0 +1,2245 @@
+# Review package: 65ee9f30d505f4ea5e68501082596ab467532f5d..12ac2d3905923084f86c33aea41d99f8ca632677
+
+## Commits
+12ac2d3 fix(auth): reject stray inspection rollback audits
+23c7cb6 fix(auth): close inspection grant review blockers
+468ddbe feat(auth): supply HR session inspection grant
+72da61b feat(auth): register owned-dispatch inspection scope
+
+## Files changed
+ .../minimal-auth-v1/audience-registry.json         |   6 +-
+ .../minimal-auth-v1/contract-manifest.json         |   4 +-
+ .../fixtures/negative-token-fixtures.json          |  92 ++-
+ .../fixtures/positive-token-fixtures.json          |  66 +-
+ .../minimal-auth-v1/fixtures/schema-instances.json |   2 +-
+ .../minimal-auth-v1/metadata/adc-v2-scope-map.json |   2 +-
+ .../minimal-auth-v1/metadata/change-log.md         |  27 +
+ .../metadata/consumer-verification-matrix.json     |   2 +-
+ .../minimal-auth-v1/metadata/freeze-gates.json     |   2 +-
+ .../metadata/llm-todo-authorization-candidate.json |   2 +-
+ .../schemas/contract-manifest.schema.json          |   2 +-
+ contract-bundles/minimal-auth-v1/validate.mjs      |  42 +
+ scripts/supply-hr-session-inspection-grant-v1.ts   | 890 +++++++++++++++++++++
+ src/lib/oauth/v1/contract.ts                       |   2 +-
+ .../agent-session-inspection-audience-v2.test.ts   |  99 +++
+ .../supply-hr-session-inspection-grant-v1.test.ts  | 581 ++++++++++++++
+ 16 files changed, 1806 insertions(+), 15 deletions(-)
+
+## Diff
+diff --git a/contract-bundles/minimal-auth-v1/audience-registry.json b/contract-bundles/minimal-auth-v1/audience-registry.json
+index f1c105a..6a415f2 100644
+--- a/contract-bundles/minimal-auth-v1/audience-registry.json
++++ b/contract-bundles/minimal-auth-v1/audience-registry.json
+@@ -1,13 +1,13 @@
+ {
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-  "registry_version": "1.11.0",
++  "registry_version": "1.12.0",
+   "status": "frozen",
+   "audiences": [
+     {
+       "audience_id": "svc-workflow",
+       "resource_service": "svc-workflow",
+       "scope_namespace": "workflow",
+       "accepted_principal_types": ["agent"],
+       "human_access_enabled": false,
+       "machine_access_enabled": true,
+       "delegated_access_enabled": true,
+@@ -82,24 +82,24 @@
+       "notes": "Registered by AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_AUDIENCE_CCR_V1 via AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V1; machine-only service access for Agent Core Notification Ingress POST /v1/deliver."
+     },
+     {
+       "audience_id": "agent-session-messaging",
+       "resource_service": "agent-session-messaging",
+       "scope_namespace": "agent",
+       "accepted_principal_types": ["agent"],
+       "human_access_enabled": false,
+       "machine_access_enabled": true,
+       "delegated_access_enabled": false,
+-      "registered_scopes": ["agent.session.send"],
++      "registered_scopes": ["agent.session.inspect_own_dispatch", "agent.session.send"],
+       "status": "active",
+       "freeze_ready": true,
+-      "notes": "Registered by AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1; machine-only agent access for the canonical agent_session_send resource consumed by dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V1."
++      "notes": "Registered by AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2 for canonical send and independently granted caller-owned exact-turn inspection consumed by dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V2."
+     },
+     {
+       "audience_id": "scheduler",
+       "resource_service": "scheduler",
+       "scope_namespace": "scheduler",
+       "accepted_principal_types": ["agent"],
+       "human_access_enabled": false,
+       "machine_access_enabled": true,
+       "delegated_access_enabled": false,
+       "registered_scopes": ["scheduler.admin", "scheduler.audit"],
+diff --git a/contract-bundles/minimal-auth-v1/contract-manifest.json b/contract-bundles/minimal-auth-v1/contract-manifest.json
+index f0c7716..de12478 100644
+--- a/contract-bundles/minimal-auth-v1/contract-manifest.json
++++ b/contract-bundles/minimal-auth-v1/contract-manifest.json
+@@ -1,14 +1,14 @@
+ {
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "design_id": "MINIMAL_AUTH_FOUNDATION_V1",
+-  "contract_version": "1.11.0",
++  "contract_version": "1.12.0",
+   "lifecycle": {
+     "contract_bundle_freeze": {
+       "status": "frozen",
+       "frozen": true,
+       "implementation_authorized": true,
+       "reviewed_source_git_commit": "02bccd428554868125a65800f1334928c80543a2"
+     },
+     "production_deployment": {
+       "status": "not_ready",
+       "exact_jwks_url": null,
+@@ -21,21 +21,21 @@
+       "legacy_out_of_scope": [
+         "workflow-todo", "llm-todo",
+         "openclaw-credential-broker-candidate"
+       ],
+       "in_scope_ready": false,
+       "legacy_consumers_migrated": false
+     }
+   },
+   "exact_issuer": "auth-service",
+   "token_version": "v1",
+-  "audience_registry_version": "1.11.0",
++  "audience_registry_version": "1.12.0",
+   "signing": {
+     "algorithm": "RS256",
+     "jwks_path": "/.well-known/jwks.json",
+     "jwks_http_timeout_seconds": 5,
+     "jwks_cache_ttl_seconds": 300,
+     "jwks_max_stale_seconds": 600,
+     "cache_fetch_error_rule": "use_trusted_cache_until_max_stale_then_fail_closed",
+     "unknown_kid_refresh_attempts": 1,
+     "unknown_kid_after_refresh_rule": "reject",
+     "active_signing_key_count": 1,
+diff --git a/contract-bundles/minimal-auth-v1/fixtures/negative-token-fixtures.json b/contract-bundles/minimal-auth-v1/fixtures/negative-token-fixtures.json
+index 35b7d7f..291adcb 100644
+--- a/contract-bundles/minimal-auth-v1/fixtures/negative-token-fixtures.json
++++ b/contract-bundles/minimal-auth-v1/fixtures/negative-token-fixtures.json
+@@ -1,12 +1,12 @@
+ {
+-  "contract_version": "1.11.0",
++  "contract_version": "1.12.0",
+   "cases": [
+     {
+       "name": "human-forbidden-scope",
+       "base_fixture": "human-svc-okr",
+       "mutations": [
+         { "op": "set", "path": "/claims/scope", "value": "okr.read" }
+       ],
+       "expected_error": "PROFILE_FORBIDDEN_CLAIM"
+     },
+     {
+@@ -440,20 +440,110 @@
+       "expected_error": "INVALID_SCOPE_GRANT"
+     },
+     {
+       "name": "direct-session-messaging-extra-requested-scope-rejected",
+       "base_fixture": "direct-agent-session-messaging",
+       "mutations": [
+         { "op": "set", "path": "/authorization_context/requested_scope", "value": "agent.session.read agent.session.send" }
+       ],
+       "expected_error": "INVALID_SCOPE_NAMESPACE"
+     },
++    {
++      "name": "direct-session-inspection-missing-grant-rejected",
++      "base_fixture": "direct-agent-session-inspection",
++      "mutations": [
++        { "op": "set", "path": "/authorization_context/machine_access_grants/agent-session-messaging", "value": [] }
++      ],
++      "expected_error": "INVALID_SCOPE_GRANT"
++    },
++    {
++      "name": "direct-session-send-only-grant-requesting-inspection-rejected",
++      "base_fixture": "direct-agent-session-messaging",
++      "mutations": [
++        { "op": "set", "path": "/claims/scope", "value": "agent.session.inspect_own_dispatch" },
++        { "op": "set", "path": "/authorization_context/requested_scope", "value": "agent.session.inspect_own_dispatch" }
++      ],
++      "expected_error": "INVALID_SCOPE_GRANT"
++    },
++    {
++      "name": "direct-session-inspect-only-grant-requesting-send-rejected",
++      "base_fixture": "direct-agent-session-inspection",
++      "mutations": [
++        { "op": "set", "path": "/claims/scope", "value": "agent.session.send" },
++        { "op": "set", "path": "/authorization_context/requested_scope", "value": "agent.session.send" }
++      ],
++      "expected_error": "INVALID_SCOPE_GRANT"
++    },
++    {
++      "name": "direct-session-inspection-unknown-scope-rejected",
++      "base_fixture": "direct-agent-session-inspection",
++      "mutations": [
++        { "op": "set", "path": "/claims/scope", "value": "agent.session.inspect" }
++      ],
++      "expected_error": "INVALID_SCOPE_NAMESPACE"
++    },
++    {
++      "name": "direct-session-inspection-alias-scope-rejected",
++      "base_fixture": "direct-agent-session-inspection",
++      "mutations": [
++        { "op": "set", "path": "/claims/scope", "value": "agent.session.read" }
++      ],
++      "expected_error": "INVALID_SCOPE_NAMESPACE"
++    },
++    {
++      "name": "direct-session-inspection-wildcard-scope-rejected",
++      "base_fixture": "direct-agent-session-inspection",
++      "mutations": [
++        { "op": "set", "path": "/claims/scope", "value": "agent.*" }
++      ],
++      "expected_error": "INVALID_SCOPE_WIRE"
++    },
++    {
++      "name": "direct-session-inspection-extra-scope-rejected",
++      "base_fixture": "direct-agent-session-inspection",
++      "mutations": [
++        { "op": "set", "path": "/authorization_context/requested_scope", "value": "agent.session.inspect_own_dispatch agent.session.unknown" }
++      ],
++      "expected_error": "INVALID_SCOPE_NAMESPACE"
++    },
++    {
++      "name": "direct-session-inspection-wrong-namespace-rejected",
++      "base_fixture": "direct-agent-session-inspection",
++      "mutations": [
++        { "op": "set", "path": "/claims/scope", "value": "workflow.read" }
++      ],
++      "expected_error": "INVALID_SCOPE_NAMESPACE"
++    },
++    {
++      "name": "direct-session-inspection-human-access-rejected",
++      "base_fixture": "human-svc-okr",
++      "mutations": [
++        { "op": "set", "path": "/claims/aud", "value": "agent-session-messaging" }
++      ],
++      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
++    },
++    {
++      "name": "direct-session-inspection-service-principal-rejected",
++      "base_fixture": "direct-service-notification-ingress",
++      "mutations": [
++        { "op": "set", "path": "/claims/aud", "value": "agent-session-messaging" }
++      ],
++      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
++    },
++    {
++      "name": "direct-session-inspection-obo-delegation-rejected",
++      "base_fixture": "obo-adc-v2-to-svc-workflow",
++      "mutations": [
++        { "op": "set", "path": "/claims/aud", "value": "agent-session-messaging" }
++      ],
++      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
++    },
+     {
+       "name": "direct-scheduler-service-principal-rejected",
+       "base_fixture": "direct-service-notification-ingress",
+       "mutations": [
+         { "op": "set", "path": "/claims/aud", "value": "scheduler" }
+       ],
+       "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+     },
+     {
+       "name": "direct-scheduler-human-access-rejected",
+diff --git a/contract-bundles/minimal-auth-v1/fixtures/positive-token-fixtures.json b/contract-bundles/minimal-auth-v1/fixtures/positive-token-fixtures.json
+index 2738577..e04f0bd 100644
+--- a/contract-bundles/minimal-auth-v1/fixtures/positive-token-fixtures.json
++++ b/contract-bundles/minimal-auth-v1/fixtures/positive-token-fixtures.json
+@@ -1,12 +1,12 @@
+ {
+-  "contract_version": "1.11.0",
++  "contract_version": "1.12.0",
+   "now": 1784300000,
+   "fixtures": [
+     {
+       "name": "human-svc-okr",
+       "profile": "human_access",
+       "header": {
+         "alg": "RS256",
+         "kid": "fixture-key-v1-draft2-20260718"
+       },
+       "claims": {
+@@ -295,20 +295,82 @@
+         "exp": 1784300600
+       },
+       "authorization_context": {
+         "requested_scope": "agent.session.send",
+         "machine_access_grants": {
+           "agent-session-messaging": ["agent.session.send"]
+         }
+       },
+       "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI3MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1zZXNzaW9uLW1lc3NhZ2luZyIsInByaW5jaXBhbF90eXBlIjoiYWdlbnQiLCJjbGllbnRfaWQiOiJhZ2VudC1jbGllbnQtc2Vzc2lvbi1tZXNzYWdpbmciLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJ0eXBlIjoiYWNjZXNzIiwidmVyc2lvbiI6InYxIiwic2NvcGUiOiJhZ2VudC5zZXNzaW9uLnNlbmQiLCJhZ2VudF9pZCI6ImFnZW50LXNlc3Npb24tbWVzc2VuZ2VyIiwianRpIjoiZGlyZWN0LWp0aS1zZXNzaW9uLW1lc3NhZ2luZy0wMDAwMSIsImlhdCI6MTc4NDMwMDAwMCwibmJmIjoxNzg0MzAwMDAwLCJleHAiOjE3ODQzMDA2MDB9.YCsVIBBllGyrlBwSc3gzGZ70t87_-OB9Lg_SZXr7_ya8n1qcrLDSvft87OR-YwHeazVJDO97PoM539QSudxp2OauN_ILM3NCjk2psLPLbKhj4lL0XUE6hkRFxtLBwcxNn-wwVJfvpJePVYTxeTnoSfLZh91UkanR96nUXrjgMl6r8-qxcpOpDQ09LJHgfT7l9bDCjN-EZlKNokaWotQevhKsQCc1nAMCzlhM476lwH3Ote6PHGz2_d5HtFb-cssNEeWkI8sRYd2G7dtP3UYYcn-UeWnLfqXpfd0M6evOEGflvQDQ88VKU4baUj8Vd1_dj3h4R8pwAtbp547APzCCSw"
+     },
++    {
++      "name": "direct-agent-session-inspection",
++      "profile": "direct_machine_access",
++      "header": {
++        "alg": "RS256",
++        "kid": "fixture-key-v1-svc-okr-canary-20260719"
++      },
++      "claims": {
++        "iss": "auth-service",
++        "sub": "70000000-0000-4000-8000-000000000002",
++        "aud": "agent-session-messaging",
++        "principal_type": "agent",
++        "client_id": "agent-client-session-inspection",
++        "token_use": "access",
++        "type": "access",
++        "version": "v1",
++        "scope": "agent.session.inspect_own_dispatch",
++        "agent_id": "agent-session-inspector",
++        "jti": "direct-jti-session-inspection-00001",
++        "iat": 1784300000,
++        "nbf": 1784300000,
++        "exp": 1784300600
++      },
++      "authorization_context": {
++        "requested_scope": "agent.session.inspect_own_dispatch",
++        "machine_access_grants": {
++          "agent-session-messaging": ["agent.session.inspect_own_dispatch"]
++        }
++      },
++      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI3MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDIiLCJhdWQiOiJhZ2VudC1zZXNzaW9uLW1lc3NhZ2luZyIsInByaW5jaXBhbF90eXBlIjoiYWdlbnQiLCJjbGllbnRfaWQiOiJhZ2VudC1jbGllbnQtc2Vzc2lvbi1pbnNwZWN0aW9uIiwidG9rZW5fdXNlIjoiYWNjZXNzIiwidHlwZSI6ImFjY2VzcyIsInZlcnNpb24iOiJ2MSIsInNjb3BlIjoiYWdlbnQuc2Vzc2lvbi5pbnNwZWN0X293bl9kaXNwYXRjaCIsImFnZW50X2lkIjoiYWdlbnQtc2Vzc2lvbi1pbnNwZWN0b3IiLCJqdGkiOiJkaXJlY3QtanRpLXNlc3Npb24taW5zcGVjdGlvbi0wMDAwMSIsImlhdCI6MTc4NDMwMDAwMCwibmJmIjoxNzg0MzAwMDAwLCJleHAiOjE3ODQzMDA2MDB9.x-ezCHFuHlR6j32KfIPhPo9ImqgZMFpT2z1TRLulWZiklm6A4sXpRpjzonfs8wKJ8YoZYZ213WOzxV57yyGXAWASz4tBRJV4f3I-7kcfcfGoIHlTQLKuFjxBoTXE59jGIFiO0V7zBWvVz0bQBksJfJF77_PT57nqvP8rZ1MhGsw9ApJRepUtN9CEveLpq1sYGxDyEoWwD7xg7IvcxgK8ON3Yfy3Zo55eQdCo6czIVCX5l-sVZQ8eLkdTCjqhkbSpshV0Jm-tKecrAm_NUZz5hEvx0wuUt-CYuy2YiI2mEtFe0gztbqQxdcfWiejYVSMJY_0CTEobtPA-oSmc5Dimmw"
++    },
++    {
++      "name": "direct-agent-session-messaging-and-inspection",
++      "profile": "direct_machine_access",
++      "header": {
++        "alg": "RS256",
++        "kid": "fixture-key-v1-svc-okr-canary-20260719"
++      },
++      "claims": {
++        "iss": "auth-service",
++        "sub": "70000000-0000-4000-8000-000000000003",
++        "aud": "agent-session-messaging",
++        "principal_type": "agent",
++        "client_id": "agent-client-session-messaging-inspection",
++        "token_use": "access",
++        "type": "access",
++        "version": "v1",
++        "scope": "agent.session.inspect_own_dispatch agent.session.send",
++        "agent_id": "agent-session-messaging-inspector",
++        "jti": "direct-jti-session-messaging-inspection-00001",
++        "iat": 1784300000,
++        "nbf": 1784300000,
++        "exp": 1784300600
++      },
++      "authorization_context": {
++        "requested_scope": "agent.session.inspect_own_dispatch agent.session.send",
++        "machine_access_grants": {
++          "agent-session-messaging": ["agent.session.inspect_own_dispatch", "agent.session.send"]
++        }
++      },
++      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI3MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDMiLCJhdWQiOiJhZ2VudC1zZXNzaW9uLW1lc3NhZ2luZyIsInByaW5jaXBhbF90eXBlIjoiYWdlbnQiLCJjbGllbnRfaWQiOiJhZ2VudC1jbGllbnQtc2Vzc2lvbi1tZXNzYWdpbmctaW5zcGVjdGlvbiIsInRva2VuX3VzZSI6ImFjY2VzcyIsInR5cGUiOiJhY2Nlc3MiLCJ2ZXJzaW9uIjoidjEiLCJzY29wZSI6ImFnZW50LnNlc3Npb24uaW5zcGVjdF9vd25fZGlzcGF0Y2ggYWdlbnQuc2Vzc2lvbi5zZW5kIiwiYWdlbnRfaWQiOiJhZ2VudC1zZXNzaW9uLW1lc3NhZ2luZy1pbnNwZWN0b3IiLCJqdGkiOiJkaXJlY3QtanRpLXNlc3Npb24tbWVzc2FnaW5nLWluc3BlY3Rpb24tMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.xiaWyJ7aJJS7IEmVtzZldfdkWkkYu7_e5mlDQUNIdaYfOBwenLGTKu74Zs9DhYj9ictDIo3lKLEBL6EJqf87OxbH1K8IRDW7wKDW6fSgH_a41qDaIq99J4jMmsWvUFRd8UJkGp5ky0XWEEm0nDWovXOQe93mzwHzXyss2EoJV4vuHQo1qmjZVEu_4q840pKogrT_1BQC4oVspN0uI_P-XTvHK7juPeFFFFCqE9VvTMTFvHIathB6Z0XWJ5UIqjvvWl5VjWF1c56MsSUpevwd6TloRrwtUTuT1lakn5cmU2RxZu__zeFPmnZ79gMQN7xSPxW1jJKhV0LpAAk1OqeOJQ"
++    },
+     {
+       "name": "direct-agent-scheduler-admin",
+       "profile": "direct_machine_access",
+       "header": {
+         "alg": "RS256",
+         "kid": "fixture-key-v1-svc-okr-canary-20260719"
+       },
+       "claims": {
+         "iss": "auth-service",
+         "sub": "80000000-0000-4000-8000-000000000001",
+@@ -389,11 +451,11 @@
+       },
+       "authorization_context": {
+         "requested_scope": "auth.agent.resolve",
+         "machine_access_grants": {
+           "agent-principal-resolution": ["auth.agent.resolve"]
+         }
+       },
+       "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI5MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1wcmluY2lwYWwtcmVzb2x1dGlvbiIsInByaW5jaXBhbF90eXBlIjoiYWdlbnQiLCJjbGllbnRfaWQiOiJhZ2VudC1jbGllbnQtcHJpbmNpcGFsLXJlc29sdXRpb24iLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJ0eXBlIjoiYWNjZXNzIiwidmVyc2lvbiI6InYxIiwic2NvcGUiOiJhdXRoLmFnZW50LnJlc29sdmUiLCJhZ2VudF9pZCI6ImFnZW50LXByaW5jaXBhbC1yZXNvbHZlciIsImp0aSI6ImRpcmVjdC1qdGktcHJpbmNpcGFsLXJlc29sdXRpb24tMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.WZFs54nNAckFQZJY1EGK2PaaAljT4BFhhykLMd4IzCXaXceCWFYi3QoXeTBkPhN6aE1uYop8jggpBo43oaX_7uVRWJeGVv7MyKCgBDT4Kzq4_wFCwxHx4oTZgP-fAy9dawX4hVVGAp-sm97MSmqbXDoQx_armySBKuxXjTPNzEGZJ-3la1bP7twxu-5Nv999ZwY_Zs80KKK3p9euGFCYvjzzZLDoQuKQGTpJCTYWMmhpU-sZZSrxP2Tg4vRKa5R-kQ-i6KPYPo4_nZE5tzzkjv-6KGRe6u8wc5UCh-7NgvtKsxrJvHQOIkLqRMllo1-8VMn2Jxy5_w5CLEwtfnv7_A"
+     }
+   ]
+-}
+\ No newline at end of file
++}
+diff --git a/contract-bundles/minimal-auth-v1/fixtures/schema-instances.json b/contract-bundles/minimal-auth-v1/fixtures/schema-instances.json
+index 8ab001f..d59059a 100644
+--- a/contract-bundles/minimal-auth-v1/fixtures/schema-instances.json
++++ b/contract-bundles/minimal-auth-v1/fixtures/schema-instances.json
+@@ -1,12 +1,12 @@
+ {
+-  "contract_version": "1.11.0",
++  "contract_version": "1.12.0",
+   "instances": [
+     {
+       "id": "oauth-client-credentials-request",
+       "schema_file": "oauth.schema.json",
+       "value": {
+         "grant_type": "client_credentials",
+         "resource": "svc-workflow",
+         "scope": "workflow.read"
+       }
+     },
+diff --git a/contract-bundles/minimal-auth-v1/metadata/adc-v2-scope-map.json b/contract-bundles/minimal-auth-v1/metadata/adc-v2-scope-map.json
+index 5de6514..09985ee 100644
+--- a/contract-bundles/minimal-auth-v1/metadata/adc-v2-scope-map.json
++++ b/contract-bundles/minimal-auth-v1/metadata/adc-v2-scope-map.json
+@@ -1,12 +1,12 @@
+ {
+-  "contract_version": "1.11.0",
++  "contract_version": "1.12.0",
+   "consumer_id": "adc-v2",
+   "consumer_git_sha": "ddeeab2ff394af64b78d9820c9e64d5bf0952ebd",
+   "consumer_git_tree": "6b7e69217cac99b381876e85750dea588ae501fd",
+   "source_audience": "adc-v2",
+   "target_audience": "svc-workflow",
+   "public_routes": [
+     { "method": "GET", "path": "/api/v2/health" },
+     { "method": "GET", "path": "/api/v2/definition-bindings" }
+   ],
+   "protected_routes": [
+diff --git a/contract-bundles/minimal-auth-v1/metadata/change-log.md b/contract-bundles/minimal-auth-v1/metadata/change-log.md
+index 440a083..9c77aaf 100644
+--- a/contract-bundles/minimal-auth-v1/metadata/change-log.md
++++ b/contract-bundles/minimal-auth-v1/metadata/change-log.md
+@@ -1,12 +1,39 @@
+ # Change Log
+ 
++## 1.12.0 — 2026-09-14
++
++- CCR: `AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2` (accepted exact
++  reviewed head `9eeb896abb5adb6298df73a4c9b489ae65bafce6`) supersedes the historical
++  send-only Audience authority and promotes the Bundle/registry from `1.11.0`
++  to `1.12.0` without an in-place version disguise.
++- The existing machine-only Agent Audience remains
++  `audience_id=resource_service=agent-session-messaging`, namespace `agent`,
++  human/delegated access disabled, and now registers the ASCII-sorted exact
++  independent scopes
++  `["agent.session.inspect_own_dispatch","agent.session.send"]`.
++- Existing send-only fixture `direct-agent-session-messaging` is preserved.
++  Added inspect-only `direct-agent-session-inspection` and combined
++  `direct-agent-session-messaging-and-inspection`; each binds issued Scope,
++  requested Scope, and its exact Audience Grant subset. Added fail-closed
++  fixtures for missing and opposite-scope Grants, unknown/alias/wildcard/extra/
++  wrong-namespace scopes, and human/service/delegated profiles. All compact JWT
++  fixtures use the existing tracked RS256 test key and contain no secret.
++- Version linkage advances the manifest, registry, manifest schema, fixtures,
++  schema instances, freeze gates, consumer matrix, ADC map and llm-todo
++  candidate to `1.12.0`; runtime compatibility adds only `1.12.0`. Validator
++  assertions require the exact V2 Audience and the independent positive and
++  negative fixture families.
++- Auth registers Scope claims only. It adds no trace coordinate or ownership
++  evidence and performs no Principal, Client, credential, Grant, database,
++  deployment, token-minting, Session, message, or production mutation.
++
+ ## 1.8.0 — 2026-09-05
+ 
+ - CCR: `AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V1` (accepted @
+   0359575dd1481aa5e6c294a495fbaabce97e40bf, acceptance BATCHED EXACT-HEAD
+   ACCEPTANCE = YES on 2026-09-05) — registered `agent-principal-resolution`
+   into the Minimal Auth V1 Audience Registry per CTR-EAPR-001 as the
+   machine-only OAuth registration for the exact active Agent Principal
+   relation read (`GET /api/v1/agent-principals/:principal_id/agent`,
+   CTR-EAPR-002..004). Implementation closure = the CTR-EAPR-006 allowed set
+   (wake CTR-AW-005 recipe isomorphic; scheduler/session-messaging NI closure
+diff --git a/contract-bundles/minimal-auth-v1/metadata/consumer-verification-matrix.json b/contract-bundles/minimal-auth-v1/metadata/consumer-verification-matrix.json
+index 272ab0e..9649fdb 100644
+--- a/contract-bundles/minimal-auth-v1/metadata/consumer-verification-matrix.json
++++ b/contract-bundles/minimal-auth-v1/metadata/consumer-verification-matrix.json
+@@ -1,12 +1,12 @@
+ {
+-  "contract_version": "1.11.0",
++  "contract_version": "1.12.0",
+   "inventory_date": "2026-07-18",
+   "contract_bundle_scope": ["auth-service", "svc-workflow", "svc-okr", "adc-v2", "svc-forum"],
+   "all_contract_bundle_scope_fixed_remote_sha": true,
+   "all_first_wave_migrations_ready": false,
+   "consumers": [
+     {
+       "id": "auth-service",
+       "kind": "issuer",
+       "git_sha": "bdb5e5bf308b9a39b7ff808d995bed82fc541a13",
+       "git_tree": "70674b6621ff3b5f252552aabb87824f067b71de",
+diff --git a/contract-bundles/minimal-auth-v1/metadata/freeze-gates.json b/contract-bundles/minimal-auth-v1/metadata/freeze-gates.json
+index 83a2257..64fb42c 100644
+--- a/contract-bundles/minimal-auth-v1/metadata/freeze-gates.json
++++ b/contract-bundles/minimal-auth-v1/metadata/freeze-gates.json
+@@ -1,12 +1,12 @@
+ {
+-  "contract_version": "1.11.0",
++  "contract_version": "1.12.0",
+   "contract_bundle_freeze_allowed": true,
+   "gates": [
+     {
+       "id": "GATE-REMOTE-CONSUMER-SHAS",
+       "state_domain": "consumer_migration",
+       "blocks_contract_bundle_freeze": false,
+       "status": "deferred",
+       "owner": "consumer-repository-owners",
+       "evidence": ["metadata/consumer-verification-matrix.json"],
+       "reason": "Out-of-scope Legacy consumers lack fixed migration SHAs; this blocks only their later migration, not the first-wave source Contract Bundle freeze."
+diff --git a/contract-bundles/minimal-auth-v1/metadata/llm-todo-authorization-candidate.json b/contract-bundles/minimal-auth-v1/metadata/llm-todo-authorization-candidate.json
+index e6b0c64..9ad414c 100644
+--- a/contract-bundles/minimal-auth-v1/metadata/llm-todo-authorization-candidate.json
++++ b/contract-bundles/minimal-auth-v1/metadata/llm-todo-authorization-candidate.json
+@@ -1,12 +1,12 @@
+ {
+-  "contract_version": "1.11.0",
++  "contract_version": "1.12.0",
+   "artifact_class": "legacy_consumer_migration_candidate",
+   "blocks_contract_bundle_freeze": false,
+   "consumer_id": "llm-todo",
+   "consumer_git_sha": "7cc746240ba15161a5350bbe4c6d8fb88f41f5c6",
+   "consumer_git_tree": "b45dc35aa7b3148a314c9d856efdb17b94387650",
+   "decision_status": "owner_review_required",
+   "audience": "llm-todo",
+   "candidate_principal_types": ["user", "agent", "service"],
+   "candidate_scopes": ["todo.admin", "todo.invoke", "todo.read", "todo.write"],
+   "matching_rule": "most_specific_path_pattern_wins_and_any_tie_denies",
+diff --git a/contract-bundles/minimal-auth-v1/schemas/contract-manifest.schema.json b/contract-bundles/minimal-auth-v1/schemas/contract-manifest.schema.json
+index 211d5e6..c8fa5d3 100644
+--- a/contract-bundles/minimal-auth-v1/schemas/contract-manifest.schema.json
++++ b/contract-bundles/minimal-auth-v1/schemas/contract-manifest.schema.json
+@@ -1,20 +1,20 @@
+ {
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "$id": "urn:minimal-auth-v1:contract-manifest:1.0.0",
+   "title": "Minimal Auth V1 Contract Manifest",
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+     "$schema": { "type": "string" },
+     "design_id": { "const": "MINIMAL_AUTH_FOUNDATION_V1" },
+-    "contract_version": { "const": "1.11.0" },
++    "contract_version": { "const": "1.12.0" },
+     "lifecycle": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+         "contract_bundle_freeze": {
+           "type": "object",
+           "additionalProperties": false,
+           "properties": {
+             "status": { "enum": ["draft", "frozen"] },
+             "frozen": { "type": "boolean" },
+diff --git a/contract-bundles/minimal-auth-v1/validate.mjs b/contract-bundles/minimal-auth-v1/validate.mjs
+index 47e98e2..0d5e650 100644
+--- a/contract-bundles/minimal-auth-v1/validate.mjs
++++ b/contract-bundles/minimal-auth-v1/validate.mjs
+@@ -398,20 +398,34 @@ check(!audienceIds.includes('workflow-todo'), 'registry: workflow-todo is a Clie
+ for (const audience of registry.audiences) {
+   check(/^[a-z][a-z0-9-]*$/.test(audience.audience_id), `registry: invalid Audience ${audience.audience_id}`);
+   check(/^[a-z][a-z0-9-]*$/.test(audience.scope_namespace), `registry: invalid namespace for ${audience.audience_id}`);
+   check(new Set(audience.accepted_principal_types).size === audience.accepted_principal_types.length, `registry: duplicate principal type for ${audience.audience_id}`);
+   check(audience.registered_scopes.every((scope) => scope.startsWith(`${audience.scope_namespace}.`)), `registry: wrong Scope namespace for ${audience.audience_id}`);
+   check([...audience.registered_scopes].sort(asciiCompare).join('\0') === audience.registered_scopes.join('\0'), `registry: Scopes not ASCII sorted for ${audience.audience_id}`);
+   check(!audience.human_access_enabled || audience.accepted_principal_types.includes('user'), `registry: Human Audience ${audience.audience_id} does not accept user`);
+   check(!audience.machine_access_enabled || audience.accepted_principal_types.some((type) => type === 'agent' || type === 'service'), `registry: Machine Audience ${audience.audience_id} has no machine principal type`);
+   check(!(audience.machine_access_enabled || audience.delegated_access_enabled) || audience.registered_scopes.length > 0, `registry: Machine Audience ${audience.audience_id} has no Scopes`);
+ }
++const sessionMessagingAudience = audienceById.get('agent-session-messaging');
++check(JSON.stringify(sessionMessagingAudience) === JSON.stringify({
++  audience_id: 'agent-session-messaging',
++  resource_service: 'agent-session-messaging',
++  scope_namespace: 'agent',
++  accepted_principal_types: ['agent'],
++  human_access_enabled: false,
++  machine_access_enabled: true,
++  delegated_access_enabled: false,
++  registered_scopes: ['agent.session.inspect_own_dispatch', 'agent.session.send'],
++  status: 'active',
++  freeze_ready: true,
++  notes: 'Registered by AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2 for canonical send and independently granted caller-owned exact-turn inspection consumed by dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V2.',
++}), 'registry: agent-session-messaging V2 Audience changed');
+ 
+ check(adcScopeMap.consumer_git_sha === 'ddeeab2ff394af64b78d9820c9e64d5bf0952ebd', 'ADC Scope map: unexpected consumer SHA');
+ const adcAudience = audienceById.get(adcScopeMap.source_audience);
+ const workflowAudience = audienceById.get(adcScopeMap.target_audience);
+ check(Boolean(adcAudience && workflowAudience), 'ADC Scope map: source or target Audience missing');
+ for (const route of adcScopeMap.protected_routes) {
+   check(adcAudience?.registered_scopes.includes(route.required_source_scope), `ADC Scope map: unregistered source Scope for ${route.method} ${route.path}`);
+   check(route.requested_target_scopes.length > 0, `ADC Scope map: empty target Scope for ${route.method} ${route.path}`);
+   check(route.requested_target_scopes.every((scope) => workflowAudience?.registered_scopes.includes(scope)), `ADC Scope map: unregistered target Scope for ${route.method} ${route.path}`);
+ }
+@@ -449,20 +463,32 @@ for (const fixture of positive.fixtures) {
+     positiveByName.set(fixture.name, fixture);
+   } catch (error) {
+     errors.push(`positive fixture ${fixture.name}: ${error.code ?? 'ERROR'} ${error.message}`);
+   }
+ }
+ 
+ for (const error of validateSignatureCases(negative.signature_cases, positiveByName, jwks)) {
+   errors.push(`signature fixture ${error}`);
+ }
+ check(positiveByName.size === positive.fixtures.length, 'positive fixture names must be unique and valid');
++for (const [fixtureName, exactScope] of [
++  ['direct-agent-session-messaging', 'agent.session.send'],
++  ['direct-agent-session-inspection', 'agent.session.inspect_own_dispatch'],
++  ['direct-agent-session-messaging-and-inspection', 'agent.session.inspect_own_dispatch agent.session.send'],
++]) {
++  const fixture = positiveByName.get(fixtureName);
++  check(Boolean(fixture), `session messaging V2: missing positive fixture ${fixtureName}`);
++  check(fixture?.claims?.scope === exactScope
++    && fixture?.authorization_context?.requested_scope === exactScope
++    && fixture?.authorization_context?.machine_access_grants?.['agent-session-messaging']?.join(' ') === exactScope,
++  `session messaging V2: fixture ${fixtureName} does not prove exact independent scope issuance`);
++}
+ 
+ for (const testCase of negative.cases) {
+   const base = positiveByName.get(testCase.base_fixture);
+   if (!base) {
+     errors.push(`negative fixture ${testCase.name}: unknown base fixture ${testCase.base_fixture}`);
+     continue;
+   }
+   const mutated = structuredClone(base);
+   for (const mutation of testCase.mutations) {
+     if (mutation.op !== 'set') {
+@@ -473,20 +499,36 @@ for (const testCase of negative.cases) {
+   }
+   try {
+     validateFixture(mutated, manifest, audienceById, jwksKids, positive.now);
+     errors.push(`negative fixture ${testCase.name}: unexpectedly accepted`);
+   } catch (error) {
+     if (error.code !== testCase.expected_error) {
+       errors.push(`negative fixture ${testCase.name}: expected ${testCase.expected_error}, got ${error.code ?? 'ERROR'} (${error.message})`);
+     }
+   }
+ }
++for (const fixtureName of [
++  'direct-session-inspection-missing-grant-rejected',
++  'direct-session-send-only-grant-requesting-inspection-rejected',
++  'direct-session-inspect-only-grant-requesting-send-rejected',
++  'direct-session-inspection-unknown-scope-rejected',
++  'direct-session-inspection-alias-scope-rejected',
++  'direct-session-inspection-wildcard-scope-rejected',
++  'direct-session-inspection-extra-scope-rejected',
++  'direct-session-inspection-wrong-namespace-rejected',
++  'direct-session-inspection-human-access-rejected',
++  'direct-session-inspection-service-principal-rejected',
++  'direct-session-inspection-obo-delegation-rejected',
++]) {
++  check(negative.cases.some((entry) => entry.name === fixtureName),
++    `session messaging V2: missing negative fixture ${fixtureName}`);
++}
+ 
+ for (const relativePath of [
+   'README.md', 'contract-manifest.json', 'audience-registry.json',
+   'metadata/change-log.md', 'metadata/consumer-verification-matrix.json',
+   'metadata/freeze-gates.json', 'metadata/adc-v2-scope-map.json',
+   'metadata/llm-todo-authorization-candidate.json',
+ ]) {
+   check(fs.existsSync(path.join(bundleDir, relativePath)), `missing required artifact: ${relativePath}`);
+ }
+ 
+diff --git a/scripts/supply-hr-session-inspection-grant-v1.ts b/scripts/supply-hr-session-inspection-grant-v1.ts
+new file mode 100644
+index 0000000..7233d36
+--- /dev/null
++++ b/scripts/supply-hr-session-inspection-grant-v1.ts
+@@ -0,0 +1,890 @@
++/**
++ * Controlled one-row HR own-dispatch inspection Grant replacement.
++ * Authority: AUTH_SERVICE_HR_AGENT_SESSION_INSPECTION_GRANT_V1.
++ *
++ * This vehicle owns only the canonical HR Client's agent-session-messaging
++ * Grant transition from send-only @v1 to send+own-dispatch-inspection @v2.
++ * Its rollback is forward-only: exact @v2 becomes send-only @v3. It never
++ * reads a credential/secret, never creates a Client, and never mutates a
++ * bystander row.
++ */
++
++import { createHash, randomUUID } from 'node:crypto';
++import { execFileSync } from 'node:child_process';
++import { readFileSync } from 'node:fs';
++import { fileURLToPath } from 'node:url';
++import { Prisma, PrismaClient } from '@prisma/client';
++
++const REPO_ROOT = fileURLToPath(new URL('../', import.meta.url));
++
++export const PRINCIPAL_ID = 'dc702687-6515-4a2a-91ae-e572a9bbd766';
++export const AGENT_ID = 'agt_hr-agent';
++export const AUDIENCE_ID = 'agent-session-messaging';
++export const SEND_SCOPE = 'agent.session.send';
++export const INSPECT_SCOPE = 'agent.session.inspect_own_dispatch';
++export const SOURCE_SCOPES = Object.freeze([SEND_SCOPE]);
++export const TARGET_SCOPES = Object.freeze([INSPECT_SCOPE, SEND_SCOPE]);
++export const BUNDLE_VERSION = '1.12.0';
++export const SOURCE_VERSION = 1;
++export const TARGET_VERSION = 2;
++export const ROLLBACK_VERSION = 3;
++export const MIGRATION_ID = 'hr-session-inspection-grant-v1';
++export const ROLLBACK_MIGRATION_ID = 'hr-session-inspection-grant-v1-rollback';
++export const APPLY_AUDIT_REASON = 'HR_AGENT_SESSION_OWN_DISPATCH_INSPECTION_ACTIVATION';
++export const ROLLBACK_AUDIT_REASON = 'HR_AGENT_SESSION_INSPECTION_FAILED_ACTIVATION_FORWARD_ROLLBACK';
++export const SOURCE_SPEC_ID = 'AUTH_SERVICE_HR_AGENT_SESSION_INSPECTION_GRANT_V1';
++export const PLAN_VERSION = 'AUTH_SERVICE_HR_AGENT_SESSION_INSPECTION_GRANT_V1_PLAN_1';
++export const APPLY_GATE = 'HR_SESSION_INSPECTION_GRANT_APPLY';
++export const ROLLBACK_GATE = 'HR_SESSION_INSPECTION_GRANT_ROLLBACK';
++export const OPERATOR_ENV = 'HR_SESSION_INSPECTION_GRANT_OPERATOR';
++export const APPROVAL_ENV = 'HR_SESSION_INSPECTION_GRANT_APPROVAL_REF';
++export const ADVISORY_LOCK_KEY = 813_947_207;
++
++const FROZEN_AUDIENCE = Object.freeze({
++  audienceId: AUDIENCE_ID,
++  resourceService: AUDIENCE_ID,
++  scopeNamespace: 'agent',
++  acceptedPrincipalTypes: Object.freeze(['agent']),
++  registeredScopes: TARGET_SCOPES,
++  humanAccessEnabled: false,
++  machineAccessEnabled: true,
++  delegatedAccessEnabled: false,
++  status: 'active',
++  freezeReady: true,
++  version: 1,
++});
++
++export interface PrincipalRow {
++  id: string;
++  principalType: string;
++  status: string;
++  disabledAt: Date | null;
++  agentId: string | null;
++}
++
++export interface ClientRow {
++  id: string;
++  clientId: string;
++  status: string;
++  revokedAt: Date | null;
++}
++
++export interface AudienceRow {
++  audienceId: string;
++  resourceService: string;
++  scopeNamespace: string;
++  acceptedPrincipalTypes: string[];
++  registeredScopes: string[];
++  humanAccessEnabled: boolean;
++  machineAccessEnabled: boolean;
++  delegatedAccessEnabled: boolean;
++  status: string;
++  freezeReady: boolean;
++  version: number;
++}
++
++export interface GrantRow {
++  machineClientId: string;
++  audienceId: string;
++  scopes: string[];
++  version: number;
++}
++
++export interface SecurityAuditRow {
++  id: string;
++  migrationId: string;
++  sourceGitCommit: string;
++  operatorId: string;
++  approvalRef: string;
++  reason: string;
++  clientId: string;
++  changeType: string;
++  expectedGrantVersion: number | null;
++  resultingGrantVersion: number;
++  beforeValue: unknown;
++  afterValue: unknown;
++  timestamp: Date;
++}
++
++export interface GrantDatabase {
++  machinePrincipal: {
++    findUnique(args: { where: { id: string } }): Promise<PrincipalRow | null>;
++  };
++  machineClient: {
++    findMany(args: {
++      where: { machinePrincipalId: string };
++      select: { id: true; clientId: true; status: true; revokedAt: true };
++    }): Promise<ClientRow[]>;
++  };
++  authAudience: {
++    findUnique(args: { where: { audienceId: string } }): Promise<AudienceRow | null>;
++  };
++  machineAccessGrant: {
++    findUnique(args: {
++      where: { machineClientId_audienceId: { machineClientId: string; audienceId: string } };
++    }): Promise<GrantRow | null>;
++    findMany(args: {
++      select: { machineClientId: true; audienceId: true; scopes: true; version: true };
++    }): Promise<GrantRow[]>;
++    updateMany(args: {
++      where: {
++        machineClientId: string;
++        audienceId: string;
++        version: number;
++        scopes: { equals: string[] };
++      };
++      data: { scopes: string[]; version: number };
++    }): Promise<{ count: number }>;
++  };
++  grantChangeAudit: {
++    findMany(args: {
++      where: { migrationId: string; clientId: string };
++      orderBy?: Array<Record<string, string>>;
++    }): Promise<SecurityAuditRow[]>;
++    create(args: {
++      data: Omit<SecurityAuditRow, 'timestamp'>;
++    }): Promise<SecurityAuditRow>;
++  };
++  $executeRaw(query: string): Promise<unknown>;
++  $transaction<T>(fn: (tx: GrantDatabase) => Promise<T>, options?: { isolationLevel?: 'Serializable' }): Promise<T>;
++}
++
++export type GrantClassification = 'SOURCE' | 'TARGET' | 'ROLLED_BACK' | 'CONFLICT';
++export type PlanOutcome = 'APPLY' | 'NOOP' | 'CONFLICT';
++
++export interface PlanInput {
++  suppliedClientId: string;
++  bundleVersion: string;
++  nonce?: string;
++}
++
++export interface GrantPlan {
++  outcome: PlanOutcome;
++  classification: GrantClassification;
++  reason: string | null;
++  principalId: string;
++  agentId: string;
++  clientId: string | null;
++  clientUuid: string | null;
++  source: { scopes: string[]; version: number };
++  target: { scopes: string[]; version: number };
++  nonce: string;
++  planSha256: string;
++  preimageDigest: string | null;
++  bystanderDigest: string | null;
++  planDocument: Record<string, unknown>;
++}
++
++export interface GrantToolInput {
++  suppliedClientId: string;
++  bundleVersion: string;
++  nonce: string;
++  planSha256: string;
++  preimageDigest: string;
++  bystanderDigest: string;
++  operatorId: string;
++  approvalRef: string;
++  sourceGitCommit: string;
++  environment?: string;
++}
++
++export interface ApplyReceipt {
++  schema_version: 1;
++  operation: 'apply';
++  outcome: 'APPLIED';
++  principal_id: string;
++  agent_id: string;
++  client_id: string;
++  client_uuid: string;
++  audience: string;
++  source_scopes: string[];
++  source_version: number;
++  target_scopes: string[];
++  target_version: number;
++  preimage_digest: string;
++  postimage_digest: string;
++  bystander_digest: string;
++  plan_sha256: string;
++  nonce: string;
++  audit_id: string;
++  source_git_commit: string;
++  operator_id: string;
++  approval_ref: string;
++  environment: string;
++  attempts: 1;
++  retry_attempted: false;
++  utc_time: string;
++}
++
++export interface ApplyResult {
++  outcome: 'APPLIED' | 'NOOP' | 'CONFLICT' | 'PRECOMMIT_FAILED' | 'OUTCOME_UNKNOWN';
++  reason: string | null;
++  classification: GrantClassification;
++  bystanderDigest: string | null;
++  retryAttempted: false;
++  receipt: ApplyReceipt | { outcome: 'NOOP'; attempts: 1; retry_attempted: false } | null;
++}
++
++export interface RollbackResult {
++  outcome: 'ROLLED_BACK' | 'REFUSED' | 'PRECOMMIT_FAILED' | 'OUTCOME_UNKNOWN';
++  reason: string | null;
++  retryAttempted: false;
++  bystanderDigest: string | null;
++}
++
++function fail(message: string): never {
++  throw new Error(`hr session inspection grant refused: ${message}`);
++}
++
++function asciiCompare(a: string, b: string): number {
++  return Buffer.compare(Buffer.from(a, 'ascii'), Buffer.from(b, 'ascii'));
++}
++
++function isObject(value: unknown): value is Record<string, unknown> {
++  return typeof value === 'object' && value !== null && !Array.isArray(value);
++}
++
++function canonical(value: unknown): unknown {
++  if (Array.isArray(value)) return value.map(canonical);
++  if (isObject(value)) {
++    return Object.fromEntries(Object.keys(value).sort(asciiCompare).map((key) => [key, canonical(value[key])]));
++  }
++  return value;
++}
++
++function same(a: unknown, b: unknown): boolean {
++  return JSON.stringify(canonical(a)) === JSON.stringify(canonical(b));
++}
++
++function digest(value: unknown): string {
++  return createHash('sha256').update(JSON.stringify(canonical(value))).digest('hex');
++}
++
++function sorted(scopes: readonly string[]): string[] {
++  return [...scopes].sort(asciiCompare);
++}
++
++function isHex(value: unknown, length: number): value is string {
++  return typeof value === 'string' && new RegExp(`^[0-9a-f]{${length}}$`).test(value);
++}
++
++function isUuid(value: unknown): value is string {
++  return typeof value === 'string'
++    && /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/.test(value);
++}
++
++function boundedText(value: unknown, label: string, maximum: number): string {
++  if (typeof value !== 'string' || value.length === 0 || Buffer.byteLength(value) > maximum) {
++    fail(`${label} must contain 1..${maximum} bytes`);
++  }
++  return value;
++}
++
++function exactKeys(value: Record<string, unknown>, expected: readonly string[], label: string): void {
++  if (!same(Object.keys(value).sort(), [...expected].sort())) fail(`${label} fields are not exact`);
++}
++
++function exactAudience(row: AudienceRow | null): boolean {
++  return row !== null
++    && row.audienceId === FROZEN_AUDIENCE.audienceId
++    && row.resourceService === FROZEN_AUDIENCE.resourceService
++    && row.scopeNamespace === FROZEN_AUDIENCE.scopeNamespace
++    && same(sorted(row.acceptedPrincipalTypes), [...FROZEN_AUDIENCE.acceptedPrincipalTypes])
++    && same(sorted(row.registeredScopes), [...FROZEN_AUDIENCE.registeredScopes])
++    && row.humanAccessEnabled === false
++    && row.machineAccessEnabled === true
++    && row.delegatedAccessEnabled === false
++    && row.status === 'active'
++    && row.freezeReady === true
++    && row.version === 1;
++}
++
++function grantState(row: GrantRow | null): GrantClassification {
++  if (row === null) return 'CONFLICT';
++  if (row.version === SOURCE_VERSION && same(sorted(row.scopes), [...SOURCE_SCOPES])) return 'SOURCE';
++  if (row.version === TARGET_VERSION && same(sorted(row.scopes), [...TARGET_SCOPES])) return 'TARGET';
++  if (row.version === ROLLBACK_VERSION && same(sorted(row.scopes), [...SOURCE_SCOPES])) return 'ROLLED_BACK';
++  return 'CONFLICT';
++}
++
++export function stableBystanderDigest(rows: GrantRow[], clientUuid: string): string {
++  const projection = rows
++    .filter((row) => !(row.machineClientId === clientUuid && row.audienceId === AUDIENCE_ID))
++    .map((row) => ({
++      audience_id: row.audienceId,
++      machine_client_id: row.machineClientId,
++      scopes: sorted(row.scopes),
++      version: row.version,
++    }))
++    .sort((a, b) => asciiCompare(`${a.machine_client_id}\0${a.audience_id}`, `${b.machine_client_id}\0${b.audience_id}`));
++  return digest(projection);
++}
++
++function grantProjection(row: GrantRow, clientId: string): Record<string, unknown> {
++  return {
++    audience: row.audienceId,
++    client_id: clientId,
++    client_uuid: row.machineClientId,
++    scopes: sorted(row.scopes),
++    version: row.version,
++  };
++}
++
++function auditedBefore(clientId: string, clientUuid: string, bystander: string): Record<string, unknown> {
++  const base = {
++    agent_id: AGENT_ID,
++    audience: AUDIENCE_ID,
++    bystander_digest: bystander,
++    client_id: clientId,
++    client_uuid: clientUuid,
++    principal_id: PRINCIPAL_ID,
++    scopes: [...SOURCE_SCOPES],
++    version: SOURCE_VERSION,
++  };
++  return { ...base, preimage_digest: digest(grantProjection({ machineClientId: clientUuid, audienceId: AUDIENCE_ID, scopes: [...SOURCE_SCOPES], version: SOURCE_VERSION }, clientId)) };
++}
++
++function auditedAfter(clientId: string, clientUuid: string, bystander: string): Record<string, unknown> {
++  const base = {
++    agent_id: AGENT_ID,
++    audience: AUDIENCE_ID,
++    bystander_digest: bystander,
++    client_id: clientId,
++    client_uuid: clientUuid,
++    principal_id: PRINCIPAL_ID,
++    scopes: [...TARGET_SCOPES],
++    version: TARGET_VERSION,
++  };
++  return { ...base, postimage_digest: digest(grantProjection({ machineClientId: clientUuid, audienceId: AUDIENCE_ID, scopes: [...TARGET_SCOPES], version: TARGET_VERSION }, clientId)) };
++}
++
++function auditedRollbackAfter(clientId: string, clientUuid: string, bystander: string): Record<string, unknown> {
++  return {
++    agent_id: AGENT_ID,
++    audience: AUDIENCE_ID,
++    bystander_digest: bystander,
++    client_id: clientId,
++    client_uuid: clientUuid,
++    principal_id: PRINCIPAL_ID,
++    postimage_digest: digest(grantProjection({
++      machineClientId: clientUuid,
++      audienceId: AUDIENCE_ID,
++      scopes: [...SOURCE_SCOPES],
++      version: ROLLBACK_VERSION,
++    }, clientId)),
++    scopes: [...SOURCE_SCOPES],
++    version: ROLLBACK_VERSION,
++  };
++}
++
++function exactApplyAudit(row: SecurityAuditRow, clientId: string, clientUuid: string, bystander: string): boolean {
++  return isUuid(row.id)
++    && row.migrationId === MIGRATION_ID
++    && isHex(row.sourceGitCommit, 40)
++    && typeof row.operatorId === 'string' && row.operatorId.length > 0
++    && typeof row.approvalRef === 'string' && row.approvalRef.length > 0
++    && row.reason === APPLY_AUDIT_REASON
++    && row.clientId === clientId
++    && row.changeType === 'replace'
++    && row.expectedGrantVersion === SOURCE_VERSION
++    && row.resultingGrantVersion === TARGET_VERSION
++    && same(row.beforeValue, auditedBefore(clientId, clientUuid, bystander))
++    && same(row.afterValue, auditedAfter(clientId, clientUuid, bystander))
++    && row.timestamp instanceof Date && !Number.isNaN(row.timestamp.getTime());
++}
++
++function exactRollbackAudit(
++  row: SecurityAuditRow,
++  applyAudit: SecurityAuditRow,
++  clientId: string,
++  clientUuid: string,
++  bystander: string,
++): boolean {
++  return isUuid(row.id)
++    && row.migrationId === ROLLBACK_MIGRATION_ID
++    && row.sourceGitCommit === applyAudit.sourceGitCommit
++    && isHex(row.sourceGitCommit, 40)
++    && typeof row.operatorId === 'string' && row.operatorId.length > 0
++    && typeof row.approvalRef === 'string' && row.approvalRef.length > 0
++    && row.reason === ROLLBACK_AUDIT_REASON
++    && row.clientId === clientId
++    && row.changeType === 'replace'
++    && row.expectedGrantVersion === TARGET_VERSION
++    && row.resultingGrantVersion === ROLLBACK_VERSION
++    && same(row.beforeValue, auditedAfter(clientId, clientUuid, bystander))
++    && same(row.afterValue, auditedRollbackAfter(clientId, clientUuid, bystander))
++    && row.timestamp instanceof Date && !Number.isNaN(row.timestamp.getTime());
++}
++
++function conflictPlan(reason: string, nonce: string): GrantPlan {
++  const planDocument = {
++    agent_id: AGENT_ID,
++    audience: AUDIENCE_ID,
++    bundle_version: BUNDLE_VERSION,
++    classification: 'CONFLICT',
++    nonce,
++    outcome: 'CONFLICT',
++    plan_version: PLAN_VERSION,
++    principal_id: PRINCIPAL_ID,
++    reason,
++    source: { scopes: [...SOURCE_SCOPES], version: SOURCE_VERSION },
++    target: { scopes: [...TARGET_SCOPES], version: TARGET_VERSION },
++  };
++  return {
++    outcome: 'CONFLICT', classification: 'CONFLICT', reason,
++    principalId: PRINCIPAL_ID, agentId: AGENT_ID, clientId: null, clientUuid: null,
++    source: { scopes: [...SOURCE_SCOPES], version: SOURCE_VERSION },
++    target: { scopes: [...TARGET_SCOPES], version: TARGET_VERSION },
++    nonce, planSha256: digest(planDocument), preimageDigest: null, bystanderDigest: null, planDocument,
++  };
++}
++
++export async function planGrant(db: GrantDatabase, input: PlanInput): Promise<GrantPlan> {
++  const nonce = input.nonce ?? randomUUID();
++  if (!isUuid(nonce)) return conflictPlan('NONCE_INVALID', nonce);
++  if (input.bundleVersion !== BUNDLE_VERSION) return conflictPlan('BUNDLE_VERSION_MISMATCH', nonce);
++  const audience = await db.authAudience.findUnique({ where: { audienceId: AUDIENCE_ID } });
++  if (audience === null) return conflictPlan('AUDIENCE_ABSENT', nonce);
++  if (!exactAudience(audience)) return conflictPlan('AUDIENCE_DRIFTED', nonce);
++
++  const principal = await db.machinePrincipal.findUnique({ where: { id: PRINCIPAL_ID } });
++  if (principal === null) return conflictPlan('PRINCIPAL_NOT_FOUND', nonce);
++  if (principal.principalType !== 'agent') return conflictPlan('PRINCIPAL_NOT_AGENT', nonce);
++  if (principal.status !== 'active' || principal.disabledAt !== null) return conflictPlan('PRINCIPAL_DISABLED', nonce);
++  if (principal.agentId !== AGENT_ID) return conflictPlan('PRINCIPAL_AGENT_ID_MISMATCH', nonce);
++
++  const clients = await db.machineClient.findMany({
++    where: { machinePrincipalId: PRINCIPAL_ID },
++    select: { id: true, clientId: true, status: true, revokedAt: true },
++  });
++  const active = clients.filter((client) => client.status === 'active' && client.revokedAt === null);
++  if (active.length === 0) return conflictPlan('NO_ACTIVE_CLIENT', nonce);
++  if (active.length !== 1) return conflictPlan('AMBIGUOUS_BINDING', nonce);
++  const client = active[0];
++  if (client.clientId !== input.suppliedClientId) return conflictPlan('CLIENT_MISMATCH', nonce);
++
++  const row = await db.machineAccessGrant.findUnique({
++    where: { machineClientId_audienceId: { machineClientId: client.id, audienceId: AUDIENCE_ID } },
++  });
++  const classification = grantState(row);
++  if (classification === 'CONFLICT') return conflictPlan('GRANT_CONFLICT', nonce);
++  const allGrants = await db.machineAccessGrant.findMany({
++    select: { machineClientId: true, audienceId: true, scopes: true, version: true },
++  });
++  const bystander = stableBystanderDigest(allGrants, client.id);
++  const preimage = digest(grantProjection(row as GrantRow, client.clientId));
++
++  const audits = await db.grantChangeAudit.findMany({
++    where: { migrationId: MIGRATION_ID, clientId: client.clientId },
++    orderBy: [{ timestamp: 'asc' }, { id: 'asc' }],
++  });
++  const rollbackAudits = await db.grantChangeAudit.findMany({
++    where: { migrationId: ROLLBACK_MIGRATION_ID, clientId: client.clientId },
++    orderBy: [{ timestamp: 'asc' }, { id: 'asc' }],
++  });
++  let auditConflict: string | null = null;
++  if (classification === 'SOURCE' && audits.length !== 0) auditConflict = 'SOURCE_AUDIT_CONFLICT';
++  if (classification === 'TARGET'
++      && (audits.length !== 1 || !exactApplyAudit(audits[0], client.clientId, client.id, bystander))) {
++    auditConflict = 'TARGET_AUDIT_CONFLICT';
++  }
++  if ((classification === 'SOURCE' || classification === 'TARGET') && rollbackAudits.length !== 0) {
++    auditConflict = 'UNEXPECTED_ROLLBACK_AUDIT';
++  }
++  if (classification === 'ROLLED_BACK') {
++    if (audits.length !== 1 || !exactApplyAudit(audits[0], client.clientId, client.id, bystander)
++        || rollbackAudits.length !== 1
++        || !exactRollbackAudit(rollbackAudits[0], audits[0], client.clientId, client.id, bystander)) {
++      auditConflict = 'ROLLBACK_AUDIT_CONFLICT';
++    }
++  }
++
++  const outcome: PlanOutcome = auditConflict !== null ? 'CONFLICT'
++    : classification === 'SOURCE' ? 'APPLY' : classification === 'TARGET' ? 'NOOP' : 'CONFLICT';
++  const reason = auditConflict ?? (classification === 'ROLLED_BACK' ? 'ROLLED_BACK' : null);
++  const planDocument = {
++    agent_id: AGENT_ID,
++    audience: AUDIENCE_ID,
++    bundle_version: BUNDLE_VERSION,
++    bystander_digest: bystander,
++    classification,
++    client_id: client.clientId,
++    client_uuid: client.id,
++    nonce,
++    outcome,
++    plan_version: PLAN_VERSION,
++    preimage_digest: preimage,
++    principal_id: PRINCIPAL_ID,
++    reason,
++    source: { scopes: [...SOURCE_SCOPES], version: SOURCE_VERSION },
++    target: { scopes: [...TARGET_SCOPES], version: TARGET_VERSION },
++  };
++  return {
++    outcome, classification, reason, principalId: PRINCIPAL_ID, agentId: AGENT_ID,
++    clientId: client.clientId, clientUuid: client.id,
++    source: { scopes: [...SOURCE_SCOPES], version: SOURCE_VERSION },
++    target: { scopes: [...TARGET_SCOPES], version: TARGET_VERSION },
++    nonce, planSha256: digest(planDocument), preimageDigest: preimage,
++    bystanderDigest: bystander, planDocument,
++  };
++}
++
++async function takeLocks(db: GrantDatabase): Promise<void> {
++  await db.$executeRaw('LOCK TABLE machine_access_grants IN SHARE ROW EXCLUSIVE MODE');
++  await db.$executeRaw('LOCK TABLE machine_clients IN SHARE MODE');
++  await db.$executeRaw('LOCK TABLE machine_principals IN SHARE MODE');
++  await db.$executeRaw('LOCK TABLE auth_audiences IN SHARE MODE');
++  await db.$executeRaw('LOCK TABLE grant_change_audits IN SHARE ROW EXCLUSIVE MODE');
++  await db.$executeRaw(`SELECT pg_advisory_xact_lock(${ADVISORY_LOCK_KEY})`);
++}
++
++function validateToolInput(input: GrantToolInput): void {
++  boundedText(input.suppliedClientId, 'client_id', 256);
++  if (input.bundleVersion !== BUNDLE_VERSION) fail('bundle version mismatch');
++  if (!isUuid(input.nonce)) fail('nonce must be UUIDv4');
++  if (!isHex(input.planSha256, 64) || !isHex(input.preimageDigest, 64) || !isHex(input.bystanderDigest, 64)) {
++    fail('plan and prestate digests must be lowercase hex64');
++  }
++  boundedText(input.operatorId, 'operator_id', 256);
++  boundedText(input.approvalRef, 'approval_ref', 2048);
++  if (!isHex(input.sourceGitCommit, 40)) fail('source_git_commit must be lowercase hex40');
++}
++
++function auditData(input: GrantToolInput, clientUuid: string, before: Record<string, unknown>, after: Record<string, unknown>): Omit<SecurityAuditRow, 'timestamp'> {
++  return {
++    id: randomUUID(), migrationId: MIGRATION_ID, sourceGitCommit: input.sourceGitCommit,
++    operatorId: input.operatorId, approvalRef: input.approvalRef, reason: APPLY_AUDIT_REASON,
++    clientId: input.suppliedClientId, changeType: 'replace',
++    expectedGrantVersion: SOURCE_VERSION, resultingGrantVersion: TARGET_VERSION,
++    beforeValue: before, afterValue: after,
++  };
++}
++
++export async function applyGrant(db: GrantDatabase, input: GrantToolInput): Promise<ApplyResult> {
++  try { validateToolInput(input); } catch (error) {
++    return { outcome: 'CONFLICT', reason: String(error), classification: 'CONFLICT', bystanderDigest: null, retryAttempted: false, receipt: null };
++  }
++  let callbackCompleted = false;
++  try {
++    return await db.$transaction(async (tx) => {
++      await takeLocks(tx);
++      const plan = await planGrant(tx, input);
++      if (plan.planSha256 !== input.planSha256 || plan.preimageDigest !== input.preimageDigest
++          || plan.bystanderDigest !== input.bystanderDigest) {
++        callbackCompleted = true;
++        return { outcome: 'CONFLICT', reason: 'PLAN_OR_PRESTATE_DRIFT', classification: plan.classification, bystanderDigest: plan.bystanderDigest, retryAttempted: false, receipt: null };
++      }
++      if (plan.outcome === 'CONFLICT') {
++        callbackCompleted = true;
++        return { outcome: 'CONFLICT', reason: plan.reason, classification: plan.classification, bystanderDigest: plan.bystanderDigest, retryAttempted: false, receipt: null };
++      }
++      if (plan.outcome === 'NOOP') {
++        callbackCompleted = true;
++        return { outcome: 'NOOP', reason: null, classification: 'TARGET', bystanderDigest: plan.bystanderDigest, retryAttempted: false, receipt: { outcome: 'NOOP', attempts: 1, retry_attempted: false } };
++      }
++      const updated = await tx.machineAccessGrant.updateMany({
++        where: { machineClientId: plan.clientUuid as string, audienceId: AUDIENCE_ID, version: SOURCE_VERSION, scopes: { equals: [...SOURCE_SCOPES] } },
++        data: { scopes: [...TARGET_SCOPES], version: TARGET_VERSION },
++      });
++      if (updated.count !== 1) {
++        callbackCompleted = true;
++        return { outcome: 'CONFLICT', reason: 'GRANT_CAS_CONFLICT', classification: 'CONFLICT', bystanderDigest: plan.bystanderDigest, retryAttempted: false, receipt: null };
++      }
++      const post = await tx.machineAccessGrant.findUnique({
++        where: { machineClientId_audienceId: { machineClientId: plan.clientUuid as string, audienceId: AUDIENCE_ID } },
++      });
++      if (grantState(post) !== 'TARGET') fail('postimage is not exact target');
++      const afterRows = await tx.machineAccessGrant.findMany({ select: { machineClientId: true, audienceId: true, scopes: true, version: true } });
++      const afterBystander = stableBystanderDigest(afterRows, plan.clientUuid as string);
++      if (afterBystander !== plan.bystanderDigest) fail('bystander digest changed');
++      const before = auditedBefore(plan.clientId as string, plan.clientUuid as string, afterBystander);
++      const after = auditedAfter(plan.clientId as string, plan.clientUuid as string, afterBystander);
++      if ((before.preimage_digest as string) !== plan.preimageDigest) fail('preimage digest mismatch');
++      const createdAudit = await tx.grantChangeAudit.create({ data: auditData(input, plan.clientUuid as string, before, after) });
++      const receipt: ApplyReceipt = {
++        schema_version: 1, operation: 'apply', outcome: 'APPLIED', principal_id: PRINCIPAL_ID,
++        agent_id: AGENT_ID, client_id: plan.clientId as string, client_uuid: plan.clientUuid as string,
++        audience: AUDIENCE_ID, source_scopes: [...SOURCE_SCOPES], source_version: SOURCE_VERSION,
++        target_scopes: [...TARGET_SCOPES], target_version: TARGET_VERSION,
++        preimage_digest: plan.preimageDigest as string, postimage_digest: after.postimage_digest as string,
++        bystander_digest: afterBystander, plan_sha256: plan.planSha256, nonce: input.nonce,
++        audit_id: createdAudit.id, source_git_commit: input.sourceGitCommit, operator_id: input.operatorId,
++        approval_ref: input.approvalRef, environment: input.environment ?? 'unspecified',
++        attempts: 1, retry_attempted: false, utc_time: new Date().toISOString(),
++      };
++      callbackCompleted = true;
++      return { outcome: 'APPLIED', reason: null, classification: 'TARGET', bystanderDigest: afterBystander, retryAttempted: false, receipt };
++    }, { isolationLevel: 'Serializable' });
++  } catch (error) {
++    return {
++      outcome: callbackCompleted ? 'OUTCOME_UNKNOWN' : 'PRECOMMIT_FAILED',
++      reason: `${callbackCompleted ? 'COMMIT_OUTCOME_UNKNOWN' : 'PRECOMMIT_FAILURE'}:${error instanceof Error ? error.message : String(error)}`,
++      classification: callbackCompleted ? 'TARGET' : 'SOURCE', bystanderDigest: null,
++      retryAttempted: false, receipt: null,
++    };
++  }
++}
++
++export async function reconcileGrant(db: GrantDatabase, input: PlanInput): Promise<{ state: 'SOURCE_NO_AUDIT' | 'TARGET_EXACT_AUDIT' | 'ROLLED_BACK' | 'CONFLICT'; writes: 0 }> {
++  const plan = await planGrant(db, input);
++  const state = plan.outcome === 'APPLY' ? 'SOURCE_NO_AUDIT'
++    : plan.outcome === 'NOOP' ? 'TARGET_EXACT_AUDIT'
++      : plan.classification === 'ROLLED_BACK' && plan.reason === 'ROLLED_BACK' ? 'ROLLED_BACK' : 'CONFLICT';
++  return { state, writes: 0 };
++}
++
++const RECEIPT_KEYS = Object.freeze([
++  'schema_version', 'operation', 'outcome', 'principal_id', 'agent_id', 'client_id', 'client_uuid',
++  'audience', 'source_scopes', 'source_version', 'target_scopes', 'target_version', 'preimage_digest',
++  'postimage_digest', 'bystander_digest', 'plan_sha256', 'nonce', 'audit_id', 'source_git_commit',
++  'operator_id', 'approval_ref', 'environment', 'attempts', 'retry_attempted', 'utc_time',
++]);
++
++function parseReceipt(value: unknown): ApplyReceipt {
++  if (!isObject(value)) fail('rollback receipt must be an object');
++  if (value.outcome === 'NOOP') fail('NOOP is not a rollback boundary');
++  exactKeys(value, RECEIPT_KEYS, 'rollback receipt');
++  if (value.schema_version !== 1 || value.operation !== 'apply' || value.outcome !== 'APPLIED'
++      || value.principal_id !== PRINCIPAL_ID || value.agent_id !== AGENT_ID
++      || value.audience !== AUDIENCE_ID || value.source_version !== SOURCE_VERSION
++      || value.target_version !== TARGET_VERSION || !same(value.source_scopes, SOURCE_SCOPES)
++      || !same(value.target_scopes, TARGET_SCOPES) || !isUuid(value.client_uuid)
++      || typeof value.client_id !== 'string' || !isUuid(value.nonce) || !isUuid(value.audit_id)
++      || !isHex(value.preimage_digest, 64) || !isHex(value.postimage_digest, 64)
++      || !isHex(value.bystander_digest, 64) || !isHex(value.plan_sha256, 64)
++      || !isHex(value.source_git_commit, 40) || value.attempts !== 1 || value.retry_attempted !== false
++      || typeof value.utc_time !== 'string' || Number.isNaN(Date.parse(value.utc_time))) {
++    fail('rollback receipt does not match exact apply boundary');
++  }
++  return value as unknown as ApplyReceipt;
++}
++
++function receiptMatchesActivationAudit(
++  receipt: ApplyReceipt,
++  audit: SecurityAuditRow,
++  bystander: string,
++): boolean {
++  if (!exactApplyAudit(audit, receipt.client_id, receipt.client_uuid, bystander)) return false;
++  const before = audit.beforeValue as Record<string, unknown>;
++  const after = audit.afterValue as Record<string, unknown>;
++  return audit.id === receipt.audit_id
++    && audit.sourceGitCommit === receipt.source_git_commit
++    && audit.operatorId === receipt.operator_id
++    && audit.approvalRef === receipt.approval_ref
++    && before.preimage_digest === receipt.preimage_digest
++    && after.postimage_digest === receipt.postimage_digest
++    && receipt.bystander_digest === bystander;
++}
++
++export async function rollbackGrant(
++  db: GrantDatabase,
++  receiptValue: unknown,
++  input: { operatorId: string; approvalRef: string },
++): Promise<RollbackResult> {
++  let receipt: ApplyReceipt;
++  try {
++    receipt = parseReceipt(receiptValue);
++    boundedText(input.operatorId, 'operator_id', 256);
++    boundedText(input.approvalRef, 'approval_ref', 2048);
++  } catch (error) {
++    return { outcome: 'REFUSED', reason: String(error), retryAttempted: false, bystanderDigest: null };
++  }
++  let callbackCompleted = false;
++  try {
++    return await db.$transaction(async (tx) => {
++      await takeLocks(tx);
++      const plan = await planGrant(tx, { suppliedClientId: receipt.client_id, bundleVersion: BUNDLE_VERSION, nonce: randomUUID() });
++      if (plan.outcome !== 'NOOP' || plan.clientUuid !== receipt.client_uuid
++          || plan.bystanderDigest !== receipt.bystander_digest) {
++        callbackCompleted = true;
++        return { outcome: 'REFUSED', reason: 'CURRENT_STATE_NOT_EXACT_APPLY_BOUNDARY', retryAttempted: false, bystanderDigest: plan.bystanderDigest };
++      }
++      const audits = await tx.grantChangeAudit.findMany({
++        where: { migrationId: MIGRATION_ID, clientId: receipt.client_id }, orderBy: [{ timestamp: 'asc' }],
++      });
++      if (audits.length !== 1
++          || !receiptMatchesActivationAudit(receipt, audits[0], plan.bystanderDigest as string)) {
++        callbackCompleted = true;
++        return { outcome: 'REFUSED', reason: 'APPLY_AUDIT_RECEIPT_MISMATCH', retryAttempted: false, bystanderDigest: plan.bystanderDigest };
++      }
++      const existingRollback = await tx.grantChangeAudit.findMany({
++        where: { migrationId: ROLLBACK_MIGRATION_ID, clientId: receipt.client_id }, orderBy: [{ timestamp: 'asc' }],
++      });
++      if (existingRollback.length !== 0) {
++        callbackCompleted = true;
++        return { outcome: 'REFUSED', reason: 'ROLLBACK_AUDIT_ALREADY_EXISTS', retryAttempted: false, bystanderDigest: plan.bystanderDigest };
++      }
++      const updated = await tx.machineAccessGrant.updateMany({
++        where: { machineClientId: receipt.client_uuid, audienceId: AUDIENCE_ID, version: TARGET_VERSION, scopes: { equals: [...TARGET_SCOPES] } },
++        data: { scopes: [...SOURCE_SCOPES], version: ROLLBACK_VERSION },
++      });
++      if (updated.count !== 1) {
++        callbackCompleted = true;
++        return { outcome: 'REFUSED', reason: 'ROLLBACK_CAS_CONFLICT', retryAttempted: false, bystanderDigest: plan.bystanderDigest };
++      }
++      const afterRows = await tx.machineAccessGrant.findMany({ select: { machineClientId: true, audienceId: true, scopes: true, version: true } });
++      const bystander = stableBystanderDigest(afterRows, receipt.client_uuid);
++      if (bystander !== receipt.bystander_digest) fail('bystander digest changed during rollback');
++      const rollbackBefore = auditedAfter(receipt.client_id, receipt.client_uuid, bystander);
++      const rollbackAfter = auditedRollbackAfter(receipt.client_id, receipt.client_uuid, bystander);
++      await tx.grantChangeAudit.create({ data: {
++        id: randomUUID(), migrationId: ROLLBACK_MIGRATION_ID, sourceGitCommit: receipt.source_git_commit,
++        operatorId: input.operatorId, approvalRef: input.approvalRef, reason: ROLLBACK_AUDIT_REASON,
++        clientId: receipt.client_id, changeType: 'replace', expectedGrantVersion: TARGET_VERSION,
++        resultingGrantVersion: ROLLBACK_VERSION, beforeValue: rollbackBefore, afterValue: rollbackAfter,
++      } });
++      callbackCompleted = true;
++      return { outcome: 'ROLLED_BACK', reason: null, retryAttempted: false, bystanderDigest: bystander };
++    }, { isolationLevel: 'Serializable' });
++  } catch (error) {
++    return {
++      outcome: callbackCompleted ? 'OUTCOME_UNKNOWN' : 'PRECOMMIT_FAILED',
++      reason: `${callbackCompleted ? 'COMMIT_OUTCOME_UNKNOWN' : 'PRECOMMIT_FAILURE'}:${error instanceof Error ? error.message : String(error)}`,
++      retryAttempted: false, bystanderDigest: null,
++    };
++  }
++}
++
++export async function verifyGrant(
++  db: GrantDatabase,
++  input: { suppliedClientId: string; bundleVersion: string; expectedBystanderDigest: string },
++): Promise<{ outcome: 'PASS' | 'FAIL'; reason: string | null; classification: GrantClassification; bystanderDigest: string | null }> {
++  const plan = await planGrant(db, { suppliedClientId: input.suppliedClientId, bundleVersion: input.bundleVersion });
++  const reason = plan.bystanderDigest !== null && plan.bystanderDigest !== input.expectedBystanderDigest
++    ? 'BYSTANDER_DIGEST_CHANGED'
++    : plan.outcome !== 'NOOP' ? `TARGET_NOT_EXACT:${plan.reason ?? plan.classification}` : null;
++  return { outcome: reason === null ? 'PASS' : 'FAIL', reason, classification: plan.classification, bystanderDigest: plan.bystanderDigest };
++}
++
++export function projectTokenClaims(claims: unknown): {
++  iss: string; aud: string; sub: string; client_id: string; principal_type: string;
++  agent_id: string; scope: string; exp: number;
++} {
++  if (!isObject(claims)) fail('token claims must be an object');
++  const expectedScope = `${INSPECT_SCOPE} ${SEND_SCOPE}`;
++  if (claims.aud !== AUDIENCE_ID || claims.sub !== PRINCIPAL_ID || claims.principal_type !== 'agent'
++      || claims.agent_id !== AGENT_ID || claims.scope !== expectedScope
++      || typeof claims.iss !== 'string' || typeof claims.client_id !== 'string'
++      || typeof claims.exp !== 'number' || !Number.isFinite(claims.exp)) {
++    fail('token claims do not match exact two-scope HR projection');
++  }
++  return {
++    iss: claims.iss, aud: claims.aud, sub: claims.sub, client_id: claims.client_id,
++    principal_type: claims.principal_type, agent_id: claims.agent_id, scope: claims.scope, exp: claims.exp,
++  };
++}
++
++function runtimeBundleVersion(): string {
++  const snapshot = JSON.parse(readFileSync(new URL('../generated/minimal-auth-v1/runtime-contract.json', import.meta.url), 'utf8')) as Record<string, unknown>;
++  if (!isObject(snapshot.payload) || typeof snapshot.payload.contractVersion !== 'string') fail('runtime contract has no bundle version');
++  return snapshot.payload.contractVersion;
++}
++
++function adapt(client: PrismaClient | Prisma.TransactionClient): GrantDatabase {
++  return {
++    machinePrincipal: { findUnique: (args) => client.machinePrincipal.findUnique(args as never) as never },
++    machineClient: { findMany: (args) => client.machineClient.findMany(args as never) as never },
++    authAudience: { findUnique: (args) => client.authAudience.findUnique(args as never) as never },
++    machineAccessGrant: {
++      findUnique: (args) => client.machineAccessGrant.findUnique(args as never) as never,
++      findMany: (args) => client.machineAccessGrant.findMany(args as never) as never,
++      updateMany: (args) => client.machineAccessGrant.updateMany(args as never),
++    },
++    grantChangeAudit: {
++      findMany: (args) => client.grantChangeAudit.findMany(args as never) as never,
++      create: (args) => client.grantChangeAudit.create(args as never) as never,
++    },
++    $executeRaw: (query) => client.$executeRawUnsafe(query),
++    $transaction: (fn, options) => (client as PrismaClient).$transaction((tx) => fn(adapt(tx)), options as never),
++  };
++}
++
++function gitHead(): string {
++  return execFileSync('/usr/bin/git', ['-C', REPO_ROOT, 'rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
++}
++
++function parseArgs(argv: string[]): Record<string, string | true> {
++  const result: Record<string, string | true> = {};
++  const valueFlags = new Set(['--client-id', '--nonce', '--plan-sha256', '--preimage-digest', '--bystander-digest', '--receipt-file']);
++  for (let index = 0; index < argv.length; index += 1) {
++    const arg = argv[index];
++    if (Object.hasOwn(result, arg)) fail(`duplicate argument ${arg}`);
++    if (valueFlags.has(arg)) {
++      const value = argv[++index];
++      if (value === undefined || value.startsWith('--')) fail(`${arg} requires a value`);
++      result[arg] = value;
++    } else if (['--apply', '--reconcile', '--verify', '--rollback'].includes(arg)) result[arg] = true;
++    else fail(`unknown argument ${arg}`);
++  }
++  return result;
++}
++
++function requiredArg(args: Record<string, string | true>, key: string): string {
++  return boundedText(args[key], key, 2048);
++}
++
++export function outcomeExitCode(
++  mode: 'plan' | 'apply' | 'verify' | 'rollback' | 'reconcile',
++  outcome: string,
++): number {
++  const success = mode === 'plan' ? outcome === 'APPLY' || outcome === 'NOOP'
++    : mode === 'apply' ? outcome === 'APPLIED' || outcome === 'NOOP'
++      : mode === 'verify' ? outcome === 'PASS'
++        : mode === 'rollback' ? outcome === 'ROLLED_BACK'
++          : outcome === 'SOURCE_NO_AUDIT' || outcome === 'TARGET_EXACT_AUDIT' || outcome === 'ROLLED_BACK';
++  return success ? 0 : 1;
++}
++
++async function main(): Promise<number> {
++  const args = parseArgs(process.argv.slice(2));
++  const modes = ['--apply', '--reconcile', '--verify', '--rollback'].filter((key) => args[key] === true);
++  if (modes.length > 1) fail('execution modes are mutually exclusive');
++  const mode = modes[0] ?? 'plan';
++  const clientId = requiredArg(args, '--client-id');
++  if (!process.env.DATABASE_URL) fail('DATABASE_URL is required');
++  if ((mode === '--apply' && process.env[APPLY_GATE] !== 'YES')
++      || (mode === '--rollback' && process.env[ROLLBACK_GATE] !== 'YES')) {
++    fail(`${mode} requires its exact controlled-operation gate`);
++  }
++  const prisma = new PrismaClient();
++  try {
++    const db = adapt(prisma);
++    if (mode === 'plan') {
++      const plan = await planGrant(db, { suppliedClientId: clientId, bundleVersion: runtimeBundleVersion(), nonce: typeof args['--nonce'] === 'string' ? args['--nonce'] : undefined });
++      process.stdout.write(`${JSON.stringify({ ...plan.planDocument, plan_sha256: plan.planSha256, writes: 0 }, null, 2)}\n`);
++      return outcomeExitCode('plan', plan.outcome);
++    }
++    if (mode === '--reconcile') {
++      const result = await reconcileGrant(db, { suppliedClientId: clientId, bundleVersion: runtimeBundleVersion() });
++      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
++      return outcomeExitCode('reconcile', result.state);
++    }
++    if (mode === '--verify') {
++      const result = await verifyGrant(db, { suppliedClientId: clientId, bundleVersion: runtimeBundleVersion(), expectedBystanderDigest: requiredArg(args, '--bystander-digest') });
++      process.stdout.write(`${JSON.stringify({ ...result, writes: 0 }, null, 2)}\n`);
++      return outcomeExitCode('verify', result.outcome);
++    }
++    const operatorId = boundedText(process.env[OPERATOR_ENV], OPERATOR_ENV, 256);
++    const approvalRef = boundedText(process.env[APPROVAL_ENV], APPROVAL_ENV, 2048);
++    if (mode === '--rollback') {
++      const receipt = JSON.parse(readFileSync(requiredArg(args, '--receipt-file'), 'utf8')) as unknown;
++      const result = await rollbackGrant(db, receipt, { operatorId, approvalRef });
++      process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
++      return outcomeExitCode('rollback', result.outcome);
++    }
++    const result = await applyGrant(db, {
++      suppliedClientId: clientId, bundleVersion: runtimeBundleVersion(), nonce: requiredArg(args, '--nonce'),
++      planSha256: requiredArg(args, '--plan-sha256'), preimageDigest: requiredArg(args, '--preimage-digest'),
++      bystanderDigest: requiredArg(args, '--bystander-digest'), operatorId, approvalRef,
++      sourceGitCommit: gitHead(), environment: process.env.NODE_ENV ?? 'unspecified',
++    });
++    process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
++    return outcomeExitCode('apply', result.outcome);
++  } finally { await prisma.$disconnect(); }
++}
++
++const direct = process.argv[1] !== undefined && fileURLToPath(import.meta.url) === process.argv[1];
++if (direct) main().then(
++  (code) => { process.exitCode = code; },
++  (error) => { process.stderr.write(`${error instanceof Error ? error.message : String(error)}\n`); process.exitCode = 1; },
++);
+diff --git a/src/lib/oauth/v1/contract.ts b/src/lib/oauth/v1/contract.ts
+index 0cf8c45..d14dcf8 100644
+--- a/src/lib/oauth/v1/contract.ts
++++ b/src/lib/oauth/v1/contract.ts
+@@ -92,21 +92,21 @@ function loadSnapshot(): RuntimeSnapshot {
+ }
+ 
+ export function verifyRuntimeSnapshot(value: unknown): RuntimeSnapshotPayload {
+   const parsed = asRuntimeSnapshot(value);
+   const actual = crypto.createHash('sha256')
+     .update(JSON.stringify(parsed.payload))
+     .digest('hex');
+   if (actual !== parsed.runtimeDigest) {
+     throw new Error('Minimal Auth V1 runtime snapshot digest mismatch.');
+   }
+-  if (parsed.payload.formatVersion !== 1 || !['1.0.0', '1.1.0', '1.2.0', '1.3.0', '1.4.0', '1.5.0', '1.6.0', '1.7.0', '1.8.0', '1.9.0', '1.10.0', '1.11.0'].includes(parsed.payload.contractVersion)) {
++  if (parsed.payload.formatVersion !== 1 || !['1.0.0', '1.1.0', '1.2.0', '1.3.0', '1.4.0', '1.5.0', '1.6.0', '1.7.0', '1.8.0', '1.9.0', '1.10.0', '1.11.0', '1.12.0'].includes(parsed.payload.contractVersion)) {
+     throw new Error('Minimal Auth V1 runtime snapshot version is unsupported.');
+   }
+   const freeze = (parsed.payload.manifest.lifecycle as Record<string, unknown> | undefined)
+     ?.contract_bundle_freeze as Record<string, unknown> | undefined;
+   if (freeze?.status !== 'frozen' || freeze.frozen !== true
+     || freeze.implementation_authorized !== true) {
+     throw new Error('Minimal Auth V1 runtime snapshot is not frozen and implementation-authorized.');
+   }
+   return parsed.payload;
+ }
+diff --git a/tests/oauth/agent-session-inspection-audience-v2.test.ts b/tests/oauth/agent-session-inspection-audience-v2.test.ts
+new file mode 100644
+index 0000000..6ed7a9e
+--- /dev/null
++++ b/tests/oauth/agent-session-inspection-audience-v2.test.ts
+@@ -0,0 +1,99 @@
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import { resolve } from 'node:path';
++import test from 'node:test';
++import {
++  initializeAuthContract,
++  resetAuthContractForTests,
++} from '../../src/lib/oauth/v1/contract.js';
++
++const bundleRoot = resolve(process.cwd(), 'contract-bundles', 'minimal-auth-v1');
++
++function readBundleJson(relativePath: string): any {
++  return JSON.parse(readFileSync(resolve(bundleRoot, relativePath), 'utf8'));
++}
++
++const registry = readBundleJson('audience-registry.json');
++const manifest = readBundleJson('contract-manifest.json');
++const manifestSchema = readBundleJson('schemas/contract-manifest.schema.json');
++const positiveFixtures = readBundleJson('fixtures/positive-token-fixtures.json');
++const negativeFixtures = readBundleJson('fixtures/negative-token-fixtures.json');
++
++test('Bundle 1.12.0 registers the exact independent session messaging scopes', () => {
++  assert.equal(registry.registry_version, '1.12.0');
++  assert.equal(manifest.contract_version, '1.12.0');
++  assert.equal(manifest.audience_registry_version, '1.12.0');
++  assert.equal(manifestSchema.properties.contract_version.const, '1.12.0');
++
++  const audience = registry.audiences.find(
++    (entry: any) => entry.audience_id === 'agent-session-messaging',
++  );
++  assert.deepEqual(audience, {
++    audience_id: 'agent-session-messaging',
++    resource_service: 'agent-session-messaging',
++    scope_namespace: 'agent',
++    accepted_principal_types: ['agent'],
++    human_access_enabled: false,
++    machine_access_enabled: true,
++    delegated_access_enabled: false,
++    registered_scopes: [
++      'agent.session.inspect_own_dispatch',
++      'agent.session.send',
++    ],
++    status: 'active',
++    freeze_ready: true,
++    notes: 'Registered by AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2 for canonical send and independently granted caller-owned exact-turn inspection consumed by dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V2.',
++  });
++});
++
++test('runtime accepts the frozen Bundle 1.12.0 snapshot', () => {
++  resetAuthContractForTests();
++  assert.equal(initializeAuthContract('v1').contractVersion, '1.12.0');
++});
++
++test('positive fixtures prove send-only, inspect-only, and combined grants independently', () => {
++  const expected = new Map([
++    ['direct-agent-session-messaging', 'agent.session.send'],
++    ['direct-agent-session-inspection', 'agent.session.inspect_own_dispatch'],
++    [
++      'direct-agent-session-messaging-and-inspection',
++      'agent.session.inspect_own_dispatch agent.session.send',
++    ],
++  ]);
++
++  for (const [name, scope] of expected) {
++    const fixture = positiveFixtures.fixtures.find((entry: any) => entry.name === name);
++    assert.ok(fixture, `${name} fixture not found`);
++    assert.equal(fixture.profile, 'direct_machine_access');
++    assert.equal(fixture.claims.principal_type, 'agent');
++    assert.equal(fixture.claims.aud, 'agent-session-messaging');
++    assert.equal(fixture.claims.scope, scope);
++    assert.equal(fixture.authorization_context.requested_scope, scope);
++    assert.deepEqual(
++      fixture.authorization_context.machine_access_grants['agent-session-messaging'],
++      scope.split(' '),
++    );
++  }
++});
++
++test('negative fixtures fail closed when either independent scope is absent or malformed', () => {
++  const expectedErrors = new Map([
++    ['direct-session-inspection-missing-grant-rejected', 'INVALID_SCOPE_GRANT'],
++    ['direct-session-send-only-grant-requesting-inspection-rejected', 'INVALID_SCOPE_GRANT'],
++    ['direct-session-inspect-only-grant-requesting-send-rejected', 'INVALID_SCOPE_GRANT'],
++    ['direct-session-inspection-unknown-scope-rejected', 'INVALID_SCOPE_NAMESPACE'],
++    ['direct-session-inspection-alias-scope-rejected', 'INVALID_SCOPE_NAMESPACE'],
++    ['direct-session-inspection-wildcard-scope-rejected', 'INVALID_SCOPE_WIRE'],
++    ['direct-session-inspection-extra-scope-rejected', 'INVALID_SCOPE_NAMESPACE'],
++    ['direct-session-inspection-wrong-namespace-rejected', 'INVALID_SCOPE_NAMESPACE'],
++    ['direct-session-inspection-human-access-rejected', 'AUDIENCE_PROFILE_NOT_ACCEPTED'],
++    ['direct-session-inspection-service-principal-rejected', 'AUDIENCE_PROFILE_NOT_ACCEPTED'],
++    ['direct-session-inspection-obo-delegation-rejected', 'AUDIENCE_PROFILE_NOT_ACCEPTED'],
++  ]);
++
++  for (const [name, expectedError] of expectedErrors) {
++    const fixture = negativeFixtures.cases.find((entry: any) => entry.name === name);
++    assert.ok(fixture, `${name} fixture not found`);
++    assert.equal(fixture.expected_error, expectedError);
++  }
++});
+diff --git a/tests/oauth/supply-hr-session-inspection-grant-v1.test.ts b/tests/oauth/supply-hr-session-inspection-grant-v1.test.ts
+new file mode 100644
+index 0000000..b13c9fc
+--- /dev/null
++++ b/tests/oauth/supply-hr-session-inspection-grant-v1.test.ts
+@@ -0,0 +1,581 @@
++import assert from 'node:assert/strict';
++import { spawnSync } from 'node:child_process';
++import test from 'node:test';
++import {
++  ADVISORY_LOCK_KEY,
++  AGENT_ID,
++  APPLY_AUDIT_REASON,
++  AUDIENCE_ID,
++  BUNDLE_VERSION,
++  INSPECT_SCOPE,
++  PRINCIPAL_ID,
++  ROLLBACK_AUDIT_REASON,
++  SEND_SCOPE,
++  SOURCE_SCOPES,
++  TARGET_SCOPES,
++  applyGrant,
++  outcomeExitCode,
++  planGrant,
++  projectTokenClaims,
++  reconcileGrant,
++  rollbackGrant,
++  verifyGrant,
++  type GrantDatabase,
++  type GrantRow,
++  type GrantToolInput,
++  type SecurityAuditRow,
++} from '../../scripts/supply-hr-session-inspection-grant-v1.js';
++
++const CLIENT_UUID = '77000000-0000-4000-8000-000000000001';
++const CLIENT_ID = 'hr-broker-bound-client';
++const OTHER_CLIENT_UUID = '66000000-0000-4000-8000-00000000000e';
++const NONCE = '11111111-1111-4111-8111-111111111111';
++const SOURCE_COMMIT = 'a'.repeat(40);
++
++type Principal = {
++  id: string;
++  principalType: string;
++  status: string;
++  disabledAt: Date | null;
++  agentId: string | null;
++};
++type Client = { id: string; clientId: string; status: string; revokedAt: Date | null };
++type Audience = {
++  audienceId: string;
++  resourceService: string;
++  scopeNamespace: string;
++  acceptedPrincipalTypes: string[];
++  registeredScopes: string[];
++  humanAccessEnabled: boolean;
++  machineAccessEnabled: boolean;
++  delegatedAccessEnabled: boolean;
++  status: string;
++  freezeReady: boolean;
++  version: number;
++};
++type State = {
++  principal: Principal | null;
++  clients: Client[];
++  audience: Audience | null;
++  grants: GrantRow[];
++  audits: SecurityAuditRow[];
++};
++type Behavior = { failAuditCreate?: boolean; rejectAfterCommit?: boolean };
++
++function audience(overrides: Partial<Audience> = {}): Audience {
++  return {
++    audienceId: AUDIENCE_ID,
++    resourceService: AUDIENCE_ID,
++    scopeNamespace: 'agent',
++    acceptedPrincipalTypes: ['agent'],
++    registeredScopes: [...TARGET_SCOPES],
++    humanAccessEnabled: false,
++    machineAccessEnabled: true,
++    delegatedAccessEnabled: false,
++    status: 'active',
++    freezeReady: true,
++    version: 1,
++    ...overrides,
++  };
++}
++
++function sourceGrant(): GrantRow {
++  return { machineClientId: CLIENT_UUID, audienceId: AUDIENCE_ID, scopes: [...SOURCE_SCOPES], version: 1 };
++}
++
++function baseState(): State {
++  return {
++    principal: {
++      id: PRINCIPAL_ID,
++      principalType: 'agent',
++      status: 'active',
++      disabledAt: null,
++      agentId: AGENT_ID,
++    },
++    clients: [{ id: CLIENT_UUID, clientId: CLIENT_ID, status: 'active', revokedAt: null }],
++    audience: audience(),
++    grants: [
++      sourceGrant(),
++      { machineClientId: CLIENT_UUID, audienceId: 'svc-workflow', scopes: ['workflow.read'], version: 1 },
++      { machineClientId: OTHER_CLIENT_UUID, audienceId: AUDIENCE_ID, scopes: [SEND_SCOPE], version: 7 },
++    ],
++    audits: [],
++  };
++}
++
++function cloneState(state: State): State {
++  return structuredClone(state);
++}
++
++function fixture(configure: (state: State) => void = () => {}, behavior: Behavior = {}) {
++  const state = baseState();
++  configure(state);
++  const writes: string[] = [];
++  const rawQueries: string[] = [];
++  let transactions = 0;
++
++  const makeDb = (): GrantDatabase => ({
++    machinePrincipal: {
++      async findUnique({ where }) {
++        return state.principal?.id === where.id ? structuredClone(state.principal) : null;
++      },
++    },
++    machineClient: {
++      async findMany() { return structuredClone(state.clients); },
++    },
++    authAudience: {
++      async findUnique({ where }) {
++        return state.audience?.audienceId === where.audienceId ? structuredClone(state.audience) : null;
++      },
++    },
++    machineAccessGrant: {
++      async findUnique({ where }) {
++        const key = where.machineClientId_audienceId;
++        const row = state.grants.find((grant) => grant.machineClientId === key.machineClientId
++          && grant.audienceId === key.audienceId);
++        return row ? structuredClone(row) : null;
++      },
++      async findMany() { return structuredClone(state.grants); },
++      async updateMany({ where, data }) {
++        const row = state.grants.find((grant) => grant.machineClientId === where.machineClientId
++          && grant.audienceId === where.audienceId);
++        if (!row || row.version !== where.version
++            || JSON.stringify([...row.scopes].sort()) !== JSON.stringify([...where.scopes.equals].sort())) {
++          return { count: 0 };
++        }
++        writes.push(`grant:${row.version}->${data.version}:${data.scopes.join(',')}`);
++        row.version = data.version;
++        row.scopes = [...data.scopes];
++        return { count: 1 };
++      },
++    },
++    grantChangeAudit: {
++      async findMany({ where }) {
++        return structuredClone(state.audits.filter((row) => row.migrationId === where.migrationId
++          && row.clientId === where.clientId));
++      },
++      async create({ data }) {
++        if (behavior.failAuditCreate) throw new Error('simulated audit fault');
++        writes.push(`audit:${data.migrationId}:${data.changeType}`);
++        const row = { ...structuredClone(data), timestamp: new Date('2026-09-14T12:00:00.000Z') };
++        state.audits.push(row);
++        return structuredClone(row);
++      },
++    },
++    async $executeRaw(query) { rawQueries.push(query); return 0; },
++    async $transaction(fn) {
++      transactions += 1;
++      const before = cloneState(state);
++      const writesBefore = [...writes];
++      try {
++        const result = await fn(makeDb());
++        if (behavior.rejectAfterCommit) throw new Error('commit acknowledgement lost');
++        return result;
++      } catch (error) {
++        if (!behavior.rejectAfterCommit) {
++          Object.assign(state, before);
++          writes.splice(0, writes.length, ...writesBefore);
++        }
++        throw error;
++      }
++    },
++  });
++
++  return { db: makeDb(), state, writes, rawQueries, transactions: () => transactions };
++}
++
++function planInput(overrides: Record<string, unknown> = {}) {
++  return { suppliedClientId: CLIENT_ID, bundleVersion: BUNDLE_VERSION, nonce: NONCE, ...overrides };
++}
++
++async function applyInput(db: GrantDatabase): Promise<GrantToolInput> {
++  const plan = await planGrant(db, planInput());
++  assert.equal(plan.outcome, 'APPLY');
++  return {
++    suppliedClientId: CLIENT_ID,
++    bundleVersion: BUNDLE_VERSION,
++    nonce: NONCE,
++    planSha256: plan.planSha256,
++    preimageDigest: plan.preimageDigest!,
++    bystanderDigest: plan.bystanderDigest!,
++    operatorId: 'test-operator',
++    approvalRef: 'OWNER_ACCEPTED_TEST',
++    sourceGitCommit: SOURCE_COMMIT,
++    environment: 'fixture',
++  };
++}
++
++function bystanderProjection(state: State): unknown {
++  return state.grants
++    .filter((row) => !(row.machineClientId === CLIENT_UUID && row.audienceId === AUDIENCE_ID))
++    .map((row) => structuredClone(row));
++}
++
++test('source @v1 plans the only legal v1 send-only to v2 combined replacement', async () => {
++  const { db, writes } = fixture();
++  const plan = await planGrant(db, planInput());
++  assert.equal(plan.outcome, 'APPLY');
++  assert.equal(plan.classification, 'SOURCE');
++  assert.equal(plan.principalId, PRINCIPAL_ID);
++  assert.equal(plan.agentId, AGENT_ID);
++  assert.equal(plan.clientId, CLIENT_ID);
++  assert.deepEqual(plan.source, { scopes: [SEND_SCOPE], version: 1 });
++  assert.deepEqual(plan.target, { scopes: [INSPECT_SCOPE, SEND_SCOPE], version: 2 });
++  assert.match(plan.planSha256, /^[0-9a-f]{64}$/);
++  assert.match(plan.preimageDigest!, /^[0-9a-f]{64}$/);
++  assert.match(plan.bystanderDigest!, /^[0-9a-f]{64}$/);
++  assert.deepEqual(writes, []);
++});
++
++test('every identity, audience, bundle, and source-prestate mismatch fails closed', async (t) => {
++  const cases: Array<[string, (state: State) => void, Record<string, unknown>, string]> = [
++    ['missing principal', (s) => { s.principal = null; }, {}, 'PRINCIPAL_NOT_FOUND'],
++    ['wrong principal type', (s) => { s.principal!.principalType = 'service'; }, {}, 'PRINCIPAL_NOT_AGENT'],
++    ['disabled principal', (s) => { s.principal!.status = 'disabled'; }, {}, 'PRINCIPAL_DISABLED'],
++    ['wrong canonical agent', (s) => { s.principal!.agentId = 'hr-agent'; }, {}, 'PRINCIPAL_AGENT_ID_MISMATCH'],
++    ['no active client', (s) => { s.clients[0].status = 'revoked'; }, {}, 'NO_ACTIVE_CLIENT'],
++    ['ambiguous client', (s) => { s.clients.push({ ...s.clients[0], id: OTHER_CLIENT_UUID }); }, {}, 'AMBIGUOUS_BINDING'],
++    ['wrong supplied client', () => {}, { suppliedClientId: 'different-client' }, 'CLIENT_MISMATCH'],
++    ['missing audience', (s) => { s.audience = null; }, {}, 'AUDIENCE_ABSENT'],
++    ['audience scope drift', (s) => { s.audience!.registeredScopes = [SEND_SCOPE]; }, {}, 'AUDIENCE_DRIFTED'],
++    ['bundle drift', () => {}, { bundleVersion: '1.11.0' }, 'BUNDLE_VERSION_MISMATCH'],
++    ['missing grant', (s) => { s.grants = s.grants.filter((g) => g.audienceId !== AUDIENCE_ID || g.machineClientId !== CLIENT_UUID); }, {}, 'GRANT_CONFLICT'],
++    ['extra source scope', (s) => { s.grants[0].scopes.push('agent.session.admin'); }, {}, 'GRANT_CONFLICT'],
++    ['wrong source version', (s) => { s.grants[0].version = 0; }, {}, 'GRANT_CONFLICT'],
++  ];
++  for (const [name, configure, overrides, reason] of cases) {
++    await t.test(name, async () => {
++      const { db, writes } = fixture(configure);
++      const plan = await planGrant(db, planInput(overrides));
++      assert.equal(plan.outcome, 'CONFLICT');
++      assert.equal(plan.reason, reason);
++      assert.deepEqual(writes, []);
++    });
++  }
++});
++
++test('apply uses one Serializable transaction, exact CAS, closed audit, and preserves bystanders', async () => {
++  const handle = fixture();
++  const bystandersBefore = bystanderProjection(handle.state);
++  const input = await applyInput(handle.db);
++  const result = await applyGrant(handle.db, input);
++  assert.equal(result.outcome, 'APPLIED');
++  assert.equal(handle.transactions(), 1);
++  assert.ok(handle.rawQueries.some((query) => query.includes(String(ADVISORY_LOCK_KEY))));
++  assert.deepEqual(handle.state.grants[0], {
++    machineClientId: CLIENT_UUID,
++    audienceId: AUDIENCE_ID,
++    scopes: [INSPECT_SCOPE, SEND_SCOPE],
++    version: 2,
++  });
++  assert.deepEqual(bystanderProjection(handle.state), bystandersBefore);
++  assert.equal(handle.state.audits.length, 1);
++  const audit = handle.state.audits[0];
++  assert.equal(audit.changeType, 'replace');
++  assert.equal(audit.expectedGrantVersion, 1);
++  assert.equal(audit.resultingGrantVersion, 2);
++  assert.equal(audit.reason, APPLY_AUDIT_REASON);
++  assert.deepEqual(Object.keys(audit.beforeValue as object).sort(), [
++    'agent_id', 'audience', 'bystander_digest', 'client_id', 'client_uuid',
++    'preimage_digest', 'principal_id', 'scopes', 'version',
++  ]);
++  assert.deepEqual(Object.keys(audit.afterValue as object).sort(), [
++    'agent_id', 'audience', 'bystander_digest', 'client_id', 'client_uuid',
++    'postimage_digest', 'principal_id', 'scopes', 'version',
++  ]);
++  assert.equal(result.receipt?.attempts, 1);
++  assert.equal(result.receipt?.retry_attempted, false);
++});
++
++test('exact target plus its unique exact audit is a zero-write NOOP', async () => {
++  const handle = fixture();
++  const applied = await applyGrant(handle.db, await applyInput(handle.db));
++  assert.equal(applied.outcome, 'APPLIED');
++  handle.writes.splice(0);
++  const plan = await planGrant(handle.db, planInput({ nonce: '22222222-2222-4222-8222-222222222222' }));
++  assert.equal(plan.outcome, 'NOOP');
++  assert.equal(plan.classification, 'TARGET');
++  const rerun = await applyGrant(handle.db, {
++    ...(await applyInputForPlan(plan)),
++  });
++  assert.equal(rerun.outcome, 'NOOP');
++  assert.deepEqual(handle.writes, []);
++  assert.equal(handle.state.audits.length, 1);
++});
++
++async function applyInputForPlan(plan: Awaited<ReturnType<typeof planGrant>>): Promise<GrantToolInput> {
++  return {
++    suppliedClientId: CLIENT_ID,
++    bundleVersion: BUNDLE_VERSION,
++    nonce: plan.nonce,
++    planSha256: plan.planSha256,
++    preimageDigest: plan.preimageDigest!,
++    bystanderDigest: plan.bystanderDigest!,
++    operatorId: 'test-operator',
++    approvalRef: 'OWNER_ACCEPTED_TEST',
++    sourceGitCommit: SOURCE_COMMIT,
++    environment: 'fixture',
++  };
++}
++
++test('target without exactly one valid governed audit conflicts with zero writes', async (t) => {
++  const exact = fixture();
++  await applyGrant(exact.db, await applyInput(exact.db));
++  const validAudit = structuredClone(exact.state.audits[0]);
++  const cases: Array<[string, (state: State) => void]> = [
++    ['missing audit', (s) => { s.grants[0].scopes = [...TARGET_SCOPES]; s.grants[0].version = 2; }],
++    ['duplicate audit', (s) => { s.grants[0].scopes = [...TARGET_SCOPES]; s.grants[0].version = 2; s.audits = [validAudit, { ...validAudit, id: '22222222-2222-4222-8222-222222222222' }]; }],
++    ['wrong audit', (s) => { s.grants[0].scopes = [...TARGET_SCOPES]; s.grants[0].version = 2; s.audits = [{ ...validAudit, resultingGrantVersion: 99 }]; }],
++  ];
++  for (const [name, configure] of cases) {
++    await t.test(name, async () => {
++      const handle = fixture(configure);
++      const plan = await planGrant(handle.db, planInput());
++      assert.equal(plan.outcome, 'CONFLICT');
++      assert.equal(plan.reason, 'TARGET_AUDIT_CONFLICT');
++      assert.deepEqual(handle.writes, []);
++    });
++  }
++});
++
++test('stale plan or bystander drift aborts before row mutation', async (t) => {
++  for (const kind of ['plan', 'preimage', 'bystander'] as const) {
++    await t.test(kind, async () => {
++      const handle = fixture();
++      const input = await applyInput(handle.db);
++      if (kind === 'plan') input.planSha256 = '0'.repeat(64);
++      if (kind === 'preimage') input.preimageDigest = '0'.repeat(64);
++      if (kind === 'bystander') {
++        handle.state.grants[1].scopes = ['workflow.read', 'workflow.execute'];
++      }
++      const result = await applyGrant(handle.db, input);
++      assert.equal(result.outcome, 'CONFLICT');
++      assert.deepEqual(handle.writes, []);
++    });
++  }
++});
++
++test('audit fault rolls the Grant mutation back atomically', async () => {
++  const handle = fixture(() => {}, { failAuditCreate: true });
++  const result = await applyGrant(handle.db, await applyInput(handle.db));
++  assert.equal(result.outcome, 'PRECOMMIT_FAILED');
++  assert.deepEqual(handle.state.grants[0], sourceGrant());
++  assert.equal(handle.state.audits.length, 0);
++  assert.deepEqual(handle.writes, []);
++});
++
++test('lost commit acknowledgement reports OUTCOME_UNKNOWN once and reconciles read-only', async () => {
++  const handle = fixture(() => {}, { rejectAfterCommit: true });
++  const result = await applyGrant(handle.db, await applyInput(handle.db));
++  assert.equal(result.outcome, 'OUTCOME_UNKNOWN');
++  assert.equal(result.retryAttempted, false);
++  assert.equal(handle.transactions(), 1);
++  const writesBefore = [...handle.writes];
++  const reconciled = await reconcileGrant(handle.db, planInput({ nonce: '33333333-3333-4333-8333-333333333333' }));
++  assert.equal(reconciled.state, 'TARGET_EXACT_AUDIT');
++  assert.deepEqual(handle.writes, writesBefore);
++});
++
++test('forward rollback replaces only exact v2 with v3 send-only and appends a separate audit', async () => {
++  const handle = fixture();
++  const applied = await applyGrant(handle.db, await applyInput(handle.db));
++  assert.equal(applied.outcome, 'APPLIED');
++  const bystandersBefore = bystanderProjection(handle.state);
++  const rolledBack = await rollbackGrant(handle.db, applied.receipt, {
++    operatorId: 'rollback-operator',
++    approvalRef: 'KNOWN_VERIFICATION_FAILURE',
++  });
++  assert.equal(rolledBack.outcome, 'ROLLED_BACK');
++  assert.deepEqual(handle.state.grants[0], {
++    machineClientId: CLIENT_UUID,
++    audienceId: AUDIENCE_ID,
++    scopes: [SEND_SCOPE],
++    version: 3,
++  });
++  assert.deepEqual(bystanderProjection(handle.state), bystandersBefore);
++  assert.equal(handle.state.audits.length, 2);
++  assert.equal(handle.state.audits[1].changeType, 'replace');
++  assert.equal(handle.state.audits[1].expectedGrantVersion, 2);
++  assert.equal(handle.state.audits[1].resultingGrantVersion, 3);
++  assert.equal(handle.state.audits[1].reason, ROLLBACK_AUDIT_REASON);
++  const reconciled = await reconcileGrant(handle.db, planInput());
++  assert.equal(reconciled.state, 'ROLLED_BACK');
++});
++
++test('rollback rejects malformed, NOOP, missing-audit, and drifted boundaries without writes', async (t) => {
++  const source = fixture();
++  const noOpReceipt = { outcome: 'NOOP' };
++  for (const [name, receipt] of [['malformed', {}], ['noop', noOpReceipt]] as const) {
++    await t.test(name, async () => {
++      const result = await rollbackGrant(source.db, receipt, { operatorId: 'op', approvalRef: 'ref' });
++      assert.equal(result.outcome, 'REFUSED');
++      assert.deepEqual(source.writes, []);
++    });
++  }
++
++  for (const kind of ['missing-audit', 'row-drift'] as const) {
++    await t.test(kind, async () => {
++      const handle = fixture();
++      const applied = await applyGrant(handle.db, await applyInput(handle.db));
++      handle.writes.splice(0);
++      if (kind === 'missing-audit') handle.state.audits.splice(0);
++      else handle.state.grants[0].scopes.push('agent.session.admin');
++      const result = await rollbackGrant(handle.db, applied.receipt, { operatorId: 'op', approvalRef: 'ref' });
++      assert.equal(result.outcome, 'REFUSED');
++      assert.deepEqual(handle.writes, []);
++    });
++  }
++});
++
++test('verify proves exact target and the expected stable bystander digest', async () => {
++  const handle = fixture();
++  const applied = await applyGrant(handle.db, await applyInput(handle.db));
++  const result = await verifyGrant(handle.db, {
++    suppliedClientId: CLIENT_ID,
++    bundleVersion: BUNDLE_VERSION,
++    expectedBystanderDigest: applied.bystanderDigest!,
++  });
++  assert.deepEqual(result, {
++    outcome: 'PASS',
++    reason: null,
++    classification: 'TARGET',
++    bystanderDigest: applied.bystanderDigest,
++  });
++  handle.state.grants[1].version += 1;
++  const drifted = await verifyGrant(handle.db, {
++    suppliedClientId: CLIENT_ID,
++    bundleVersion: BUNDLE_VERSION,
++    expectedBystanderDigest: applied.bystanderDigest!,
++  });
++  assert.equal(drifted.outcome, 'FAIL');
++  assert.equal(drifted.reason, 'BYSTANDER_DIGEST_CHANGED');
++});
++
++test('token evidence retains only the frozen nonsecret projection and drops a secret canary', () => {
++  const canary = 'SECRET_CANARY_DO_NOT_EMIT';
++  const projection = projectTokenClaims({
++    iss: 'https://auth.example.test',
++    aud: AUDIENCE_ID,
++    sub: PRINCIPAL_ID,
++    client_id: CLIENT_ID,
++    principal_type: 'agent',
++    agent_id: AGENT_ID,
++    scope: `${INSPECT_SCOPE} ${SEND_SCOPE}`,
++    exp: 2_000_000_000,
++    client_secret: canary,
++    access_token: canary,
++    nested: { authorization: canary },
++  });
++  assert.deepEqual(Object.keys(projection), [
++    'iss', 'aud', 'sub', 'client_id', 'principal_type', 'agent_id', 'scope', 'exp',
++  ]);
++  assert.equal(JSON.stringify(projection).includes(canary), false);
++  assert.throws(() => projectTokenClaims({ ...projection, scope: `${SEND_SCOPE} agent.session.admin` }), /exact two-scope/);
++});
++
++test('CLI outcome mapping returns zero only for successful business outcomes', () => {
++  const cases: Array<[Parameters<typeof outcomeExitCode>[0], string, number]> = [
++    ['plan', 'APPLY', 0], ['plan', 'NOOP', 0], ['plan', 'CONFLICT', 1],
++    ['apply', 'APPLIED', 0], ['apply', 'NOOP', 0], ['apply', 'CONFLICT', 1],
++    ['apply', 'PRECOMMIT_FAILED', 1], ['apply', 'OUTCOME_UNKNOWN', 1],
++    ['verify', 'PASS', 0], ['verify', 'FAIL', 1],
++    ['rollback', 'ROLLED_BACK', 0], ['rollback', 'REFUSED', 1],
++    ['rollback', 'PRECOMMIT_FAILED', 1], ['rollback', 'OUTCOME_UNKNOWN', 1],
++    ['reconcile', 'SOURCE_NO_AUDIT', 0], ['reconcile', 'TARGET_EXACT_AUDIT', 0],
++    ['reconcile', 'ROLLED_BACK', 0], ['reconcile', 'CONFLICT', 1],
++  ];
++  for (const [mode, outcome, expected] of cases) assert.equal(outcomeExitCode(mode, outcome), expected, `${mode}:${outcome}`);
++});
++
++test('CLI apply gate refuses before attempting a database connection', () => {
++  const result = spawnSync(process.execPath, [
++    '--import', 'tsx',
++    'scripts/supply-hr-session-inspection-grant-v1.ts',
++    '--apply', '--client-id', CLIENT_ID,
++  ], {
++    cwd: process.cwd(),
++    encoding: 'utf8',
++    env: {
++      ...process.env,
++      DATABASE_URL: 'postgresql://secret-canary.invalid:1/must-not-connect',
++      HR_SESSION_INSPECTION_GRANT_APPLY: 'NO',
++    },
++  });
++  assert.equal(result.status, 1);
++  assert.match(result.stderr, /requires its exact controlled-operation gate/);
++  assert.doesNotMatch(result.stderr, /secret-canary|connect|Prisma/i);
++});
++
++test('rollback binds receipt provenance and fields to the exact activation audit', async (t) => {
++  for (const [field, value] of [
++    ['source_git_commit', 'b'.repeat(40)],
++    ['operator_id', 'tampered-operator'],
++    ['approval_ref', 'tampered-approval'],
++    ['preimage_digest', 'b'.repeat(64)],
++    ['postimage_digest', 'd'.repeat(64)],
++  ] as const) {
++    await t.test(field, async () => {
++      const handle = fixture();
++      const applied = await applyGrant(handle.db, await applyInput(handle.db));
++      assert.equal(applied.outcome, 'APPLIED');
++      handle.writes.splice(0);
++      const tampered = { ...(applied.receipt as object), [field]: value };
++      const result = await rollbackGrant(handle.db, tampered, { operatorId: 'rollback-op', approvalRef: 'rollback-ref' });
++      assert.equal(result.outcome, 'REFUSED');
++      assert.equal(result.reason, 'APPLY_AUDIT_RECEIPT_MISMATCH');
++      assert.deepEqual(handle.writes, []);
++      assert.equal(handle.state.grants[0].version, 2);
++    });
++  }
++});
++
++test('read-only reconciliation rejects a malformed rollback audit', async () => {
++  const handle = fixture();
++  const applied = await applyGrant(handle.db, await applyInput(handle.db));
++  assert.equal(applied.outcome, 'APPLIED');
++  const rolledBack = await rollbackGrant(handle.db, applied.receipt, { operatorId: 'rollback-op', approvalRef: 'rollback-ref' });
++  assert.equal(rolledBack.outcome, 'ROLLED_BACK');
++  handle.state.audits[1].reason = 'wrong rollback reason';
++  const writesBefore = [...handle.writes];
++  const reconciled = await reconcileGrant(handle.db, planInput());
++  assert.equal(reconciled.state, 'CONFLICT');
++  assert.deepEqual(handle.writes, writesBefore);
++});
++
++test('SOURCE and TARGET reject orphan or extra rollback audits with zero writes', async (t) => {
++  const completed = fixture();
++  const applied = await applyGrant(completed.db, await applyInput(completed.db));
++  assert.equal(applied.outcome, 'APPLIED');
++  const rolled = await rollbackGrant(completed.db, applied.receipt, {
++    operatorId: 'rollback-op',
++    approvalRef: 'rollback-ref',
++  });
++  assert.equal(rolled.outcome, 'ROLLED_BACK');
++  const rollbackAudit = structuredClone(completed.state.audits[1]);
++
++  await t.test('SOURCE with orphan rollback audit is CONFLICT', async () => {
++    const handle = fixture((state) => { state.audits.push(rollbackAudit); });
++    const plan = await planGrant(handle.db, planInput());
++    assert.equal(plan.outcome, 'CONFLICT');
++    assert.equal(plan.reason, 'UNEXPECTED_ROLLBACK_AUDIT');
++    assert.deepEqual(handle.writes, []);
++  });
++
++  await t.test('TARGET with extra rollback audit is CONFLICT and verify cannot PASS', async () => {
++    const handle = fixture();
++    const target = await applyGrant(handle.db, await applyInput(handle.db));
++    assert.equal(target.outcome, 'APPLIED');
++    handle.writes.splice(0);
++    handle.state.audits.push(rollbackAudit);
++    const plan = await planGrant(handle.db, planInput());
++    assert.equal(plan.outcome, 'CONFLICT');
++    assert.equal(plan.reason, 'UNEXPECTED_ROLLBACK_AUDIT');
++    const verified = await verifyGrant(handle.db, {
++      suppliedClientId: CLIENT_ID,
++      bundleVersion: BUNDLE_VERSION,
++      expectedBystanderDigest: target.bystanderDigest!,
++    });
++    assert.equal(verified.outcome, 'FAIL');
++    assert.deepEqual(handle.writes, []);
++  });
++});
