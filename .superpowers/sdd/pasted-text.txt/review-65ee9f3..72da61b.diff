@@ -1,0 +1,757 @@
+# Review package: 65ee9f30d505f4ea5e68501082596ab467532f5d..72da61b5442b69eb79e96fff2ac197837961cf13
+
+## Commits
+72da61b feat(auth): register owned-dispatch inspection scope
+
+## Files changed
+ .../minimal-auth-v1/audience-registry.json         |  6 +-
+ .../minimal-auth-v1/contract-manifest.json         |  4 +-
+ .../fixtures/negative-token-fixtures.json          | 92 +++++++++++++++++++-
+ .../fixtures/positive-token-fixtures.json          | 66 ++++++++++++++-
+ .../minimal-auth-v1/fixtures/schema-instances.json |  2 +-
+ .../minimal-auth-v1/metadata/adc-v2-scope-map.json |  2 +-
+ .../minimal-auth-v1/metadata/change-log.md         | 27 ++++++
+ .../metadata/consumer-verification-matrix.json     |  2 +-
+ .../minimal-auth-v1/metadata/freeze-gates.json     |  2 +-
+ .../metadata/llm-todo-authorization-candidate.json |  2 +-
+ .../schemas/contract-manifest.schema.json          |  2 +-
+ contract-bundles/minimal-auth-v1/validate.mjs      | 42 +++++++++
+ src/lib/oauth/v1/contract.ts                       |  2 +-
+ .../agent-session-inspection-audience-v2.test.ts   | 99 ++++++++++++++++++++++
+ 14 files changed, 335 insertions(+), 15 deletions(-)
+
+## Diff
+diff --git a/contract-bundles/minimal-auth-v1/audience-registry.json b/contract-bundles/minimal-auth-v1/audience-registry.json
+index f1c105a..6a415f2 100644
+--- a/contract-bundles/minimal-auth-v1/audience-registry.json
++++ b/contract-bundles/minimal-auth-v1/audience-registry.json
+@@ -1,13 +1,13 @@
+ {
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+-  "registry_version": "1.11.0",
++  "registry_version": "1.12.0",
+   "status": "frozen",
+   "audiences": [
+     {
+       "audience_id": "svc-workflow",
+       "resource_service": "svc-workflow",
+       "scope_namespace": "workflow",
+       "accepted_principal_types": ["agent"],
+       "human_access_enabled": false,
+       "machine_access_enabled": true,
+       "delegated_access_enabled": true,
+@@ -82,24 +82,24 @@
+       "notes": "Registered by AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_AUDIENCE_CCR_V1 via AUTH_SERVICE_AGENT_CORE_NOTIFICATION_INGRESS_IMPLEMENTATION_CLOSURE_V1; machine-only service access for Agent Core Notification Ingress POST /v1/deliver."
+     },
+     {
+       "audience_id": "agent-session-messaging",
+       "resource_service": "agent-session-messaging",
+       "scope_namespace": "agent",
+       "accepted_principal_types": ["agent"],
+       "human_access_enabled": false,
+       "machine_access_enabled": true,
+       "delegated_access_enabled": false,
+-      "registered_scopes": ["agent.session.send"],
++      "registered_scopes": ["agent.session.inspect_own_dispatch", "agent.session.send"],
+       "status": "active",
+       "freeze_ready": true,
+-      "notes": "Registered by AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V1; machine-only agent access for the canonical agent_session_send resource consumed by dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_DEPLOYMENT_V1."
++      "notes": "Registered by AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2 for canonical send and independently granted caller-owned exact-turn inspection consumed by dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V2."
+     },
+     {
+       "audience_id": "scheduler",
+       "resource_service": "scheduler",
+       "scope_namespace": "scheduler",
+       "accepted_principal_types": ["agent"],
+       "human_access_enabled": false,
+       "machine_access_enabled": true,
+       "delegated_access_enabled": false,
+       "registered_scopes": ["scheduler.admin", "scheduler.audit"],
+diff --git a/contract-bundles/minimal-auth-v1/contract-manifest.json b/contract-bundles/minimal-auth-v1/contract-manifest.json
+index f0c7716..de12478 100644
+--- a/contract-bundles/minimal-auth-v1/contract-manifest.json
++++ b/contract-bundles/minimal-auth-v1/contract-manifest.json
+@@ -1,14 +1,14 @@
+ {
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "design_id": "MINIMAL_AUTH_FOUNDATION_V1",
+-  "contract_version": "1.11.0",
++  "contract_version": "1.12.0",
+   "lifecycle": {
+     "contract_bundle_freeze": {
+       "status": "frozen",
+       "frozen": true,
+       "implementation_authorized": true,
+       "reviewed_source_git_commit": "02bccd428554868125a65800f1334928c80543a2"
+     },
+     "production_deployment": {
+       "status": "not_ready",
+       "exact_jwks_url": null,
+@@ -21,21 +21,21 @@
+       "legacy_out_of_scope": [
+         "workflow-todo", "llm-todo",
+         "openclaw-credential-broker-candidate"
+       ],
+       "in_scope_ready": false,
+       "legacy_consumers_migrated": false
+     }
+   },
+   "exact_issuer": "auth-service",
+   "token_version": "v1",
+-  "audience_registry_version": "1.11.0",
++  "audience_registry_version": "1.12.0",
+   "signing": {
+     "algorithm": "RS256",
+     "jwks_path": "/.well-known/jwks.json",
+     "jwks_http_timeout_seconds": 5,
+     "jwks_cache_ttl_seconds": 300,
+     "jwks_max_stale_seconds": 600,
+     "cache_fetch_error_rule": "use_trusted_cache_until_max_stale_then_fail_closed",
+     "unknown_kid_refresh_attempts": 1,
+     "unknown_kid_after_refresh_rule": "reject",
+     "active_signing_key_count": 1,
+diff --git a/contract-bundles/minimal-auth-v1/fixtures/negative-token-fixtures.json b/contract-bundles/minimal-auth-v1/fixtures/negative-token-fixtures.json
+index 35b7d7f..291adcb 100644
+--- a/contract-bundles/minimal-auth-v1/fixtures/negative-token-fixtures.json
++++ b/contract-bundles/minimal-auth-v1/fixtures/negative-token-fixtures.json
+@@ -1,12 +1,12 @@
+ {
+-  "contract_version": "1.11.0",
++  "contract_version": "1.12.0",
+   "cases": [
+     {
+       "name": "human-forbidden-scope",
+       "base_fixture": "human-svc-okr",
+       "mutations": [
+         { "op": "set", "path": "/claims/scope", "value": "okr.read" }
+       ],
+       "expected_error": "PROFILE_FORBIDDEN_CLAIM"
+     },
+     {
+@@ -440,20 +440,110 @@
+       "expected_error": "INVALID_SCOPE_GRANT"
+     },
+     {
+       "name": "direct-session-messaging-extra-requested-scope-rejected",
+       "base_fixture": "direct-agent-session-messaging",
+       "mutations": [
+         { "op": "set", "path": "/authorization_context/requested_scope", "value": "agent.session.read agent.session.send" }
+       ],
+       "expected_error": "INVALID_SCOPE_NAMESPACE"
+     },
++    {
++      "name": "direct-session-inspection-missing-grant-rejected",
++      "base_fixture": "direct-agent-session-inspection",
++      "mutations": [
++        { "op": "set", "path": "/authorization_context/machine_access_grants/agent-session-messaging", "value": [] }
++      ],
++      "expected_error": "INVALID_SCOPE_GRANT"
++    },
++    {
++      "name": "direct-session-send-only-grant-requesting-inspection-rejected",
++      "base_fixture": "direct-agent-session-messaging",
++      "mutations": [
++        { "op": "set", "path": "/claims/scope", "value": "agent.session.inspect_own_dispatch" },
++        { "op": "set", "path": "/authorization_context/requested_scope", "value": "agent.session.inspect_own_dispatch" }
++      ],
++      "expected_error": "INVALID_SCOPE_GRANT"
++    },
++    {
++      "name": "direct-session-inspect-only-grant-requesting-send-rejected",
++      "base_fixture": "direct-agent-session-inspection",
++      "mutations": [
++        { "op": "set", "path": "/claims/scope", "value": "agent.session.send" },
++        { "op": "set", "path": "/authorization_context/requested_scope", "value": "agent.session.send" }
++      ],
++      "expected_error": "INVALID_SCOPE_GRANT"
++    },
++    {
++      "name": "direct-session-inspection-unknown-scope-rejected",
++      "base_fixture": "direct-agent-session-inspection",
++      "mutations": [
++        { "op": "set", "path": "/claims/scope", "value": "agent.session.inspect" }
++      ],
++      "expected_error": "INVALID_SCOPE_NAMESPACE"
++    },
++    {
++      "name": "direct-session-inspection-alias-scope-rejected",
++      "base_fixture": "direct-agent-session-inspection",
++      "mutations": [
++        { "op": "set", "path": "/claims/scope", "value": "agent.session.read" }
++      ],
++      "expected_error": "INVALID_SCOPE_NAMESPACE"
++    },
++    {
++      "name": "direct-session-inspection-wildcard-scope-rejected",
++      "base_fixture": "direct-agent-session-inspection",
++      "mutations": [
++        { "op": "set", "path": "/claims/scope", "value": "agent.*" }
++      ],
++      "expected_error": "INVALID_SCOPE_WIRE"
++    },
++    {
++      "name": "direct-session-inspection-extra-scope-rejected",
++      "base_fixture": "direct-agent-session-inspection",
++      "mutations": [
++        { "op": "set", "path": "/authorization_context/requested_scope", "value": "agent.session.inspect_own_dispatch agent.session.unknown" }
++      ],
++      "expected_error": "INVALID_SCOPE_NAMESPACE"
++    },
++    {
++      "name": "direct-session-inspection-wrong-namespace-rejected",
++      "base_fixture": "direct-agent-session-inspection",
++      "mutations": [
++        { "op": "set", "path": "/claims/scope", "value": "workflow.read" }
++      ],
++      "expected_error": "INVALID_SCOPE_NAMESPACE"
++    },
++    {
++      "name": "direct-session-inspection-human-access-rejected",
++      "base_fixture": "human-svc-okr",
++      "mutations": [
++        { "op": "set", "path": "/claims/aud", "value": "agent-session-messaging" }
++      ],
++      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
++    },
++    {
++      "name": "direct-session-inspection-service-principal-rejected",
++      "base_fixture": "direct-service-notification-ingress",
++      "mutations": [
++        { "op": "set", "path": "/claims/aud", "value": "agent-session-messaging" }
++      ],
++      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
++    },
++    {
++      "name": "direct-session-inspection-obo-delegation-rejected",
++      "base_fixture": "obo-adc-v2-to-svc-workflow",
++      "mutations": [
++        { "op": "set", "path": "/claims/aud", "value": "agent-session-messaging" }
++      ],
++      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
++    },
+     {
+       "name": "direct-scheduler-service-principal-rejected",
+       "base_fixture": "direct-service-notification-ingress",
+       "mutations": [
+         { "op": "set", "path": "/claims/aud", "value": "scheduler" }
+       ],
+       "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+     },
+     {
+       "name": "direct-scheduler-human-access-rejected",
+diff --git a/contract-bundles/minimal-auth-v1/fixtures/positive-token-fixtures.json b/contract-bundles/minimal-auth-v1/fixtures/positive-token-fixtures.json
+index 2738577..e04f0bd 100644
+--- a/contract-bundles/minimal-auth-v1/fixtures/positive-token-fixtures.json
++++ b/contract-bundles/minimal-auth-v1/fixtures/positive-token-fixtures.json
+@@ -1,12 +1,12 @@
+ {
+-  "contract_version": "1.11.0",
++  "contract_version": "1.12.0",
+   "now": 1784300000,
+   "fixtures": [
+     {
+       "name": "human-svc-okr",
+       "profile": "human_access",
+       "header": {
+         "alg": "RS256",
+         "kid": "fixture-key-v1-draft2-20260718"
+       },
+       "claims": {
+@@ -295,20 +295,82 @@
+         "exp": 1784300600
+       },
+       "authorization_context": {
+         "requested_scope": "agent.session.send",
+         "machine_access_grants": {
+           "agent-session-messaging": ["agent.session.send"]
+         }
+       },
+       "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI3MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1zZXNzaW9uLW1lc3NhZ2luZyIsInByaW5jaXBhbF90eXBlIjoiYWdlbnQiLCJjbGllbnRfaWQiOiJhZ2VudC1jbGllbnQtc2Vzc2lvbi1tZXNzYWdpbmciLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJ0eXBlIjoiYWNjZXNzIiwidmVyc2lvbiI6InYxIiwic2NvcGUiOiJhZ2VudC5zZXNzaW9uLnNlbmQiLCJhZ2VudF9pZCI6ImFnZW50LXNlc3Npb24tbWVzc2VuZ2VyIiwianRpIjoiZGlyZWN0LWp0aS1zZXNzaW9uLW1lc3NhZ2luZy0wMDAwMSIsImlhdCI6MTc4NDMwMDAwMCwibmJmIjoxNzg0MzAwMDAwLCJleHAiOjE3ODQzMDA2MDB9.YCsVIBBllGyrlBwSc3gzGZ70t87_-OB9Lg_SZXr7_ya8n1qcrLDSvft87OR-YwHeazVJDO97PoM539QSudxp2OauN_ILM3NCjk2psLPLbKhj4lL0XUE6hkRFxtLBwcxNn-wwVJfvpJePVYTxeTnoSfLZh91UkanR96nUXrjgMl6r8-qxcpOpDQ09LJHgfT7l9bDCjN-EZlKNokaWotQevhKsQCc1nAMCzlhM476lwH3Ote6PHGz2_d5HtFb-cssNEeWkI8sRYd2G7dtP3UYYcn-UeWnLfqXpfd0M6evOEGflvQDQ88VKU4baUj8Vd1_dj3h4R8pwAtbp547APzCCSw"
+     },
++    {
++      "name": "direct-agent-session-inspection",
++      "profile": "direct_machine_access",
++      "header": {
++        "alg": "RS256",
++        "kid": "fixture-key-v1-svc-okr-canary-20260719"
++      },
++      "claims": {
++        "iss": "auth-service",
++        "sub": "70000000-0000-4000-8000-000000000002",
++        "aud": "agent-session-messaging",
++        "principal_type": "agent",
++        "client_id": "agent-client-session-inspection",
++        "token_use": "access",
++        "type": "access",
++        "version": "v1",
++        "scope": "agent.session.inspect_own_dispatch",
++        "agent_id": "agent-session-inspector",
++        "jti": "direct-jti-session-inspection-00001",
++        "iat": 1784300000,
++        "nbf": 1784300000,
++        "exp": 1784300600
++      },
++      "authorization_context": {
++        "requested_scope": "agent.session.inspect_own_dispatch",
++        "machine_access_grants": {
++          "agent-session-messaging": ["agent.session.inspect_own_dispatch"]
++        }
++      },
++      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI3MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDIiLCJhdWQiOiJhZ2VudC1zZXNzaW9uLW1lc3NhZ2luZyIsInByaW5jaXBhbF90eXBlIjoiYWdlbnQiLCJjbGllbnRfaWQiOiJhZ2VudC1jbGllbnQtc2Vzc2lvbi1pbnNwZWN0aW9uIiwidG9rZW5fdXNlIjoiYWNjZXNzIiwidHlwZSI6ImFjY2VzcyIsInZlcnNpb24iOiJ2MSIsInNjb3BlIjoiYWdlbnQuc2Vzc2lvbi5pbnNwZWN0X293bl9kaXNwYXRjaCIsImFnZW50X2lkIjoiYWdlbnQtc2Vzc2lvbi1pbnNwZWN0b3IiLCJqdGkiOiJkaXJlY3QtanRpLXNlc3Npb24taW5zcGVjdGlvbi0wMDAwMSIsImlhdCI6MTc4NDMwMDAwMCwibmJmIjoxNzg0MzAwMDAwLCJleHAiOjE3ODQzMDA2MDB9.x-ezCHFuHlR6j32KfIPhPo9ImqgZMFpT2z1TRLulWZiklm6A4sXpRpjzonfs8wKJ8YoZYZ213WOzxV57yyGXAWASz4tBRJV4f3I-7kcfcfGoIHlTQLKuFjxBoTXE59jGIFiO0V7zBWvVz0bQBksJfJF77_PT57nqvP8rZ1MhGsw9ApJRepUtN9CEveLpq1sYGxDyEoWwD7xg7IvcxgK8ON3Yfy3Zo55eQdCo6czIVCX5l-sVZQ8eLkdTCjqhkbSpshV0Jm-tKecrAm_NUZz5hEvx0wuUt-CYuy2YiI2mEtFe0gztbqQxdcfWiejYVSMJY_0CTEobtPA-oSmc5Dimmw"
++    },
++    {
++      "name": "direct-agent-session-messaging-and-inspection",
++      "profile": "direct_machine_access",
++      "header": {
++        "alg": "RS256",
++        "kid": "fixture-key-v1-svc-okr-canary-20260719"
++      },
++      "claims": {
++        "iss": "auth-service",
++        "sub": "70000000-0000-4000-8000-000000000003",
++        "aud": "agent-session-messaging",
++        "principal_type": "agent",
++        "client_id": "agent-client-session-messaging-inspection",
++        "token_use": "access",
++        "type": "access",
++        "version": "v1",
++        "scope": "agent.session.inspect_own_dispatch agent.session.send",
++        "agent_id": "agent-session-messaging-inspector",
++        "jti": "direct-jti-session-messaging-inspection-00001",
++        "iat": 1784300000,
++        "nbf": 1784300000,
++        "exp": 1784300600
++      },
++      "authorization_context": {
++        "requested_scope": "agent.session.inspect_own_dispatch agent.session.send",
++        "machine_access_grants": {
++          "agent-session-messaging": ["agent.session.inspect_own_dispatch", "agent.session.send"]
++        }
++      },
++      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI3MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDMiLCJhdWQiOiJhZ2VudC1zZXNzaW9uLW1lc3NhZ2luZyIsInByaW5jaXBhbF90eXBlIjoiYWdlbnQiLCJjbGllbnRfaWQiOiJhZ2VudC1jbGllbnQtc2Vzc2lvbi1tZXNzYWdpbmctaW5zcGVjdGlvbiIsInRva2VuX3VzZSI6ImFjY2VzcyIsInR5cGUiOiJhY2Nlc3MiLCJ2ZXJzaW9uIjoidjEiLCJzY29wZSI6ImFnZW50LnNlc3Npb24uaW5zcGVjdF9vd25fZGlzcGF0Y2ggYWdlbnQuc2Vzc2lvbi5zZW5kIiwiYWdlbnRfaWQiOiJhZ2VudC1zZXNzaW9uLW1lc3NhZ2luZy1pbnNwZWN0b3IiLCJqdGkiOiJkaXJlY3QtanRpLXNlc3Npb24tbWVzc2FnaW5nLWluc3BlY3Rpb24tMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.xiaWyJ7aJJS7IEmVtzZldfdkWkkYu7_e5mlDQUNIdaYfOBwenLGTKu74Zs9DhYj9ictDIo3lKLEBL6EJqf87OxbH1K8IRDW7wKDW6fSgH_a41qDaIq99J4jMmsWvUFRd8UJkGp5ky0XWEEm0nDWovXOQe93mzwHzXyss2EoJV4vuHQo1qmjZVEu_4q840pKogrT_1BQC4oVspN0uI_P-XTvHK7juPeFFFFCqE9VvTMTFvHIathB6Z0XWJ5UIqjvvWl5VjWF1c56MsSUpevwd6TloRrwtUTuT1lakn5cmU2RxZu__zeFPmnZ79gMQN7xSPxW1jJKhV0LpAAk1OqeOJQ"
++    },
+     {
+       "name": "direct-agent-scheduler-admin",
+       "profile": "direct_machine_access",
+       "header": {
+         "alg": "RS256",
+         "kid": "fixture-key-v1-svc-okr-canary-20260719"
+       },
+       "claims": {
+         "iss": "auth-service",
+         "sub": "80000000-0000-4000-8000-000000000001",
+@@ -389,11 +451,11 @@
+       },
+       "authorization_context": {
+         "requested_scope": "auth.agent.resolve",
+         "machine_access_grants": {
+           "agent-principal-resolution": ["auth.agent.resolve"]
+         }
+       },
+       "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiI5MDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1wcmluY2lwYWwtcmVzb2x1dGlvbiIsInByaW5jaXBhbF90eXBlIjoiYWdlbnQiLCJjbGllbnRfaWQiOiJhZ2VudC1jbGllbnQtcHJpbmNpcGFsLXJlc29sdXRpb24iLCJ0b2tlbl91c2UiOiJhY2Nlc3MiLCJ0eXBlIjoiYWNjZXNzIiwidmVyc2lvbiI6InYxIiwic2NvcGUiOiJhdXRoLmFnZW50LnJlc29sdmUiLCJhZ2VudF9pZCI6ImFnZW50LXByaW5jaXBhbC1yZXNvbHZlciIsImp0aSI6ImRpcmVjdC1qdGktcHJpbmNpcGFsLXJlc29sdXRpb24tMDAwMDEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.WZFs54nNAckFQZJY1EGK2PaaAljT4BFhhykLMd4IzCXaXceCWFYi3QoXeTBkPhN6aE1uYop8jggpBo43oaX_7uVRWJeGVv7MyKCgBDT4Kzq4_wFCwxHx4oTZgP-fAy9dawX4hVVGAp-sm97MSmqbXDoQx_armySBKuxXjTPNzEGZJ-3la1bP7twxu-5Nv999ZwY_Zs80KKK3p9euGFCYvjzzZLDoQuKQGTpJCTYWMmhpU-sZZSrxP2Tg4vRKa5R-kQ-i6KPYPo4_nZE5tzzkjv-6KGRe6u8wc5UCh-7NgvtKsxrJvHQOIkLqRMllo1-8VMn2Jxy5_w5CLEwtfnv7_A"
+     }
+   ]
+-}
+\ No newline at end of file
++}
+diff --git a/contract-bundles/minimal-auth-v1/fixtures/schema-instances.json b/contract-bundles/minimal-auth-v1/fixtures/schema-instances.json
+index 8ab001f..d59059a 100644
+--- a/contract-bundles/minimal-auth-v1/fixtures/schema-instances.json
++++ b/contract-bundles/minimal-auth-v1/fixtures/schema-instances.json
+@@ -1,12 +1,12 @@
+ {
+-  "contract_version": "1.11.0",
++  "contract_version": "1.12.0",
+   "instances": [
+     {
+       "id": "oauth-client-credentials-request",
+       "schema_file": "oauth.schema.json",
+       "value": {
+         "grant_type": "client_credentials",
+         "resource": "svc-workflow",
+         "scope": "workflow.read"
+       }
+     },
+diff --git a/contract-bundles/minimal-auth-v1/metadata/adc-v2-scope-map.json b/contract-bundles/minimal-auth-v1/metadata/adc-v2-scope-map.json
+index 5de6514..09985ee 100644
+--- a/contract-bundles/minimal-auth-v1/metadata/adc-v2-scope-map.json
++++ b/contract-bundles/minimal-auth-v1/metadata/adc-v2-scope-map.json
+@@ -1,12 +1,12 @@
+ {
+-  "contract_version": "1.11.0",
++  "contract_version": "1.12.0",
+   "consumer_id": "adc-v2",
+   "consumer_git_sha": "ddeeab2ff394af64b78d9820c9e64d5bf0952ebd",
+   "consumer_git_tree": "6b7e69217cac99b381876e85750dea588ae501fd",
+   "source_audience": "adc-v2",
+   "target_audience": "svc-workflow",
+   "public_routes": [
+     { "method": "GET", "path": "/api/v2/health" },
+     { "method": "GET", "path": "/api/v2/definition-bindings" }
+   ],
+   "protected_routes": [
+diff --git a/contract-bundles/minimal-auth-v1/metadata/change-log.md b/contract-bundles/minimal-auth-v1/metadata/change-log.md
+index 440a083..9c77aaf 100644
+--- a/contract-bundles/minimal-auth-v1/metadata/change-log.md
++++ b/contract-bundles/minimal-auth-v1/metadata/change-log.md
+@@ -1,12 +1,39 @@
+ # Change Log
+ 
++## 1.12.0 — 2026-09-14
++
++- CCR: `AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2` (accepted exact
++  reviewed head `9eeb896abb5adb6298df73a4c9b489ae65bafce6`) supersedes the historical
++  send-only Audience authority and promotes the Bundle/registry from `1.11.0`
++  to `1.12.0` without an in-place version disguise.
++- The existing machine-only Agent Audience remains
++  `audience_id=resource_service=agent-session-messaging`, namespace `agent`,
++  human/delegated access disabled, and now registers the ASCII-sorted exact
++  independent scopes
++  `["agent.session.inspect_own_dispatch","agent.session.send"]`.
++- Existing send-only fixture `direct-agent-session-messaging` is preserved.
++  Added inspect-only `direct-agent-session-inspection` and combined
++  `direct-agent-session-messaging-and-inspection`; each binds issued Scope,
++  requested Scope, and its exact Audience Grant subset. Added fail-closed
++  fixtures for missing and opposite-scope Grants, unknown/alias/wildcard/extra/
++  wrong-namespace scopes, and human/service/delegated profiles. All compact JWT
++  fixtures use the existing tracked RS256 test key and contain no secret.
++- Version linkage advances the manifest, registry, manifest schema, fixtures,
++  schema instances, freeze gates, consumer matrix, ADC map and llm-todo
++  candidate to `1.12.0`; runtime compatibility adds only `1.12.0`. Validator
++  assertions require the exact V2 Audience and the independent positive and
++  negative fixture families.
++- Auth registers Scope claims only. It adds no trace coordinate or ownership
++  evidence and performs no Principal, Client, credential, Grant, database,
++  deployment, token-minting, Session, message, or production mutation.
++
+ ## 1.8.0 — 2026-09-05
+ 
+ - CCR: `AUTH_SERVICE_EXACT_AGENT_PRINCIPAL_RESOLUTION_V1` (accepted @
+   0359575dd1481aa5e6c294a495fbaabce97e40bf, acceptance BATCHED EXACT-HEAD
+   ACCEPTANCE = YES on 2026-09-05) — registered `agent-principal-resolution`
+   into the Minimal Auth V1 Audience Registry per CTR-EAPR-001 as the
+   machine-only OAuth registration for the exact active Agent Principal
+   relation read (`GET /api/v1/agent-principals/:principal_id/agent`,
+   CTR-EAPR-002..004). Implementation closure = the CTR-EAPR-006 allowed set
+   (wake CTR-AW-005 recipe isomorphic; scheduler/session-messaging NI closure
+diff --git a/contract-bundles/minimal-auth-v1/metadata/consumer-verification-matrix.json b/contract-bundles/minimal-auth-v1/metadata/consumer-verification-matrix.json
+index 272ab0e..9649fdb 100644
+--- a/contract-bundles/minimal-auth-v1/metadata/consumer-verification-matrix.json
++++ b/contract-bundles/minimal-auth-v1/metadata/consumer-verification-matrix.json
+@@ -1,12 +1,12 @@
+ {
+-  "contract_version": "1.11.0",
++  "contract_version": "1.12.0",
+   "inventory_date": "2026-07-18",
+   "contract_bundle_scope": ["auth-service", "svc-workflow", "svc-okr", "adc-v2", "svc-forum"],
+   "all_contract_bundle_scope_fixed_remote_sha": true,
+   "all_first_wave_migrations_ready": false,
+   "consumers": [
+     {
+       "id": "auth-service",
+       "kind": "issuer",
+       "git_sha": "bdb5e5bf308b9a39b7ff808d995bed82fc541a13",
+       "git_tree": "70674b6621ff3b5f252552aabb87824f067b71de",
+diff --git a/contract-bundles/minimal-auth-v1/metadata/freeze-gates.json b/contract-bundles/minimal-auth-v1/metadata/freeze-gates.json
+index 83a2257..64fb42c 100644
+--- a/contract-bundles/minimal-auth-v1/metadata/freeze-gates.json
++++ b/contract-bundles/minimal-auth-v1/metadata/freeze-gates.json
+@@ -1,12 +1,12 @@
+ {
+-  "contract_version": "1.11.0",
++  "contract_version": "1.12.0",
+   "contract_bundle_freeze_allowed": true,
+   "gates": [
+     {
+       "id": "GATE-REMOTE-CONSUMER-SHAS",
+       "state_domain": "consumer_migration",
+       "blocks_contract_bundle_freeze": false,
+       "status": "deferred",
+       "owner": "consumer-repository-owners",
+       "evidence": ["metadata/consumer-verification-matrix.json"],
+       "reason": "Out-of-scope Legacy consumers lack fixed migration SHAs; this blocks only their later migration, not the first-wave source Contract Bundle freeze."
+diff --git a/contract-bundles/minimal-auth-v1/metadata/llm-todo-authorization-candidate.json b/contract-bundles/minimal-auth-v1/metadata/llm-todo-authorization-candidate.json
+index e6b0c64..9ad414c 100644
+--- a/contract-bundles/minimal-auth-v1/metadata/llm-todo-authorization-candidate.json
++++ b/contract-bundles/minimal-auth-v1/metadata/llm-todo-authorization-candidate.json
+@@ -1,12 +1,12 @@
+ {
+-  "contract_version": "1.11.0",
++  "contract_version": "1.12.0",
+   "artifact_class": "legacy_consumer_migration_candidate",
+   "blocks_contract_bundle_freeze": false,
+   "consumer_id": "llm-todo",
+   "consumer_git_sha": "7cc746240ba15161a5350bbe4c6d8fb88f41f5c6",
+   "consumer_git_tree": "b45dc35aa7b3148a314c9d856efdb17b94387650",
+   "decision_status": "owner_review_required",
+   "audience": "llm-todo",
+   "candidate_principal_types": ["user", "agent", "service"],
+   "candidate_scopes": ["todo.admin", "todo.invoke", "todo.read", "todo.write"],
+   "matching_rule": "most_specific_path_pattern_wins_and_any_tie_denies",
+diff --git a/contract-bundles/minimal-auth-v1/schemas/contract-manifest.schema.json b/contract-bundles/minimal-auth-v1/schemas/contract-manifest.schema.json
+index 211d5e6..c8fa5d3 100644
+--- a/contract-bundles/minimal-auth-v1/schemas/contract-manifest.schema.json
++++ b/contract-bundles/minimal-auth-v1/schemas/contract-manifest.schema.json
+@@ -1,20 +1,20 @@
+ {
+   "$schema": "https://json-schema.org/draft/2020-12/schema",
+   "$id": "urn:minimal-auth-v1:contract-manifest:1.0.0",
+   "title": "Minimal Auth V1 Contract Manifest",
+   "type": "object",
+   "additionalProperties": false,
+   "properties": {
+     "$schema": { "type": "string" },
+     "design_id": { "const": "MINIMAL_AUTH_FOUNDATION_V1" },
+-    "contract_version": { "const": "1.11.0" },
++    "contract_version": { "const": "1.12.0" },
+     "lifecycle": {
+       "type": "object",
+       "additionalProperties": false,
+       "properties": {
+         "contract_bundle_freeze": {
+           "type": "object",
+           "additionalProperties": false,
+           "properties": {
+             "status": { "enum": ["draft", "frozen"] },
+             "frozen": { "type": "boolean" },
+diff --git a/contract-bundles/minimal-auth-v1/validate.mjs b/contract-bundles/minimal-auth-v1/validate.mjs
+index 47e98e2..0d5e650 100644
+--- a/contract-bundles/minimal-auth-v1/validate.mjs
++++ b/contract-bundles/minimal-auth-v1/validate.mjs
+@@ -398,20 +398,34 @@ check(!audienceIds.includes('workflow-todo'), 'registry: workflow-todo is a Clie
+ for (const audience of registry.audiences) {
+   check(/^[a-z][a-z0-9-]*$/.test(audience.audience_id), `registry: invalid Audience ${audience.audience_id}`);
+   check(/^[a-z][a-z0-9-]*$/.test(audience.scope_namespace), `registry: invalid namespace for ${audience.audience_id}`);
+   check(new Set(audience.accepted_principal_types).size === audience.accepted_principal_types.length, `registry: duplicate principal type for ${audience.audience_id}`);
+   check(audience.registered_scopes.every((scope) => scope.startsWith(`${audience.scope_namespace}.`)), `registry: wrong Scope namespace for ${audience.audience_id}`);
+   check([...audience.registered_scopes].sort(asciiCompare).join('\0') === audience.registered_scopes.join('\0'), `registry: Scopes not ASCII sorted for ${audience.audience_id}`);
+   check(!audience.human_access_enabled || audience.accepted_principal_types.includes('user'), `registry: Human Audience ${audience.audience_id} does not accept user`);
+   check(!audience.machine_access_enabled || audience.accepted_principal_types.some((type) => type === 'agent' || type === 'service'), `registry: Machine Audience ${audience.audience_id} has no machine principal type`);
+   check(!(audience.machine_access_enabled || audience.delegated_access_enabled) || audience.registered_scopes.length > 0, `registry: Machine Audience ${audience.audience_id} has no Scopes`);
+ }
++const sessionMessagingAudience = audienceById.get('agent-session-messaging');
++check(JSON.stringify(sessionMessagingAudience) === JSON.stringify({
++  audience_id: 'agent-session-messaging',
++  resource_service: 'agent-session-messaging',
++  scope_namespace: 'agent',
++  accepted_principal_types: ['agent'],
++  human_access_enabled: false,
++  machine_access_enabled: true,
++  delegated_access_enabled: false,
++  registered_scopes: ['agent.session.inspect_own_dispatch', 'agent.session.send'],
++  status: 'active',
++  freeze_ready: true,
++  notes: 'Registered by AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2 for canonical send and independently granted caller-owned exact-turn inspection consumed by dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V2.',
++}), 'registry: agent-session-messaging V2 Audience changed');
+ 
+ check(adcScopeMap.consumer_git_sha === 'ddeeab2ff394af64b78d9820c9e64d5bf0952ebd', 'ADC Scope map: unexpected consumer SHA');
+ const adcAudience = audienceById.get(adcScopeMap.source_audience);
+ const workflowAudience = audienceById.get(adcScopeMap.target_audience);
+ check(Boolean(adcAudience && workflowAudience), 'ADC Scope map: source or target Audience missing');
+ for (const route of adcScopeMap.protected_routes) {
+   check(adcAudience?.registered_scopes.includes(route.required_source_scope), `ADC Scope map: unregistered source Scope for ${route.method} ${route.path}`);
+   check(route.requested_target_scopes.length > 0, `ADC Scope map: empty target Scope for ${route.method} ${route.path}`);
+   check(route.requested_target_scopes.every((scope) => workflowAudience?.registered_scopes.includes(scope)), `ADC Scope map: unregistered target Scope for ${route.method} ${route.path}`);
+ }
+@@ -449,20 +463,32 @@ for (const fixture of positive.fixtures) {
+     positiveByName.set(fixture.name, fixture);
+   } catch (error) {
+     errors.push(`positive fixture ${fixture.name}: ${error.code ?? 'ERROR'} ${error.message}`);
+   }
+ }
+ 
+ for (const error of validateSignatureCases(negative.signature_cases, positiveByName, jwks)) {
+   errors.push(`signature fixture ${error}`);
+ }
+ check(positiveByName.size === positive.fixtures.length, 'positive fixture names must be unique and valid');
++for (const [fixtureName, exactScope] of [
++  ['direct-agent-session-messaging', 'agent.session.send'],
++  ['direct-agent-session-inspection', 'agent.session.inspect_own_dispatch'],
++  ['direct-agent-session-messaging-and-inspection', 'agent.session.inspect_own_dispatch agent.session.send'],
++]) {
++  const fixture = positiveByName.get(fixtureName);
++  check(Boolean(fixture), `session messaging V2: missing positive fixture ${fixtureName}`);
++  check(fixture?.claims?.scope === exactScope
++    && fixture?.authorization_context?.requested_scope === exactScope
++    && fixture?.authorization_context?.machine_access_grants?.['agent-session-messaging']?.join(' ') === exactScope,
++  `session messaging V2: fixture ${fixtureName} does not prove exact independent scope issuance`);
++}
+ 
+ for (const testCase of negative.cases) {
+   const base = positiveByName.get(testCase.base_fixture);
+   if (!base) {
+     errors.push(`negative fixture ${testCase.name}: unknown base fixture ${testCase.base_fixture}`);
+     continue;
+   }
+   const mutated = structuredClone(base);
+   for (const mutation of testCase.mutations) {
+     if (mutation.op !== 'set') {
+@@ -473,20 +499,36 @@ for (const testCase of negative.cases) {
+   }
+   try {
+     validateFixture(mutated, manifest, audienceById, jwksKids, positive.now);
+     errors.push(`negative fixture ${testCase.name}: unexpectedly accepted`);
+   } catch (error) {
+     if (error.code !== testCase.expected_error) {
+       errors.push(`negative fixture ${testCase.name}: expected ${testCase.expected_error}, got ${error.code ?? 'ERROR'} (${error.message})`);
+     }
+   }
+ }
++for (const fixtureName of [
++  'direct-session-inspection-missing-grant-rejected',
++  'direct-session-send-only-grant-requesting-inspection-rejected',
++  'direct-session-inspect-only-grant-requesting-send-rejected',
++  'direct-session-inspection-unknown-scope-rejected',
++  'direct-session-inspection-alias-scope-rejected',
++  'direct-session-inspection-wildcard-scope-rejected',
++  'direct-session-inspection-extra-scope-rejected',
++  'direct-session-inspection-wrong-namespace-rejected',
++  'direct-session-inspection-human-access-rejected',
++  'direct-session-inspection-service-principal-rejected',
++  'direct-session-inspection-obo-delegation-rejected',
++]) {
++  check(negative.cases.some((entry) => entry.name === fixtureName),
++    `session messaging V2: missing negative fixture ${fixtureName}`);
++}
+ 
+ for (const relativePath of [
+   'README.md', 'contract-manifest.json', 'audience-registry.json',
+   'metadata/change-log.md', 'metadata/consumer-verification-matrix.json',
+   'metadata/freeze-gates.json', 'metadata/adc-v2-scope-map.json',
+   'metadata/llm-todo-authorization-candidate.json',
+ ]) {
+   check(fs.existsSync(path.join(bundleDir, relativePath)), `missing required artifact: ${relativePath}`);
+ }
+ 
+diff --git a/src/lib/oauth/v1/contract.ts b/src/lib/oauth/v1/contract.ts
+index 0cf8c45..d14dcf8 100644
+--- a/src/lib/oauth/v1/contract.ts
++++ b/src/lib/oauth/v1/contract.ts
+@@ -92,21 +92,21 @@ function loadSnapshot(): RuntimeSnapshot {
+ }
+ 
+ export function verifyRuntimeSnapshot(value: unknown): RuntimeSnapshotPayload {
+   const parsed = asRuntimeSnapshot(value);
+   const actual = crypto.createHash('sha256')
+     .update(JSON.stringify(parsed.payload))
+     .digest('hex');
+   if (actual !== parsed.runtimeDigest) {
+     throw new Error('Minimal Auth V1 runtime snapshot digest mismatch.');
+   }
+-  if (parsed.payload.formatVersion !== 1 || !['1.0.0', '1.1.0', '1.2.0', '1.3.0', '1.4.0', '1.5.0', '1.6.0', '1.7.0', '1.8.0', '1.9.0', '1.10.0', '1.11.0'].includes(parsed.payload.contractVersion)) {
++  if (parsed.payload.formatVersion !== 1 || !['1.0.0', '1.1.0', '1.2.0', '1.3.0', '1.4.0', '1.5.0', '1.6.0', '1.7.0', '1.8.0', '1.9.0', '1.10.0', '1.11.0', '1.12.0'].includes(parsed.payload.contractVersion)) {
+     throw new Error('Minimal Auth V1 runtime snapshot version is unsupported.');
+   }
+   const freeze = (parsed.payload.manifest.lifecycle as Record<string, unknown> | undefined)
+     ?.contract_bundle_freeze as Record<string, unknown> | undefined;
+   if (freeze?.status !== 'frozen' || freeze.frozen !== true
+     || freeze.implementation_authorized !== true) {
+     throw new Error('Minimal Auth V1 runtime snapshot is not frozen and implementation-authorized.');
+   }
+   return parsed.payload;
+ }
+diff --git a/tests/oauth/agent-session-inspection-audience-v2.test.ts b/tests/oauth/agent-session-inspection-audience-v2.test.ts
+new file mode 100644
+index 0000000..6ed7a9e
+--- /dev/null
++++ b/tests/oauth/agent-session-inspection-audience-v2.test.ts
+@@ -0,0 +1,99 @@
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import { resolve } from 'node:path';
++import test from 'node:test';
++import {
++  initializeAuthContract,
++  resetAuthContractForTests,
++} from '../../src/lib/oauth/v1/contract.js';
++
++const bundleRoot = resolve(process.cwd(), 'contract-bundles', 'minimal-auth-v1');
++
++function readBundleJson(relativePath: string): any {
++  return JSON.parse(readFileSync(resolve(bundleRoot, relativePath), 'utf8'));
++}
++
++const registry = readBundleJson('audience-registry.json');
++const manifest = readBundleJson('contract-manifest.json');
++const manifestSchema = readBundleJson('schemas/contract-manifest.schema.json');
++const positiveFixtures = readBundleJson('fixtures/positive-token-fixtures.json');
++const negativeFixtures = readBundleJson('fixtures/negative-token-fixtures.json');
++
++test('Bundle 1.12.0 registers the exact independent session messaging scopes', () => {
++  assert.equal(registry.registry_version, '1.12.0');
++  assert.equal(manifest.contract_version, '1.12.0');
++  assert.equal(manifest.audience_registry_version, '1.12.0');
++  assert.equal(manifestSchema.properties.contract_version.const, '1.12.0');
++
++  const audience = registry.audiences.find(
++    (entry: any) => entry.audience_id === 'agent-session-messaging',
++  );
++  assert.deepEqual(audience, {
++    audience_id: 'agent-session-messaging',
++    resource_service: 'agent-session-messaging',
++    scope_namespace: 'agent',
++    accepted_principal_types: ['agent'],
++    human_access_enabled: false,
++    machine_access_enabled: true,
++    delegated_access_enabled: false,
++    registered_scopes: [
++      'agent.session.inspect_own_dispatch',
++      'agent.session.send',
++    ],
++    status: 'active',
++    freeze_ready: true,
++    notes: 'Registered by AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2 for canonical send and independently granted caller-owned exact-turn inspection consumed by dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V2.',
++  });
++});
++
++test('runtime accepts the frozen Bundle 1.12.0 snapshot', () => {
++  resetAuthContractForTests();
++  assert.equal(initializeAuthContract('v1').contractVersion, '1.12.0');
++});
++
++test('positive fixtures prove send-only, inspect-only, and combined grants independently', () => {
++  const expected = new Map([
++    ['direct-agent-session-messaging', 'agent.session.send'],
++    ['direct-agent-session-inspection', 'agent.session.inspect_own_dispatch'],
++    [
++      'direct-agent-session-messaging-and-inspection',
++      'agent.session.inspect_own_dispatch agent.session.send',
++    ],
++  ]);
++
++  for (const [name, scope] of expected) {
++    const fixture = positiveFixtures.fixtures.find((entry: any) => entry.name === name);
++    assert.ok(fixture, `${name} fixture not found`);
++    assert.equal(fixture.profile, 'direct_machine_access');
++    assert.equal(fixture.claims.principal_type, 'agent');
++    assert.equal(fixture.claims.aud, 'agent-session-messaging');
++    assert.equal(fixture.claims.scope, scope);
++    assert.equal(fixture.authorization_context.requested_scope, scope);
++    assert.deepEqual(
++      fixture.authorization_context.machine_access_grants['agent-session-messaging'],
++      scope.split(' '),
++    );
++  }
++});
++
++test('negative fixtures fail closed when either independent scope is absent or malformed', () => {
++  const expectedErrors = new Map([
++    ['direct-session-inspection-missing-grant-rejected', 'INVALID_SCOPE_GRANT'],
++    ['direct-session-send-only-grant-requesting-inspection-rejected', 'INVALID_SCOPE_GRANT'],
++    ['direct-session-inspect-only-grant-requesting-send-rejected', 'INVALID_SCOPE_GRANT'],
++    ['direct-session-inspection-unknown-scope-rejected', 'INVALID_SCOPE_NAMESPACE'],
++    ['direct-session-inspection-alias-scope-rejected', 'INVALID_SCOPE_NAMESPACE'],
++    ['direct-session-inspection-wildcard-scope-rejected', 'INVALID_SCOPE_WIRE'],
++    ['direct-session-inspection-extra-scope-rejected', 'INVALID_SCOPE_NAMESPACE'],
++    ['direct-session-inspection-wrong-namespace-rejected', 'INVALID_SCOPE_NAMESPACE'],
++    ['direct-session-inspection-human-access-rejected', 'AUDIENCE_PROFILE_NOT_ACCEPTED'],
++    ['direct-session-inspection-service-principal-rejected', 'AUDIENCE_PROFILE_NOT_ACCEPTED'],
++    ['direct-session-inspection-obo-delegation-rejected', 'AUDIENCE_PROFILE_NOT_ACCEPTED'],
++  ]);
++
++  for (const [name, expectedError] of expectedErrors) {
++    const fixture = negativeFixtures.cases.find((entry: any) => entry.name === name);
++    assert.ok(fixture, `${name} fixture not found`);
++    assert.equal(fixture.expected_error, expectedError);
++  }
++});
