@@ -98,6 +98,10 @@ full candidate build, independent pre-listen verifier and actual full DB alignme
 are NOT_VERIFIED. Basis: CLM-MCR-001 and EVD-MCR-001. This is the recorded state,
 not a fresh production observation.
 
+The historical consumer SHA `67361c3b2c1c2f1da69cdb65f13a2806f47468c080e91fa7b5f1d1738301244a` is preserved at `consumer-authority-provenance-before-freeze/MCP_LEGACY_AUDIENCE_CONSUMER_OBSERVATION_20261018.json` under `/Users/yanfenma/workspace/project/pilot1156-review-20261018/`. The final same-name canonical-path receipt SHA is `7cfcf01a8c20572df69569986216782f3b29d220cff40f39dd821309b01be15d`; `MCP_LEGACY_AUDIENCE_CONSUMER_FREEZE_RECEIPT_20261018.json` SHA `afa967a6ac95d362183cb47072b5b40a26214ef08ddc3b6e96420ae2753ab289` preserves both and proves identical query/DB/reader projections. Only task-origin wording changed: coordinator instruction under existing user authorization and automatic recovery are not new Human authentication. Historical pins are not replaced.
+
+Fixed `MCP_NATIVE_OWNERSHIP_STATIC_FACTS_20261018.md` SHA `ebef69783830043b87c468692ca98926f85ea6f7ee46168cfe3b1a5eac3e2b88` records candidate DSH `0bc70fb59b15e296fb6467a881fe235a2ae0ae95` accepted-r3 Contracts CTR-NC-001/003: a verified clientId is mapped by DSH-controlled configuration to subject_id, communication_scope_id and surface principal; the result key is `(subject_id, communication_scope_id, request_id)`. Auth Principal UUID need not equal connector_subject; differing namespace values alone are not a defect. This static capability does not establish the old production map or authorize a new SERVICE to inherit it. Actual old map/result ownership remains UNKNOWN pending the original DSH role's bounded evidence. Reuse that existing map/authorization mechanism if independently established; do not demand a new cross-namespace equality, approval platform, whole-repository census or repeated MCP effect approval. Existing consumer-disposition and UNKNOWN guards remain unchanged.
+
 ## 5. Observations
 
 These are receipt/source readings, not new production executions. All October
@@ -148,8 +152,7 @@ does not describe the full installed overlays.
 03:56:47Z original fixed-target read, transaction ROLLBACK_CONFIRMED. MCP was
 active/freezeReady Agent@1, not SERVICE, with the historical registration audit
 `deedbadf-3968-427b-871f-2e418777877d` lacking this operation/plan provenance.
-All-registry DB alignment, related Client/Grant consumers and result readers were
-not established. No new query is authorized or performed by citing these receipts.
+At that observation all-registry DB alignment, related Client/Grant consumers and result readers were not established. Later fixed consumer evidence is added in OBS-MCR-005 below; it does not establish full alignment or result ownership. No new query is authorized or performed by citing these receipts.
 
 ### OBS-MCR-004 — Current entry point exposes serving too early
 
@@ -161,6 +164,10 @@ v1_shadow and v1; `getV1RuntimeSnapshot` alone does not prove selected serving m
 `tsconfig.json` includes src only, so the new scripts entry requires an explicit
 isolated compilation input rather than an assumed main build output. This is
 source inspection, not demonstrated new wrapper behavior.
+
+### OBS-MCR-005 — Existing old consumer and occupied credential path
+
+The original actor's later fixed-target receipt `MCP_LEGACY_AUDIENCE_CONSUMER_OBSERVATION_20261018.json`, SHA256 `67361c3b2c1c2f1da69cdb65f13a2806f47468c080e91fa7b5f1d1738301244a`, observes at 04:22:22.072Z one exact Client/config client_id join, an active Client and Agent Principal, and a target Grant row/version1 (no Grant.status field). Separately read old config/credential shares connector_subject15ea4ad2-02db-408d-a1d9-2b92d74a10dd, which differs from DB Principal042b6ec9-b0a4-49fa-b3c4-d80e80606e6b and is not a verified mapping. Old request/results/owner communication scope, historical token/authorization and external_ref absence remain unknown. This later fact does not close the scoped consumer disposition gate. Supply V2 now selects a distinct fixed new SERVICE credential file; release cannot switch MCP consumption or transfer old result ownership. Measurement provenance is the original coordinator-authorized operational read; the receipt's original direct-user wording is not Human-issuer evidence. No new query was run for this text.
 
 ## 6. Claims and assumptions
 
@@ -179,6 +186,7 @@ matrix; feasibility is not a production readiness claim.
 |---|---|---|
 | EVD-MCR-001 | OBS-MCR-001, OBS-MCR-002 and OBS-MCR-003 SUPPORT CLM-MCR-001 and STATE-MCR-001 at the recorded artifacts/times | Establishes build and alignment gaps; cannot establish current liveness, absence of consumers or full DB equality. Original receipts remain readable by the independent reviewer. |
 | EVD-MCR-002 | OBS-MCR-004 SUPPORTS the bounded pre-listen design in DEC-MCR-002 | Exact source shows cache/import/mode boundaries; acceptance still needs executed same-process, failure and module-resolution tests. |
+| EVD-MCR-004 | OBS-MCR-005 and its preserved/final provenance coordinates SUPPORT the bounded old-consumer disposition and independent destination | Static mapping capability is not actual production binding, result ownership, absence of readers, or Human-issuer authority. No repeated measurement. |
 | EVD-MCR-003 | Reviewed decision input `AUTH-OWNING-DELTA-PROPOSAL-20261018.md` SHA256 `3ea266aed67e913431a75f90cbe2946091ad08c88efc2c36307f081b2c427879`, D3, CONSTRAINS this proposal | Existing decision review is input, not Product Authority or acceptance. The later explicit user requirement adds finite delegation and automated per-phase derivation, owned by Supply V2. |
 
 ## 8. Decisions
@@ -243,12 +251,7 @@ are forbidden. Generated runtime is derived by the existing validated generator.
 The artifact manifest is a canonical JSON object with `schema_version:1`,
 `source_commit`, `source_tree`, `authority_pins`, `toolchain`, `build_inputs`,
 `files`, `overlay_dispositions`, `entrypoints`, `generated_identity` and
-`artifact_digest`. The digest excludes its own field. `files` enumerates every
-path, kind, mode, size, SHA256 and, for a symlink, exact target and resolved content
-identity; external/dangling links or unenumerated executable inputs fail. It covers
-source, dist, generated payload, dependency tree, Prisma engine/client, native
-modules, Node executable, launcher, private-config provenance and all current
-runtime overlays. No secret bytes or reversible credential projection enter a
+`artifact_digest`, `private_config`. The digest excludes its own field. `private_config` is the ordered list of opaque private bindings defined below. `files` enumerates every non-secret artifact path, kind, mode, size, SHA256 and, for a symlink, exact target and resolved content identity; external/dangling links or unenumerated executable inputs fail. It covers source, dist, generated payload, dependency tree, Prisma engine/client, native modules, Node executable, launcher and non-secret runtime overlays. Secret-bearing configuration and keys are explicitly excluded from public files hashes and the distributable artifact: each appears only in a closed private_config binding `{custody_ref, dev, ino, uid, gid, mode, purpose}` with purpose exactly service-env or private-key and without content/hash/size disclosure. Their actual protected file identity and authorized read access are checked by the original actor; public artifact completeness does not mean publishing private content or its digest. No secret bytes or reversible credential projection enter a
 public manifest. Private configuration is retained in protected custody and bound
 by an opaque custody record and invariant file identity; it is not printed.
 
@@ -267,6 +270,7 @@ The closed `release-plan.json` schema is `schema_version:1`, `parent_digest`,
 `phase_a_operation_id`, `phase_a_plan_digest`, `phase_a_receipt_digest`,
 `reader_disposition_digest`, `build_receipt_digest`, `conformance_digest`,
 `window_plan_digest`, `deadline` and `plan_digest` (digest excludes itself).
+`env_custody_digest` hashes only the canonical opaque private bindings, never secret bytes or their content hashes.
 All pins are measured actual values supplied before child derivation, not defaults
 or invented hashes. Closed schemas reject unknown keys, null required fields,
 duplicate JSON keys and ambiguous encodings. Canonicalization follows Supply V2
@@ -321,7 +325,7 @@ Root and operation directories are root:wheel 0700; non-secret receipts 0600.
 Fixed release basenames are `release-plan.json`, `artifact-manifest.json`,
 `installed-preimage.json`, `stop.json`, `phase-a.json`, `loaded.json`,
 `registry-diff.json`, `db-alignment.json`, `resume-claim.json`, `serving.json`,
-`failure.json` and `journal.jsonl`. They are records of actual producers, not inputs
+`failure.json`, `window-end.json` and `journal.jsonl`. They are records of actual producers, not inputs
 that an untrusted caller may author. The parent delegation/claim locations and
 meaning remain Supply V2's, with no duplicate release approval ledger.
 
@@ -332,7 +336,7 @@ the original private preimage under the operation's `preimage/` directory. A
 manifest pins the original current service descriptor and private-config custody.
 Release executable directories and their ancestors are root:wheel 0755, files
 non-writable by authsvc; the readable artifact is separate from root-only custody.
-private config grants only the existing service identity necessary read access.
+Private configuration uses ONE route: the original privileged actor retains the exact existing dotenv-format configuration as `preimage/service.env` in root-only operation custody (0600 root:wheel, never in the distributable/public artifact). Before the supervisor drops privilege it reads that validated file internally using the pinned existing dotenv parser and builds the serving/verify children's environment from its exact approved key/value set plus the fixed non-secret service parameters. No caller environment overrides, NODE_OPTIONS/DYLD injection or alternate dotenv path are admitted. Artifact cwd MUST contain no .env or .env.*; existing dotenv/config imports therefore see only the prevalidated inherited process environment. Existing DB/key-path settings are retained, and referenced private key files remain at their measured protected existing paths with their original service read access; no new ACL or permission is created. If those paths cannot be retained/read by authsvc, refuse. These secret values live only in protected memory and the original service processes, never in a public manifest/plist/control frame/log. This is a necessary existing runtime configuration input, not an authentication/credential handoff channel or new supply secret. There is no arbitrary config-file request option.
 The exact original service label remains `system/com.auth-service`, listener
 127.0.0.1:4001, serving user/group authsvc. The controlled descriptor is separately
 recorded as `com.auth-service.controlled.plist` in the operation directory and
@@ -375,15 +379,18 @@ read-only verification process, not a second service or long-running daemon.
 After actual LOADED and independent ALIGNED pass, but BEFORE sending RESUME, the
 supervisor fsyncs the resume claim and irrevocably drops supplementary groups,
 gid and uid to the same authsvc identity. It closes every privileged/directory/
-configuration descriptor except one pre-opened O_APPEND descriptor for this
-operation's safe `journal.jsonl`; it retains only child/control handles needed to
+configuration descriptor except the pre-opened O_APPEND descriptor for this
+operation's safe `journal.jsonl` and the fixed read-only descriptor for its
+`window-end.json`; it retains only child/control handles needed to
 finish this fixed attempt. Actual effective/real/saved uid/gid and group state
 must confirm privilege cannot be regained. A failed or unverifiable drop kills
 the still-nonserving child and stops; it must not send RESUME. The immutable load
 claim already fences a supervisor crash at this boundary. The five-second resume
 deadline includes the drop interval; expiry fails, never refreshes the same token.
 After successful admission it only appends safe observations, waits for this one
-child and propagates its exit, never spawns a replacement. Root startup privilege
+child and propagates its exit, never spawns a replacement. The original outer privileged release actor MUST stay present through the whole release/Phase B window. It alone materializes root-only serving.json, failure.json and window-end.json from actual received/journal observations; the permanently dropped supervisor never creates/renames files inside root0700 custody. It can only append safe closed observations to its pre-opened per-operation journal FD and report child status. The outer actor validates the measured journal inode, sequence, source/generation and actual process/listener state before sealing a terminal file; a caller-written line is insufficient. The supervisor retains the outer actor's pinned OS process/start identity and monitors its liveness until the outer actor records the window's terminal handoff. If that actor disappears before handoff, the supervisor terminates the serve child and exits without replacement; absence of a root terminal file remains UNKNOWN/fenced for the same original lane's read-only reconciliation. A retained valid window-end record ends only this outer-actor liveness duty, not the supervisor↔serve FD monitoring. A fixed read-only FD to that one pre-created window-end record may be retained across drop solely to observe its complete sealed terminal content; no directory/privilege-widening handle is retained. The outer actor writes it exclusively through its already-open original descriptor, fsyncs, and then closes it. The descriptor is opened before privilege drop against the measured root-owned inode and initially contains zero bytes. The supervisor reads only that inode with a bounded size of65536 bytes. Empty, partial or temporarily unparsable content while the original actor remains alive means handoff pending, never permission or automatic failure. Only one complete canonical closed record with the exact window/parent/actor/generation and terminal receipt pins ends the liveness duty. If the actor disappears before a valid complete record is observed, the supervisor stops/fences; a later completed file cannot authorize restart. The outer actor waits for the supervisor's safe journal acknowledgement of the exact window-end digest before relinquishing its process duty; a missing acknowledgement is UNKNOWN. Partial writes therefore cannot be mistaken for a successful handoff. No polling path may reopen arbitrary custody files or retain a root directory descriptor.
+
+Root startup privilege
 and the changed initial job identity are explicit proposed release policy, not
 Human authority; steady-state serving and supervising identities are authsvc.
 
@@ -433,7 +440,7 @@ resume. If ongoing exclusion cannot be established, there is no resume capabilit
 ### CTR-MCR-006 — Private FD protocol and exact producer binding
 
 Each actual child receives one separately created private socketpair on FD 3;
-there is no named socket, TCP listener or stdio/argv/env credential channel.
+there is no named socket, TCP listener or stdio/argv/env channel for Human proof, phase mandates or newly supplied credentials. CTR-MCR-004 alone permits the existing service private configuration in its child process environment; that exception never carries authentication replies or supply secrets.
 Framing is a four-byte big-endian length followed by canonical closed UTF-8 JSON,
 maximum 65,536 bytes. Oversize, truncation, trailing bytes, duplicate keys,
 unexpected order/type, EOF and wrong challenge reject and fence. No chunking or
@@ -556,9 +563,27 @@ the existing permitted non-mutating interface checks. `serving.json` contains
 `schema_version:1`, `operation_id`, `attempt_id`, `parent_digest`, `child_digest`,
 `source_commit`, `artifact_digest`, `process_generation`, `mode`, `module_urls`,
 `runtime_identity`, `loaded_digest`, `alignment_digest`, `phase_a_receipt_digest`,
-`listener_observation`, `interface_check_results`, `resumed_at`, `window_end_at`
-and `result`. Only complete success releases the exclusive window and yields the
-independent runtime/DB alignment input for Phase B. Health is corroboration only.
+`listener_observation`, `interface_check_results`, `resumed_at`, `window_id`,
+`window_state` (held_for_phase_b) and `result`. SERVING_VERIFIED completes only the
+load child and yields Phase B's alignment input; it MUST NOT release the outer
+exclusive window. The same original outer actor keeps that window continuously
+through Phase B's fresh admission and observed terminal result. Phase B revalidates
+actual same-generation runtime/DB pins within five seconds; the serving receipt
+alone is not that fresh witness. On a proven Phase B success or proven failure
+with no unresolved transaction, the outer actor records the actual window end;
+on UNKNOWN it preserves the logical exclusion/fence until original-lane
+reconciliation establishes a terminal state, with no replacement writer. If the
+actor cannot maintain exclusion, it uses the existing stop path and records the
+interruption, never claims a continuous window. The closed window-end record is
+schema_version1, window_id, operation_id, parent_digest, phase_b, ended_at,
+result (completed/stopped), actor_ref and holder_start_nonce. `phase_b` is exactly
+`{state:"not_started"}` when stopped before its admission, or exactly
+`{state:"terminal", operation_id, terminal_receipt_digest}` after a proven terminal
+Phase B result; an unresolved transaction has neither terminal form. No fabricated
+Phase B id, null receipt or future timestamp is allowed. Completed requires a
+proven successful terminal Phase B; stopped requires proven no-listener plus
+not-started or reconciled terminal Phase B. It is written only by the original outer actor after those
+conditions, never predicted in serving.json. Health is corroboration only.
 
 Failure/timeout/EOF/expiry/process change before import terminates the candidate
 without serving. Failure or uncertain outcome after import immediately invokes
@@ -614,11 +639,11 @@ credentials. A fixture never counts as production execution.
 |---|---|---|---|---|
 | ACC-MCR-001 | 001,002 | Exact Git diff, clean isolated full build and wrapper build with locked dependencies/synthetic env; independent composition/overlay review | Exact three-file delta, all separate authorities, compiler commands/exits, complete manifest and overlay source mapping | Both builds succeed without suppression; same dist graph; reject extra files, omitted overlays, old-dist copying, absent source provenance or old17/139 claimed new-composition proof. |
 | ACC-MCR-002 | 003,004,006 | Disposable process/FD/custody harness; Supply V2 authenticated-parent fixtures and real isolated derivation integration | Parent-child lineage, nonce/claim trace, mode/owner/inode controls, frames and negative results without credentials | One derived candidate-load child within 60min parent/10min child; no repeated Human prompt for lawful derivation. Reject spoofed JSON/root authority, expiry, wrong phase/actor, changed plan, second load claim, wrong FD/process, duplicate keys, oversize/truncated frame, symlink/hardlink/path injection or unknown old outcome. |
-| ACC-MCR-003 | 005,009,010 | Isolated original-service simulator with actual child/listener/drain observations and fault injection; no production launchctl | Stop/drain/window/preimage records and ordered trace through migration fixture, load, verify, resume | No migration before stopped/drained custody; no resume before full verification. Reject competing writer, stale witness, missing drain, old PID assumption and stale plan. Failure/UNKNOWN stops and fences with no IDR trap/automatic retry. |
+| ACC-MCR-003 | 005,009,010 | Isolated original-service simulator with actual child/listener/drain observations and fault injection; no production launchctl | Stop/drain/window/preimage records and ordered trace through migration fixture, load, verify, resume | No migration before stopped/drained custody; no resume before full verification. The same outer window remains held through Phase B terminal state; SERVING_VERIFIED alone never releases it; not_started and terminal window-end forms are distinguished. Reject competing writer, stale witness, missing drain, old PID assumption and stale plan. Failure/UNKNOWN stops and fences with no IDR trap/automatic retry. |
 | ACC-MCR-004 | 006,007 | Real compiled wrapper and compiled server/import graph in isolated child, synthetic config/keys, disposable DB only when needed | PID/start/module URL/uid/cwd/cache identities, actual listener timeline and import-side-effect trace | LOADED is same future serving process/cache in actual v1 mode; no listen/write/token before RESUME. Reject v0/v1_shadow, src/dist duplicate module, query URL, symlink/module replacement, cache mutation, environment change, re-exec or cached-ready-file replay. |
 | ACC-MCR-005 | 005,006,008 | Full old/candidate registry fixture plus consistent disposable PostgreSQL read-only snapshot and migration-audit fixture | Complete per-entry diff, exact query ID set and projections, transaction identity, valid/invalid five-second final witnesses | Preserve all unrelated entries; exact SERVICE@2 and migration audit required. Reject hidden thirteenth-entry drift, dropped/added entry, one-field/ordered-array mismatch, duplicate/missing row, failed query treated absence, old@1/disabled@3, wrong audit/nonce/version, out-of-scope query, DB write attempt, stale/changed rows or window loss. |
-| ACC-MCR-006 | 004,006,009,010 | Isolated crash/reboot/supervisor loss/EOF and resume delivery fault cases including kill at every claim/import boundary | Durable claims/fences, original actor reconciliation, same-generation listener/exit observations and one-shot descriptor | At most one initial server generation and one resume; no KeepAlive/RunAtLoad restart even after success. Unknown resume never resends. Reject automatic rollback/bootstrap, old Agent source restored against SERVICE@2, retained listener called stopped, or failure/fence erased by new nonce. |
-| ACC-MCR-007 | 002,008,009,010 | Independent final source/artifact/receipt/reader-disposition review; later live evidence only under exact separately authorized original operation | Closure matrix, safe evidence access, complete release plan/runbook, exact stage receipts with environment labels and original writer identity | Conformance and later operation claims remain separate; no secret exposure, second writer, new platform, scope expansion or implementation-main-only gate. Health/disk/fixture/count cannot replace loaded/full DB proof. Missing live evidence remains NOT_RUN. |
+| ACC-MCR-006 | 004,006,009,010 | Isolated crash/reboot/supervisor loss/EOF and resume delivery fault cases including kill at every claim/import boundary | Durable claims/fences, original actor reconciliation, same-generation listener/exit observations and one-shot descriptor | At most one initial server generation and one resume; no KeepAlive/RunAtLoad restart even after success. Kill the outer privileged actor before handoff, inject partial window-end writes and deny post-drop directory writes: no false handoff, terminal-file privilege violation or surviving unobserved serving child is permitted. Unknown resume never resends. Reject automatic rollback/bootstrap, old Agent source restored against SERVICE@2, retained listener called stopped, or failure/fence erased by new nonce. |
+| ACC-MCR-007 | 002,008,009,010 | Independent final source/artifact/receipt/reader-disposition review; later live evidence only under exact separately authorized original operation | Closure matrix, safe evidence access, complete release plan/runbook, exact stage receipts with environment labels and original writer identity | Verify protected service.env reaches only the measured internal service environment, caller overrides/artifact dotenv are rejected, and private config/key bindings disclose neither secret content nor content hashes. Conformance and later operation claims remain separate; no secret exposure, second writer, new platform, scope expansion or implementation-main-only gate. Health/disk/fixture/count cannot replace loaded/full DB proof. Missing live evidence remains NOT_RUN. |
 
 Reverse coverage:
 
@@ -626,7 +651,8 @@ ACC-MCR-006 also MUST demonstrate the actual three-role process topology and
 privilege transition in an authorized disposable OS environment: launchd cannot
 silently substitute an inherited outer FD; verify finishes before resume; root
 startup never accepts an unproven parent; serve is authsvc throughout; supervisor
-cannot regain privilege after drop; only the fixed append journal FD survives;
+cannot regain privilege after drop; only the fixed append journal and read-only
+window-end custody FDs survive, with no directory handle;
 drop/group/uid/gid failure, killed supervisor at claim/drop/send boundaries and
 same-operation explicit kickstart all leave no authorized replacement/resume.
 Unavailable OS privilege-transition proof leaves this gate NOT_RUN, not simulated
