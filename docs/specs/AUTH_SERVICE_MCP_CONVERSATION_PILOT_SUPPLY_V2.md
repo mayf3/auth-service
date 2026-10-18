@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V2
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -20,9 +20,28 @@ supersedes:
   - AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V1
 superseded_by: null
 owners: [mayf3]
+accepted_by: "Coordinator01a14c3f-4210-76f2-86ce-f7bcf7da1d38, explicitly delegated by latest user for this transaction only"
+accepted_date: "2026-10-18"
+accepted_at: "2026-10-18T05:00:37.180859+00:00"
+accepted_reviewed_spec_commit: "087d2c52f268e049d33492dc30e345cc96010119"
+accepted_reviewed_spec_sha256: "1189165c9b6915fe5c812e645c25f62567a81ed3220c45bb54ad88c4150b39b8"
+acceptance_review_verdict: "ACCEPT"
+acceptance_record: "docs/audits/2026-10-18-auth92-qualified-acceptance.json"
 ---
 
 # AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V2
+
+**ACCEPTED — QUALIFIED DECISION RECORDED; ACTIVE ONLY AFTER MERGE INTO `main`.**
+Coordinator `01a14c3f-4210-76f2-86ce-f7bcf7da1d38`, explicitly delegated for
+this PR92 transaction by the new user authorization, accepted the exact reviewed
+proposal `087d2c52f268e049d33492dc30e345cc96010119` at `2026-10-18T05:00:37.180859+00:00`.
+The original proposed body below is preserved byte for byte as the authoring
+snapshot; its proposed/readiness statements are historical, not a reversal of
+this acceptance. The actual identity binding and named authentication, delegation,
+privilege and availability policies are recorded in the acceptance audit.
+No LA authentication, phase mandate, implementation or production operation occurs
+in this lifecycle commit. Existing effect authorization is separate and retained.
+Acceptance provenance and boundaries: `docs/audits/2026-10-18-auth92-qualified-acceptance.json`.
 
 PROPOSED, DOCS ONLY. This is the complete whole-authority successor, not an
 addendum that silently relaxes V1. V1 remains accepted until a qualified actor

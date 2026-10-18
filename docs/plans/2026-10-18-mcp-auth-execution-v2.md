@@ -1,5 +1,11 @@
 # Auth MCP execution governance — complete proposed candidate
 
+**Historical authoring plan preserved at `087d2c52f268e049d33492dc30e345cc96010119`.**
+The later qualified acceptance at `2026-10-18T05:00:37.180859+00:00` is recorded in
+`docs/audits/2026-10-18-auth92-qualified-acceptance.json`. The plan below is unchanged: its proposed/pending
+statements describe its original snapshot. The recorded acceptance is now applied
+by the docs-only lifecycle commit; final-head verification and main merge remain separate.
+
 ## DEVELOPMENT_PREFLIGHT and authority route
 
 ```text

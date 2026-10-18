@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V1
-status: accepted
+status: superseded
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -17,7 +17,7 @@ external_authorities:
     revision: 44da63d21987bf7115435f0767e7851b9022836a
     relation: constrained_by
 supersedes: []
-superseded_by: null
+superseded_by: AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V2
 owners:
   - mayf3
 accepted_by: "/root coordinator 01a14c3f-4210-76f2-86ce-f7bcf7da1d38 acting under explicit mayf3 delegation in current user turn"
@@ -30,6 +30,13 @@ acceptance_record: docs/audits/2026-10-18-mcp-conversation-contract-acceptance.j
 ---
 
 # AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V1
+
+**SUPERSEDED — WHOLE AUTHORITY BY `AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V2`.**
+The qualified PR92 acceptance at `2026-10-18T05:00:37.180859+00:00` records the whole-authority
+transition, effective as governing authority only after the atomic lifecycle
+commit merges into `main`. All original V1 acceptance metadata, its historical
+ACCEPTED banner and its complete body below remain unchanged as provenance.
+Transition record: `docs/audits/2026-10-18-auth92-qualified-acceptance.json`.
 
 **ACCEPTED — DOCS ONLY; ACTIVE ONLY AFTER MERGE INTO `main`.**
 The `/root` coordinator in thread
