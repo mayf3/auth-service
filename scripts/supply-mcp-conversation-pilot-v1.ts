@@ -418,7 +418,7 @@ export interface Mandate {
 }
 export interface IsolatedOptions {
   root: string; databaseUrl: string; uid: 502; gid: 20;
-  dependencies: (q: Request) => Promise<Dependencies>;
+  dependencies: (q: Request, mode?: 'live' | 'recorded') => Promise<Dependencies>;
   mandate: (q: Request, action: 'apply' | 'recover-delivery', planDigest: string) => Promise<Mandate | undefined>;
   fault?: (stage: string) => void | Promise<void>;
   osFault?: string | (() => string | undefined);
@@ -491,8 +491,8 @@ function createVehicle(o: EngineOptions, c: Coordinates, db: PrismaClient) {
   const fault = async (stage: string) => { await o.fault?.(stage); };
   const consumerDispositions = new Map<string, string>();
   const osFault = () => typeof o.osFault === 'function' ? o.osFault() : o.osFault;
-  async function dependencies(q: Request) {
-    const d = await o.dependencies(q);
+  async function dependencies(q: Request, mode: 'live' | 'recorded' = 'live') {
+    const d = await o.dependencies(q, mode);
     if (q.phase === 'registry-migrate-agent-v1') { insist(sha.safeParse(d.consumer_disposition_digest).success, 'CONSUMER_DISPOSITION_REQUIRED'); consumerDispositions.set(q.operation_id, d.consumer_disposition_digest!); }
     const pins = ['environment', 'source_commit', 'spec_ref', 'spec_digest', 'audience_authority_ref',
       'audience_authority_digest', 'bundle_digest', 'runtime_digest', 'runtime_preimage_receipt_ref',
@@ -687,7 +687,9 @@ function createVehicle(o: EngineOptions, c: Coordinates, db: PrismaClient) {
       committed_at: audit.timestamp.toISOString(), verified_at: now };
   }
   async function observe(q: Request, action: Action): Promise<Json> {
-    if(action==='plan') await dependencies(q); const fs = fileState(c, q);
+    if(action==='plan') await dependencies(q);
+    else if(q.phase==='registry-migrate-agent-v1') await dependencies(q,'recorded');
+    const fs = fileState(c, q);
     return locked(q, false, async tx => {
       const s = await snapshot(tx), p = makePlan(q, s, fs), classification = classify(s, q);
       if (action === 'plan') return p;
@@ -1038,6 +1040,7 @@ try:
    if x['command']=='read-child': result={n:read(child,n) for n in ['mandate.json','plan.json','stages.jsonl']}; result['claim']=claim
    elif x['command']=='terminal-write': write(child,'result.json',x['record'])
    elif x['command']=='terminal-read': result=json.loads(read(child,'result.json'))
+   elif x['command']=='completion-history': result={'terminal':json.loads(read(child,'result.json')) if 'result.json' in os.listdir(child) else None,'stages':[json.loads(v) for v in read(child,'stages.jsonl').splitlines()]}
    elif x['command']=='completion-append': write(child,'completion.jsonl',x['record']+'\n','completion.jsonl' in os.listdir(child))
    elif x['command']=='reconciliation-write': write(child,'reconciliation.json',x['record'])
    elif x['command']=='reconciliation-read': result=json.loads(read(child,'reconciliation.json'))
@@ -1226,6 +1229,34 @@ export function validateRecoveredSupplyCompletion(q:Request,plan:Json,reconcilia
     parent_delegation_id:q.parent_delegation_id,parent_delegation_digest:q.parent_delegation_digest,original_plan_digest:plan.plan_digest,
     reconciliation_digest:digest(prior),recovery_receipt_digest:digest(recovered),current_delivery_receipt_digest:digest(now),original_fence_digest:digest(fence),current_delivery_receipt:now};
 }
+/** A new reconciliation receipt; never an invented original COMMITTED stage. Caller must supply authoritative reads. */
+export function validateReconciledSupplyCompletion(q:Request,plan:Json,current:Json,fence:Json[],terminal:Json|null,stages:Json[],child:Json):Json {
+  const now=supplyReceiptSchema.parse(current);
+  const pins=['operation_id','parent_delegation_id','parent_delegation_digest','approval_nonce'] as const;
+  insist(q.phase==='supply' && equal(plan.request,unsigned(q)) && plan.plan_digest===planHash(q,plan.prestate,plan.classification) &&
+    plan.prestate_digest===digest(plan.prestate) && child.plan_digest===plan.plan_digest && pins.every(k=>child[k]===q[k]) &&
+    now.result==='EXACT_RERUN_NOOP' && pins.every(k=>now[k]===q[k]) && now.approval_digest===q.approval_digest &&
+    now.plan_digest===plan.plan_digest && (['environment','operator_ref','approval_ref','source_commit','spec_ref','spec_digest','connector_subject','connector_config_receipt_ref','connector_config_receipt_digest'] as const).every(k=>now[k]===q[k as keyof Request]) && Object.values(now.effect_counts).every(n=>n===0) &&
+    fence.length>0 && fence.every(row=>row.operation_id===q.operation_id && row.request_digest===digest(q) && row.approval_nonce===q.approval_nonce && row.plan_digest===plan.plan_digest) &&
+    fence[0].stage==='ATTEMPT_STARTED' && fence.some(row=>row.stage==='COMMIT_REQUESTED') && fence.some(row=>row.stage==='DESTINATION_DURABLE'),
+    'RECONCILED_COMPLETION_CHAIN_INVALID');
+  if(terminal!==null){
+    const old=supplyReceiptSchema.parse(terminal);
+    const fixed=(value:Json)=>Object.fromEntries(Object.entries(value).filter(([k])=>!['result','effect_counts','prestate_digest','poststate_digest','verified_at'].includes(k)));
+    insist(old.result==='COMMITTED' && equal(old.effect_counts,{principal:1,client:1,grant:1,audit:1}) &&
+      old.prestate_digest===plan.prestate_digest && equal(fixed(old),fixed(now)),'ORIGINAL_TERMINAL_CONFLICT');
+  }
+  for(const stage of stages){
+    insist(!['REFUSED','RECOVERED','STOPPED','ALIGNED'].includes(stage.stage),'ORIGINAL_TERMINAL_CONFLICT');
+    if(stage.stage==='COMMITTED')insist(terminal!==null && stage.evidence_digest===digest(terminal),'ORIGINAL_TERMINAL_CONFLICT');
+    if(stage.stage==='ATTEMPT_STARTED' || stage.stage==='COMMIT_REQUESTED')insist(stage.evidence_digest===plan.plan_digest,'ORIGINAL_TERMINAL_CONFLICT');
+  }
+  return {schema_version:2,result:'EXACT_RERUN_NOOP',completion_basis:'authoritative_reconciliation',operation_id:q.operation_id,
+    parent_delegation_id:q.parent_delegation_id,parent_delegation_digest:q.parent_delegation_digest,original_plan_digest:plan.plan_digest,
+    original_child_digest:q.approval_digest,original_request_digest:digest(q),original_fence_digest:digest(fence),
+    original_terminal_digest:terminal===null?null:digest(terminal),original_stages_digest:digest(stages),
+    current_delivery_receipt_digest:digest(now),current_delivery_receipt:now};
+}
 /** Actual current DB/audit/delivery readback closes recovery without inventing an original success receipt. */
 export async function readPilotSupplyCompletion(custody:PilotCustody):Promise<Json> {
   const original=await custody.readChild('supply');
@@ -1234,7 +1265,17 @@ export async function readPilotSupplyCompletion(custody:PilotCustody):Promise<Js
   insist(current.result==='EXACT_RERUN_NOOP','CURRENT_SUPPLY_COMPLETION_UNPROVEN');
   let hasRecovery=false;
   const parent=custodyCall(custody.parent.delegation_id,'read-parent');hasRecovery=parent.claim_names.includes('recover-delivery.json');
-  if(!hasRecovery){const terminal=await readPilotTerminal(custody,'supply');insist(terminal.audit_id===current.audit_id,'CURRENT_SUPPLY_COMPLETION_CONFLICT');return terminal;}
+  const fs=fileState({root:FIXED.escrow,destination:FIXED.destination,uid:FIXED.uid,gid:FIXED.gid},q);
+  const fence=(fs.fences as Json[][]).find(rows=>rows[0]?.operation_id===q.operation_id);
+  insist(fence,'ORIGINAL_FENCE_REQUIRED');
+  if(!hasRecovery){
+    const history=custodyCall(custody.parent.delegation_id,'completion-history',{capability:'supply'});
+    const completion=validateReconciledSupplyCompletion(q,original.plan,current,fence,history.terminal,history.stages,original.child);
+    insist(!readonlyCustodies.has(custody) && liveCustodies.get(custody.parent.delegation_id)===custody,'ORIGINAL_WINDOW_OWNER_REQUIRED');
+    const window=await verifyPilotWindow(custody);window.assertHeld();
+    custodyCall(custody.parent.delegation_id,'completion-append',{capability:'supply',record:canonical(completion)});
+    return completion;
+  }
   const recovery=await custody.readChild('recover-delivery');
   const r=parseRecoveryRequest(JSON.stringify({...recovery.plan.request,approval_digest:recovery.childDigest}));
   const recovered=custodyCall(custody.parent.delegation_id,'terminal-read',{capability:'recover-delivery'});
@@ -1242,9 +1283,6 @@ export async function readPilotSupplyCompletion(custody:PilotCustody):Promise<Js
   let previous=custody.parentDigest;const stages=raw.trim().split('\n').map((line:string)=>parseClosedJson(line) as Json);
   for(const stage of stages){insist(stage.parent_delegation_id===custody.parent.delegation_id && stage.capability==='recover-delivery' && stage.previous_digest===previous,'RECOVERY_STAGE_CHAIN_INVALID');previous=digest(stage);}
   insist(stages.at(-1)?.stage==='RECOVERED' && stages.at(-1)?.evidence_digest===digest(recovered),'RECOVERY_TERMINAL_UNPROVEN');
-  const fs=fileState({root:FIXED.escrow,destination:FIXED.destination,uid:FIXED.uid,gid:FIXED.gid},q);
-  const fence=(fs.fences as Json[][]).find(rows=>rows[0]?.operation_id===q.operation_id);
-  insist(fence,'ORIGINAL_FENCE_REQUIRED');
   const completion=validateRecoveredSupplyCompletion(q,original.plan,custodyCall(custody.parent.delegation_id,'reconciliation-read',{capability:'supply'}),r,recovery.plan,recovered,current,fence);
   insist(!readonlyCustodies.has(custody) && liveCustodies.get(custody.parent.delegation_id)===custody,'ORIGINAL_WINDOW_OWNER_REQUIRED');
   const window=await verifyPilotWindow(custody);window.assertHeld();
@@ -1529,7 +1567,21 @@ function buildCustody(parent: PilotParent, intent: Json, authentication: Json, p
   };
   if(readonly) readonlyCustodies.add(custody); else liveCustodies.set(parent.delegation_id, custody); return custody;
 }
+/** Immutable protected dependency provenance for a recorded child; never live effect admission. */
+export function validateRecordedPilotDependencies(evidence:Json,parent:PilotParent,producerDigest:string,producerStartNonce:string,request:Request,recorded:PilotChildRecord):Dependencies {
+  insist(keysEqual(evidence,['schema_version','parent_delegation_id','operation_id','producer_digest','dependencies','witness']) &&
+    evidence.schema_version===2 && evidence.parent_delegation_id===parent.delegation_id && evidence.operation_id===request.operation_id &&
+    evidence.producer_digest===producerDigest && request.parent_delegation_id===parent.delegation_id && request.parent_delegation_digest===digest(parent) &&
+    equal(request,{...recorded.plan.request,approval_digest:recorded.childDigest}) && recorded.child.plan_digest===recorded.plan.plan_digest &&
+    recorded.plan.plan_digest===planHash(request,recorded.plan.prestate,recorded.plan.classification),'DEPENDENCY_ORIGIN_INVALID');
+  parseDependencyWitness(evidence.witness,parent,request,'stop',true);
+  insist(evidence.witness.producer_start_nonce===producerStartNonce,'DEPENDENCY_ORIGIN_INVALID');
+  return dependenciesSchema.parse(evidence.dependencies);
+}
 export function validateDependencyWitness(value: unknown, parent: PilotParent, request: Request, kind: 'stop' | 'alignment' | 'transport') {
+  return parseDependencyWitness(value,parent,request,kind,false);
+}
+function parseDependencyWitness(value: unknown, parent: PilotParent, request: Request, kind: 'stop' | 'alignment' | 'transport', historical:boolean) {
   const witness = z.object({ schema_version: z.literal(2), parent_delegation_id: uuid, operation_id: uuid,
     kind: z.enum(['stop', 'alignment', 'transport']), original_receipt_digest: sha, producer_ref: ref, producer_start_nonce: nonceSchema,
     source_commit: git, artifact_digest: sha, projection_digest: sha, observed_at: date, valid_until: date,
@@ -1538,7 +1590,7 @@ export function validateDependencyWitness(value: unknown, parent: PilotParent, r
     kind === 'transport' && request.phase === 'supply' ? request.connector_config_receipt_digest : request.runtime_preimage_receipt_digest;
   insist(witness.parent_delegation_id === parent.delegation_id && witness.operation_id === request.operation_id && witness.kind === kind &&
     witness.original_receipt_digest === originalDigest && witness.producer_ref === parent.executor_ref && witness.source_commit === parent.source_commit &&
-    witness.artifact_digest === parent.artifact_digest && Date.parse(witness.observed_at) <= Date.now() && Date.parse(witness.valid_until) >= Date.now() &&
+    witness.artifact_digest === parent.artifact_digest && Date.parse(witness.observed_at) <= Date.now() && (historical || Date.parse(witness.valid_until) >= Date.now()) &&
     Date.parse(witness.valid_until) <= Date.parse(witness.observed_at) + 5000 && Date.parse(witness.valid_until) <= Date.parse(parent.expires_at) &&
     Date.parse(witness.valid_until) <= Date.parse(request.expires_at), 'DEPENDENCY_WITNESS_INVALID');
   return witness;
@@ -1588,11 +1640,12 @@ export async function cli(args: string[], stdin: string): Promise<Json> {
     const database = new PrismaClient({ datasources: { db: { url: config.DATABASE_URL } }, log: [] });
     const vehicle = createProductionVehicle({ environment: 'production', authorityIssuer: custody.parent.issuer, custody, database,
       mandate: async () => undefined,
-      dependencies: async request => {
+      dependencies: async (request, mode) => {
         const evidence = custodyCall(custody.parent.delegation_id,'read-dependencies',{operation:request.operation_id});
         insist(keysEqual(evidence, ['schema_version', 'parent_delegation_id', 'operation_id', 'producer_digest', 'dependencies', 'witness']) &&
           evidence.schema_version === 2 && evidence.parent_delegation_id === custody.parent.delegation_id && evidence.operation_id === request.operation_id &&
           evidence.producer_digest === custody.producerDigest, 'DEPENDENCY_ORIGIN_INVALID');
+        if(mode==='recorded') return validateRecordedPilotDependencies(evidence,custody.parent,custody.producerDigest,custody.producerStartNonce,request,await custody.readChild(request.phase as PilotCapability));
         const rows=custodyCall(custody.parent.delegation_id,'witness-read',{operation:request.operation_id}) as unknown as Json[];
         const witness=validateWitnessRefresh(evidence.witness,rows.at(-1)??evidence.witness,custody.parent,request);
         window?.assertHeld(); insist(witness.window_id === window?.windowId && witness.producer_start_nonce===custody.producerStartNonce, 'WINDOW_WITNESS_MISMATCH');

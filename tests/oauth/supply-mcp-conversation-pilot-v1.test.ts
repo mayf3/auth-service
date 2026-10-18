@@ -795,3 +795,80 @@ test('V2 preparation brand permits only original frozen same-process coordinates
   assert(Object.isFrozen(prepared));assert.throws(()=>validatePilotPreparation({...prepared}));
   assert.throws(()=>validatePilotPreparation(Object.freeze({...prepared,preimageDirectory:'/private/tmp/caller-selected'})));
 });
+
+// Only the two final review counterexamples; origin in this disposable fixture is synthetic.
+async function finalDeltaFixture(name:string,phase:'supply'|'registry-migrate-agent-v1') {
+  const root=join(fixtureRoot!,'case-final-'+name);mkdirSync(root,{mode:0o700});chownSync(root,502,20);
+  for(const [name,uid,gid] of [['escrow',0,0],['mcp',502,20]] as const){mkdirSync(join(root,name),{mode:0o700});chownSync(join(root,name),uid,gid);}
+  const db=new PrismaClient({datasources:{db:{url:databaseUrl!}},log:[]});
+  await db.$executeRawUnsafe('TRUNCATE auth_audiences, auth_security_audits, grant_change_audits, machine_access_grants, machine_clients, machine_principals CASCADE');
+  const module=await import('../../scripts/supply-mcp-conversation-pilot-v1.js');
+  await db.authAudience.create({data:phase==='supply'?{...AUDIENCE,acceptedPrincipalTypes:['service'],registeredScopes:[FIXED.scope]}:
+    {...module.LEGACY_AUDIENCE,acceptedPrincipalTypes:['agent'],registeredScopes:[FIXED.scope]}});
+  const q=parseRequest(JSON.stringify({...request(phase==='supply'?'supply':'registry'),phase,expires_at:new Date(Date.now()+1800).toISOString()}));
+  const parent:any={delegation_id:q.parent_delegation_id,executor_ref:q.operator_ref,source_commit:q.source_commit,artifact_digest:'a'.repeat(64),expires_at:q.expires_at};
+  q.parent_delegation_digest=digest(parent);
+  let minted=0;let failCommit=false;let recordedReads=0;
+  const d:any={...q,executor_uid:502,executor_gid:20,consumer_disposition_digest:'9'.repeat(64),original_transport_verified:true,native_product_disabled:true,candidate_validated:true,stopped_original_service:true,loaded_candidate_db_aligned:true};
+  const options:any={root,databaseUrl:databaseUrl!,uid:502,gid:20,
+    dependencies:async (_q:Request,mode?:string)=>{if(mode==='recorded')recordedReads++;return d;},
+    mandate:async (r:Request,action:string,plan_digest:string)=>({issuer:'isolated-independent-owner',actor:r.operator_ref,environment:r.environment,operation_id:r.operation_id,approval_ref:r.approval_ref,approval_digest:r.approval_digest,approval_nonce:r.approval_nonce,action,plan_digest,expires_at:r.expires_at,attempts_max:1}),
+    fault:(stage:string)=>{if(stage==='SECRET_GENERATED')minted++;if(stage==='COMMIT_RESULT'&&failCommit)throw Error('lost terminal');}};
+  return {root,db,q,d,parent,module,options,vehicle:createIsolatedVehicle(options),fail:()=>{failCommit=true;},counts:()=>({minted,recordedReads})};
+}
+test('V2 final delta fresh expired migration readonly loads immutable consumer provenance', {skip:!integration},async()=>{
+  const f=await finalDeltaFixture('migration','registry-migrate-agent-v1');let fresh:any;
+  try {
+    const plan=await f.vehicle.run(f.q,'plan');assert.equal((await f.vehicle.run(f.q,'apply',plan)).result,'COMMITTED');
+    await f.vehicle.close();await new Promise(r=>setTimeout(r,1900));
+    const storage=f.module.isolatedCustodyStorage(f.root),producer='6'.repeat(64),producerNonce=randomBytes(32).toString('base64url');
+    storage.call('initialize',{records:{'intent.json':'{}','authentication.json':'{}','delegation.json':'{}','producer.json':'{}','artifact-manifest.json':'{}'}});
+    const depKeys=['environment','source_commit','spec_ref','spec_digest','audience_authority_ref','audience_authority_digest','bundle_digest','runtime_digest','runtime_preimage_receipt_ref','runtime_preimage_receipt_digest','operator_ref','executor_uid','executor_gid','original_transport_verified','native_product_disabled','candidate_validated','stopped_original_service','loaded_candidate_db_aligned','stop_serving_receipt_ref','stop_serving_receipt_digest','consumer_disposition_digest'];
+    const record:any={schema_version:2,parent_delegation_id:f.q.parent_delegation_id,operation_id:f.q.operation_id,producer_digest:producer,dependencies:Object.fromEntries(depKeys.map(k=>[k,f.d[k]])),
+      witness:{schema_version:2,parent_delegation_id:f.q.parent_delegation_id,operation_id:f.q.operation_id,kind:'stop',original_receipt_digest:f.q.stop_serving_receipt_digest,producer_ref:f.q.operator_ref,producer_start_nonce:producerNonce,source_commit:f.q.source_commit,artifact_digest:f.parent.artifact_digest,projection_digest:'3'.repeat(64),observed_at:f.q.created_at,valid_until:f.q.expires_at,window_id:randomUUID(),verified_unchanged:true}};
+    storage.call('prepare',{operation:f.q.operation_id,record:JSON.stringify(record)});
+    const recorded:any={child:{plan_digest:plan.plan_digest},plan,childDigest:f.q.approval_digest};
+    const load=(e:any)=>f.module.validateRecordedPilotDependencies(e,f.parent,producer,producerNonce,f.q,recorded);
+    assert.throws(()=>load({...record,producer_digest:'0'.repeat(64)}));assert.throws(()=>load({...record,operation_id:randomUUID()}));
+    assert.throws(()=>load({...record,witness:{...record.witness,producer_start_nonce:randomBytes(32).toString('base64url')}}));
+    fresh=createIsolatedVehicle({...f.options,dependencies:async(q:Request,mode:string)=>{assert.equal(mode,'recorded');await f.options.dependencies(q,mode);return load(storage.call('read-dependencies',{operation:q.operation_id}));},mandate:async()=>{throw Error('readonly must not authorize');}});
+    const fence=readFileSync(join(f.root,'escrow','attempt-'+f.q.operation_id+'.jsonl'));
+    const priorReads=f.counts().recordedReads;const exact=await fresh.run(f.q,'reconcile');assert.equal(exact.result,'EXACT_RERUN_NOOP',JSON.stringify(exact));
+    assert.equal(f.counts().recordedReads,priorReads+1);assert.equal((await fresh.run(f.q,'verify')).result,'EXACT_RERUN_NOOP');
+    record.dependencies.consumer_disposition_digest='7'.repeat(64);writeFileSync(join(f.root,'mcp-pilot-v2',storage.id,f.q.operation_id,'dependencies.json'),JSON.stringify(record));assert.notEqual((await fresh.run(f.q,'reconcile')).result,'EXACT_RERUN_NOOP');
+    assert.deepEqual(readFileSync(join(f.root,'escrow','attempt-'+f.q.operation_id+'.jsonl')),fence);
+    assert.equal(await f.db.authSecurityAudit.count(),1);
+  }finally{await fresh?.close();await f.vehicle.close();await f.db.$disconnect();}
+});
+test('V2 final delta delivered lost terminal reconciles through actual window end ACK', {skip:!integration},async()=>{
+  const f=await finalDeltaFixture('delivered','supply');
+  try {
+    const plan=await f.vehicle.run(f.q,'plan');f.fail();assert.equal((await f.vehicle.run(f.q,'apply',plan)).result,'OUTCOME_UNKNOWN');
+    const fencePath=join(f.root,'escrow','attempt-'+f.q.operation_id+'.jsonl'),fenceBytes=readFileSync(fencePath),fence=fenceBytes.toString().trim().split('\n').map(v=>JSON.parse(v));
+    const destination=readFileSync(f.vehicle.coordinates.destination),client=await f.db.machineClient.findFirstOrThrow();
+    const current=await f.vehicle.run(f.q,'reconcile');assert.equal(current.result,'EXACT_RERUN_NOOP');
+    const validate=(f.module as any).validateReconciledSupplyCompletion;assert.equal(typeof validate,'function');
+    const child={operation_id:f.q.operation_id,plan_digest:plan.plan_digest,approval_nonce:f.q.approval_nonce,parent_delegation_id:f.q.parent_delegation_id,parent_delegation_digest:f.q.parent_delegation_digest};
+    const completion=validate(f.q,plan,current,fence,null,[],child);assert.equal(completion.result,'EXACT_RERUN_NOOP');assert.equal(completion.completion_basis,'authoritative_reconciliation');
+    assert.throws(()=>validate(f.q,plan,{...current,audit_id:randomUUID()},fence,{...current,result:'COMMITTED'},[],child));
+    assert.throws(()=>validate(f.q,plan,current,fence,null,[],{...child,approval_nonce:randomBytes(32).toString('base64url')}));
+    assert.throws(()=>validate(f.q,plan,current,[{...fence[0],request_digest:'0'.repeat(64)}],null,[],child));
+    assert.throws(()=>validate(f.q,plan,current,fence,null,[{stage:'COMMITTED',evidence_digest:'0'.repeat(64)}],child));
+    const release=await import('../../scripts/start-auth-mcp-release-v1.js'),fsNode=await import('node:fs'),cp=await import('node:child_process');
+    const releaseRoot=join(f.root,'release-window'),opDir=join(releaseRoot,'operation');
+    for(const p of [releaseRoot,opDir,join(releaseRoot,'claims')]){mkdirSync(p,{mode:0o700});chownSync(p,0,0);}
+    const stop={window_id:randomUUID(),operation_id:randomUUID(),parent_digest:f.q.parent_delegation_digest,actor:{pid:process.pid,start_time:cp.execFileSync('/bin/ps',['-p',String(process.pid),'-o','lstart='],{encoding:'utf8'}).trim(),start_nonce:randomBytes(32).toString('base64url'),actor_ref:f.q.operator_ref},began_at:new Date().toISOString(),observed_at:new Date().toISOString(),excluded_writers:['isolated-final-delta'],no_listener:true,drained:true,old_processes_exited:true,window_plan_digest:'1'.repeat(64)};
+    const sealed=(p:string,v:unknown)=>{writeFileSync(p,typeof v==='string'?v:release.canonical(v),{mode:0o600});chownSync(p,0,0);};
+    sealed(join(opDir,'stop.json'),stop);sealed(join(opDir,'journal.jsonl'),'');sealed(join(releaseRoot,'claims','supply.json'),{operation_id:f.q.operation_id});
+    let conflict=true;
+    const end=await release.openIsolatedOuterWindowEndFixture({root:releaseRoot,operationDirectory:opDir,assertHeld:()=>{},completionReader:async()=>validate(f.q,plan,await f.vehicle.run(f.q,'reconcile'),fence,null,[],conflict?{...child,operation_id:randomUUID()}:child)});
+    await assert.rejects(()=>end.finish('completed'));assert.equal(fsNode.statSync(join(opDir,'window-end.json')).size,0);conflict=false;
+    const fd=fsNode.openSync(join(opDir,'window-end.json'),'r');
+    const ack=(async()=>{for(let i=0;i<100;i++){const observed=release.readWindowEnd(fd,stop);if(observed.state==='sealed'){sealed(join(opDir,'journal.jsonl'),release.canonical({sequence:1,operation_id:stop.operation_id,parent_digest:stop.parent_digest,stage:'WINDOW_END_ACK',evidence:{window_end_digest:observed.digest}})+'\n');return;}await new Promise(r=>setTimeout(r,20));}throw Error('ACK missing');})();
+    try{const ended=await end.finish('completed');await ack;assert.equal((ended.phase_b as any).operation_id,f.q.operation_id);}finally{fsNode.closeSync(fd);}
+    assert.equal(f.counts().minted,1);assert.equal(await f.db.machineClient.count(),1);assert.equal(await f.db.grantChangeAudit.count(),1);
+    assert.equal((await f.db.machineClient.findFirstOrThrow()).secretHash,client.secretHash);assert.deepEqual(readFileSync(f.vehicle.coordinates.destination),destination);assert.deepEqual(readFileSync(fencePath),fenceBytes);
+    const audit=await f.db.grantChangeAudit.findFirstOrThrow();await f.db.grantChangeAudit.update({where:{id:audit.id},data:{reason:'isolated-audit-tamper'}});
+    const conflictingAudit=await f.vehicle.run(f.q,'reconcile');assert.notEqual(conflictingAudit.result,'EXACT_RERUN_NOOP');assert.throws(()=>validate(f.q,plan,conflictingAudit,fence,null,[],child));
+  }finally{await f.vehicle.close();await f.db.$disconnect();}
+});
