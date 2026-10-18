@@ -1,6 +1,6 @@
 {
-  "contract_version": "1.12.0",
-  "contract_bundle_freeze_allowed": true,
+  "contract_version": "1.14.0",
+  "contract_bundle_freeze_allowed": false,
   "gates": [
     {
       "id": "GATE-REMOTE-CONSUMER-SHAS",
@@ -8,7 +8,9 @@
       "blocks_contract_bundle_freeze": false,
       "status": "deferred",
       "owner": "consumer-repository-owners",
-      "evidence": ["metadata/consumer-verification-matrix.json"],
+      "evidence": [
+        "metadata/consumer-verification-matrix.json"
+      ],
       "reason": "Out-of-scope Legacy consumers lack fixed migration SHAs; this blocks only their later migration, not the first-wave source Contract Bundle freeze."
     },
     {
@@ -67,15 +69,13 @@
       "id": "GATE-BUNDLE-NARROW-REVIEW",
       "state_domain": "contract_bundle_freeze",
       "blocks_contract_bundle_freeze": true,
-      "status": "closed",
+      "status": "open",
       "owner": "independent-contract-reviewer",
       "evidence": [
-        "AUTH_TOKEN_CONTRACT_V1_BUNDLE_INDEPENDENT_REVIEW_REPORT.md",
-        "auth-service@f0376d11c06c84e60b540a47b73919c41e890a2f",
-        "tree@9f6ab8f4478f329bf75cb8ca38820fc52618d021",
-        "AUTH_CONTRACT_V1_SVC_OKR_AGENT_READ_INDEPENDENT_AUDIT_PASS"
+        "AUTH_SERVICE_AGENT_CORE_MCP_CONVERSATION_AUDIENCE_CCR_V1",
+        "source-review-pending"
       ],
-      "reason": "The svc-okr agent-read candidate (1.1.0, commit f0376d1) passed independent read-only review with zero Blocker, zero High findings. Audited objects match remote exactly. Ready for controlled freeze."
+      "reason": "The 1.14.0 MCP SERVICE source candidate requires independent exact-source review before freeze; no implementation-complete or production claim."
     }
   ]
 }
