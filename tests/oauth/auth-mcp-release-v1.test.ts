@@ -179,3 +179,53 @@ test('isolated supervisor adapter rejects nonfixture and cross-root authority pa
  const m=await load();await assert.rejects(m.runIsolatedSupervisorFixture(randomUUID(),randomUUID(),{root:'/private/var/db/auth-service',artifactRoot:'/private/var/db/auth-service',custody:{},window:{}}),/ISOLATED_FIXTURE_BOUNDARY/);
  if(isolated){const root=mkdtempSync('/private/tmp/mcr-conformance-reject'),artifactRoot=path.join(root,'artifact');mkdirSync(artifactRoot);const id=randomUUID();await assert.rejects(m.runIsolatedSupervisorFixture(id,randomUUID(),{root,artifactRoot,custody:{parent:{delegation_id:id},readChild:async()=>({operationDirectory:'/private/var/db/auth-service',child:{environment:'production'}})},window:{}}),/ISOLATED_FIXTURE_CUSTODY/);}
 });
+
+test('recovery window handoff rejects nonfixture custody without invoking completion authority',async()=>{
+ const m=await load();let called=false;
+ await assert.rejects(m.openIsolatedOuterWindowEndFixture({root:'/private/var/db/auth-service',operationDirectory:'/private/var/db/auth-service/operation',completionReader:async()=>{called=true;return{}},assertHeld(){called=true}}),/ISOLATED_FIXTURE_BOUNDARY/);
+ assert.equal(called,false);
+});
+
+test('stop producer actual process exit and all TCP drain observations',{skip:!isolated},async()=>{
+ const m=await load(),root=mkdtempSync('/private/tmp/mcr-conformance-stop');chmodSync(root,0o700);
+ const server=createServer();await new Promise<void>(resolve=>server.listen(0,'127.0.0.1',resolve));const port=(server.address() as {port:number}).port;assert(port>=20000);
+ const child=spawn(process.execPath,['-e','setInterval(()=>{},1000)'],{stdio:'ignore'});const exited=new Promise(resolve=>child.once('exit',resolve));
+ try{
+  assert.throws(()=>m.observeIsolatedStoppedProcesses(root,[{pid:child.pid}],port),/ORIGINAL_PROCESS_STILL_PRESENT/);
+  child.kill('SIGTERM');await exited;
+  assert.throws(()=>m.observeIsolatedStoppedProcesses(root,[{pid:child.pid}],port),/ORIGINAL_CONNECTIONS_NOT_DRAINED/);
+  await new Promise<void>(resolve=>server.close(()=>resolve()));
+  assert.deepEqual(m.observeIsolatedStoppedProcesses(root,[{pid:child.pid}],port),{old_processes_exited:true,no_listener:true,drained:true});
+  assert.throws(()=>m.observeIsolatedStoppedProcesses(root,[],4001),/ISOLATED_FIXTURE_BOUNDARY/);
+ }finally{child.kill('SIGKILL');server.close();}
+});
+
+test('stop producer source attribution refuses unadmitted facts and missing scope',{skip:!isolated},async()=>{
+ const m=await load(),root=mkdtempSync('/private/tmp/mcr-conformance-owning');chmodSync(root,0o700);
+ const measured={delegation_id:randomUUID(),load_operation_id:randomUUID()},actor_ref='01a0d846-431e-7dc0-95e2-a841cd0bff5a',actor_start_time=execFileSync('/bin/ps',['-p',String(process.pid),'-o','lstart='],{encoding:'utf8'}).trim();
+ const common={judgment_kind:'original_actor_coordination',actor_ref,actor_pid:process.pid,actor_start_time,delegation_id:measured.delegation_id,load_operation_id:measured.load_operation_id,target_service:'system/com.auth-service',disposition:'ADMITTED',coordination_record:'Disposable parser fixture only; not actual release coordination.',original_transport_verified:true,native_product_disabled:true,connector_subject:'fixture-connector',registered_writers:['fixture-writer'],continuous_until_window_end:true};
+ writeFileSync(path.join(root,'installed-preimage.json'),m.canonical({fixture:'preimage'}),{mode:0o600});writeFileSync(path.join(root,'old-loaded-identity.json'),m.canonical({fixture:'old-loaded'}),{mode:0o600});
+ const kinds=['writer-exclusion','consumer-disposition','preimage-restorability','transport-disposition'];
+ const sources=kinds.map(kind=>{const ref=path.join(root,kind+'.json'),body=JSON.stringify({...common,kind,preimage_manifest_digest:m.digest({fixture:'preimage'}),old_loaded_identity_digest:m.digest({fixture:'old-loaded'})});writeFileSync(ref,body,{mode:0o600});return {kind,ref,digest:createHash('sha256').update(body).digest('hex')}});
+ const preflight={schema_version:1,judgment_kind:common.judgment_kind,delegation_id:measured.delegation_id,load_operation_id:measured.load_operation_id,actor_ref,actor_pid:process.pid,actor_start_time,original_inputs_digest:m.digest(measured),target_service:common.target_service,registered_writers:common.registered_writers,sources};
+ const save=()=>writeFileSync(path.join(root,'owning-preflight.json'),m.canonical(preflight),{mode:0o600});save();assert.equal(m.readIsolatedOwningPreflight(root,measured).digest,m.digest(preflight));
+ const bad=JSON.stringify({...common,kind:'consumer-disposition',disposition:'KEEP_UNADMITTED'});writeFileSync(sources[1].ref,bad);sources[1].digest=createHash('sha256').update(bad).digest('hex');save();assert.throws(()=>m.readIsolatedOwningPreflight(root,measured),/OWNING_FACT_UNADMITTED/);
+ preflight.sources=sources.filter(v=>v.kind!=='writer-exclusion');save();assert.throws(()=>m.readIsolatedOwningPreflight(root,measured));
+ assert.throws(()=>m.readIsolatedOwningPreflight('/private/var/db/auth-service',measured),/ISOLATED_FIXTURE_BOUNDARY/);
+});
+
+test('stop producer descriptor measurement retains legitimate original extra arguments and excludes private config',async()=>{
+ const m=await load();const plist={Label:'com.auth-service',UserName:'authsvc',GroupName:'authsvc',WorkingDirectory:'/isolated/old',Program:'/usr/local/bin/node',ProgramArguments:['/usr/local/bin/node','/isolated/old/dist/server.js','/isolated/old/dist/server.js','/isolated/old/dist/server.js'],KeepAlive:true,RunAtLoad:true,EnvironmentVariables:{SECRET:'fixture-private-value'}};
+ const measured=m.parseOriginalDescriptor(plist);assert.equal(measured.arguments.length,4);assert.equal(measured.KeepAlive,true);assert.equal(JSON.stringify(measured).includes('fixture-private-value'),false);
+ assert.throws(()=>m.parseOriginalDescriptor({...plist,UserName:'root'}));assert.throws(()=>m.parseOriginalDescriptor({...plist,ProgramArguments:['/usr/local/bin/node','--eval']}));
+});
+
+test('stop producer original user-owned readable source is distinct from new root custody',{skip:!isolated},async()=>{
+ const m=await load(),root=mkdtempSync('/private/tmp/mcr-conformance-source');chmodSync(root,0o755);chownSync(root,502,20);
+ const source=path.join(root,'.env');writeFileSync(source,'DISPOSABLE_ONLY=not-a-production-secret\n',{mode:0o600});chownSync(source,502,20);
+ const pin=m.measureOriginalReadableFile(source,502,20);assert.equal(pin.uid,502);assert.equal(pin.gid,20);assert.equal(pin.mode,0o600);assert.deepEqual(Object.keys(pin).sort(),['dev','gid','ino','mode','uid']);
+ chmodSync(source,0);assert.throws(()=>m.measureOriginalReadableFile(source,502,20),/ORIGINAL_SERVICE_READ_ACCESS/);chmodSync(source,0o600);
+ symlinkSync(source,path.join(root,'alias'));assert.throws(()=>m.measureOriginalReadableFile(path.join(root,'alias'),502,20),/ORIGINAL_SOURCE_ALIAS/);
+ mkdirSync(path.join(root,'operation'),{mode:0o700});chownSync(path.join(root,'operation'),502,20);
+ await assert.rejects(m.openIsolatedOuterWindowEndFixture({root,operationDirectory:path.join(root,'operation'),completionReader:async()=>({}),assertHeld(){}}),/UNPROTECTED_ANCESTOR/);
+});
