@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.12.0",
+  "contract_version": "1.14.0",
   "contract_bundle_freeze_allowed": true,
   "gates": [
     {
@@ -8,7 +8,9 @@
       "blocks_contract_bundle_freeze": false,
       "status": "deferred",
       "owner": "consumer-repository-owners",
-      "evidence": ["metadata/consumer-verification-matrix.json"],
+      "evidence": [
+        "metadata/consumer-verification-matrix.json"
+      ],
       "reason": "Out-of-scope Legacy consumers lack fixed migration SHAs; this blocks only their later migration, not the first-wave source Contract Bundle freeze."
     },
     {
@@ -70,12 +72,13 @@
       "status": "closed",
       "owner": "independent-contract-reviewer",
       "evidence": [
-        "AUTH_TOKEN_CONTRACT_V1_BUNDLE_INDEPENDENT_REVIEW_REPORT.md",
-        "auth-service@f0376d11c06c84e60b540a47b73919c41e890a2f",
-        "tree@9f6ab8f4478f329bf75cb8ca38820fc52618d021",
-        "AUTH_CONTRACT_V1_SVC_OKR_AGENT_READ_INDEPENDENT_AUDIT_PASS"
+        "AUTH_SERVICE_AGENT_CORE_MCP_CONVERSATION_AUDIENCE_CCR_V1",
+        "auth-service@2717e6e12806b53df580d45a5a7a1ad1f849f955",
+        "tree@03c4c78f6ae66545d41aaf9f61c8fcb66093a286",
+        "diff-sha256@4955fdafaa56dd38a4e1c6625fcaebe656903df5c37dc06689d73dd027cc70a1",
+        "pilot1156-review-20261018/auth-source-evidence/ccr/candidate-independent-review.json"
       ],
-      "reason": "The svc-okr agent-read candidate (1.1.0, commit f0376d1) passed independent read-only review with zero Blocker, zero High findings. Audited objects match remote exactly. Ready for controlled freeze."
+      "reason": "Independent affected-source narrow review by /root/pilot_packet_audit passed the exact 1.14.0 MCP SERVICE source candidate 2717e6e12806b53df580d45a5a7a1ad1f849f955 on 2026-10-18 with zero Blocker/High findings. This closes source review only; actual isolated runtime conformance and final test/freeze delta review remain separate, and no production effect is authorized."
     }
   ]
 }

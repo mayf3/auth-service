@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.12.0",
+  "contract_version": "1.14.0",
   "instances": [
     {
       "id": "oauth-client-credentials-request",
@@ -281,6 +281,53 @@
         "rejection_category": null,
         "timestamp": "2026-07-18T00:00:00Z",
         "request_correlation_id": "request-00000003"
+      }
+    },
+    {
+      "id": "oauth-mcp-conversation-client-credentials-request",
+      "schema_file": "oauth.schema.json",
+      "value": {
+        "grant_type": "client_credentials",
+        "resource": "agent-core-mcp-conversation-v1",
+        "scope": "conversation.access"
+      }
+    },
+    {
+      "id": "mcp-conversation-service-token",
+      "schema_file": "token-profiles.schema.json",
+      "value": {
+        "iss": "auth-service",
+        "sub": "a0000000-0000-4000-8000-000000000001",
+        "aud": "agent-core-mcp-conversation-v1",
+        "principal_type": "service",
+        "client_id": "service-client-mcp-conversation",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "conversation.access",
+        "jti": "direct-jti-mcp-conversation-00001",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      }
+    },
+    {
+      "id": "mcp-conversation-service-grants",
+      "schema_file": "grants.schema.json",
+      "value": {
+        "client_id": "service-client-mcp-conversation",
+        "client_kind": "machine",
+        "principal_id": "a0000000-0000-4000-8000-000000000001",
+        "principal_type": "service",
+        "human_audience_grants": [],
+        "machine_access_grants": {
+          "agent-core-mcp-conversation-v1": [
+            "conversation.access"
+          ]
+        },
+        "delegation_grants": {},
+        "status": "active",
+        "version": 1
       }
     }
   ]
