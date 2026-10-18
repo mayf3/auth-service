@@ -2,6 +2,8 @@
 # Only disposable compiled graph, PostgreSQL and OS fixtures. Never a release writer.
 set -euo pipefail
 umask 077
+test_args=()
+if [[ "${1-}" == "--recovery-delta" && $# == 1 ]]; then test_args=(--test-name-pattern="recovery window handoff"); elif [[ "${1-}" == "--producer-delta" && $# == 1 ]]; then test_args=(--test-name-pattern="stop producer|recovery window handoff"); elif [[ "${1-}" == "--original-source-delta" && $# == 1 ]]; then test_args=(--test-name-pattern="original user-owned readable source"); elif [[ $# != 0 ]]; then echo "REFUSED: unknown conformance selector"; exit 2; fi
 cd "$(dirname "$0")/.."
 if [[ -n "${DATABASE_URL-}${DIRECT_URL-}${MCR_TEST_ROOT-}${MCR_TEST_DATABASE_URL-}" ]]; then
   echo 'REFUSED: ambient database/fixture input'; exit 2
@@ -40,4 +42,4 @@ mkdir "$fixture/socket"
 "$pgbin/createdb" -h 127.0.0.1 -p "$port" -U yanfenma mcr_disposable
 url="postgresql://yanfenma@127.0.0.1:$port/mcr_disposable"
 DATABASE_URL="$url" node_modules/.bin/prisma db push --skip-generate >/dev/null
-sudo -n /usr/bin/env MCR_OS_FIXTURE=1 MCR_TEST_ROOT="$fixture" MCR_COMPILED_WRAPPER="$fixture/artifact/dist/scripts/start-auth-mcp-release-v1.js" MCR_TEST_DATABASE_URL="$url" "$(command -v node)" --import tsx --test tests/oauth/auth-mcp-release-v1.test.ts
+sudo -n /usr/bin/env MCR_OS_FIXTURE=1 MCR_TEST_ROOT="$fixture" MCR_COMPILED_WRAPPER="$fixture/artifact/dist/scripts/start-auth-mcp-release-v1.js" MCR_TEST_DATABASE_URL="$url" "$(command -v node)" --import tsx --test "${test_args[@]}" tests/oauth/auth-mcp-release-v1.test.ts

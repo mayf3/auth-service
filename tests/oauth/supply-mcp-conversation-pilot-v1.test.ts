@@ -657,20 +657,22 @@ test('V2 distinct recovery child preserves original request fence and original s
   const root = join(fixtureRoot!,'case-recovery-v2'); mkdirSync(root,{mode:0o700}); chownSync(root,502,20);
   mkdirSync(join(root,'escrow'),{mode:0o700}); chownSync(join(root,'escrow'),0,0);
   mkdirSync(join(root,'mcp'),{mode:0o700}); chownSync(join(root,'mcp'),502,20);
-  let q = parseRequest(JSON.stringify(request('supply'))); let reconciliation: any; let minted=0;
+  let q = parseRequest(JSON.stringify({...request('supply'),expires_at:new Date(Date.now()+2000).toISOString()})); let reconciliation: any; let minted=0;let failCommit=true;
   const vehicle = createIsolatedVehicle({root,databaseUrl:databaseUrl!,uid:502,gid:20,
     dependencies:async request => ({...request,executor_uid:502,executor_gid:20,original_transport_verified:true,native_product_disabled:true,
       candidate_validated:true,stopped_original_service:true,loaded_candidate_db_aligned:true}),
     mandate:async (request,action,plan_digest)=>({issuer:'isolated-independent-owner',actor:request.operator_ref,environment:request.environment,
       operation_id:request.operation_id,approval_ref:request.approval_ref,approval_digest:request.approval_digest!,approval_nonce:request.approval_nonce,
       action,plan_digest,expires_at:request.expires_at,attempts_max:1}), originalSupply:async()=>({request:q,receipt:reconciliation}),
-    fault:stage=>{if(stage==='SECRET_GENERATED')minted++;} });
+    fault:stage=>{if(stage==='SECRET_GENERATED')minted++;if(stage==='COMMIT_RESULT' && failCommit)throw new Error('lost initial success');} });
   try {
     await db.$executeRawUnsafe('TRUNCATE auth_audiences, auth_security_audits, grant_change_audits, machine_access_grants, machine_clients, machine_principals CASCADE');
     await db.authAudience.create({data:{...AUDIENCE,acceptedPrincipalTypes:['service'],registeredScopes:[FIXED.scope]}});
-    const plan=await vehicle.run(q,'plan'); const supplied=await vehicle.run(q,'apply',plan); assert.equal(supplied.result,'COMMITTED',JSON.stringify(supplied));
+    const plan=await vehicle.run(q,'plan'); const supplied=await vehicle.run(q,'apply',plan); assert.equal(supplied.result,'OUTCOME_UNKNOWN',JSON.stringify(supplied));failCommit=false;
+    const committedClient=await db.machineClient.findFirstOrThrow({where:{externalRef:FIXED.externalRef}});
+    await new Promise(resolve=>setTimeout(resolve,2100)); // Same immutable request is now expired; readonly reconciliation still reports DB truth.
     const oldFence=readFileSync(join(root,'escrow','attempt-'+q.operation_id+'.jsonl'));
-    const verifier=(await db.machineClient.findUniqueOrThrow({where:{id:supplied.client_row_id}})).secretHash;
+    const verifier=(await db.machineClient.findUniqueOrThrow({where:{id:committedClient.id}})).secretHash;
     unlinkSync(vehicle.coordinates.destination); reconciliation=await vehicle.run(q,'reconcile'); assert.equal(reconciliation.error_class,'COMMITTED_DELIVERY_INCOMPLETE');
     const recovery:any={schema_version:2,phase:'recover-delivery',parent_delegation_id:q.parent_delegation_id,parent_delegation_digest:q.parent_delegation_digest,
       operation_id:randomUUID(),original_supply_operation_id:q.operation_id,original_supply_request_digest:digest(q),original_supply_receipt_digest:digest(reconciliation),
@@ -679,9 +681,38 @@ test('V2 distinct recovery child preserves original request fence and original s
     const rp=await vehicle.run(JSON.stringify(recovery),'plan'); assert.equal(rp.classification,'COMMITTED_DELIVERY_INCOMPLETE',JSON.stringify(rp));
     const recovered=await vehicle.run(JSON.stringify({...recovery,approval_digest:'7'.repeat(64)}),'recover-delivery',rp);
     assert.equal(recovered.result,'RECOVERED',JSON.stringify(recovered)); assert.equal(minted,1);
-    assert.equal((await db.machineClient.findUniqueOrThrow({where:{id:supplied.client_row_id}})).secretHash,verifier);
+    assert.equal((await db.machineClient.findUniqueOrThrow({where:{id:committedClient.id}})).secretHash,verifier);
     assert.deepEqual(readFileSync(join(root,'escrow','attempt-'+q.operation_id+'.jsonl')),oldFence);
-    assert.equal((await vehicle.run(q,'verify')).result,'EXACT_RERUN_NOOP');
+    const current=await vehicle.run(q,'verify');assert.equal(current.result,'EXACT_RERUN_NOOP');
+    const {validateRecoveredSupplyCompletion}=await import('../../scripts/supply-mcp-conversation-pilot-v1.js');
+    const signedRecovery={...recovery,approval_digest:'7'.repeat(64)};
+    const originalFence=oldFence.toString().trim().split('\n').map(line=>JSON.parse(line));
+    const completion=validateRecoveredSupplyCompletion(q,plan,reconciliation,signedRecovery,rp,recovered,current,originalFence);
+    assert.equal(completion.operation_id,q.operation_id);assert.equal(completion.recovery_operation_id,recovery.operation_id);
+    const release=await import('../../scripts/start-auth-mcp-release-v1.js');
+    const fsNode=await import('node:fs'),cp=await import('node:child_process');
+    const releaseRoot=join(root,'release-window'),opDir=join(releaseRoot,'operation');
+    for(const p of [releaseRoot,opDir,join(releaseRoot,'claims')]){mkdirSync(p,{mode:0o700});chownSync(p,0,0);}
+    const stop={window_id:randomUUID(),operation_id:randomUUID(),parent_digest:q.parent_delegation_digest,
+      actor:{pid:process.pid,start_time:cp.execFileSync('/bin/ps',['-p',String(process.pid),'-o','lstart='],{encoding:'utf8'}).trim(),start_nonce:randomBytes(32).toString('base64url'),actor_ref:q.operator_ref},
+      began_at:new Date().toISOString(),observed_at:new Date().toISOString(),excluded_writers:['isolated-recovery-test'],no_listener:true,drained:true,old_processes_exited:true,window_plan_digest:'1'.repeat(64)};
+    const sealed=(p:string,v:unknown)=>{writeFileSync(p,typeof v==='string'?v:release.canonical(v),{mode:0o600});chownSync(p,0,0);};
+    sealed(join(opDir,'stop.json'),stop);sealed(join(opDir,'journal.jsonl'),'');sealed(join(releaseRoot,'claims','supply.json'),{operation_id:q.operation_id});
+    let conflicting=true;
+    const end=await release.openIsolatedOuterWindowEndFixture({root:releaseRoot,operationDirectory:opDir,assertHeld:()=>{},completionReader:async()=>
+      validateRecoveredSupplyCompletion(q,plan,reconciliation,signedRecovery,rp,conflicting?{...recovered,original_supply_operation_id:randomUUID()}:recovered,await vehicle.run(q,'reconcile'),originalFence)});
+    await assert.rejects(()=>end.finish('completed'));assert.equal(fsNode.statSync(join(opDir,'window-end.json')).size,0);conflicting=false;
+    const windowFd=fsNode.openSync(join(opDir,'window-end.json'),'r');
+    const ack=(async()=>{for(let i=0;i<100;i++){const observed=release.readWindowEnd(windowFd,stop);if(observed.state==='sealed'){
+      sealed(join(opDir,'journal.jsonl'),release.canonical({sequence:1,operation_id:stop.operation_id,parent_digest:stop.parent_digest,stage:'WINDOW_END_ACK',evidence:{window_end_digest:observed.digest}})+'\n');return;}
+      await new Promise(resolve=>setTimeout(resolve,20));}throw new Error('no sealed recovery handoff');})();
+    try{const ended=await end.finish('completed');await ack;assert.equal((ended.phase_b as any).operation_id,q.operation_id);assert.equal(ended.result,'completed');}finally{fsNode.closeSync(windowFd);}
+    assert.deepEqual(readFileSync(join(root,'escrow','attempt-'+q.operation_id+'.jsonl')),oldFence);assert.equal(minted,1);
+
+    assert.throws(()=>validateRecoveredSupplyCompletion(q,plan,reconciliation,signedRecovery,rp,{...recovered,original_supply_operation_id:randomUUID()},current,originalFence));
+    assert.throws(()=>validateRecoveredSupplyCompletion(q,plan,reconciliation,signedRecovery,rp,recovered,{...current,client_row_id:randomUUID()},originalFence));
+    assert.throws(()=>validateRecoveredSupplyCompletion(q,plan,reconciliation,signedRecovery,rp,recovered,current,[{...originalFence[0],approval_nonce:randomBytes(32).toString('base64url')},...originalFence.slice(1)]));
+    assert.equal((await vehicle.run(JSON.stringify(signedRecovery),'reconcile')).result,'RECOVERED');
     assert.equal((await vehicle.run(JSON.stringify({...recovery,approval_digest:'7'.repeat(64)}),'recover-delivery',rp)).result,'REFUSED');
   } finally {await vehicle.close();await db.$disconnect();}
 });
@@ -715,4 +746,52 @@ test('V2 custody storage has one fixed capability claim, immutable revoke and no
   assert.throws(()=>storage.call('allocate',{...args,capability:'recover-delivery',operation:randomUUID()}));
   assert.throws(()=>storage.call('read-child',{capability:'recover-delivery'}));
 
+});
+
+test('V2 revision cross-parent reservation survives both early claim crash boundaries', { skip: !integration }, async () => {
+  const { isolatedCapabilityLedger } = await import('../../scripts/supply-mcp-conversation-pilot-v1.js');
+  const root=join(fixtureRoot!,'case-cross-parent');mkdirSync(root,{mode:0o700});chownSync(root,502,20);
+  mkdirSync(join(root,'escrow'),{mode:0o700});chownSync(join(root,'escrow'),0,0);
+  mkdirSync(join(root,'mcp'),{mode:0o700});chownSync(join(root,'mcp'),502,20);
+  const ledger=isolatedCapabilityLedger(root);
+  const {isolatedCustodyStorage}=await import('../../scripts/supply-mcp-conversation-pilot-v1.js');
+  const storage=isolatedCustodyStorage(root);storage.call('initialize',{records:{}});
+  const operation=randomUUID(),dependencyRecord={plan_digest:'d'.repeat(64),witness:{observed_at:'frozen'},dependencies:{receipt_digest:'a'.repeat(64)}};
+  storage.call('prepare',{operation,record:JSON.stringify(dependencyRecord)});
+  storage.call('witness-append',{operation,record:JSON.stringify({observed_at:'first'})});
+  storage.call('witness-append',{operation,record:JSON.stringify({observed_at:'second'})});
+  assert.deepEqual(storage.call('read-dependencies',{operation}),dependencyRecord);
+  assert.deepEqual(storage.call('witness-read',{operation}),[{observed_at:'first'},{observed_at:'second'}]);
+  for(const capability of ['supply','registry-migrate-agent-v1']) {
+    const a={parent_delegation_id:randomUUID(),operation_id:randomUUID(),capability,child_digest:'a'.repeat(64)};
+    await ledger.reserve(a); // Crash before parent claim/child; or after admission before original attempt fence.
+    const bytes=readFileSync(join(root,'escrow','pilot-capability-'+capability+'.json'));
+    await assert.rejects(()=>ledger.reserve({...a,parent_delegation_id:randomUUID(),operation_id:randomUUID()}));
+    assert.deepEqual(readFileSync(join(root,'escrow','pilot-capability-'+capability+'.json')),bytes);
+    assert.throws(()=>ledger.verify({...a,parent_delegation_id:randomUUID()}));
+    ledger.verify(a);
+  }
+});
+
+test('V2 revision same frozen dependency accepts refreshed witness and rejects expired effect/drift', async () => {
+  const {validateWitnessRefresh}=await import('../../scripts/supply-mcp-conversation-pilot-v1.js');
+  const q=parseRequest(JSON.stringify(request('supply')));
+  const parent:any={delegation_id:q.parent_delegation_id,executor_ref:q.operator_ref,source_commit:q.source_commit,artifact_digest:'e'.repeat(64),expires_at:q.expires_at};
+  const old:any={schema_version:2,parent_delegation_id:q.parent_delegation_id,operation_id:q.operation_id,kind:'alignment',original_receipt_digest:q.runtime_preimage_receipt_digest,
+    producer_ref:q.operator_ref,producer_start_nonce:randomBytes(32).toString('base64url'),source_commit:q.source_commit,artifact_digest:parent.artifact_digest,projection_digest:'d'.repeat(64),
+    observed_at:new Date(Date.now()-6000).toISOString(),valid_until:new Date(Date.now()-1000).toISOString(),window_id:randomUUID(),verified_unchanged:true};
+  assert.throws(()=>validateWitnessRefresh(old,old,parent,q));
+  const before=JSON.stringify(q),fresh={...old,observed_at:new Date().toISOString(),valid_until:new Date(Date.now()+4000).toISOString()};
+  assert.deepEqual(validateWitnessRefresh(old,fresh,parent,q),fresh);assert.equal(JSON.stringify(q),before);
+  assert.throws(()=>validateWitnessRefresh(old,{...fresh,projection_digest:'f'.repeat(64)},parent,q));
+  assert.throws(()=>validateWitnessRefresh(old,{...fresh,producer_start_nonce:randomBytes(32).toString('base64url')},parent,q));
+  assert.throws(()=>validateWitnessRefresh(old,fresh,{...parent,expires_at:new Date(Date.now()-1).toISOString()},q));
+});
+
+
+test('V2 preparation brand permits only original frozen same-process coordinates', async () => {
+  const {preparePilotCoordinates,validatePilotPreparation}=await import('../../scripts/supply-mcp-conversation-pilot-v1.js');
+  const prepared=preparePilotCoordinates();assert.doesNotThrow(()=>validatePilotPreparation(prepared));
+  assert(Object.isFrozen(prepared));assert.throws(()=>validatePilotPreparation({...prepared}));
+  assert.throws(()=>validatePilotPreparation(Object.freeze({...prepared,preimageDirectory:'/private/tmp/caller-selected'})));
 });

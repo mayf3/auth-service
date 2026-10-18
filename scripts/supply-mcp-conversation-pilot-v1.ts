@@ -264,6 +264,17 @@ try:
   print(json.dumps({'ok':True,'value':{'held':True,'dev':s.st_dev,'ino':s.st_ino,'fd':lockfd,'pid':os.getpid()}}),flush=True)
   # Parent owns the write end. Parent death closes it and releases the kernel lock.
   sys.stdin.readline()
+ elif cmd in ('capability-reserve','capability-read'):
+  if x['capability'] not in ['registry-migrate-agent-v1','candidate-load','supply','registry-disable-migrated','recover-delivery']: raise Exception('COMMAND')
+  n='pilot-capability-'+x['capability']+'.json'
+  if cmd=='capability-reserve':
+   # Durable pilot-wide tombstone precedes EVERY per-parent claim. Never replaced.
+   for old in os.listdir(r):
+    if old.startswith('attempt-') and old.endswith('.jsonl'):
+     rows=[json.loads(v) for v in private_read(r,old).decode().splitlines()]
+     if not rows or rows[0].get('phase')==x['capability']: raise Exception('CAPABILITY_SPENT')
+   write_new(r,n,json.dumps(x['record']))
+  result=json.loads(private_read(r,n))
  elif cmd=='claim':
   # Nonce files and per-operation fences remain forever. No stale-lock deletion or fence reset.
   write_new(r,'attempt-'+op+'.jsonl',json.dumps(x['record'])+'\n')
@@ -314,7 +325,7 @@ try:
  stable(); print(json.dumps({'ok':True,'value':result}))
 except BaseException as failure:
  # Only literal internal categories or errno numbers, never raw errors/paths.
- allowed={'METADATA','FILE_IDENTITY','ANCESTOR_MODE','ANCESTOR_OWNER','INODE_SWAP','FILE_SIZE','FILESYSTEM','LOCK_IDENTITY','DESTINATION_EXISTS','INJECTED','COMMAND','ESCROW_INTEGRITY'}
+ allowed={'METADATA','FILE_IDENTITY','ANCESTOR_MODE','ANCESTOR_OWNER','INODE_SWAP','FILE_SIZE','FILESYSTEM','LOCK_IDENTITY','DESTINATION_EXISTS','INJECTED','COMMAND','ESCROW_INTEGRITY','CAPABILITY_SPENT'}
  category=str(failure) if str(failure) in allowed else 'ERRNO_'+str(getattr(failure,'errno',0) or 0)
  print(json.dumps({'ok':False,'error_class':category})); sys.exit(1)
 finally:
@@ -324,7 +335,7 @@ finally:
 `;
 
 type Coordinates = { root: string; destination: string; uid: number; gid: number };
-function osCall(c: Coordinates, q: Request, cmd: string, extra: Json = {}): { value: Json; private: Buffer } {
+function osCall(c: Coordinates, q: Pick<Request,'operation_id'>, cmd: string, extra: Json = {}): { value: Json; private: Buffer } {
   if (extra.fault === 'helper-unavailable' && (cmd === 'read-destination' || cmd === 'read-escrow')) throw new Refusal('OS_HELPER_UNAVAILABLE');
   const r = spawnSync('/usr/bin/python3', ['-c', OS], { input: JSON.stringify({ ...c, operation: q.operation_id,
     cmd, pid: process.pid, ...extra }), stdio: ['pipe', 'pipe', 'pipe', 'pipe'], maxBuffer: 1024 * 1024 });
@@ -471,7 +482,7 @@ export interface ProductionTrustedProvider {
 export function createProductionVehicle(provider?: ProductionTrustedProvider) {
   insist(provider && provider.environment === 'production' && ref.safeParse(provider.authorityIssuer).success &&
     typeof provider.dependencies === 'function' && typeof provider.mandate === 'function' &&
-    provider.database instanceof PrismaClient && liveCustodies.get(provider.custody?.parent.delegation_id) === provider.custody, 'TRUST_ADAPTER_UNAVAILABLE');
+    provider.database instanceof PrismaClient && (liveCustodies.get(provider.custody?.parent.delegation_id) === provider.custody || readonlyCustodies.has(provider.custody)), 'TRUST_ADAPTER_UNAVAILABLE');
   insist(process.getuid?.() === 0, 'OS_ACTOR_REQUIRED');
   return createVehicle(provider, { root: FIXED.escrow, destination: FIXED.destination, uid: FIXED.uid, gid: FIXED.gid }, provider.database);
 }
@@ -676,7 +687,7 @@ function createVehicle(o: EngineOptions, c: Coordinates, db: PrismaClient) {
       committed_at: audit.timestamp.toISOString(), verified_at: now };
   }
   async function observe(q: Request, action: Action): Promise<Json> {
-    await dependencies(q); const fs = fileState(c, q);
+    if(action==='plan') await dependencies(q); const fs = fileState(c, q);
     return locked(q, false, async tx => {
       const s = await snapshot(tx), p = makePlan(q, s, fs), classification = classify(s, q);
       if (action === 'plan') return p;
@@ -822,8 +833,18 @@ function createVehicle(o: EngineOptions, c: Coordinates, db: PrismaClient) {
       q.source_commit === r.source_commit && q.spec_ref === r.spec_ref && q.spec_digest === r.spec_digest && q.operator_ref === r.operator_ref &&
       digest(q) === r.original_supply_request_digest && digest(original.receipt) === r.original_supply_receipt_digest &&
       original.receipt.error_class === 'COMMITTED_DELIVERY_INCOMPLETE', 'ORIGINAL_SUPPLY_CHAIN_INVALID');
-    await dependencies({...q,operation_id:r.operation_id,created_at:r.created_at,expires_at:r.expires_at});
+    if(action==='plan' || action==='recover-delivery') await dependencies({...q,operation_id:r.operation_id,created_at:r.created_at,expires_at:r.expires_at});
     const fs = fileState(c, q);
+    if(['verify','reconcile'].includes(action) && fs.destination.state==='present'){
+      const rows=(fs.recoveries as Json[][]).find(rows=>rows[0]?.operation_id===r.operation_id);
+      insist(rows && rows[0].original_supply_operation_id===q.operation_id && rows[0].original_supply_request_digest===digest(q) && rows[0].approval_nonce===r.approval_nonce &&
+        rows[0].approval_digest===r.approval_digest && rows.at(-1)?.stage==='RECOVERED','RECOVERY_LEDGER_UNPROVEN');
+      if(o.custody){const child=await o.custody.readChild('recover-delivery');insist(child.childDigest===r.approval_digest && equal(r,{...child.plan.request,approval_digest:child.childDigest}),'RECOVERY_MANDATE_INVALID');}
+      const current=await locked(q,false,async tx=>{const s=await snapshot(tx);insist(classify(s,q)==='EXACT_RERUN_NOOP' && matches(q,s,credentialValue(pinnedCredential(q,fs,false))),'RECOVERY_VERIFY_FAILED');return target(s,q);});
+      return {schema_version:2,phase:'recover-delivery',result:'RECOVERED',parent_delegation_id:r.parent_delegation_id,parent_delegation_digest:r.parent_delegation_digest,
+        operation_id:r.operation_id,original_supply_operation_id:q.operation_id,approval_digest:r.approval_digest,approval_nonce:r.approval_nonce,original_audit_id:current.audits[0].id,
+        principal_id:current.p[0].id,client_row_id:current.cli[0].id,client_id:current.cli[0].clientId,destination_identity:fs.destination,secret_matches_verifier:true,effect_counts:{database:0,secret:0},verified_at:new Date().toISOString()};
+    }
     const current = await locked(q,false,async tx=>{const s=await snapshot(tx);insist(classify(s,q)==='EXACT_RERUN_NOOP' && matches(q,s,credentialValue(pinnedCredential(q,fs,true))), 'ORIGINAL_ESCROW_REQUIRED');return {residual_coordinates:{state:'committed_delivery_incomplete',audit_id:target(s,q).audits[0].id}};});
     insist(current.residual_coordinates?.state === 'committed_delivery_incomplete' &&
       current.residual_coordinates.audit_id === original.receipt.residual_coordinates?.audit_id && fs.destination.state === 'absent', 'RECOVERY_STATE_REFUSED');
@@ -849,7 +870,7 @@ function createVehicle(o: EngineOptions, c: Coordinates, db: PrismaClient) {
         const window = retainedWindows.get(r.parent_delegation_id); insist(window, 'ORIGINAL_WINDOW_OWNER_REQUIRED');
         lease = { ...window.operation, release: async () => {} };
       } else {
-        const authority = await o.mandate({ ...q, operation_id:r.operation_id, approval_nonce:r.approval_nonce, approval_digest:r.approval_digest } as Request, 'recover-delivery', pd);
+        const authority = await o.mandate({ ...q, operation_id:r.operation_id, approval_nonce:r.approval_nonce, approval_digest:r.approval_digest, created_at:r.created_at, expires_at:r.expires_at } as Request, 'recover-delivery', pd);
         insist(authority && authority.operation_id === r.operation_id && authority.approval_nonce === r.approval_nonce && authority.approval_digest === approval_digest &&
           authority.plan_digest === pd && Date.now() < Date.parse(authority.expires_at), 'RECOVERY_MANDATE_INVALID');
         lease = await acquireOsLock(c,q);
@@ -877,15 +898,18 @@ function createVehicle(o: EngineOptions, c: Coordinates, db: PrismaClient) {
     async run(raw: string | Request, action: Action = 'plan', plan?: Json): Promise<Json> {
       let q: Request | undefined;
       try { const encoded = typeof raw === 'string' ? raw : JSON.stringify(raw);
+        insist(!o.custody || !readonlyCustodies.has(o.custody) || ['verify','reconcile'].includes(action),'READONLY_CUSTODY');
         if ((parseClosedJson(encoded) as Json)?.phase === 'recover-delivery') return await recoverV2(encoded, action, plan);
         q = parseRequest(encoded);
         insist(action !== 'recover-delivery','DISTINCT_RECOVERY_REQUEST_REQUIRED');
         insist(['plan', 'apply', 'verify', 'reconcile'].includes(action), 'INVALID_ACTION');
         const result = action === 'apply' ? await mutate(q, action, plan) : await observe(q, action);
-        return validatePublicOutput(result);
+        const safe=validatePublicOutput(result);
+        if(o.custody && action==='reconcile' && safe.error_class==='COMMITTED_DELIVERY_INCOMPLETE') authoritativeReconciliations.set(safe,q.parent_delegation_id);
+        return safe;
       } catch (e) { return validatePublicOutput(failure(q, 'admission', e instanceof Refusal ? e.category : 'DB_OR_PROCESS_FAILURE',
         !!q && (action === 'apply' || action === 'recover-delivery') && e instanceof Refusal && e.category === 'OUTPUT_SCHEMA_INVALID',
-        e instanceof Refusal && e.category === 'OUTPUT_SCHEMA_INVALID' && (action === 'apply' || action === 'recover-delivery') ? 'OUTCOME_UNKNOWN' : 'REFUSED')); }
+        (['verify','reconcile'].includes(action) || e instanceof Refusal && e.category === 'OUTPUT_SCHEMA_INVALID' && (action === 'apply' || action === 'recover-delivery')) ? 'OUTCOME_UNKNOWN' : 'REFUSED')); }
     },
     close: () => db.$disconnect(),
   };
@@ -917,7 +941,7 @@ const childSchema = z.object({ schema_version: z.literal(2), parent_delegation_i
 export type PilotChild = z.infer<typeof childSchema>;
 export interface PilotChildRecord { child: PilotChild; plan: Json; childDigest: string; operationDirectory: string }
 export interface PilotCustody {
-  readonly parent: PilotParent; readonly parentDigest: string; readonly producerDigest: string; readonly plannedLoadOperationId: string;
+  readonly parent: PilotParent; readonly parentDigest: string; readonly producerDigest: string; readonly producerStartNonce:string; readonly plannedLoadOperationId: string;
   readChild(capability: PilotCapability): Promise<PilotChildRecord>;
   allocate(capability: PilotCapability, plan: Json, dependencies?: Json): Promise<PilotChildRecord>;
   admit(capability: PilotCapability, planDigest: string): Promise<{ release(): Promise<void>; assertHeld(): void }>;
@@ -994,6 +1018,10 @@ try:
   child=directory(parent,x['operation'],True); write(child,'dependencies.json',x['record']); os.fsync(parent)
  elif x['command']=='read-dependencies':
   child=directory(parent,x['operation']); result=json.loads(read(child,'dependencies.json'))
+ elif x['command']=='witness-append':
+  child=directory(parent,x['operation']); write(child,'witnesses.jsonl',x['record']+'\n','witnesses.jsonl' in os.listdir(child))
+ elif x['command']=='witness-read':
+  child=directory(parent,x['operation']); result=[json.loads(v) for v in read(child,'witnesses.jsonl').splitlines()] if 'witnesses.jsonl' in os.listdir(child) else []
  elif x['command']=='revoke': write(parent,'revoked.json',x['record'])
  else:
   claims=directory(parent,'claims')
@@ -1010,6 +1038,7 @@ try:
    if x['command']=='read-child': result={n:read(child,n) for n in ['mandate.json','plan.json','stages.jsonl']}; result['claim']=claim
    elif x['command']=='terminal-write': write(child,'result.json',x['record'])
    elif x['command']=='terminal-read': result=json.loads(read(child,'result.json'))
+   elif x['command']=='completion-append': write(child,'completion.jsonl',x['record']+'\n','completion.jsonl' in os.listdir(child))
    elif x['command']=='reconciliation-write': write(child,'reconciliation.json',x['record'])
    elif x['command']=='reconciliation-read': result=json.loads(read(child,'reconciliation.json'))
    elif x['command']=='append': write(child,'stages.jsonl',x['record']+'\n',True)
@@ -1034,10 +1063,23 @@ export function isolatedCustodyStorage(root: string) {
     const finished=new Promise<Json>((resolve,reject)=>{child.once('error',()=>reject(new Refusal('CUSTODY_INTEGRITY_FAILURE')));child.once('exit',code=>{if(code!==0)reject(new Refusal('CUSTODY_INTEGRITY_FAILURE'));else try{resolve((parseClosedJson(output) as Json).value);}catch(e){reject(e);}});});
     child.stdin.end(JSON.stringify({...extra,command:'allocate',delegation:id,isolatedRoot:root})+'\n');return finished;
   }, call(command:string, extra:Json={}) {
-    insist(['initialize','read-parent','allocate','read-child','revoke'].includes(command),'ISOLATED_STORAGE_COMMAND');
+    insist(['initialize','read-parent','allocate','read-child','revoke','prepare','read-dependencies','witness-append','witness-read'].includes(command),'ISOLATED_STORAGE_COMMAND');
     const out=spawnSync('/usr/bin/python3',['-c',CUSTODY_OS],{input:JSON.stringify({...extra,command,delegation:id,isolatedRoot:root})+'\n',encoding:'utf8',env:{PATH:'/usr/bin:/bin'}});
     insist(out.status===0,'CUSTODY_INTEGRITY_FAILURE');return (parseClosedJson(out.stdout) as Json).value;
   } };
+}
+/** Exercises only the real existing-ledger reservation primitive, never native origin. */
+export function isolatedCapabilityLedger(root:string) {
+  insist(process.getuid?.()===0 && realpathSync(root)===root && /^\/private\/tmp\/mcs-conformance-[A-Za-z0-9_-]+\/case-[A-Za-z0-9_-]+$/.test(root),'NOT_ISOLATED_ROOT');
+  const c={root:join(root,'escrow'),destination:join(root,'mcp','native-conversation.service-v1.client.json'),uid:502,gid:20};
+  return {async reserve(claim:Json){const lock=await acquireOsLock(c,{operation_id:claim.operation_id});try{lock.assertHeld();osCall(c,{operation_id:claim.operation_id},'capability-reserve',{capability:claim.capability,record:claim});}finally{await lock.release();}},
+    verify(claim:Json){insist(equal(osCall(c,{operation_id:claim.operation_id},'capability-read',{capability:claim.capability}).value,claim),'GLOBAL_CLAIM_MISMATCH');}};
+}
+function originalCapability(custody:PilotCustody,command:'capability-reserve'|'capability-read',claim:Json) {
+  const retained=retainedWindows.get(custody.parent.delegation_id);insist(retained,'ORIGINAL_WINDOW_OWNER_REQUIRED');
+  retained.control.assertHeld();retained.operation.assertHeld();
+  const actual=osCall({root:FIXED.escrow,destination:FIXED.destination,uid:FIXED.uid,gid:FIXED.gid},{operation_id:claim.operation_id},command,{capability:claim.capability,record:claim}).value;
+  insist(equal(actual,claim),'GLOBAL_CLAIM_MISMATCH');
 }
 async function custodyLock(id: string) {
   let identity: Json = {};
@@ -1050,7 +1092,8 @@ async function custodyLock(id: string) {
   return { identity, assertHeld() { insist(child.exitCode === null && !child.killed, 'CUSTODY_LOCK_LOST'); },
     async release() { child.stdin.end('release\n'); await new Promise<void>(resolve => child.once('exit', () => resolve())); } };
 }
-export async function openPilotCustody(delegationId: string): Promise<PilotCustody> {
+const readonlyCustodies=new WeakSet<object>();
+export async function openPilotCustody(delegationId: string, mode:'live'|'reconcile'='live'): Promise<PilotCustody> {
   uuid.parse(delegationId); const result = liveCustodies.get(delegationId);
   const records = custodyCall(delegationId, 'read-parent');
   const parent = parentSchema.parse(parseClosedJson(records['delegation.json']));
@@ -1058,9 +1101,9 @@ export async function openPilotCustody(delegationId: string): Promise<PilotCusto
   const authentication = parseClosedJson(records['authentication.json']) as Json;
   const producer = parseClosedJson(records['producer.json']) as Json;
   const manifest = parseClosedJson(records['artifact-manifest.json'],64*1024*1024) as Json;
-  verifyProducer(parent, intent, authentication, producer, manifest);
-  if(result) return result;
-  return buildCustody(parent, intent, authentication, producer, manifest);
+  verifyProducer(parent, intent, authentication, producer, manifest,mode==='live');
+  if(mode==='live' && result) return result;
+  return buildCustody(parent, intent, authentication, producer, manifest,mode==='reconcile');
 }
 async function parentControl(id: string) {
   const retained = retainedWindows.get(id);
@@ -1125,7 +1168,7 @@ export async function preparePilotRequest(custody: PilotCustody, phase: Exclude<
     connector_config_receipt_digest:d.connector_config_receipt_digest,connector_subject:d.connector_subject,registry_receipt_ref:d.registry_receipt_ref,
     registry_receipt_digest:d.registry_receipt_digest}:{stop_serving_receipt_ref:d.stop_serving_receipt_ref,stop_serving_receipt_digest:d.stop_serving_receipt_digest})}));
   const witness=validateDependencyWitness(measured.witness,p,q,phase==='supply'?'alignment':'stop');
-  insist(witness.window_id===window.windowId,'WINDOW_WITNESS_MISMATCH');
+  insist(witness.window_id===window.windowId && witness.producer_start_nonce===custody.producerStartNonce,'WINDOW_WITNESS_MISMATCH');
   const record={schema_version:2,parent_delegation_id:p.delegation_id,operation_id:operationId,producer_digest:custody.producerDigest,dependencies:d,witness};
   const lock=await parentControl(p.delegation_id);
   try{lock.assertHeld();window.assertHeld();custodyCall(p.delegation_id,'prepare',{operation:operationId,record:canonical(record)});}finally{await lock.release();}
@@ -1142,7 +1185,7 @@ export async function preparePilotRecoveryRequest(custody:PilotCustody,
     expiresAt=new Date(Math.min(Date.now()+600000,Date.parse(custody.parent.expires_at))).toISOString();
   const measured=await measure({operationId,approvalNonce,expiresAt});const d=dependenciesSchema.parse(measured.dependencies);
   const witness=validateDependencyWitness(measured.witness,custody.parent,{...q,operation_id:operationId,expires_at:expiresAt},'alignment');
-  insist(witness.window_id===window.windowId,'WINDOW_WITNESS_MISMATCH');
+  insist(witness.window_id===window.windowId && witness.producer_start_nonce===custody.producerStartNonce,'WINDOW_WITNESS_MISMATCH');
   const r=recoveryRequestSchema.parse({schema_version:2,phase:'recover-delivery',parent_delegation_id:q.parent_delegation_id,parent_delegation_digest:q.parent_delegation_digest,
     operation_id:operationId,original_supply_operation_id:q.operation_id,original_supply_request_digest:digest(q),original_supply_receipt_digest:digest(receipt),
     source_commit:q.source_commit,spec_ref:q.spec_ref,spec_digest:q.spec_digest,operator_ref:q.operator_ref,
@@ -1160,7 +1203,56 @@ export async function readPilotTerminal(custody: PilotCustody, capability: Pilot
     stages.at(-1)?.stage === 'COMMITTED' && stages.at(-1)?.evidence_digest === digest(terminal), 'TERMINAL_RECEIPT_UNPROVEN');
   return terminal;
 }
+const authoritativeReconciliations=new WeakMap<object,string>();
+/** Validation shared by real protected custody reads and isolated engine evidence. No authority is created. */
+export function validateRecoveredSupplyCompletion(q:Request,plan:Json,reconciliation:Json,r:RecoveryRequest,recoveryPlan:Json,recovered:Json,current:Json,fence:Json[]):Json {
+  const prior=failureSchema.parse(reconciliation), now=supplyReceiptSchema.parse(current);
+  insist(q.phase==='supply' && equal(plan.request,unsigned(q)) && plan.plan_digest===planHash(q,plan.prestate,plan.classification) && prior.error_class==='COMMITTED_DELIVERY_INCOMPLETE' && prior.residual_coordinates.state==='committed_delivery_incomplete' &&
+    prior.operation_id===q.operation_id && prior.parent_delegation_id===q.parent_delegation_id && prior.parent_delegation_digest===q.parent_delegation_digest &&
+    r.original_supply_operation_id===q.operation_id && r.operation_id!==q.operation_id && r.original_supply_request_digest===digest(q) &&
+    r.original_supply_receipt_digest===digest(prior) && r.parent_delegation_id===q.parent_delegation_id && r.parent_delegation_digest===q.parent_delegation_digest &&
+    equal(recoveryPlan.request,Object.fromEntries(Object.entries(r).filter(([k])=>k!=='approval_digest'))) &&
+    recoveryPlan.plan_digest===planHash(recoveryPlan.request,recoveryPlan.prestate,recoveryPlan.classification) &&
+    recovered.result==='RECOVERED' && recovered.operation_id===r.operation_id && recovered.original_supply_operation_id===q.operation_id &&
+    recovered.parent_delegation_id===q.parent_delegation_id && recovered.parent_delegation_digest===q.parent_delegation_digest &&
+    recovered.approval_digest===r.approval_digest && recovered.approval_nonce===r.approval_nonce &&
+    recovered.original_audit_id===prior.residual_coordinates.audit_id && recovered.secret_matches_verifier===true && equal(recovered.effect_counts,{database:0,secret:0}) &&
+    now.result==='EXACT_RERUN_NOOP' && now.operation_id===q.operation_id && now.audit_id===recovered.original_audit_id && now.approval_nonce===q.approval_nonce &&
+    now.parent_delegation_id===q.parent_delegation_id && now.parent_delegation_digest===q.parent_delegation_digest && now.plan_digest===plan.plan_digest &&
+    (['principal_id','client_row_id','client_id'] as const).every(k=>now[k]===recovered[k]) && Object.values(now.effect_counts).every(n=>n===0) &&
+    fence[0]?.operation_id===q.operation_id && fence[0]?.request_digest===digest(q) && fence[0]?.approval_nonce===q.approval_nonce && fence[0]?.plan_digest===plan.plan_digest,
+    'RECOVERED_COMPLETION_CHAIN_INVALID');
+  return {schema_version:2,result:'RECOVERED',operation_id:q.operation_id,original_supply_operation_id:q.operation_id,recovery_operation_id:r.operation_id,
+    parent_delegation_id:q.parent_delegation_id,parent_delegation_digest:q.parent_delegation_digest,original_plan_digest:plan.plan_digest,
+    reconciliation_digest:digest(prior),recovery_receipt_digest:digest(recovered),current_delivery_receipt_digest:digest(now),original_fence_digest:digest(fence),current_delivery_receipt:now};
+}
+/** Actual current DB/audit/delivery readback closes recovery without inventing an original success receipt. */
+export async function readPilotSupplyCompletion(custody:PilotCustody):Promise<Json> {
+  const original=await custody.readChild('supply');
+  const q=parseRequest(JSON.stringify({...original.plan.request,approval_digest:original.childDigest}));
+  const current=await cli(['supply','reconcile'],JSON.stringify(q));
+  insist(current.result==='EXACT_RERUN_NOOP','CURRENT_SUPPLY_COMPLETION_UNPROVEN');
+  let hasRecovery=false;
+  const parent=custodyCall(custody.parent.delegation_id,'read-parent');hasRecovery=parent.claim_names.includes('recover-delivery.json');
+  if(!hasRecovery){const terminal=await readPilotTerminal(custody,'supply');insist(terminal.audit_id===current.audit_id,'CURRENT_SUPPLY_COMPLETION_CONFLICT');return terminal;}
+  const recovery=await custody.readChild('recover-delivery');
+  const r=parseRecoveryRequest(JSON.stringify({...recovery.plan.request,approval_digest:recovery.childDigest}));
+  const recovered=custodyCall(custody.parent.delegation_id,'terminal-read',{capability:'recover-delivery'});
+  const raw=custodyCall(custody.parent.delegation_id,'read-child',{capability:'recover-delivery'})['stages.jsonl'];
+  let previous=custody.parentDigest;const stages=raw.trim().split('\n').map((line:string)=>parseClosedJson(line) as Json);
+  for(const stage of stages){insist(stage.parent_delegation_id===custody.parent.delegation_id && stage.capability==='recover-delivery' && stage.previous_digest===previous,'RECOVERY_STAGE_CHAIN_INVALID');previous=digest(stage);}
+  insist(stages.at(-1)?.stage==='RECOVERED' && stages.at(-1)?.evidence_digest===digest(recovered),'RECOVERY_TERMINAL_UNPROVEN');
+  const fs=fileState({root:FIXED.escrow,destination:FIXED.destination,uid:FIXED.uid,gid:FIXED.gid},q);
+  const fence=(fs.fences as Json[][]).find(rows=>rows[0]?.operation_id===q.operation_id);
+  insist(fence,'ORIGINAL_FENCE_REQUIRED');
+  const completion=validateRecoveredSupplyCompletion(q,original.plan,custodyCall(custody.parent.delegation_id,'reconciliation-read',{capability:'supply'}),r,recovery.plan,recovered,current,fence);
+  insist(!readonlyCustodies.has(custody) && liveCustodies.get(custody.parent.delegation_id)===custody,'ORIGINAL_WINDOW_OWNER_REQUIRED');
+  const window=await verifyPilotWindow(custody);window.assertHeld();
+  custodyCall(custody.parent.delegation_id,'completion-append',{capability:'supply',record:canonical(completion)});
+  return completion;
+}
 export async function recordPilotReconciliation(custody: PilotCustody, receipt: Json): Promise<void> {
+  insist(!readonlyCustodies.has(custody) && liveCustodies.get(custody.parent.delegation_id)===custody && authoritativeReconciliations.get(receipt)===custody.parent.delegation_id,'AUTHORITATIVE_RECONCILIATION_REQUIRED');
   const child = await custody.readChild('supply');
   const safe = failureSchema.parse(receipt);
   insist(safe.operation_id === child.child.operation_id && safe.parent_delegation_id === custody.parent.delegation_id &&
@@ -1233,7 +1325,7 @@ function verifyOuterInputs(manifest:Json, processInfo:Json) {
     manifest.files.some((file:Json)=>file.path===manifest.entrypoints.node && file.sha256===inputs.node.sha256) &&
     manifest.files.some((file:Json)=>file.path==='dist/scripts/supply-mcp-conversation-pilot-v1.js' && file.sha256===inputs.supply_module.sha256),'OUTER_ARTIFACT_INPUT_MISMATCH');
 }
-function verifyProducer(parent: PilotParent, intent: Json, authentication: Json, producer: Json, manifest: Json) {
+function verifyProducer(parent: PilotParent, intent: Json, authentication: Json, producer: Json, manifest: Json, live=true) {
   const producerSchema = z.object({ schema_version: z.literal(2), delegation_id: uuid, load_operation_id:uuid, receiver_start_nonce: nonceSchema,
     process: z.object({ pid: z.number().int().positive(), uid: z.literal(0), gid: z.literal(0), start_sec: z.number().int().nonnegative(),
       start_usec: z.number().int().nonnegative(), executable: z.string(), argv: z.array(z.string()).min(2).max(6) }).strict(), executable_digest: sha,
@@ -1252,7 +1344,7 @@ function verifyProducer(parent: PilotParent, intent: Json, authentication: Json,
     authentication.receiver_start_nonce === producer.receiver_start_nonce && authentication.receiver_source_commit === parent.source_commit &&
     producer.source_commit === parent.source_commit && producer.artifact_digest === parent.artifact_digest && equal(authentication.account, parent.account) &&
     authentication.authenticated_at === parent.issued_at && Date.parse(authentication.authenticated_at) <= Date.parse(authentication.deadline) &&
-    equal(measureProducer(producer.process.pid), producer.process), 'NATIVE_ORIGIN_CHAIN_INVALID');
+    (!live || equal(measureProducer(producer.process.pid), producer.process)), 'NATIVE_ORIGIN_CHAIN_INVALID');
   const base = '/Library/Application Support/auth-service/mcp-pilot-v2/releases/' + parent.artifact_digest;
   insist(manifest.artifact_digest === parent.artifact_digest && digest(Object.fromEntries(Object.entries(manifest).filter(([k])=>k!=='artifact_digest'))) === parent.artifact_digest &&
     typeof manifest.entrypoints?.outer_launcher === 'string' && !manifest.entrypoints.outer_launcher.includes('..') && !manifest.entrypoints.outer_launcher.startsWith('/'), 'OUTER_MANIFEST_INVALID');
@@ -1272,12 +1364,20 @@ export function preparePilotCoordinates(): PilotPreparation {
     expiresAt:new Date(created+3600000).toISOString(),preimageDirectory:join(custodyRoot,delegationId,loadOperationId,'preimage')});
   pilotPreparations.add(prepared);return prepared;
 }
+/** Reservation identity only; does not authenticate, touch custody or issue effects. */
+export function validatePilotPreparation(preparation:PilotPreparation):void {
+  insist(pilotPreparations.has(preparation) && Object.isFrozen(preparation),'ORIGINAL_PREPARATION_REQUIRED');
+  const created=Date.parse(preparation.createdAt),expires=Date.parse(preparation.expiresAt);
+  insist(uuid.safeParse(preparation.delegationId).success && uuid.safeParse(preparation.loadOperationId).success && nonceSchema.safeParse(preparation.parentNonce).success &&
+    Number.isFinite(created) && created<=Date.now() && expires> Date.now() && expires<=created+3600000 &&
+    preparation.preimageDirectory===join(custodyRoot,preparation.delegationId,preparation.loadOperationId,'preimage'),'PREPARATION_BINDING_INVALID');
+}
 /** Called only by the original outer executor after its artifact/plan preparation.
  * This runs a REAL native prompt; conformance never calls this success path. */
 export async function authenticatePilot(input: Omit<z.infer<typeof intentSchema>, 'delegation_id' | 'parent_nonce'>, measuredManifest: unknown, preparation: PilotPreparation): Promise<PilotCustody> {
   insist(process.platform === 'darwin' && process.getuid?.() === 0, 'NATIVE_ACTOR_REQUIRED');
   insist(!Object.entries(process.env).some(([key,value])=>value && (/^DYLD_/.test(key) || ['NODE_OPTIONS','NODE_PATH','LD_PRELOAD','PYTHONPATH','PYTHONHOME'].includes(key))), 'NATIVE_ENV_INJECTION');
-  insist(pilotPreparations.has(preparation),'ORIGINAL_PREPARATION_REQUIRED');
+  validatePilotPreparation(preparation);
   const created = Date.now();
   insist(input.expires_at===preparation.expiresAt && Date.parse(preparation.expiresAt)<=Date.parse(preparation.createdAt)+3600000,'PREPARATION_EXPIRY_INVALID');
   const intent = intentSchema.parse({ ...input, delegation_id: preparation.delegationId, parent_nonce: preparation.parentNonce });
@@ -1340,11 +1440,12 @@ export async function authenticatePilot(input: Omit<z.infer<typeof intentSchema>
     'delegation.json': canonical(parent), 'producer.json': canonical(producer), 'artifact-manifest.json': canonical(manifest) } });
   return buildCustody(parent, intent, authentication, producer, manifest);
 }
-function buildCustody(parent: PilotParent, intent: Json, authentication: Json, producer: Json, manifest: Json): PilotCustody {
+function buildCustody(parent: PilotParent, intent: Json, authentication: Json, producer: Json, manifest: Json, readonly=false): PilotCustody {
   const parentDigest = digest(parent);
   async function validate(live = true) {
     const records = custodyCall(parent.delegation_id, 'read-parent');
-    verifyProducer(parent, intent, authentication, producer, manifest);
+    insist(!live || !readonly,'READONLY_CUSTODY');
+    verifyProducer(parent, intent, authentication, producer, manifest,!readonly);
     insist(records['intent.json'] === canonical(intent) && records['authentication.json'] === canonical(authentication) && records['delegation.json'] === canonical(parent) && records['producer.json'] === canonical(producer) && records['artifact-manifest.json'] === canonical(manifest), 'NATIVE_ORIGIN_CHAIN_CHANGED');
     if (live) insist(!records.revoked && Date.now() < Date.parse(parent.expires_at), 'PARENT_EXPIRED_OR_REVOKED');
   }
@@ -1358,6 +1459,8 @@ function buildCustody(parent: PilotParent, intent: Json, authentication: Json, p
       child.source_commit === parent.source_commit && child.artifact_digest === parent.artifact_digest && child.plan_digest === plan.plan_digest &&
       claim.child_digest === digest(child) && claim.operation_id === child.operation_id && claim.capability === capability &&
       claim.parent_delegation_id === parent.delegation_id && claim.expires_at === child.expires_at && claim.parent_delegation_digest === parentDigest && claim.plan_digest === child.plan_digest && claim.approval_nonce === child.approval_nonce, 'CHILD_CHAIN_INVALID');
+    const history=stages(capability);insist(history.rows[0]?.stage==='ISSUED' && history.rows[0]?.evidence_digest===digest(child),'CHILD_ISSUANCE_UNPROVEN');
+    insist(equal(osCall({root:FIXED.escrow,destination:FIXED.destination,uid:FIXED.uid,gid:FIXED.gid},child,'capability-read',{capability}).value,claim),'GLOBAL_CLAIM_MISMATCH');
     return { child, plan, childDigest: digest(child), operationDirectory: join(custodyRoot, parent.delegation_id, child.operation_id) };
   }
   function stages(capability: PilotCapability) {
@@ -1368,14 +1471,16 @@ function buildCustody(parent: PilotParent, intent: Json, authentication: Json, p
     return { rows, last: previous };
   }
   async function appendStage(capability: PilotCapability, stage: string, evidenceDigest: string) {
+    insist(!readonly,'READONLY_CUSTODY');
     insist(['ATTEMPT_STARTED', 'COMMIT_REQUESTED', 'COMMITTED', 'OUTCOME_UNKNOWN', 'STOPPED', 'ALIGNED', 'RECOVERED', 'REFUSED'].includes(stage), 'INVALID_CUSTODY_STAGE'); sha.parse(evidenceDigest);
     const old = stages(capability); insist(!['COMMITTED', 'OUTCOME_UNKNOWN', 'RECOVERED', 'REFUSED'].includes(old.rows.at(-1)?.stage), 'TERMINAL_STAGE_IMMUTABLE');
     const record = { schema_version: 2, parent_delegation_id: parent.delegation_id, capability, stage, evidence_digest: evidenceDigest,
       previous_digest: old.last, observed_at: new Date().toISOString() };
     custodyCall(parent.delegation_id, 'append', { capability, record: canonical(record) });
   }
-  const custody: PilotCustody = { parent: Object.freeze(parent), parentDigest, producerDigest: digest(producer), plannedLoadOperationId:producer.load_operation_id, readChild,
+  const custody: PilotCustody = { parent: Object.freeze(parent), parentDigest, producerDigest: digest(producer), producerStartNonce:producer.receiver_start_nonce, plannedLoadOperationId:producer.load_operation_id, readChild,
     async allocate(capability, plan, dependencyRecord) {
+      insist(!readonly,'READONLY_CUSTODY');
       capabilitySchema.parse(capability); const lock = await parentControl(parent.delegation_id);
       try { lock.assertHeld(); await validate();
         if (capability === 'candidate-load') insist(plan.load_operation_id === custodyCall(parent.delegation_id,'read-window').load_operation_id, 'LOAD_OPERATION_RESERVATION_MISMATCH');
@@ -1398,19 +1503,23 @@ function buildCustody(parent: PilotParent, intent: Json, authentication: Json, p
           operation_id: child.operation_id, plan_digest: child.plan_digest, approval_nonce: child.approval_nonce, child_digest: digest(child), actor_ref: parent.executor_ref,
           allocated_at: new Date().toISOString(), expires_at: child.expires_at };
         const issued = { schema_version: 2, parent_delegation_id: parent.delegation_id, capability, stage: 'ISSUED', evidence_digest: digest(child), previous_digest: parentDigest, observed_at: claim.allocated_at };
+        originalCapability(custody,'capability-reserve',claim);
         custodyCall(parent.delegation_id, 'allocate', { capability, operation: child.operation_id, claim: canonical(claim), records:
           { 'mandate.json': canonical(child), 'plan.json': canonical(plan), 'stages.jsonl': canonical(issued) + '\n', 'dependencies.json': canonical(dependencyRecord ?? (capability === 'candidate-load' ? { schema_version:2, plan_digest:child.plan_digest } : custodyCall(parent.delegation_id,'read-dependencies',{operation:child.operation_id}))) } });
         return readChild(capability);
       } finally { await lock.release(); }
     },
     async admit(capability, planDigest) {
+      insist(!readonly,'READONLY_CUSTODY');
       const lock = await parentControl(parent.delegation_id);
       try { await validate(); const { child } = await readChild(capability);
         insist(child.plan_digest === planDigest && Date.now() < Date.parse(child.expires_at) && stages(capability).rows.length === 1 && stages(capability).rows[0].stage === 'ISSUED', 'CHILD_ATTEMPT_SPENT');
+        const claim=custodyCall(parent.delegation_id,'read-child',{capability}).claim;
+        originalCapability(custody,'capability-read',claim);
         lock.assertHeld(); await appendStage(capability, 'ATTEMPT_STARTED', planDigest); return lock;
       } catch (e) { await lock.release(); throw e; }
     }, appendStage,
-    async revoke(reason) { insist(['EXECUTOR_STOP', 'INTEGRITY_FAILURE'].includes(reason), 'INVALID_REVOKE_REASON'); const lock = await parentControl(parent.delegation_id);
+    async revoke(reason) { insist(!readonly,'READONLY_CUSTODY'); insist(['EXECUTOR_STOP', 'INTEGRITY_FAILURE'].includes(reason), 'INVALID_REVOKE_REASON'); const lock = await parentControl(parent.delegation_id);
       try { await validate(false); const claimNames=custodyCall(parent.delegation_id,'read-parent').claim_names as string[];
         const last=claimNames.map(name=>{insist(name.endsWith('.json') && PILOT_CAPABILITIES.includes(name.slice(0,-5) as PilotCapability),'CLAIM_NAME_INVALID');return stages(name.slice(0,-5) as PilotCapability).rows.at(-1)!;}).sort((a,b)=>a.observed_at.localeCompare(b.observed_at)).at(-1);
         custodyCall(parent.delegation_id, 'revoke', { record: canonical({ schema_version: 2, parent_delegation_id: parent.delegation_id,
@@ -1418,7 +1527,7 @@ function buildCustody(parent: PilotParent, intent: Json, authentication: Json, p
       finally { await lock.release(); }
     },
   };
-  liveCustodies.set(parent.delegation_id, custody); return custody;
+  if(readonly) readonlyCustodies.add(custody); else liveCustodies.set(parent.delegation_id, custody); return custody;
 }
 export function validateDependencyWitness(value: unknown, parent: PilotParent, request: Request, kind: 'stop' | 'alignment' | 'transport') {
   const witness = z.object({ schema_version: z.literal(2), parent_delegation_id: uuid, operation_id: uuid,
@@ -1434,6 +1543,23 @@ export function validateDependencyWitness(value: unknown, parent: PilotParent, r
     Date.parse(witness.valid_until) <= Date.parse(request.expires_at), 'DEPENDENCY_WITNESS_INVALID');
   return witness;
 }
+/** Compare only actual newly measured time evidence; frozen projection/receipt/actor/window cannot change. */
+export function validateWitnessRefresh(original:Json,fresh:Json,parent:PilotParent,request:Request):Json {
+  const next=validateDependencyWitness(fresh,parent,request,request.phase==='supply'?'alignment':'stop');
+  const frozen=(v:Json)=>Object.fromEntries(Object.entries(v).filter(([k])=>!['observed_at','valid_until'].includes(k)));
+  insist(equal(frozen(original),frozen(next)) && Date.parse(next.observed_at)>=Date.parse(original.observed_at),'WITNESS_PROJECTION_DRIFT');
+  return next;
+}
+export async function refreshPilotWitness(custody:PilotCustody,request:Request,measure:()=>Promise<Json>):Promise<void> {
+  insist(liveCustodies.get(custody.parent.delegation_id)===custody && !readonlyCustodies.has(custody),'ORIGINAL_WINDOW_OWNER_REQUIRED');
+  const window=await verifyPilotWindow(custody);window.assertHeld();
+  const old=custodyCall(custody.parent.delegation_id,'read-dependencies',{operation:request.operation_id});
+  insist(old.producer_digest===custody.producerDigest && old.operation_id===request.operation_id,'DEPENDENCY_ORIGIN_INVALID');
+  const fresh=validateWitnessRefresh(old.witness,await measure(),custody.parent,request);
+  insist(fresh.window_id===window.windowId && fresh.producer_start_nonce===custody.producerStartNonce,'WINDOW_WITNESS_MISMATCH');
+  const lock=await parentControl(custody.parent.delegation_id);
+  try{lock.assertHeld();window.assertHeld();custodyCall(custody.parent.delegation_id,'witness-append',{operation:request.operation_id,record:canonical(fresh)});}finally{await lock.release();}
+}
 export async function cli(args: string[], stdin: string): Promise<Json> {
   let q: Request | undefined;
   try {
@@ -1441,12 +1567,14 @@ export async function cli(args: string[], stdin: string): Promise<Json> {
     insist(['registry', 'registry-disable', 'registry-migrate-agent-v1', 'registry-disable-migrated', 'supply'].includes(phase) && ['plan', 'apply', 'verify', 'reconcile', 'recover-delivery'].includes(action) &&
       (action !== 'recover-delivery' || phase === 'supply'), 'INVALID_ACTION');
     const recovery = (parseClosedJson(stdin) as Json)?.phase === 'recover-delivery' ? parseRecoveryRequest(stdin) : undefined;
-    if(recovery) { insist(phase==='supply' && ['plan','recover-delivery','verify','reconcile'].includes(action),'PHASE_MISMATCH'); const owner=await openPilotCustody(recovery.parent_delegation_id); const original=await owner.readChild('supply'); q=parseRequest(JSON.stringify({...original.plan.request,approval_digest:original.childDigest})); }
+    if(recovery) { insist(phase==='supply' && ['plan','recover-delivery','verify','reconcile'].includes(action),'PHASE_MISMATCH'); const owner=await openPilotCustody(recovery.parent_delegation_id,['verify','reconcile'].includes(action)?'reconcile':'live'); const original=await owner.readChild('supply'); q=parseRequest(JSON.stringify({...original.plan.request,approval_digest:original.childDigest})); }
     else { q = parseRequest(stdin); insist(q.phase === phase, 'PHASE_MISMATCH'); }
     insist(q.environment === 'production', 'PRODUCTION_COORDINATES_REQUIRED');
-    const custody = await openPilotCustody(q.parent_delegation_id);
-    const window = await verifyPilotWindow(custody); window.assertHeld();
+    const readonly=['verify','reconcile'].includes(action);
+    const custody = await openPilotCustody(q.parent_delegation_id,readonly?'reconcile':'live');
+    const window = readonly ? undefined : await verifyPilotWindow(custody); window?.assertHeld();
     insist(custody.parentDigest === q.parent_delegation_digest, 'PARENT_REQUEST_MISMATCH');
+    if(readonly){const recorded=await custody.readChild(q.phase as PilotCapability);insist(equal(q,{...recorded.plan.request,approval_digest:recorded.childDigest}),'RECONCILIATION_REQUEST_MISMATCH');}
     const loadOperation = custodyCall(custody.parent.delegation_id,'read-window').load_operation_id;
     const privateConfig = join(custodyRoot,custody.parent.delegation_id,uuid.parse(loadOperation),'preimage/service.env');
     const configStat = lstatSync(privateConfig);
@@ -1465,13 +1593,14 @@ export async function cli(args: string[], stdin: string): Promise<Json> {
         insist(keysEqual(evidence, ['schema_version', 'parent_delegation_id', 'operation_id', 'producer_digest', 'dependencies', 'witness']) &&
           evidence.schema_version === 2 && evidence.parent_delegation_id === custody.parent.delegation_id && evidence.operation_id === request.operation_id &&
           evidence.producer_digest === custody.producerDigest, 'DEPENDENCY_ORIGIN_INVALID');
-        const witness = validateDependencyWitness(evidence.witness, custody.parent, request, request.phase === 'supply' ? 'alignment' : 'stop');
-        window.assertHeld(); insist(witness.window_id === window.windowId, 'WINDOW_WITNESS_MISMATCH');
+        const rows=custodyCall(custody.parent.delegation_id,'witness-read',{operation:request.operation_id}) as unknown as Json[];
+        const witness=validateWitnessRefresh(evidence.witness,rows.at(-1)??evidence.witness,custody.parent,request);
+        window?.assertHeld(); insist(witness.window_id === window?.windowId && witness.producer_start_nonce===custody.producerStartNonce, 'WINDOW_WITNESS_MISMATCH');
         return dependenciesSchema.parse(evidence.dependencies);
       } });
     try { const child = action === 'apply' ? await custody.readChild(q.phase as PilotCapability) : action==='recover-delivery' ? await custody.readChild('recover-delivery') : undefined; return await vehicle.run(recovery ? stdin : q, action as Action, child?.plan); }
     finally { await vehicle.close(); }
-  } catch (e) { return validatePublicOutput(failure(q, 'admission', e instanceof Refusal ? e.category : 'UNEXPECTED_FAILURE')); }
+  } catch (e) { return validatePublicOutput(failure(q, 'admission', e instanceof Refusal ? e.category : 'UNEXPECTED_FAILURE',false,['verify','reconcile'].includes(args[1])?'OUTCOME_UNKNOWN':'REFUSED')); }
 }
 if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   const result = await cli(process.argv.slice(2), readFileSync(0, 'utf8'));
