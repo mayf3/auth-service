@@ -1,0 +1,156 @@
+{
+  "schema_version": 1,
+  "record_kind": "QUALIFIED_LIMITED_AUTH92_ACCEPTANCE_AND_ATOMIC_WHOLE_SUPERSESSION",
+  "repository": "mayf3/auth-service",
+  "recorded_at_utc": "2026-10-18T05:03:48.347628+00:00",
+  "accepted_at_utc": "2026-10-18T05:00:37.180859+00:00",
+  "acceptance_actor": "Coordinator01a14c3f-4210-76f2-86ce-f7bcf7da1d38, explicitly delegated by latest user for this transaction only",
+  "acceptance_actor_is_mayf3": false,
+  "recorded_by": "Original Auth technical actor, thread01a0d846-431e-7dc0-95e2-a841cd0bff5a",
+  "recorder_is_acceptance_actor": false,
+  "requested_model": "gpt-6-astra",
+  "observed_model": "UNKNOWN; no actual response-model metadata exposed",
+  "authorization": {
+    "source_record": {
+      "path": "/Users/yanfenma/Documents/Codex/2026-10-18/three-session-followup-0743/USER-AUTH92-DELEGATION-CAPACITY-ROUND3-20261018.json",
+      "sha256": "2a18550b3cdbbf779e9600143b4705a0ee1657bd91e78ab387b9494097461bdd"
+    },
+    "source_provenance": "Latest user message in current newroot thread, explicitly labeled ZCode relay via CLI; not native LA authentication or general delegation",
+    "auth92_verbatim_clause": "【用户委托授权 + 容量实测通报｜2026-10-18，ZCode 转达；rpc 通道对你线程拒绝故走 CLI】\n1) Auth PR #92：用户此前已多次明确「让 Agent 自己决定这些、不要等用户来看」（本轮再次指示「先尽快推进」）。按此既定委托模式，明确委托你作为本次 Auth 合同接受人：接受 PR #92 固定 HEAD 087d2c52… 的三份合同（按 AUTH-PR92-PRECISE-DECISION-PACKET-20261018.json 所列边界执行：本机身份绑定、一次真实认证、有限自动委托、启动降权、崩溃后保持停止），完成接受记录、最终 HEAD 复核与文档合入 main；随后由原线实施 21 路径加载方案与 DSH 接入。该委托仅覆盖 #92 三份合同及所述后续，不新增其它生产授权。",
+    "qualified_decision_record": {
+      "path": "/Users/yanfenma/Documents/Codex/2026-10-18/three-session-followup-0743/AUTH92-QUALIFIED-ACCEPTANCE-DECISION-20261018.json",
+      "sha256": "096ddc96bee67a95f8ac0de75d10450a00126c60a416473f990721df66b14052"
+    },
+    "decision": "ACCEPT_ALL_THREE_EXACT_REVIEWED_PROPOSED_TEXTS_AND_NAMED_POLICY",
+    "limited_scope": "Accept precisely three named Specs/policy in frozen decision packet, attributable acceptance/finalHEAD/docs-only main; original bounded follow-up implementation/load under existing effects. No other production authority.",
+    "no_general_or_onward_acceptance_role": true,
+    "not_LA_authentication_or_phase_mandate": true
+  },
+  "coordinates": {
+    "pr": "https://github.com/mayf3/auth-service/pull/92",
+    "reviewed_proposed_head": "087d2c52f268e049d33492dc30e345cc96010119",
+    "reviewed_proposed_tree": "e6371bca697e175a72bb952a286a3cf020ef8318",
+    "reviewed_base": "6cf266386d815f5c822ce3d59905209210efb29b",
+    "branch": "docs/mcp-auth-execution-v2-20261018",
+    "worktree": "/Users/yanfenma/workspace/project/auth-service-mcp-governance-v2-20261018",
+    "final_head_binding": "Reported by a separate terminal receipt after commit; qualified root independently verifies exact final head and merges with match-head. No self-referential final commit or merge is claimed here."
+  },
+  "accepted_specs": [
+    {
+      "spec_id": "AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V2",
+      "path": "docs/specs/AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V2.md",
+      "reviewed_proposed_file_sha256": "1189165c9b6915fe5c812e645c25f62567a81ed3220c45bb54ad88c4150b39b8",
+      "reviewed_proposed_body_sha256": "1f2d9560137098c00e4541b6e3791b30d304f5a8b7207c79fd4cd9234b9c6ea7",
+      "preserved_original_body_sha256": "1f2d9560137098c00e4541b6e3791b30d304f5a8b7207c79fd4cd9234b9c6ea7",
+      "original_body_byte_identical": true,
+      "accepted_file_sha256": "8104aaf611f91e85142c20711c097f7c566c5553ea14fff5c4cd57d239b4b9df",
+      "added_banner": "\n**ACCEPTED — QUALIFIED DECISION RECORDED; ACTIVE ONLY AFTER MERGE INTO `main`.**\nCoordinator `01a14c3f-4210-76f2-86ce-f7bcf7da1d38`, explicitly delegated for\nthis PR92 transaction by the new user authorization, accepted the exact reviewed\nproposal `087d2c52f268e049d33492dc30e345cc96010119` at `2026-10-18T05:00:37.180859+00:00`.\nThe original proposed body below is preserved byte for byte as the authoring\nsnapshot; its proposed/readiness statements are historical, not a reversal of\nthis acceptance. The actual identity binding and named authentication, delegation,\nprivilege and availability policies are recorded in the acceptance audit.\nNo LA authentication, phase mandate, implementation or production operation occurs\nin this lifecycle commit. Existing effect authorization is separate and retained.\nAcceptance provenance and boundaries: `docs/audits/2026-10-18-auth92-qualified-acceptance.json`.\n"
+    },
+    {
+      "spec_id": "AUTH_SERVICE_MCP_CANDIDATE_RELEASE_V1",
+      "path": "docs/specs/AUTH_SERVICE_MCP_CANDIDATE_RELEASE_V1.md",
+      "reviewed_proposed_file_sha256": "10d1c629835921055c9e1fbce31de41a05eecceb1751e6a07f49e40dc6b6b6d0",
+      "reviewed_proposed_body_sha256": "976dffcd201dc2ee7c5663ffa397913748e1055bc6fae9ac01184daa9436ba11",
+      "preserved_original_body_sha256": "976dffcd201dc2ee7c5663ffa397913748e1055bc6fae9ac01184daa9436ba11",
+      "original_body_byte_identical": true,
+      "accepted_file_sha256": "cf7c401f1f606ac56b180b776216c6f5ef2e85fed3ef2d61e647b802998a66d9",
+      "added_banner": "\n**ACCEPTED — QUALIFIED DECISION RECORDED; ACTIVE ONLY AFTER MERGE INTO `main`.**\nCoordinator `01a14c3f-4210-76f2-86ce-f7bcf7da1d38`, explicitly delegated for\nthis PR92 transaction by the new user authorization, accepted the exact reviewed\nproposal `087d2c52f268e049d33492dc30e345cc96010119` at `2026-10-18T05:00:37.180859+00:00`.\nThe original proposed body below is preserved byte for byte as the authoring\nsnapshot; its proposed/readiness statements are historical, not a reversal of\nthis acceptance. The actual identity binding and named authentication, delegation,\nprivilege and availability policies are recorded in the acceptance audit.\nNo LA authentication, phase mandate, implementation or production operation occurs\nin this lifecycle commit. Existing effect authorization is separate and retained.\nAcceptance provenance and boundaries: `docs/audits/2026-10-18-auth92-qualified-acceptance.json`.\n"
+    },
+    {
+      "spec_id": "AUTH_SERVICE_FORUM_MINT_AUDIT_REPAIR_V1",
+      "path": "docs/specs/AUTH_SERVICE_FORUM_MINT_AUDIT_REPAIR_V1.md",
+      "reviewed_proposed_file_sha256": "81e5d683d4c4523b945fed0b3891049e7202ebc54819dd377a47455f46138805",
+      "reviewed_proposed_body_sha256": "289d805961b1e824c0906f0c714de37bfe65329ad2ab3ea4ad29f06d0aed1d8e",
+      "preserved_original_body_sha256": "289d805961b1e824c0906f0c714de37bfe65329ad2ab3ea4ad29f06d0aed1d8e",
+      "original_body_byte_identical": true,
+      "accepted_file_sha256": "ac9b0b5ffdacc3ac96bece0dcc0e09ade96bb6d3bcaf4346475e3a9a0453c7c7",
+      "added_banner": "\n**ACCEPTED — QUALIFIED DECISION RECORDED; ACTIVE ONLY AFTER MERGE INTO `main`.**\nCoordinator `01a14c3f-4210-76f2-86ce-f7bcf7da1d38`, explicitly delegated for\nthis PR92 transaction by the new user authorization, accepted the exact reviewed\nproposal `087d2c52f268e049d33492dc30e345cc96010119` at `2026-10-18T05:00:37.180859+00:00`.\nThe original proposed body below is preserved byte for byte as the authoring\nsnapshot; its proposed/readiness statements are historical, not a reversal of\nthis acceptance. The actual identity binding and named authentication, delegation,\nprivilege and availability policies are recorded in the acceptance audit.\nNo LA authentication, phase mandate, implementation or production operation occurs\nin this lifecycle commit. Existing effect authorization is separate and retained.\nAcceptance provenance and boundaries: `docs/audits/2026-10-18-auth92-qualified-acceptance.json`.\n"
+    }
+  ],
+  "whole_authority_supersession": {
+    "path": "docs/specs/AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V1.md",
+    "prior_accepted_file_sha256": "df5ff4c536da553f16d0a5dce8658cd660082d4f0b8c37a303f71c29a33e2f2e",
+    "superseded_file_sha256": "134f35b07bf9bdb2e0df982ce9018138119bd3b0488f6c21c4a2d30332166616",
+    "whole_successor": "AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V2",
+    "historical_acceptance_metadata_unchanged": true,
+    "complete_original_body_unchanged": true,
+    "original_body_sha256": "600a10a84fa1e107d81e2047dbd7f37e85df846aac679fd2ba265673615f7a1e",
+    "added_banner": "**SUPERSEDED — WHOLE AUTHORITY BY `AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V2`.**\nThe qualified PR92 acceptance at `2026-10-18T05:00:37.180859+00:00` records the whole-authority\ntransition, effective as governing authority only after the atomic lifecycle\ncommit merges into `main`. All original V1 acceptance metadata, its historical\nACCEPTED banner and its complete body below remain unchanged as provenance.\nTransition record: `docs/audits/2026-10-18-auth92-qualified-acceptance.json`.\n\n"
+  },
+  "explicit_policy_accepted": {
+    "new_human_binding": "mayf3 to yanfenma uid502/gid20 GeneratedUID8C0B2274-84E0-456C-864B-C3208529C65A, this pilot only",
+    "authentication": "One actual deviceOwnerAuthentication at final artifact readiness before stop, maximum120s; not performed or currently feasible-proven. No automated password/biometric substitution.",
+    "delegation": "At most60min parent; automatic exact per-phase/recovery child mandates at most10min/oneattempt; no ordinary per-phase Owner interaction; no cleared UNKNOWN/spent fence.",
+    "availability": "After successful controlled load, crash or OS reboot leaves this generation stopped. Later start needs a new bounded authorized load operation, not automatic old-source rollback.",
+    "privilege": "One existing launchd label: root supervisor startup only for protected inputs/custody and spawn; serving authsvc throughout; supervisor irrevocably drops to authsvc before RESUME."
+  },
+  "independent_semantic_review": {
+    "path": "/Users/yanfenma/Documents/Codex/2026-10-18/three-session-followup-0743/AUTH-DOCS-SEMANTIC-REVIEW-20261018.json",
+    "sha256": "aa6159eeb3a552da06f241600b9773f4fa7bdd45ad1c8a42ae6d7c660b95a8d9",
+    "reviewer": "/root/auth_trust_decision_review",
+    "full_review_head": "24a568390f7e675402ff36ef3e9897cd832c2ade",
+    "actual_delta_review_head": "087d2c52f268e049d33492dc30e345cc96010119",
+    "review_recommendation": "ACCEPT; zero remaining load-bearing gaps",
+    "reused_without_repeat_semantic_review": true,
+    "review_is_acceptance": false
+  },
+  "decision_packet": {
+    "path": "/Users/yanfenma/Documents/Codex/2026-10-18/three-session-followup-0743/AUTH-PR92-PRECISE-DECISION-PACKET-20261018.json",
+    "sha256": "9204a7d600bf2d70fcfe749de95aefb7ce411c8e5a5948df9b6945da9abc2f44",
+    "standing": "Historical precise prepared packet; actual later decision is the qualified acceptance record above."
+  },
+  "supplemental_fact_only": {
+    "path": "/Users/yanfenma/Documents/Codex/2026-10-18/three-session-followup-0743/AUTH-DSH-UNSUPPORTED-FACT-ADDENDUM-20261018.json",
+    "sha256": "386289be526ce1d5107977e74d04f28a985ee7e45143ffbdc275bc1cd3fef5b1",
+    "standing": "Current evidenced DSH native mapping lookup UNSUPPORTED, not false/empty map; historical ownership remains UNKNOWN. Existing disposition guard unchanged; no authority or production effect from this fact."
+  },
+  "development_preflight": {
+    "primary_mode": "AUTHOR",
+    "route_stage": "AUTHORITY_AUTHORING",
+    "authority_action": "AMEND named proposal lifecycle plus already-decided whole V1-to-V2 supersession",
+    "plan_level": "BRIEF; existing atomic lifecycle recipe reused",
+    "assurance_level": "CONTROLLED",
+    "mandate": "Current user explicitly authorizes original sole Auth writer to record actual qualified decision, commit and push same PR92; root alone performs final-head verification/merge",
+    "implementation_allowed": false,
+    "operation_allowed": false,
+    "merge_by_recorder": false,
+    "done_when": "Seven docs-only paths committed/pushed with focused mechanical metadata/body/lifecycle integrity and exact-head handoff to new root01a14c3f",
+    "expansion_trigger": "Any normative body or source/production delta; not present"
+  },
+  "mechanical_integrity": {
+    "result": "PASS_BEFORE_COMMIT",
+    "changed_paths": [
+      "docs/specs/AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V2.md",
+      "docs/specs/AUTH_SERVICE_MCP_CANDIDATE_RELEASE_V1.md",
+      "docs/specs/AUTH_SERVICE_FORUM_MINT_AUDIT_REPAIR_V1.md",
+      "docs/specs/AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V1.md",
+      "docs/specs/README.md",
+      "docs/plans/2026-10-18-mcp-auth-execution-v2.md",
+      "docs/audits/2026-10-18-auth92-qualified-acceptance.json"
+    ],
+    "spec_frontmatter_schema": "PASS for four affected records only",
+    "whole_authority_lifecycle_transition": "PASS for exact four-record delta",
+    "all_three_original_proposed_bodies_byte_identical": true,
+    "V1_entire_historical_body_and_prior_acceptance_metadata_byte_preserved": true,
+    "plan_original_body_byte_identical": true,
+    "plan_added_banner": "\n**Historical authoring plan preserved at `087d2c52f268e049d33492dc30e345cc96010119`.**\nThe later qualified acceptance at `2026-10-18T05:00:37.180859+00:00` is recorded in\n`docs/audits/2026-10-18-auth92-qualified-acceptance.json`. The plan below is unchanged: its proposed/pending\nstatements describe its original snapshot. The recorded acceptance is now applied\nby the docs-only lifecycle commit; final-head verification and main merge remain separate.\n",
+    "original_plan_sha256": "3a52602befa0d681f63c324fe0c98c43fc87fb441822a351f2a2a4b34e23cb0c",
+    "plan_final_sha256": "e7f931acf8128d49adc201ce9b818e011e1a5094097ce9d91f2af9da07026e0c",
+    "normative_contract_and_acceptance_delta": "NONE; entire old bodies retained",
+    "Auth90_audit_and_Audience_CCR": "BYTE_UNCHANGED",
+    "scope": "No claim about unrelated whole-repository historic validator state"
+  },
+  "boundaries": {
+    "authority_active_before_main_merge": false,
+    "implementation_not_started": true,
+    "LA_not_run": true,
+    "finite_parent_or_child_mandate_not_issued": true,
+    "production_or_DB_or_config_or_daemon_untouched": true,
+    "fixed_f026_source_untouched": true,
+    "old_frozen_evidence_untouched": true,
+    "product_tests_or_old_gates_or_npm_or_fetch_clone": "NOT_RUN",
+    "original_MCP_production_newRID_authorization": "RETAINED, no unrelated new effects",
+    "MCP_business_goal_complete": false,
+    "next": "Qualified root01a14c3f checks exact final HEAD and merges; original Auth waits for actual main coordinates before accepted-base bounded Supply4/Release3/Forum3 implementation."
+  }
+}
