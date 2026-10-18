@@ -392,7 +392,7 @@ const audienceIds = registry.audiences.map((audience) => audience.audience_id);
 const audienceById = new Map(registry.audiences.map((audience) => [audience.audience_id, audience]));
 check(new Set(audienceIds).size === audienceIds.length, 'registry: duplicate Audience ID');
 check([...audienceIds].sort(asciiCompare).join('\0')
-  === ['adc-v2', 'agent-core-notification-ingress-v1', 'agent-directory', 'agent-principal-resolution', 'agent-session-messaging', 'identity-directory', 'life-workbench', 'scheduler', 'svc-auth', 'svc-forum', 'svc-okr', 'svc-workflow'].sort(asciiCompare).join('\0'), 'registry: first-wave Audience set changed');
+  === ['adc-v2', 'agent-core-mcp-conversation-v1', 'agent-core-notification-ingress-v1', 'agent-directory', 'agent-principal-resolution', 'agent-session-messaging', 'identity-directory', 'life-workbench', 'scheduler', 'svc-auth', 'svc-forum', 'svc-okr', 'svc-workflow'].sort(asciiCompare).join('\0'), 'registry: first-wave Audience set changed');
 check(!audienceIds.includes('agent-forum'), 'registry: repository name agent-forum cannot be a Wire Audience');
 check(!audienceIds.includes('workflow-todo'), 'registry: workflow-todo is a Client, not a resource Audience');
 for (const audience of registry.audiences) {
@@ -419,6 +419,25 @@ check(JSON.stringify(sessionMessagingAudience) === JSON.stringify({
   freeze_ready: true,
   notes: 'Registered by AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2 for canonical send and independently granted caller-owned exact-turn inspection consumed by dsh-agent-core AGENT_CORE_AGENT_SESSION_MESSAGING_V2.',
 }), 'registry: agent-session-messaging V2 Audience changed');
+
+const mcpConversationAudience = audienceById.get('agent-core-mcp-conversation-v1');
+check(JSON.stringify(mcpConversationAudience) === JSON.stringify({
+  "audience_id": "agent-core-mcp-conversation-v1",
+  "resource_service": "agent-core-mcp-conversation-v1",
+  "scope_namespace": "conversation",
+  "accepted_principal_types": [
+    "service"
+  ],
+  "human_access_enabled": false,
+  "machine_access_enabled": true,
+  "delegated_access_enabled": false,
+  "registered_scopes": [
+    "conversation.access"
+  ],
+  "status": "active",
+  "freeze_ready": true,
+  "notes": "Registered by AUTH_SERVICE_AGENT_CORE_MCP_CONVERSATION_AUDIENCE_CCR_V1 for one dedicated MCP SERVICE caller to the original DSH native conversation facade; no Human, Agent or delegated access."
+}), 'registry: MCP conversation SERVICE Audience changed');
 
 check(adcScopeMap.consumer_git_sha === 'ddeeab2ff394af64b78d9820c9e64d5bf0952ebd', 'ADC Scope map: unexpected consumer SHA');
 const adcAudience = audienceById.get(adcScopeMap.source_audience);
@@ -482,6 +501,17 @@ for (const [fixtureName, exactScope] of [
     && fixture?.authorization_context?.machine_access_grants?.['agent-session-messaging']?.join(' ') === exactScope,
   `session messaging V2: fixture ${fixtureName} does not prove exact independent scope issuance`);
 }
+const mcpFixture = positiveByName.get('direct-service-mcp-conversation');
+check(Boolean(mcpFixture), 'MCP conversation: missing signed SERVICE positive fixture');
+check(mcpFixture?.profile === 'direct_machine_access'
+  && mcpFixture?.claims?.principal_type === 'service'
+  && mcpFixture?.claims?.aud === 'agent-core-mcp-conversation-v1'
+  && mcpFixture?.claims?.scope === 'conversation.access'
+  && !('agent_id' in (mcpFixture?.claims ?? {}))
+  && mcpFixture?.authorization_context?.requested_scope === 'conversation.access'
+  && JSON.stringify(mcpFixture?.authorization_context?.machine_access_grants)
+    === JSON.stringify({ 'agent-core-mcp-conversation-v1': ['conversation.access'] }),
+'MCP conversation: positive fixture must prove the exact SERVICE profile and complete same-audience grant');
 
 for (const testCase of negative.cases) {
   const base = positiveByName.get(testCase.base_fixture);
@@ -521,6 +551,25 @@ for (const fixtureName of [
 ]) {
   check(negative.cases.some((entry) => entry.name === fixtureName),
     `session messaging V2: missing negative fixture ${fixtureName}`);
+}
+for (const [suffix, expectedError] of [
+  ['wrong-audience', 'UNKNOWN_AUDIENCE'],
+  ['missing-grant', 'INVALID_SCOPE_GRANT'],
+  ['agent-profile', 'AUDIENCE_PROFILE_NOT_ACCEPTED'],
+  ['human-profile', 'AUDIENCE_PROFILE_NOT_ACCEPTED'],
+  ['delegated-profile', 'AUDIENCE_PROFILE_NOT_ACCEPTED'],
+  ['forbidden-agent-id', 'PROFILE_FORBIDDEN_CLAIM'],
+  ['partial-scope-output', 'INVALID_SCOPE_NAMESPACE'],
+  ['notification-grant-reuse', 'INVALID_SCOPE_GRANT'],
+  ['workflow-grant-reuse', 'INVALID_SCOPE_GRANT'],
+  ...Array.from({ length: 10 }, (_, i) => [
+    `scope-${i}`,
+    [2, 3, 4, 6, 8, 9].includes(i) ? 'INVALID_SCOPE_WIRE' : 'INVALID_SCOPE_NAMESPACE',
+  ]),
+]) {
+  check(negative.cases.some((entry) => entry.name === `mcp-conversation-${suffix}`
+    && entry.expected_error === expectedError),
+  `MCP conversation: missing fail-closed fixture ${suffix}`);
 }
 
 for (const relativePath of [
