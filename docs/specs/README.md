@@ -107,7 +107,7 @@ V2 accepted 不等于 production effective，也不等于 PR #2 implementation a
 
 ## Proposed MCP conversation authority (2026-10-16)
 
-- `AUTH_SERVICE_AGENT_CORE_MCP_CONVERSATION_AUDIENCE_CCR_V1`: proposed; one SERVICE-only resource/scope and15-path registration source closure; not active/accepted, no production apply.
-- `AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V1`: proposed companion for bounded registry reconciliation and secure SERVICE supply/delivery; source and all operations remain blocked pending exact owning acceptance/merge and a separate operation mandate.
+- `AUTH_SERVICE_AGENT_CORE_MCP_CONVERSATION_AUDIENCE_CCR_V1`: accepted by the explicitly delegated `/root` coordinator on 2026-10-18 at reviewed proposal `c04599b301f3e757475bc20960992cb5d024106a`; one SERVICE-only resource/scope and15-path registration source closure; active source authority only after merge into main, no production apply. Acceptance: `docs/audits/2026-10-18-mcp-conversation-contract-acceptance.json`.
+- `AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V1`: accepted companion by the same delegated actor at the same reviewed proposal for bounded registry reconciliation and secure SERVICE supply/delivery; the exact three-file source closure and isolated validation become available only after merge into main; all production operations still require a separate mandate. Acceptance: `docs/audits/2026-10-18-mcp-conversation-contract-acceptance.json`.
 
 The website CCR and this MCP proposal remain independent; website1.13 source reservation is preserved, MCP currently proposes1.14 and does not add website entries.
