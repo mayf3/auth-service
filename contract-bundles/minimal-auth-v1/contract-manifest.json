@@ -1,13 +1,13 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
   "design_id": "MINIMAL_AUTH_FOUNDATION_V1",
-  "contract_version": "1.12.0",
+  "contract_version": "1.14.0",
   "lifecycle": {
     "contract_bundle_freeze": {
       "status": "frozen",
       "frozen": true,
       "implementation_authorized": true,
-      "reviewed_source_git_commit": "02bccd428554868125a65800f1334928c80543a2"
+      "reviewed_source_git_commit": "2717e6e12806b53df580d45a5a7a1ad1f849f955"
     },
     "production_deployment": {
       "status": "not_ready",
@@ -28,7 +28,7 @@
   },
   "exact_issuer": "auth-service",
   "token_version": "v1",
-  "audience_registry_version": "1.12.0",
+  "audience_registry_version": "1.14.0",
   "signing": {
     "algorithm": "RS256",
     "jwks_path": "/.well-known/jwks.json",

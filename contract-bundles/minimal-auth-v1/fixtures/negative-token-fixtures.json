@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.12.0",
+  "contract_version": "1.14.0",
   "cases": [
     {
       "name": "human-forbidden-scope",
@@ -813,6 +813,247 @@
         { "op": "set", "path": "/claims/aud", "value": "agent-principal-resolution" }
       ],
       "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "mcp-conversation-wrong-audience",
+      "base_fixture": "direct-service-mcp-conversation",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/aud",
+          "value": "cross-mcp-conversation"
+        }
+      ],
+      "expected_error": "UNKNOWN_AUDIENCE"
+    },
+    {
+      "name": "mcp-conversation-missing-grant",
+      "base_fixture": "direct-service-mcp-conversation",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/authorization_context/machine_access_grants/agent-core-mcp-conversation-v1",
+          "value": []
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "mcp-conversation-agent-profile",
+      "base_fixture": "direct-service-mcp-conversation",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/principal_type",
+          "value": "agent"
+        },
+        {
+          "op": "set",
+          "path": "/claims/agent_id",
+          "value": "mcp-test-agent"
+        }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "mcp-conversation-human-profile",
+      "base_fixture": "human-svc-okr",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/aud",
+          "value": "agent-core-mcp-conversation-v1"
+        }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "mcp-conversation-delegated-profile",
+      "base_fixture": "obo-adc-v2-to-svc-workflow",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/aud",
+          "value": "agent-core-mcp-conversation-v1"
+        }
+      ],
+      "expected_error": "AUDIENCE_PROFILE_NOT_ACCEPTED"
+    },
+    {
+      "name": "mcp-conversation-forbidden-agent-id",
+      "base_fixture": "direct-service-mcp-conversation",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/agent_id",
+          "value": "mcp-test-agent"
+        }
+      ],
+      "expected_error": "PROFILE_FORBIDDEN_CLAIM"
+    },
+    {
+      "name": "mcp-conversation-scope-0",
+      "base_fixture": "direct-service-mcp-conversation",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "conversation.read"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "mcp-conversation-scope-1",
+      "base_fixture": "direct-service-mcp-conversation",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "conversation.access.extra"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "mcp-conversation-scope-2",
+      "base_fixture": "direct-service-mcp-conversation",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "conversation_access"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "mcp-conversation-scope-3",
+      "base_fixture": "direct-service-mcp-conversation",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "conversation.*"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "mcp-conversation-scope-4",
+      "base_fixture": "direct-service-mcp-conversation",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "*"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "mcp-conversation-scope-5",
+      "base_fixture": "direct-service-mcp-conversation",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "workflow.read"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "mcp-conversation-scope-6",
+      "base_fixture": "direct-service-mcp-conversation",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "conversation.access conversation.access"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "mcp-conversation-scope-7",
+      "base_fixture": "direct-service-mcp-conversation",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "conversation.access conversation.read"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "mcp-conversation-scope-8",
+      "base_fixture": "direct-service-mcp-conversation",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "conversation.access "
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "mcp-conversation-scope-9",
+      "base_fixture": "direct-service-mcp-conversation",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": " conversation.access"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_WIRE"
+    },
+    {
+      "name": "mcp-conversation-partial-scope-output",
+      "base_fixture": "direct-service-mcp-conversation",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/authorization_context/requested_scope",
+          "value": "conversation.access conversation.read"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "mcp-conversation-notification-grant-reuse",
+      "base_fixture": "direct-service-mcp-conversation",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/authorization_context/machine_access_grants",
+          "value": {
+            "agent-core-notification-ingress-v1": [
+              "notification.ingress"
+            ]
+          }
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "mcp-conversation-workflow-grant-reuse",
+      "base_fixture": "direct-service-mcp-conversation",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/authorization_context/machine_access_grants",
+          "value": {
+            "svc-workflow": [
+              "workflow.read"
+            ]
+          }
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
     }
   ],
   "signature_cases": [

@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "registry_version": "1.12.0",
+  "registry_version": "1.14.0",
   "status": "frozen",
   "audiences": [
     {
@@ -158,6 +158,23 @@
       "status": "active",
       "freeze_ready": true,
       "notes": "Registered by LIFE_WORKBENCH_AUDIENCE_CCR_V1 (accepted); machine-only agent access for the local Life Workbench pilot (read/propose); owner review capabilities stay in the UI and are never agent-granted."
+    },
+    {
+      "audience_id": "agent-core-mcp-conversation-v1",
+      "resource_service": "agent-core-mcp-conversation-v1",
+      "scope_namespace": "conversation",
+      "accepted_principal_types": [
+        "service"
+      ],
+      "human_access_enabled": false,
+      "machine_access_enabled": true,
+      "delegated_access_enabled": false,
+      "registered_scopes": [
+        "conversation.access"
+      ],
+      "status": "active",
+      "freeze_ready": true,
+      "notes": "Registered by AUTH_SERVICE_AGENT_CORE_MCP_CONVERSATION_AUDIENCE_CCR_V1 for one dedicated MCP SERVICE caller to the original DSH native conversation facade; no Human, Agent or delegated access."
     }
   ]
 }
