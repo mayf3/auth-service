@@ -1,6 +1,6 @@
 ---
 spec_id: AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V1
-status: proposed
+status: accepted
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -20,9 +20,30 @@ supersedes: []
 superseded_by: null
 owners:
   - mayf3
+accepted_by: "/root coordinator 01a14c3f-4210-76f2-86ce-f7bcf7da1d38 acting under explicit mayf3 delegation in current user turn"
+accepted_date: "2026-10-18"
+accepted_at: "2026-10-18T00:46:53.100586+00:00"
+accepted_reviewed_spec_commit: c04599b301f3e757475bc20960992cb5d024106a
+accepted_reviewed_spec_sha256: b9fa7e0af3ccdad98e2d76ec4dfe0822032d8353429d8698c4952189dca2c76a
+acceptance_review_verdict: ACCEPT
+acceptance_record: docs/audits/2026-10-18-mcp-conversation-contract-acceptance.json
 ---
 
 # AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V1
+
+**ACCEPTED — DOCS ONLY; ACTIVE ONLY AFTER MERGE INTO `main`.**
+The `/root` coordinator in thread
+`01a14c3f-4210-76f2-86ce-f7bcf7da1d38`, acting under mayf3's explicit
+2026-10-18 delegation, accepted this exact independently reviewed proposal
+`c04599b301f3e757475bc20960992cb5d024106a` at `2026-10-18T00:46:53.100586+00:00`.
+The original authoring text below is preserved byte for byte: its proposed
+lifecycle, current-state and readiness statements describe the 2026-10-16
+authoring snapshot. This banner and frontmatter record the later acceptance.
+Acceptance becomes source authority only after merge into `main`; subsequent
+implementation is limited to the accepted source closure and isolated
+validation. No production load, identity/credential/Grant operation, new
+permission, TLS/ACL/Binding operation or real send is authorized.
+Acceptance provenance and phase boundaries: `docs/audits/2026-10-18-mcp-conversation-contract-acceptance.json`.
 
 ## 1. Goal
 
