@@ -4,10 +4,10 @@
   "contract_version": "1.14.0",
   "lifecycle": {
     "contract_bundle_freeze": {
-      "status": "draft",
-      "frozen": false,
-      "implementation_authorized": false,
-      "reviewed_source_git_commit": null
+      "status": "frozen",
+      "frozen": true,
+      "implementation_authorized": true,
+      "reviewed_source_git_commit": "2717e6e12806b53df580d45a5a7a1ad1f849f955"
     },
     "production_deployment": {
       "status": "not_ready",

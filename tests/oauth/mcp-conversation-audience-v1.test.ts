@@ -138,6 +138,7 @@ test('real disposable PostgreSQL, generic SERVICE issuer and loopback HTTP prese
     });
     process.env.DATABASE_URL = url;
     process.env.AUTH_CONTRACT_MODE = 'v1';
+    process.env.JWT_ISSUER = 'auth-service';
     process.env.JWT_SECRET = 'mcc-isolated-test-only-hs256-unusable';
     process.env.RATE_LIMIT_LOGIN_MAX_FAILS = '1000';
     const { privateKey } = crypto.generateKeyPairSync('rsa', { modulusLength: 2048 });
@@ -157,6 +158,14 @@ test('real disposable PostgreSQL, generic SERVICE issuer and loopback HTTP prese
     secretHash = hashClientSecret(secret);
     database = new PrismaClient({ datasources: { db: { url } } });
     const db = database;
+    const coordinates = await db.$queryRaw<Array<{ database: string; owner: string; address: string; port: number; version: string }>>`
+      SELECT current_database() AS database, current_user AS owner,
+        inet_server_addr()::text AS address, inet_server_port() AS port, version() AS version`;
+    assert.equal(coordinates[0].database, 'mcc_isolated');
+    assert.equal(coordinates[0].owner, 'mcc_isolated');
+    assert.equal(coordinates[0].address, '127.0.0.1/32');
+    assert.equal(coordinates[0].port, port);
+    t.diagnostic(JSON.stringify({ clusterRoot: root, database: coordinates[0], runtime: initializeAuthContract('v1') }));
     const runtimeAudience = getV1AudienceDefinitions().find((entry) => entry.audienceId === resource)!;
     assert.ok(runtimeAudience, 'actual generated runtime must register the resource');
     const audienceData = { ...runtimeAudience, acceptedPrincipalTypes: [...runtimeAudience.acceptedPrincipalTypes],
@@ -254,12 +263,39 @@ test('real disposable PostgreSQL, generic SERVICE issuer and loopback HTTP prese
       await rejects({ resource: 'cross-mcp-conversation' }, 'invalid_target', 400);
       await rejects({ resource: 'svc-workflow', scope: 'workflow.read' }, 'invalid_target', 400);
     });
-    await t.test('foreign Notification, Website and Workflow credentials do not carry a same-audience grant', async () => {
-      for (const name of ['notification', 'website', 'workflow']) {
-        await db.machineClient.create({ data: { clientId: `mcc-foreign-${name}`, machinePrincipalId: principalId,
-          secretHash, allowedResources: [`foreign-${name}`], allowedScopes: [scope] } });
-        await rejects({ clientId: `mcc-foreign-${name}` }, 'invalid_scope', 400, 'machine_grant_missing');
+    await t.test('real foreign Audience Grants and legacy arrays cannot substitute for an MCP grant', async () => {
+      const websiteFixture = {
+        audienceId: 'agent-core-website-transport-v1', resourceService: 'agent-core-website-transport-v1',
+        scopeNamespace: 'conversation', acceptedPrincipalTypes: ['service'],
+        registeredScopes: ['conversation.intent.redeem', 'conversation.own_events.read', 'conversation.own_result.read'],
+        humanAccessEnabled: false, machineAccessEnabled: true, delegatedAccessEnabled: false,
+        status: 'active' as const, freezeReady: true,
+      };
+      // Website is an accepted reservation, absent from this source/runtime. This is
+      // only a disposable foreign DB fixture, never a source registration or activation.
+      for (const [name, audience, grantedScope, type] of [
+        ['notification', getV1AudienceDefinitions().find(entry => entry.audienceId === 'agent-core-notification-ingress-v1')!, 'notification.deliver', 'service'],
+        ['website', websiteFixture, 'conversation.own_result.read', 'service'],
+        ['workflow', getV1AudienceDefinitions().find(entry => entry.audienceId === 'svc-workflow')!, 'workflow.read', 'agent'],
+      ] as const) {
+        await db.authAudience.create({ data: { ...audience, acceptedPrincipalTypes: [...audience.acceptedPrincipalTypes],
+          registeredScopes: [...audience.registeredScopes], version: 1 } });
+        const foreignPrincipal = await db.machinePrincipal.create({ data: { principalType: type,
+          agentId: type === 'agent' ? 'mcc-isolated-workflow-agent' : null } });
+        const foreign = await db.machineClient.create({ data: { clientId: `mcc-foreign-${name}`,
+          machinePrincipalId: foreignPrincipal.id, secretHash, allowedResources: [], allowedScopes: [] } });
+        await db.machineAccessGrant.create({ data: { machineClientId: foreign.id, audienceId: audience.audienceId,
+          scopes: [grantedScope], version: 1 } });
+        if (name !== 'website') {
+          assert.equal((await direct.authorizeV1DirectToken({ ...request, clientId: foreign.clientId,
+            resource: audience.audienceId, scope: grantedScope }, dbAdapter)).scope, grantedScope);
+        }
+        await rejects({ clientId: foreign.clientId }, type === 'agent' ? 'invalid_target' : 'invalid_scope', 400,
+          type === 'agent' ? 'audience_profile_not_accepted' : 'machine_grant_missing');
       }
+      await db.machineClient.create({ data: { clientId: 'mcc-legacy-arrays-only', machinePrincipalId: principalId,
+        secretHash, allowedResources: [resource], allowedScopes: [scope] } });
+      await rejects({ clientId: 'mcc-legacy-arrays-only' }, 'invalid_scope', 400, 'machine_grant_missing');
     });
     await t.test('every affected database registry projection mismatch refuses issuance', async () => {
       for (const [field, value] of Object.entries({ resourceService: 'foreign-service', scopeNamespace: 'foreign',

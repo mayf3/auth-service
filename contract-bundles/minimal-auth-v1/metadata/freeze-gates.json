@@ -1,6 +1,6 @@
 {
   "contract_version": "1.14.0",
-  "contract_bundle_freeze_allowed": false,
+  "contract_bundle_freeze_allowed": true,
   "gates": [
     {
       "id": "GATE-REMOTE-CONSUMER-SHAS",
@@ -69,13 +69,16 @@
       "id": "GATE-BUNDLE-NARROW-REVIEW",
       "state_domain": "contract_bundle_freeze",
       "blocks_contract_bundle_freeze": true,
-      "status": "open",
+      "status": "closed",
       "owner": "independent-contract-reviewer",
       "evidence": [
         "AUTH_SERVICE_AGENT_CORE_MCP_CONVERSATION_AUDIENCE_CCR_V1",
-        "source-review-pending"
+        "auth-service@2717e6e12806b53df580d45a5a7a1ad1f849f955",
+        "tree@03c4c78f6ae66545d41aaf9f61c8fcb66093a286",
+        "diff-sha256@4955fdafaa56dd38a4e1c6625fcaebe656903df5c37dc06689d73dd027cc70a1",
+        "pilot1156-review-20261018/auth-source-evidence/ccr/candidate-independent-review.json"
       ],
-      "reason": "The 1.14.0 MCP SERVICE source candidate requires independent exact-source review before freeze; no implementation-complete or production claim."
+      "reason": "Independent affected-source narrow review by /root/pilot_packet_audit passed the exact 1.14.0 MCP SERVICE source candidate 2717e6e12806b53df580d45a5a7a1ad1f849f955 on 2026-10-18 with zero Blocker/High findings. This closes source review only; actual isolated runtime conformance and final test/freeze delta review remain separate, and no production effect is authorized."
     }
   ]
 }
