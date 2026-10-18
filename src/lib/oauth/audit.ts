@@ -29,6 +29,7 @@ export type AuditEventType =
   | 'fleet_send_grant.materialized'
   | 'token.issued'
   | 'token.failed'
+  | 'forum.direct_agent_token.minted'
   | 'v1.direct.issued'
   | 'v1.direct.failed'
   | 'v1.shadow.direct'

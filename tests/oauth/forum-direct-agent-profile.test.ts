@@ -66,3 +66,55 @@ test('minted token matches the frozen profile claim-for-claim', async () => {
   assert.equal(verified.aud, FORUM_DIRECT_AGENT_AUDIENCE);
   assert.equal(verified.sub, '9f1c2b3a-1111-4222-8333-444455556666');
 });
+
+// Regression: the helper formerly supplied singular audit `scope`, which the
+// allowlisted serializer omits. This exercises the real mint + logger boundary.
+for (const scope of ['forum.read', 'forum.read forum.write']) {
+  test(`mint audit preserves exact scopes and singular JWT scope: ${scope}`, async (t) => {
+    const { generateTestKeyPair, configureKeyringEnv, clearKeyringEnv } = await import('./_workflow-test-keys.js');
+    const key = generateTestKeyPair('forum-audit-regression-kid');
+    configureKeyringEnv({ activeKid: key.kid, activePrivateKeyPem: key.privateKeyPem });
+    const { resetWorkflowKeyringForTests } = await import('../../src/lib/oauth/workflow-keyring.js');
+    resetWorkflowKeyringForTests();
+    t.after(() => { clearKeyringEnv(); resetWorkflowKeyringForTests(); });
+    const captured: string[] = [];
+    t.mock.method(console, 'warn', (...args: unknown[]) => { captured.push(args.map(String).join(' ')); });
+    const request = {
+      machinePrincipalId: '9f1c2b3a-1111-4222-8333-444455556666',
+      agentId: 'agt-forum-audit-regression',
+      machineClientId: 'mc_forum_audit_regression',
+      scope,
+    };
+    // Extra caller data must never escape via a raw request audit.
+    const rawRequest = { ...request, client_secret: 'synthetic-forum-secret-sentinel',
+      credential_verifier: 'synthetic-forum-verifier-sentinel' };
+    const minted = mintForumDirectAgentToken(rawRequest);
+    const payload = jwt.verify(minted.token, key.publicKeyPem, { algorithms: ['RS256'] });
+    assert.notEqual(typeof payload, 'string');
+    if (typeof payload === 'string') throw new Error('expected JWT object');
+    assert.equal(payload.scope, scope);
+    assert.equal(Object.hasOwn(payload, 'scopes'), false);
+    assert.equal(payload.aud, 'svc-forum');
+    assert.equal(payload.principal_type, 'agent');
+    assert.equal(minted.refreshTokenIssued, false);
+    assert.equal(captured.length, 1);
+    assert.ok(captured[0].startsWith('[AUDIT] '));
+    const event: Record<string, unknown> = JSON.parse(captured[0].slice('[AUDIT] '.length));
+    assert.equal(event.type, 'forum.direct_agent_token.minted');
+    assert.equal(event.scopes, scope, 'success audit must retain the exact minted scopes');
+    assert.equal(Object.hasOwn(event, 'scope'), false);
+    assert.equal(event.clientId, 'mc_forum...');
+    assert.equal(event.principalId, request.machinePrincipalId);
+    assert.equal(event.agentId, request.agentId);
+    assert.equal(event.kid, key.kid);
+    assert.equal(event.success, true);
+    assert.deepEqual(Object.keys(event).sort(),
+      ['agentId', 'clientId', 'kid', 'principalId', 'scopes', 'success', 'timestamp', 'type']);
+    const output = captured.join('\n');
+    for (const forbidden of [minted.token, key.privateKeyPem, rawRequest.client_secret,
+      rawRequest.credential_verifier, JSON.stringify(rawRequest), request.machineClientId]) {
+      assert.equal(output.includes(forbidden), false, 'audit must not expose private/raw caller values');
+    }
+    assert.equal(output.includes('PRIVATE KEY'), false);
+  });
+}
