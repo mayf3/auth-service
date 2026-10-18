@@ -6,7 +6,7 @@
 import { z } from 'zod';
 import { Prisma, PrismaClient } from '@prisma/client';
 import { createHash, randomBytes } from 'node:crypto';
-import { spawnSync } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { readFileSync, realpathSync, lstatSync } from 'node:fs';
 import { fileURLToPath } from 'node:url';
 import { resolve, join } from 'node:path';
@@ -156,8 +156,8 @@ export function validatePublicOutput(value: unknown): Json {
  * Private reads use fd3 IPC; stdout/stderr never carry credential bytes.
  */
 const OS = String.raw`
-import os,sys,json,stat,errno,hashlib
-x=json.load(sys.stdin); root=x['root']; dest=x['destination']; uid=x['uid']; gid=x['gid']; op=x['operation']; cmd=x['cmd']
+import os,sys,json,stat,errno,hashlib,fcntl
+x=json.loads(sys.stdin.readline()); root=x['root']; dest=x['destination']; uid=x['uid']; gid=x['gid']; op=x['operation']; cmd=x['cmd']
 D=os.O_RDONLY|os.O_DIRECTORY|os.O_NOFOLLOW
 fds=[]; pins=[]
 def check(st,owner,mode=None,file=False):
@@ -186,18 +186,21 @@ def info(fd,name,owner,mode):
   if (s.st_dev,s.st_ino)!=(t.st_dev,t.st_ino): raise Exception('INODE_SWAP')
   return {'state':'present','dev':s.st_dev,'ino':s.st_ino,'uid':s.st_uid,'gid':s.st_gid,'mode':stat.S_IMODE(s.st_mode),'size':s.st_size}
  finally: os.close(f)
+def hit(point):
+ if x.get('fault')==point: raise Exception('INJECTED')
 def write_new(fd,name,data,owner=0,group=0):
+ scope='attempt' if name.startswith('attempt-') else 'nonce' if name.startswith('nonce-') else 'recovery_nonce' if name.startswith('recovery-nonce-') else 'private_file'
  f=os.open(name,os.O_WRONLY|os.O_CREAT|os.O_EXCL|os.O_NOFOLLOW,0o600,dir_fd=fd)
  try:
   os.fchown(f,owner,group); os.fchmod(f,0o600)
   data=data.encode(); pos=0
   while pos<len(data): pos+=os.write(f,data[pos:])
   if x.get('fault')=='before_file_fsync' or (name=='integrity.json' and x.get('fault')=='before_integrity_fsync'): raise Exception('INJECTED')
-  os.fsync(f)
+  hit(scope+':before_file_fsync'); os.fsync(f); hit(scope+':after_file_fsync')
   if x.get('fault')=='after_file_fsync' or (name=='integrity.json' and x.get('fault')=='after_integrity_fsync'): raise Exception('INJECTED')
  finally: os.close(f)
  if name.startswith('ready-') and x.get('fault')=='before_ready_directory_fsync': raise Exception('INJECTED')
- os.fsync(fd)
+ hit(scope+':before_directory_fsync'); os.fsync(fd); hit(scope+':after_directory_fsync')
  if name.startswith('ready-') and x.get('fault')=='after_ready_directory_fsync': raise Exception('INJECTED')
 def private_read(fd,name,owner=0):
  f=os.open(name,os.O_RDONLY|os.O_NOFOLLOW,dir_fd=fd)
@@ -217,6 +220,9 @@ try:
  parent_identity=directory_identity(d); escrow_identity=directory_identity(r)
  if x.get('expected_parent') and x['expected_parent']!=parent_identity: raise Exception('INODE_SWAP')
  if x.get('expected_escrow') and x['expected_escrow']!=escrow_identity: raise Exception('INODE_SWAP')
+ if cmd in ('read-destination','read-escrow'):
+  if x.get('fault')==cmd+':EIO': raise OSError(errno.EIO,'')
+  if x.get('fault')==cmd+':EMFILE': raise OSError(errno.EMFILE,'')
  name=os.path.basename(dest); result={}
  if cmd=='inspect':
   try: dst=info(d,name,uid,0o600)
@@ -228,21 +234,17 @@ try:
     raw=private_read(r,n).decode(); records=[json.loads(v) for v in raw.splitlines()]
     result['fences'].append(records)
   if result['destination']['state']=='present' and result['destination']['gid']!=gid: result['destination']={'state':'unsafe'}
- elif cmd=='lock':
-  write_new(r,'operation.lock',json.dumps({'pid':x['pid'],'operation_id':op}))
- elif cmd=='recover-lock':
-  old=info(r,'operation.lock',0,0o600); data=json.loads(private_read(r,'operation.lock'))
-  if set(data)!=set(('pid','operation_id')) or data['operation_id']!=op or not isinstance(data['pid'],int) or data['pid']<=0: raise Exception('LOCK_IDENTITY')
-  try:
-   os.kill(data['pid'],0); raise Exception('LOCK_LIVE')
-  except ProcessLookupError: pass
-  if info(r,'operation.lock',0,0o600)!=old: raise Exception('INODE_SWAP')
-  os.unlink('operation.lock',dir_fd=r); os.fsync(r)
-  write_new(r,'operation.lock',json.dumps({'pid':x['pid'],'operation_id':op}))
- elif cmd=='unlock':
-  data=json.loads(private_read(r,'operation.lock'))
-  if data!={'pid':x['pid'],'operation_id':op}: raise Exception('LOCK_IDENTITY')
-  os.unlink('operation.lock',dir_fd=r); os.fsync(r)
+ elif cmd=='hold-lock':
+  # Permanent inode, never unlinked: every legitimate apply/recovery locks this same inode.
+  lockfd=os.open('operation.lock',os.O_RDWR|os.O_CREAT|os.O_NOFOLLOW,0o600,dir_fd=r); fds.append(lockfd)
+  s=os.fstat(lockfd); check(s,0,0o600,True)
+  fcntl.flock(lockfd,fcntl.LOCK_EX|fcntl.LOCK_NB)
+  t=os.stat('operation.lock',dir_fd=r,follow_symlinks=False)
+  if (s.st_dev,s.st_ino)!=(t.st_dev,t.st_ino): raise Exception('INODE_SWAP')
+  os.fsync(lockfd); os.fsync(r); stable()
+  print(json.dumps({'ok':True,'value':{'held':True,'dev':s.st_dev,'ino':s.st_ino}}),flush=True)
+  # Parent owns the write end. Parent death closes it and releases the kernel lock.
+  sys.stdin.readline()
  elif cmd=='claim':
   # Nonce files and per-operation fences remain forever. No stale-lock deletion or fence reset.
   write_new(r,'attempt-'+op+'.jsonl',json.dumps(x['record'])+'\n')
@@ -252,11 +254,13 @@ try:
  elif cmd=='append':
   n='attempt-'+op+'.jsonl'; f=os.open(n,os.O_WRONLY|os.O_APPEND|os.O_NOFOLLOW,dir_fd=r)
   try:
-   s=os.fstat(f); check(s,0,0o600,True); os.write(f,(json.dumps(x['record'])+'\n').encode()); os.fsync(f)
+   s=os.fstat(f); check(s,0,0o600,True); data=(json.dumps(x['record'])+'\n').encode(); pos=0
+   while pos<len(data): pos+=os.write(f,data[pos:])
+   scope='ledger:'+x['record']['stage']; hit(scope+':before_file_fsync'); os.fsync(f); hit(scope+':after_file_fsync')
    t=os.stat(n,dir_fd=r,follow_symlinks=False)
    if (s.st_dev,s.st_ino)!=(t.st_dev,t.st_ino): raise Exception('INODE_SWAP')
   finally: os.close(f)
-  os.fsync(r)
+  hit(scope+':before_directory_fsync'); os.fsync(r); hit(scope+':after_directory_fsync')
  elif cmd in ('escrow','install','read-escrow'):
   n='secret-'+op
   if cmd=='escrow':
@@ -290,7 +294,7 @@ try:
  stable(); print(json.dumps({'ok':True,'value':result}))
 except BaseException as failure:
  # Only literal internal categories or errno numbers, never raw errors/paths.
- allowed={'METADATA','FILE_IDENTITY','ANCESTOR_MODE','ANCESTOR_OWNER','INODE_SWAP','FILE_SIZE','FILESYSTEM','LOCK_IDENTITY','DESTINATION_EXISTS','INJECTED','COMMAND','LOCK_LIVE','ESCROW_INTEGRITY'}
+ allowed={'METADATA','FILE_IDENTITY','ANCESTOR_MODE','ANCESTOR_OWNER','INODE_SWAP','FILE_SIZE','FILESYSTEM','LOCK_IDENTITY','DESTINATION_EXISTS','INJECTED','COMMAND','ESCROW_INTEGRITY'}
  category=str(failure) if str(failure) in allowed else 'ERRNO_'+str(getattr(failure,'errno',0) or 0)
  print(json.dumps({'ok':False,'error_class':category})); sys.exit(1)
 finally:
@@ -301,20 +305,60 @@ finally:
 
 type Coordinates = { root: string; destination: string; uid: number; gid: number };
 function osCall(c: Coordinates, q: Request, cmd: string, extra: Json = {}): { value: Json; private: Buffer } {
+  if (extra.fault === 'helper-unavailable' && (cmd === 'read-destination' || cmd === 'read-escrow')) throw new Refusal('OS_HELPER_UNAVAILABLE');
   const r = spawnSync('/usr/bin/python3', ['-c', OS], { input: JSON.stringify({ ...c, operation: q.operation_id,
     cmd, pid: process.pid, ...extra }), stdio: ['pipe', 'pipe', 'pipe', 'pipe'], maxBuffer: 1024 * 1024 });
   let o: Json; try { o = JSON.parse(r.stdout?.toString() || '{}'); } catch { throw new Refusal('OS_BOUNDARY_FAILURE'); }
   insist(r.status === 0 && o.ok === true && !r.stderr?.length, 'OS_BOUNDARY_' + (/^[A-Z_0-9]{1,48}$/.test(o.error_class) ? o.error_class : 'FAILURE'));
   return { value: o.value, private: (r.output[3] as Buffer) ?? Buffer.alloc(0) };
 }
+/** The OS helper stays alive with its flock descriptor for the entire mutation.
+ * It never rewrites/unlinks the permanent inode. A competing recovery cannot
+ * steal it using a stale PID/inode observation. No secret traverses this pipe. */
+async function acquireOsLock(c: Coordinates, q: Request) {
+  const child = spawn('/usr/bin/python3', ['-c', OS], { stdio: ['pipe', 'pipe', 'pipe', 'pipe'] });
+  let held = false, released = false, output = '', diagnostic = '';
+  let exited = false;
+  const closed = new Promise<void>(resolve => { child.once('close', () => { exited = true; held = false; resolve(); }); });
+  const ready = new Promise<void>((resolveReady, reject) => {
+    const timer = setTimeout(() => { child.kill('SIGKILL'); reject(new Refusal('OS_LOCK_TIMEOUT')); }, 5000);
+    child.stdout.on('data', chunk => {
+      output += chunk.toString(); const line = output.split('\n')[0];
+      try { const parsed = JSON.parse(line); clearTimeout(timer);
+        if (parsed.ok === true && parsed.value?.held === true) { held = true; resolveReady(); }
+        else { reject(new Refusal('OS_LOCK_BUSY_OR_UNSAFE')); child.stdin.end(); }
+      } catch { /* await one complete closed JSON line */ }
+    });
+    child.stderr.on('data', chunk => { diagnostic += chunk.toString(); });
+    child.once('error', () => { clearTimeout(timer); reject(new Refusal('OS_LOCK_UNAVAILABLE')); });
+    child.once('close', () => { clearTimeout(timer); if (!released && !held) reject(new Refusal('OS_LOCK_UNAVAILABLE')); });
+  });
+  child.stdin.on('error', () => { held = false; });
+  child.stdin.write(JSON.stringify({ ...c, operation: q.operation_id, cmd: 'hold-lock', pid: process.pid }) + '\n');
+  try { await ready; } catch (e) { child.stdin.end(); await closed; throw e; }
+  return { assertHeld() { insist(held && !exited && !diagnostic, 'OS_LOCK_LOST'); },
+    async release() { released = true; child.stdin.end('release\n'); await closed; } };
+}
 function fileState(c: Coordinates, q: Request) { return osCall(c, q, 'inspect').value; }
-function privateCredential(c: Coordinates, q: Request, escrow: boolean): Json | undefined {
-  try { const observed = osCall(c, q, escrow ? 'read-escrow' : 'read-destination'); const raw = observed.private;
-    const data = parseClosedJson(raw.toString()) as Json; raw.fill(0);
-    insist(data && keysEqual(data, ['connector_subject', 'client_id', 'client_secret']) &&
-      typeof data.client_secret === 'string' && /^[A-Za-z0-9_-]{43}$/.test(data.client_secret), 'PRIVATE_FILE_SHAPE');
+type CredentialObservation = { kind: 'present'; credential: Json } | { kind: 'absent' | 'invalid' | 'unavailable' };
+function credentialValue(observed: CredentialObservation): Json | undefined { return observed.kind === 'present' ? observed.credential : undefined; }
+function privateCredential(c: Coordinates, q: Request, escrow: boolean, fault?: string): CredentialObservation {
+  let observed: { value: Json; private: Buffer };
+  try { observed = osCall(c, q, escrow ? 'read-escrow' : 'read-destination', { fault }); }
+  catch (e) {
+    if (e instanceof Refusal && e.category === 'OS_BOUNDARY_ERRNO_2') return { kind: 'absent' };
+    if (e instanceof Refusal && e.category === 'OS_BOUNDARY_ESCROW_INTEGRITY') return { kind: 'invalid' };
+    // Metadata/descriptor/IO/helper failures do not prove that original bytes are lost.
+    return { kind: 'unavailable' };
+  }
+  const raw = observed.private;
+  try {
+    const data = parseClosedJson(raw.toString()) as Json;
+    if (!data || !keysEqual(data, ['connector_subject', 'client_id', 'client_secret']) || typeof data.client_secret !== 'string' ||
+      !/^[A-Za-z0-9_-]{43}$/.test(data.client_secret)) return { kind: 'invalid' };
     Object.defineProperty(data, '__fileIdentity', { value: observed.value });
-    return data; } catch { return undefined; }
+    return { kind: 'present', credential: data };
+  } catch { return { kind: 'invalid' }; } finally { raw.fill(0); }
 }
 
 export interface Dependencies {
@@ -338,7 +382,7 @@ export interface IsolatedOptions {
   dependencies: (q: Request) => Promise<Dependencies>;
   mandate: (q: Request, action: 'apply' | 'recover-delivery', planDigest: string) => Promise<Mandate | undefined>;
   fault?: (stage: string) => void | Promise<void>;
-  osFault?: string;
+  osFault?: string | (() => string | undefined);
   lockTimeoutMs?: number;
 }
 type Snapshot = { audiences: any[]; principals: any[]; clients: any[]; grants: any[]; security: any[]; audits: any[] };
@@ -398,6 +442,7 @@ export function createProductionVehicle(provider?: ProductionTrustedProvider) {
 type EngineOptions = Pick<IsolatedOptions, 'dependencies' | 'mandate' | 'fault' | 'osFault' | 'lockTimeoutMs'> & { environment: string; authorityIssuer: string };
 function createVehicle(o: EngineOptions, c: Coordinates, db: PrismaClient) {
   const fault = async (stage: string) => { await o.fault?.(stage); };
+  const osFault = () => typeof o.osFault === 'function' ? o.osFault() : o.osFault;
   async function dependencies(q: Request) {
     const d = await o.dependencies(q);
     const pins = ['environment', 'source_commit', 'spec_ref', 'spec_digest', 'audience_authority_ref',
@@ -519,17 +564,20 @@ function createVehicle(o: EngineOptions, c: Coordinates, db: PrismaClient) {
       'intended_effect', 'approval_nonce', 'observed_at', 'expires_at', 'native_product_disabled', 'live_credential_acceptance', 'filesystem_observation']) &&
       equal(p.request, q) && p.result === 'PLAN' && p.schema_version === 1 && p.phase === q.phase && p.approval_nonce === q.approval_nonce &&
       p.prestate_digest === digest(p.prestate) && p.plan_digest === digest({ request: q, prestate: p.prestate, classification: p.classification }), 'PLAN_INVALID');
+    insist(p.expires_at === q.expires_at && Date.parse(p.expires_at) > Date.now(), 'PLAN_EXPIRED');
   }
   function fenceRecord(q: Request, p: Json, stage: string): Json { return { stage, operation_id: q.operation_id,
     approval_nonce: q.approval_nonce, plan_digest: p.plan_digest, operator_ref: q.operator_ref,
     request_digest: digest(q), external_ref: FIXED.externalRef, prestate_digest: p.prestate_digest,
     observed_at: new Date().toISOString() }; }
-  function append(q: Request, p: Json, stage: string, extra: Json = {}) { osCall(c, q, 'append', { record: { ...fenceRecord(q, p, stage), ...extra } }); }
-  function pinnedCredential(q: Request, fs: Json, escrow: boolean): Json | undefined {
+  function append(q: Request, p: Json, stage: string, extra: Json = {}) { osCall(c, q, 'append', { record: { ...fenceRecord(q, p, stage), ...extra }, fault: osFault() }); }
+  function pinnedCredential(q: Request, fs: Json, escrow: boolean): CredentialObservation {
     const rows = (fs.fences as Json[][]).find(v => v[0]?.operation_id === q.operation_id);
     const expected = rows?.filter(v => v.stage === (escrow ? 'ESCROW_DURABLE' : 'DESTINATION_DURABLE') || (!escrow && v.stage === 'RECOVERED')).at(-1)?.file_identity;
-    const data = privateCredential(c, q, escrow);
-    return expected && data && equal(expected, data.__fileIdentity) ? data : undefined;
+    const observed = privateCredential(c, q, escrow, osFault());
+    if (observed.kind !== 'present') return observed;
+    if (!expected) return { kind: 'unavailable' };
+    return equal(expected, observed.credential.__fileIdentity) ? observed : { kind: 'invalid' };
   }
   function receipt(q: Request, s: Snapshot, p: Json, noop: boolean, fs: Json): Json {
     const t = target(s, q), state = safeState(s, q, fs), now = new Date().toISOString();
@@ -563,8 +611,13 @@ function createVehicle(o: EngineOptions, c: Coordinates, db: PrismaClient) {
       const s = await snapshot(tx), p = makePlan(q, s, fs), classification = classify(s, q);
       if (action === 'plan') return p;
       if (classification === 'EXACT_RERUN_NOOP') {
-        if (q.phase !== 'supply' || matches(q, s, pinnedCredential(q, fs, false))) return receipt(q, s, p, true, fs);
-        const recoverable = matches(q, s, pinnedCredential(q, fs, true));
+        if (q.phase !== 'supply') return receipt(q, s, p, true, fs);
+        const destination = pinnedCredential(q, fs, false);
+        if (matches(q, s, credentialValue(destination))) return receipt(q, s, p, true, fs);
+        const escrow = pinnedCredential(q, fs, true);
+        if (destination.kind === 'unavailable' || escrow.kind === 'unavailable')
+          return failure(q, 'reconcile', 'PRIVATE_COPY_UNAVAILABLE', true, 'OUTCOME_UNKNOWN');
+        const recoverable = matches(q, s, credentialValue(escrow));
         return { ...failure(q, 'reconcile', recoverable ? 'COMMITTED_DELIVERY_INCOMPLETE' : 'SECRET_LOST', true,
           recoverable ? 'OUTCOME_UNKNOWN' : 'SECRET_LOST'), residual_coordinates: { state: recoverable ? 'committed_delivery_incomplete' : 'secret_lost',
             operation_id: q.operation_id, audit_id: target(s, q).audits[0].id } };
@@ -580,7 +633,7 @@ function createVehicle(o: EngineOptions, c: Coordinates, db: PrismaClient) {
     });
   }
   async function mutate(q: Request, action: 'apply' | 'recover-delivery', supplied?: Json): Promise<Json> {
-    await dependencies(q); validatePlan(supplied, q); let lock = false, fenced = false, stage = 'admission', commitRequested = false;
+    await dependencies(q); validatePlan(supplied, q); let lease: Awaited<ReturnType<typeof acquireOsLock>> | undefined; let fenced = false, stage = 'admission', commitRequested = false;
     try {
       // Read-only exact NOOP may not create even an operation lock.
       const observed = await observe(q, 'verify');
@@ -590,31 +643,28 @@ function createVehicle(o: EngineOptions, c: Coordinates, db: PrismaClient) {
         insist(q.phase === 'supply' && observed.residual_coordinates?.state === 'committed_delivery_incomplete', 'RECOVERY_STATE_REFUSED');
         // Recovery mandate is new; its approval nonce is independent of original operation nonce.
         // The request remains original for immutable DB audit matching; verifier binds new recovery authority out-of-band.
-        try { osCall(c, q, 'lock'); } catch (e) {
-          insist(e instanceof Refusal && e.category === 'OS_BOUNDARY_ERRNO_17', 'RECOVERY_LOCK_REFUSED');
-          osCall(c, q, 'recover-lock');
-        }
-        lock = true; fenced = true; stage = 'recover-delivery';
+        fenced = true; lease = await acquireOsLock(c, q); lease.assertHeld(); stage = 'recover-delivery';
+        await fault('RECOVERY_LOCK_ACQUIRED'); lease.assertHeld();
         const fs = fileState(c, q); insist(fs.destination.state === 'absent', 'RECOVERY_DESTINATION_NOT_ABSENT');
         await locked(q, false, async tx => { const s = await snapshot(tx); insist(classify(s, q) === 'EXACT_RERUN_NOOP' &&
-          matches(q, s, pinnedCredential(q, fs, true)), 'ORIGINAL_ESCROW_REQUIRED'); });
-        osCall(c, q, 'recovery-claim', { nonce: authority.recovery_nonce, record: { ...fenceRecord(q, supplied, 'RECOVERY_STARTED'), recovery_nonce: authority.recovery_nonce, approval_digest: authority.approval_digest } });
+          matches(q, s, credentialValue(pinnedCredential(q, fs, true))), 'ORIGINAL_ESCROW_REQUIRED'); });
+        osCall(c, q, 'recovery-claim', { nonce: authority.recovery_nonce, record: { ...fenceRecord(q, supplied, 'RECOVERY_STARTED'), recovery_nonce: authority.recovery_nonce, approval_digest: authority.approval_digest }, fault: osFault() });
         append(q, supplied, 'RECOVERY_STARTED', { recovery_nonce: authority.recovery_nonce, approval_digest: authority.approval_digest });
-        const delivered = osCall(c, q, 'install', { expected_parent: fs.parent_identity, expected_escrow: fs.escrow_identity, fault: o.osFault }).value;
+        lease.assertHeld(); const delivered = osCall(c, q, 'install', { expected_parent: fs.parent_identity, expected_escrow: fs.escrow_identity, fault: osFault() }).value;
         append(q, supplied, 'RECOVERED', { file_identity: delivered, recovery_nonce: authority.recovery_nonce });
         const after = await observe(q, 'verify'); insist(after.result === 'EXACT_RERUN_NOOP', 'RECOVERY_VERIFY_FAILED');
         return { ...after, result: 'EXACT_RERUN_NOOP' };
       }
-      osCall(c, q, 'lock'); lock = true;
+      lease = await acquireOsLock(c, q); lease.assertHeld();
       let committedSnapshot: Snapshot | undefined;
       await locked(q, true, async tx => {
-        stage = 'locked-prestate';
+        lease!.assertHeld(); stage = 'locked-prestate';
         await dependencies(q); const fs = fileState(c, q), s = await snapshot(tx), p = makePlan(q, s, fs);
         insist(p.plan_digest === supplied.plan_digest && p.prestate_digest === supplied.prestate_digest, 'STALE_PLAN');
         insist(['ABSENT_APPLY', 'DISABLE_APPLY'].includes(p.classification), 'STATE_CONFLICT');
         insist(!activeFences(fs).length, 'UNRESOLVED_ATTEMPT');
         if (q.phase === 'supply') insist(fs.destination.state === 'absent', 'DESTINATION_NOT_ABSENT');
-        stage = 'claim'; fenced = true; osCall(c, q, 'claim', { nonce: q.approval_nonce, record: fenceRecord(q, p, 'ATTEMPT_STARTED') });
+        stage = 'claim'; fenced = true; osCall(c, q, 'claim', { nonce: q.approval_nonce, record: fenceRecord(q, p, 'ATTEMPT_STARTED'), fault: osFault() });
         await fault('ATTEMPT_STARTED'); const beforeDigest = nonTarget(s, q);
         let audit: any;
         if (q.phase !== 'supply') {
@@ -632,10 +682,10 @@ function createVehicle(o: EngineOptions, c: Coordinates, db: PrismaClient) {
           const freshFs = fileState(c, q);
           insist(equal(freshFs.parent_identity, fs.parent_identity) && equal(freshFs.escrow_identity, fs.escrow_identity) &&
             equal(freshFs.ancestor_identities, fs.ancestor_identities) && freshFs.destination.state === 'absent', 'FILESYSTEM_PREIMAGE_CHANGED');
-          const secret = generateClientSecret(); await fault('SECRET_GENERATED'); const verifier = hashClientSecret(secret);
+          lease!.assertHeld(); const secret = generateClientSecret(); await fault('SECRET_GENERATED'); const verifier = hashClientSecret(secret);
           const clientId = 'mc_' + randomBytes(18).toString('base64url');
           stage = 'escrow'; const escrowIdentity = osCall(c, q, 'escrow', { private: JSON.stringify({ connector_subject: q.connector_subject, client_id: clientId, client_secret: secret }),
-            expected_parent: fs.parent_identity, expected_escrow: fs.escrow_identity, fault: o.osFault }).value;
+            expected_parent: fs.parent_identity, expected_escrow: fs.escrow_identity, fault: osFault() }).value;
           append(q, p, 'ESCROW_DURABLE', { file_identity: escrowIdentity }); await fault('ESCROW_DURABLE');
           stage = 'principal'; const principal = await tx.machinePrincipal.create({ data: { principalType: 'service', displayName: FIXED.displayName,
             externalRef: FIXED.externalRef, status: 'active', requestDigest: p.plan_digest } }); await fault('principal');
@@ -649,24 +699,24 @@ function createVehicle(o: EngineOptions, c: Coordinates, db: PrismaClient) {
             operatorId: q.operator_ref, approvalRef: q.approval_ref, reason: 'bounded-mcp-conversation-pilot-v1', clientId,
             changeType: 'create', expectedGrantVersion: null, resultingGrantVersion: 1, beforeValue: { state: 'absent' },
             afterValue: auditDetails(q, p, { state: 'absent' }, after, beforeDigest) } }); await fault('audit');
-          stage = 'destination'; const destinationIdentity = osCall(c, q, 'install', { expected_parent: fs.parent_identity, expected_escrow: fs.escrow_identity, fault: o.osFault }).value;
-          insist(matches(q, await snapshot(tx), privateCredential(c, q, false)), 'DELIVERY_VERIFY_FAILED');
+          stage = 'destination'; const destinationIdentity = osCall(c, q, 'install', { expected_parent: fs.parent_identity, expected_escrow: fs.escrow_identity, fault: osFault() }).value;
+          insist(matches(q, await snapshot(tx), credentialValue(privateCredential(c, q, false, osFault()))), 'DELIVERY_VERIFY_FAILED');
           append(q, p, 'DESTINATION_DURABLE', { file_identity: destinationIdentity }); await fault('DESTINATION_DURABLE');
         }
-        committedSnapshot = await snapshot(tx);
+        lease!.assertHeld(); committedSnapshot = await snapshot(tx);
         insist(nonTarget(committedSnapshot, q) === beforeDigest && classify(committedSnapshot, q) === 'EXACT_RERUN_NOOP', 'PRECOMMIT_INVARIANT');
-        stage = 'COMMIT_REQUESTED'; append(q, p, 'COMMIT_REQUESTED'); commitRequested = true; await fault('COMMIT_REQUESTED');
+        stage = 'COMMIT_REQUESTED'; append(q, p, 'COMMIT_REQUESTED'); commitRequested = true; await fault('COMMIT_REQUESTED'); lease!.assertHeld();
       });
       stage = 'COMMIT_RESULT'; await fault('COMMIT_RESULT');
       const post = await locked(q, false, async tx => { const s = await snapshot(tx); insist(classify(s, q) === 'EXACT_RERUN_NOOP', 'READBACK_MISMATCH');
-        if (q.phase === 'supply') insist(matches(q, s, privateCredential(c, q, false)), 'READBACK_DELIVERY_MISMATCH'); return s; });
+        if (q.phase === 'supply') insist(matches(q, s, credentialValue(privateCredential(c, q, false, osFault()))), 'READBACK_DELIVERY_MISMATCH'); return s; });
       append(q, supplied, 'COMMITTED');
       return receipt(q, post, supplied, false, fileState(c, q));
     } catch (e) {
       const category = e instanceof Refusal ? e.category : 'DB_OR_PROCESS_FAILURE';
       // No unproven rollback or absence claim. Escrow/final material and tombstones persist.
       return failure(q, stage, category, fenced, fenced || commitRequested ? 'OUTCOME_UNKNOWN' : 'REFUSED');
-    } finally { if (lock) { try { osCall(c, q, 'unlock'); } catch { /* retained lock fails closed */ } } }
+    } finally { if (lease) await lease.release(); }
   }
   return {
     coordinates: Object.freeze({ ...c }),

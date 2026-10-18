@@ -19,30 +19,45 @@ pgbin=/opt/homebrew/opt/postgresql@16/bin
 [[ -x "$pgbin/initdb" && -x "$pgbin/pg_ctl" ]] || { echo 'NOT_RUN: PostgreSQL16 prerequisite unavailable' >&2; exit 3; }
 source_commit=$(git rev-parse HEAD)
 fixture=$(mktemp -d /private/tmp/mcs-conformance-XXXXXXXX)
+fixture_identity=$(/usr/bin/python3 -c 'import os,sys,json;s=os.lstat(sys.argv[1]);print(json.dumps({"dev":s.st_dev,"ino":s.st_ino,"uid":s.st_uid,"gid":s.st_gid,"mode":s.st_mode&0o777}))' "$fixture")
 cleanup() {
   result=$?
   trap - EXIT
   postgres_stopped=false
-  fixture_removed=false
-  fixture_bytes_before=0
-  fixture_bytes_after=0
   "$pgbin/pg_ctl" -D "$fixture/pg" -m immediate stop >/dev/null 2>&1 || true
   if ! "$pgbin/pg_ctl" -D "$fixture/pg" status >/dev/null 2>&1; then postgres_stopped=true; fi
-  if [[ -d "$fixture" && ! -L "$fixture" ]]; then
-    fixture_bytes_before=$(sudo -n /usr/bin/python3 -c 'import os,sys;total=0
-for root,dirs,files in os.walk(sys.argv[1],followlinks=False):
- for name in files:
-  total+=os.lstat(os.path.join(root,name)).st_size
-print(total)' "$fixture")
-  fi
-  # Successful isolated tests prove terminal DB states before fixture teardown.
-  # On test failure retain the private tree/DB for authorized diagnosis; no fence deletion.
-  if [[ "$result" -eq 0 && "$postgres_stopped" == true && "$fixture" == /private/tmp/mcs-conformance-* && -f "$fixture/runner-owned" ]]; then
-    sudo -n /bin/rm -rf -- "$fixture"
-    [[ ! -e "$fixture" ]] && fixture_removed=true
-  fi
-  if [[ "$fixture_removed" != true ]]; then fixture_bytes_after=$fixture_bytes_before; fi
-  /usr/bin/python3 -c 'import json,sys;print(json.dumps({"schema_version":1,"environment":"isolated-conformance","command":"bash scripts/run-mcp-conversation-pilot-v1-conformance.sh","test_exit_code":int(sys.argv[1]),"postgres_stopped":sys.argv[2]=="true","fixture_removed":sys.argv[3]=="true","owned_fixture":sys.argv[4],"fixture_bytes_before":int(sys.argv[5]),"fixture_bytes_after":int(sys.argv[6]),"source_commit":sys.argv[7],"production_touched":False,"live_credential_acceptance":"NOT_RUN"}))' "$result" "$postgres_stopped" "$fixture_removed" "$fixture" "$fixture_bytes_before" "$fixture_bytes_after" "$source_commit"
+  # Metadata only. Bounded lsof checks this exact fixture after all test/PG processes end.
+  # Any missing provenance, symlink, active FD or failed test retains the private tree.
+  sudo -n /usr/bin/python3 - "$fixture" "$fixture_identity" "$result" "$postgres_stopped" "$source_commit" <<'PY_CLEANUP'
+import os,sys,json,stat,subprocess,shutil
+path,identity,result,stopped,source=sys.argv[1:]; expected=json.loads(identity); result=int(result)
+r={"schema_version":1,"environment":"isolated-conformance","command":"bash scripts/run-mcp-conversation-pilot-v1-conformance.sh","test_exit_code":result,"source_commit":source,"owned_fixture":path,"postgres_stopped":stopped=="true","fixture_removed":False,"ownership_inode_verified":False,"active_fd_check":"UNKNOWN","cleanup_reason":"RETAINED","byte_basis":"logical file st_size; allocated all entries st_blocks*512","fixture_bytes_before":0,"fixture_bytes_after":0,"fixture_allocated_bytes_before":0,"fixture_allocated_bytes_after":0,"production_touched":False,"live_credential_acceptance":"NOT_RUN"}
+try:
+ s=os.lstat(path); actual={"dev":s.st_dev,"ino":s.st_ino,"uid":s.st_uid,"gid":s.st_gid,"mode":stat.S_IMODE(s.st_mode)}
+ if not stat.S_ISDIR(s.st_mode) or os.path.realpath(path)!=path or actual!=expected or expected['uid']!=502 or not path.startswith('/private/tmp/mcs-conformance-'): raise RuntimeError()
+ marker=os.lstat(os.path.join(path,'runner-owned'))
+ if not stat.S_ISREG(marker.st_mode) or marker.st_uid!=502 or marker.st_nlink!=1 or stat.S_IMODE(marker.st_mode)!=0o600: raise RuntimeError()
+ r['ownership_inode_verified']=True
+ logical=0; allocated=0
+ for root,dirs,files in os.walk(path,followlinks=False):
+  allocated+=os.lstat(root).st_blocks*512
+  for name in files+[n for n in dirs if os.path.islink(os.path.join(root,n))]:
+   st=os.lstat(os.path.join(root,name)); logical+=st.st_size; allocated+=st.st_blocks*512
+ r['fixture_bytes_before']=r['fixture_bytes_after']=logical
+ r['fixture_allocated_bytes_before']=r['fixture_allocated_bytes_after']=allocated
+ fds=subprocess.run(['/usr/sbin/lsof','-nP','+D',path],capture_output=True,timeout=20)
+ r['active_fd_check']='NONE' if fds.returncode==1 and not fds.stdout and not fds.stderr else 'PRESENT_OR_UNKNOWN'
+ fresh=os.lstat(path)
+ if (fresh.st_dev,fresh.st_ino,fresh.st_uid)!=(s.st_dev,s.st_ino,502): raise RuntimeError()
+ if result==0 and stopped=='true' and r['active_fd_check']=='NONE' and shutil.rmtree.avoids_symlink_attacks:
+  shutil.rmtree(path)
+  if not os.path.lexists(path):
+   r.update(fixture_removed=True,fixture_bytes_after=0,fixture_allocated_bytes_after=0,cleanup_reason='OWNED_FIXTURE_REMOVED_AFTER_PROVEN_TERMINAL_TESTS')
+ else: r['cleanup_reason']='RETAINED_TEST_FAILURE_OR_UNPROVEN_NO_FD'
+except BaseException:
+ r['cleanup_reason']='RETAINED_UNPROVEN_CLEANUP_PRECONDITION'
+print(json.dumps(r))
+PY_CLEANUP
   exit "$result"
 }
 trap cleanup EXIT

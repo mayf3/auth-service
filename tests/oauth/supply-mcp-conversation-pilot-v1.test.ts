@@ -43,7 +43,7 @@ export function request(phase: 'registry' | 'registry-disable' | 'supply') {
 import { mkdirSync, chownSync, chmodSync, readFileSync, readdirSync, lstatSync, unlinkSync, symlinkSync, linkSync, renameSync, writeFileSync, existsSync } from 'node:fs';
 import { join } from 'node:path';
 import { createHash } from 'node:crypto';
-import { spawn } from 'node:child_process';
+import { spawn, spawnSync } from 'node:child_process';
 import { PrismaClient } from '@prisma/client';
 import { createIsolatedVehicle, parseRequest, digest, FIXED, AUDIENCE, type Request, type IsolatedOptions, type Dependencies, createProductionVehicle, validatePublicOutput } from '../../scripts/supply-mcp-conversation-pilot-v1.js';
 import { verifyRuntimeSnapshot } from '../../src/lib/oauth/v1/contract.js';
@@ -77,11 +77,12 @@ test('ACC-MCS-002..010 isolated PostgreSQL and actual root/UID502 filesystem mat
     return parseRequest(JSON.stringify({ ...request(phase), runtime_digest: snapshot.runtimeDigest, bundle_digest: payload.sourceBundleDigest }));
   }
   async function fixture(extra: Partial<IsolatedOptions> = {}) {
+    await Promise.all(vehicles.map(v => v.close())); vehicles.length = 0;
     await reset();
     const root = join(fixtureRoot!, 'case-' + (++index)); mkdirSync(root, { mode: 0o700 }); chownSync(root, 502, 20);
     mkdirSync(join(root, 'escrow'), { mode: 0o700 }); chownSync(join(root, 'escrow'), 0, 0);
     mkdirSync(join(root, 'mcp'), { mode: 0o700 }); chownSync(join(root, 'mcp'), 502, 20);
-    let approved = true; let stopped = true; let aligned = true; let pin = true; let generations = 0;
+    let approved = true; let stopped = true; let aligned = true; let pin = true; let generations = 0; let osFaultArmed = false;
     const opts: IsolatedOptions = { root, databaseUrl: databaseUrl!, uid: 502, gid: 20,
       dependencies: async q => {
         // Independently loaded fixture artifact, not a health endpoint or caller JSON.
@@ -111,8 +112,9 @@ test('ACC-MCS-002..010 isolated PostgreSQL and actual root/UID502 filesystem mat
       ...extra };
     // Preserve instrumentation even when injecting a fault.
     opts.fault = async stage => { if (stage === 'SECRET_GENERATED') generations++; await extra.fault?.(stage); };
+    opts.osFault = () => osFaultArmed ? (typeof extra.osFault === 'function' ? extra.osFault() : extra.osFault) : undefined;
     const vehicle = createIsolatedVehicle(opts); vehicles.push(vehicle);
-    return { vehicle, root, setApproved: (v: boolean) => { approved = v; }, setStopped: (v: boolean) => { stopped = v; },
+    return { vehicle, root, armOsFault: (v = true) => { osFaultArmed = v; }, setApproved: (v: boolean) => { approved = v; }, setStopped: (v: boolean) => { stopped = v; },
       setAligned: (v: boolean) => { aligned = v; }, setPin: (v: boolean) => { pin = v; }, generations: () => generations };
   }
   async function registryReady(f: Awaited<ReturnType<typeof fixture>>) {
@@ -217,7 +219,7 @@ test('ACC-MCS-002..010 isolated PostgreSQL and actual root/UID502 filesystem mat
         const f = await fixture({ osFault });
         // Registry uses same durable ledger but does not install or read credentials.
         const q = await registryReady(f), p = await f.vehicle.run(q);
-        const out = await f.vehicle.run(q, 'apply', p); assert.notEqual(out.result, 'COMMITTED');
+        f.armOsFault(); const out = await f.vehicle.run(q, 'apply', p); assert.notEqual(out.result, 'COMMITTED');
         assert.equal(await db.machineClient.count(), 0); const count = f.generations();
         const retry = await f.vehicle.run(q, 'apply', p); assert.notEqual(retry.result, 'COMMITTED'); assert.equal(f.generations(), count);
         const reconciled = await f.vehicle.run(q, 'reconcile'); assert.equal(reconciled.residual_coordinates.state, 'proven_not_committed');
@@ -249,6 +251,18 @@ test('ACC-MCS-002..010 isolated PostgreSQL and actual root/UID502 filesystem mat
       unlinkSync(dest); const escrow = join(f.root, 'escrow', 'secret-' + q.operation_id, 'credential.json'); renameSync(escrow, escrow + '.old'); writeFileSync(escrow, raw, { mode: 0o600 });
       const recovery = await f.vehicle.run(q, 'recover-delivery', p); assert.notEqual(recovery.result, 'EXACT_RERUN_NOOP'); assert.equal(f.generations(), 1);
     });
+    for (const point of ['read-escrow:EIO','read-escrow:EMFILE','read-destination:EIO','read-destination:EMFILE','helper-unavailable']) {
+      await t.test('unavailable private-copy observation '+point+' retains UNKNOWN instead of false SECRET_LOST', async () => {
+        const f=await fixture({osFault:point}),q=await registryReady(f),p=await f.vehicle.run(q);assert.equal((await f.vehicle.run(q,'apply',p)).result,'COMMITTED');
+        if(point.startsWith('read-escrow')||point==='helper-unavailable') unlinkSync(f.vehicle.coordinates.destination);
+        const before=fsFingerprint(f.root),dbBefore=digest(await db.grantChangeAudit.findMany());f.armOsFault();
+        const outputs=[await f.vehicle.run(q,'verify'),await f.vehicle.run(q,'reconcile')];
+        for(const output of outputs){assert.equal(output.result,'OUTCOME_UNKNOWN');assert.equal(output.error_class,'PRIVATE_COPY_UNAVAILABLE');assert.equal(output.fence_preserved,true);}
+        assert.equal(fsFingerprint(f.root),before);assert.equal(digest(await db.grantChangeAudit.findMany()),dbBefore);assert.equal(f.generations(),1);
+        f.armOsFault(false);const fresh=await f.vehicle.run(q,'reconcile');
+        if(existsSync(f.vehicle.coordinates.destination))assert.equal(fresh.result,'EXACT_RERUN_NOOP');else assert.equal(fresh.residual_coordinates.state,'committed_delivery_incomplete');
+      });
+    }
     await t.test('same-inode same-size escrow JSON alteration fails its private original-byte digest', async () => {
       const f = await fixture(), q = await registryReady(f), p = await f.vehicle.run(q); assert.equal((await f.vehicle.run(q, 'apply', p)).result, 'COMMITTED');
       unlinkSync(f.vehicle.coordinates.destination);
@@ -281,6 +295,132 @@ test('ACC-MCS-002..010 isolated PostgreSQL and actual root/UID502 filesystem mat
       assert.equal(out.result, 'REFUSED'); assert.equal(await db.authAudience.count(), 0); assert.equal(f.generations(), 0);
     });
 
+
+    const ownerMandate = (q: Request, action: 'apply' | 'recover-delivery', pd: string) => ({ issuer: 'isolated-independent-owner', actor: q.operator_ref,
+      environment: 'isolated-conformance', operation_id: q.operation_id, approval_ref: q.approval_ref, approval_digest: q.approval_digest,
+      approval_nonce: q.approval_nonce, plan_digest: pd, action, expires_at: q.expires_at, attempts_max: 1 as const,
+      ...(action === 'recover-delivery' ? { recovery_nonce: randomUUID() } : {}) });
+    for (const kind of ['wrong-issuer', 'wrong-mandate-actor', 'wrong-mandate-environment', 'expired-mandate', 'wrong-operation', 'wrong-mandate-nonce', 'wrong-plan-digest', 'wrong-action', 'attempts-two'] as const) {
+      await t.test('explicit authority negative ' + kind + ' rejects before mint/target writes', async () => {
+        const f = await fixture({ mandate: async(q, action, pd) => {
+          const m: any = ownerMandate(q, action, pd);
+          if (kind === 'wrong-issuer') m.issuer = 'isolated-self-asserted-admin';
+          if (kind === 'wrong-mandate-actor') m.actor = 'isolated:other-actor';
+          if (kind === 'wrong-mandate-environment') m.environment = 'production';
+          if (kind === 'expired-mandate') m.expires_at = new Date(Date.now() - 1000).toISOString();
+          if (kind === 'wrong-operation') m.operation_id = randomUUID();
+          if (kind === 'wrong-mandate-nonce') m.approval_nonce = randomUUID();
+          if (kind === 'wrong-plan-digest') m.plan_digest = '0'.repeat(64);
+          if (kind === 'wrong-action') m.action = 'recover-delivery';
+          if (kind === 'attempts-two') m.attempts_max = 2;
+          return m;
+        } });
+        const q = req('registry'), p = await f.vehicle.run(q), stable = fsFingerprint(f.root);
+        const out = await f.vehicle.run(q, 'apply', p); assert.equal(out.error_class, 'MANDATE_REFUSED');
+        assert.equal(fsFingerprint(f.root), stable); assert.equal(await db.authAudience.count(), 0); assert.equal(await db.authSecurityAudit.count(), 0); assert.equal(f.generations(), 0);
+      });
+    }
+    for (const kind of ['wrong-request-actor', 'wrong-request-environment', 'expired-request', 'expired-plan'] as const) {
+      await t.test('explicit admission negative ' + kind + ' is read-only and cannot mint', async () => {
+        const f = await fixture(), q: any = req('registry');
+        if (kind === 'wrong-request-actor') q.operator_ref = 'isolated:other-actor';
+        if (kind === 'wrong-request-environment') q.environment = 'production';
+        if (kind === 'expired-request') { q.created_at = new Date(Date.now() - 120000).toISOString(); q.expires_at = new Date(Date.now() - 1000).toISOString(); }
+        const p = await f.vehicle.run(q); if (kind === 'expired-plan') p.expires_at = new Date(Date.now() - 1000).toISOString();
+        const out = await f.vehicle.run(q, 'apply', p); assert.notEqual(out.result, 'COMMITTED');
+        if (kind === 'expired-plan') assert.equal(out.error_class, 'PLAN_EXPIRED');
+        assert.equal(await db.authAudience.count(), 0); assert.equal(await db.authSecurityAudit.count(), 0); assert.equal(f.generations(), 0);
+      });
+    }
+    await t.test('approval nonce reuse across phases and same operation with changed plan are refused without mint', async () => {
+      const f = await fixture(), first = req('registry'), p = await f.vehicle.run(first); assert.equal((await f.vehicle.run(first, 'apply', p)).result, 'COMMITTED');
+      const altered = { ...first, approval_digest: '0'.repeat(64) }; const p2 = await f.vehicle.run(altered);
+      assert.notEqual((await f.vehicle.run(altered, 'apply', p2)).result, 'COMMITTED');
+      const q = req('supply'); q.approval_nonce = first.approval_nonce; const sp = await f.vehicle.run(q);
+      const out = await f.vehicle.run(q, 'apply', sp); assert.notEqual(out.result, 'COMMITTED');
+      assert.equal(f.generations(), 0); assert.equal(await db.machineClient.count(), 0); assert.equal(await db.grantChangeAudit.count(), 0);
+    });
+    const fsyncEdges = ['before_file_fsync', 'after_file_fsync', 'before_directory_fsync', 'after_directory_fsync'];
+    for (const scope of ['attempt', 'nonce', 'ledger:ESCROW_DURABLE', 'ledger:DESTINATION_DURABLE', 'ledger:COMMIT_REQUESTED', 'ledger:COMMITTED']) {
+      for (const edge of fsyncEdges) await t.test('durable fsync fault ' + scope + ':' + edge + ' preserves fence and no replay', async () => {
+        const point = scope + ':' + edge, f = await fixture({ osFault: point }), q = await registryReady(f), p = await f.vehicle.run(q); f.armOsFault();
+        const out = await f.vehicle.run(q, 'apply', p); assert.equal(out.result, 'OUTCOME_UNKNOWN'); assert.equal(out.error_class, 'OS_BOUNDARY_INJECTED'); assert.equal(out.fence_preserved, true);
+        const committed = scope === 'ledger:COMMITTED', expected = committed ? 1 : 0;
+        for (const count of [await db.machinePrincipal.count(), await db.machineClient.count(), await db.machineAccessGrant.count(), await db.grantChangeAudit.count()]) assert.equal(count, expected);
+        const before = fsFingerprint(f.root), reconciled = await f.vehicle.run(q, 'reconcile'); assert.equal(fsFingerprint(f.root), before);
+        assert.equal(reconciled.result, committed ? 'EXACT_RERUN_NOOP' : 'OUTCOME_UNKNOWN');
+        if (!committed) assert.equal(reconciled.residual_coordinates.state, 'proven_not_committed');
+        const generated = f.generations(); const retry = await f.vehicle.run(q, 'apply', p); assert.notEqual(retry.result, 'COMMITTED'); assert.equal(f.generations(), generated);
+      });
+    }
+    for (const scope of ['recovery_nonce', 'ledger:RECOVERY_STARTED', 'ledger:RECOVERED']) {
+      for (const edge of fsyncEdges) await t.test('recovery durable fsync fault ' + scope + ':' + edge + ' cannot remint or mutate DB', async () => {
+        const f = await fixture({ osFault: scope + ':' + edge }), q = await registryReady(f), p = await f.vehicle.run(q);
+        assert.equal((await f.vehicle.run(q, 'apply', p)).result, 'COMMITTED'); const raw = readFileSync(f.vehicle.coordinates.destination); unlinkSync(f.vehicle.coordinates.destination); f.armOsFault();
+        const before = digest(await db.grantChangeAudit.findMany()), out = await f.vehicle.run(q, 'recover-delivery', p);
+        assert.equal(out.result, 'OUTCOME_UNKNOWN'); assert.equal(out.error_class, 'OS_BOUNDARY_INJECTED'); assert.equal(f.generations(), 1);
+        assert.equal(digest(await db.grantChangeAudit.findMany()), before); assert.equal(await db.machineClient.count(), 1);
+        const recon = await f.vehicle.run(q, 'reconcile'); assert.equal(recon.result, scope === 'ledger:RECOVERED' ? 'EXACT_RERUN_NOOP' : 'OUTCOME_UNKNOWN');
+        if (scope !== 'ledger:RECOVERED') { f.armOsFault(false); assert.equal((await f.vehicle.run(q, 'recover-delivery', p)).result, 'EXACT_RERUN_NOOP'); }
+        assert(readFileSync(f.vehicle.coordinates.destination).equals(raw)); assert.equal(f.generations(), 1);
+      });
+    }
+    for (const drift of ['principal-type', 'principal-status', 'principal-ref', 'principal-display', 'principal-agent-id', 'principal-owner', 'client-status', 'client-ref', 'client-binding', 'client-legacy-resource', 'client-legacy-scope', 'client-rotated', 'client-revoked-at', 'grant-scope', 'grant-extra-scope', 'grant-duplicate-scope', 'grant-version', 'grant-missing', 'grant-extra', 'audit-missing', 'audit-extra', 'audit-details', 'audit-source', 'audit-version', 'audience-disabled'] as const) {
+      await t.test('exact rerun drift corpus ' + drift + ' refuses adoption, repair and mint', async () => {
+        const f = await fixture(), q = await registryReady(f), p = await f.vehicle.run(q); assert.equal((await f.vehicle.run(q, 'apply', p)).result, 'COMMITTED');
+        const [pr] = await db.machinePrincipal.findMany(), [cl] = await db.machineClient.findMany(), [au] = await db.grantChangeAudit.findMany();
+        if (drift === 'principal-type') await db.machinePrincipal.update({ where: { id: pr.id }, data: { principalType: 'agent' } });
+        if (drift === 'principal-status') await db.machinePrincipal.update({ where: { id: pr.id }, data: { status: 'disabled' } });
+        if (drift === 'principal-ref') await db.machinePrincipal.update({ where: { id: pr.id }, data: { externalRef: 'isolated-wrong-ref' } });
+        if (drift === 'principal-display') await db.machinePrincipal.update({ where: { id: pr.id }, data: { displayName: 'isolated-drift' } });
+        if (drift === 'principal-agent-id') await db.machinePrincipal.update({ where: { id: pr.id }, data: { agentId: 'agt_isolated-drift' } });
+        if (drift === 'principal-owner') { const owner = await db.user.create({ data: { name: 'isolated-owner', email: randomUUID()+'@isolated.invalid', password: 'isolated-unused' } }); await db.machinePrincipal.update({ where: { id: pr.id }, data: { ownerUserId: owner.id } }); }
+        if (drift === 'client-status') await db.machineClient.update({ where: { id: cl.id }, data: { status: 'revoked' } });
+        if (drift === 'client-ref') await db.machineClient.update({ where: { id: cl.id }, data: { externalRef: 'isolated-wrong-ref' } });
+        if (drift === 'client-binding') { const other = await db.machinePrincipal.create({ data: { principalType: 'service' } }); await db.machineClient.update({ where: { id: cl.id }, data: { machinePrincipalId: other.id } }); }
+        if (drift === 'client-legacy-resource') await db.machineClient.update({ where: { id: cl.id }, data: { allowedResources: [FIXED.resource] } });
+        if (drift === 'client-legacy-scope') await db.machineClient.update({ where: { id: cl.id }, data: { allowedScopes: [FIXED.scope] } });
+        if (drift === 'client-rotated') await db.machineClient.update({ where: { id: cl.id }, data: { rotatedAt: new Date() } });
+        if (drift === 'client-revoked-at') await db.machineClient.update({ where: { id: cl.id }, data: { revokedAt: new Date() } });
+        const grantWhere = { machineClientId_audienceId: { machineClientId: cl.id, audienceId: FIXED.resource } };
+        if (drift === 'grant-scope') await db.machineAccessGrant.update({ where: grantWhere, data: { scopes: ['conversation.wrong'] } });
+        if (drift === 'grant-extra-scope') await db.machineAccessGrant.update({ where: grantWhere, data: { scopes: [FIXED.scope, 'conversation.extra'] } });
+        if (drift === 'grant-duplicate-scope') await db.machineAccessGrant.update({ where: grantWhere, data: { scopes: [FIXED.scope, FIXED.scope] } });
+        if (drift === 'grant-version') await db.machineAccessGrant.update({ where: grantWhere, data: { version: 2 } });
+        if (drift === 'grant-missing') await db.machineAccessGrant.delete({ where: grantWhere });
+        if (drift === 'grant-extra') { const other = await db.authAudience.create({ data: { ...AUDIENCE, audienceId: 'isolated-extra-audience' } }); await db.machineAccessGrant.create({ data: { machineClientId: cl.id, audienceId: other.audienceId, scopes: ['isolated.extra'] } }); }
+        if (drift === 'audit-missing') await db.grantChangeAudit.delete({ where: { id: au.id } });
+        if (drift === 'audit-extra') { const { id, timestamp, ...data } = au; await db.grantChangeAudit.create({ data: { ...data, migrationId: au.migrationId + ':extra', beforeValue: au.beforeValue as any, afterValue: au.afterValue as any } }); }
+        if (drift === 'audit-details') await db.grantChangeAudit.update({ where: { id: au.id }, data: { afterValue: { ...(au.afterValue as any), secretHash: cl.secretHash } } });
+        if (drift === 'audit-source') await db.grantChangeAudit.update({ where: { id: au.id }, data: { sourceGitCommit: '0'.repeat(40) } });
+        if (drift === 'audit-version') await db.grantChangeAudit.update({ where: { id: au.id }, data: { resultingGrantVersion: 2 } });
+        if (drift === 'audience-disabled') await db.authAudience.update({ where: { audienceId: FIXED.resource }, data: { status: 'disabled' } });
+        const stateBefore = digest([await db.machinePrincipal.findMany(), await db.machineClient.findMany(), await db.machineAccessGrant.findMany(), await db.grantChangeAudit.findMany()]);
+        const outputs = [await f.vehicle.run(q), await f.vehicle.run(q, 'verify'), await f.vehicle.run(q, 'reconcile'), await f.vehicle.run(q, 'apply', p)];
+        for (const out of outputs) assert(!['COMMITTED', 'EXACT_RERUN_NOOP'].includes(out.result));
+        assert.equal(digest([await db.machinePrincipal.findMany(), await db.machineClient.findMany(), await db.machineAccessGrant.findMany(), await db.grantChangeAudit.findMany()]), stateBefore);
+        assert.equal(f.generations(), 1); outputSafe(outputs, cl, JSON.parse(readFileSync(f.vehicle.coordinates.destination,'utf8')));
+      });
+    }
+    for (const drift of ['version', 'status', 'freeze', 'principal-types', 'scopes', 'flags', 'missing-audit', 'extra-audit', 'audit-details']) {
+      await t.test('registry exact-row/audit drift corpus ' + drift + ' is never repaired', async () => {
+        const f = await fixture(), q = req('registry'), p = await f.vehicle.run(q); assert.equal((await f.vehicle.run(q, 'apply', p)).result, 'COMMITTED');
+        const where = { audienceId: FIXED.resource };
+        if (drift === 'version') await db.authAudience.update({ where, data: { version: 2 } });
+        if (drift === 'status') await db.authAudience.update({ where, data: { status: 'disabled' } });
+        if (drift === 'freeze') await db.authAudience.update({ where, data: { freezeReady: false } });
+        if (drift === 'principal-types') await db.authAudience.update({ where, data: { acceptedPrincipalTypes: ['service', 'agent'] } });
+        if (drift === 'scopes') await db.authAudience.update({ where, data: { registeredScopes: [FIXED.scope, 'conversation.extra'] } });
+        if (drift === 'flags') await db.authAudience.update({ where, data: { delegatedAccessEnabled: true } });
+        if (drift === 'missing-audit') await db.authSecurityAudit.deleteMany();
+        const [a] = await db.authSecurityAudit.findMany();
+        if (drift === 'extra-audit') { const { id, timestamp, ...data } = a; await db.authSecurityAudit.create({ data: { ...data, details: a.details as any } }); }
+        if (drift === 'audit-details') await db.authSecurityAudit.update({ where: { id: a.id }, data: { details: { ...(a.details as any), unapproved: true } } });
+        const before = digest([await db.authAudience.findMany(), await db.authSecurityAudit.findMany()]);
+        assert.notEqual((await f.vehicle.run(q, 'apply', p)).result, 'COMMITTED'); assert.notEqual((await f.vehicle.run(q, 'verify')).result, 'EXACT_RERUN_NOOP');
+        assert.equal(digest([await db.authAudience.findMany(), await db.authSecurityAudit.findMany()]), before); assert.equal(f.generations(), 0);
+      });
+    }
     await t.test('closed outputs reject additional top-level and nested fields; production trust wrapper cannot be configured by JSON/env', async () => {
       const f = await fixture(), q = req('registry'), p = await f.vehicle.run(q);
       assert.throws(() => validatePublicOutput({ ...p, client_secret: 'forbidden' }));
@@ -336,21 +476,23 @@ test('ACC-MCS-002..010 isolated PostgreSQL and actual root/UID502 filesystem mat
       import fs from 'node:fs';
       import { createIsolatedVehicle, digest } from './scripts/supply-mcp-conversation-pilot-v1.ts';
       import { verifyRuntimeSnapshot } from './src/lib/oauth/v1/contract.ts';
-      const input = JSON.parse(fs.readFileSync(0, 'utf8'));
+      const { createInterface } = await import('node:readline');
+      const control = createInterface({ input: process.stdin, crlfDelay: Infinity }); const iterator = control[Symbol.asyncIterator]();
+      const input = JSON.parse((await iterator.next()).value);
       const known = input.authority_request;
       const v = createIsolatedVehicle({ root: input.root, databaseUrl: input.database_url, uid: 502, gid: 20,
         dependencies: async q => { const runtime=JSON.parse(fs.readFileSync('generated/minimal-auth-v1/runtime-contract.json','utf8')); const p=verifyRuntimeSnapshot(runtime);
           return { ...known, executor_uid:502, executor_gid:20, candidate_validated:p.contractVersion==='1.14.0' && runtime.runtimeDigest===q.runtime_digest && p.sourceBundleDigest===q.bundle_digest,
           original_transport_verified:true,native_product_disabled:true,stopped_original_service:true,loaded_candidate_db_aligned:true }; },
         mandate: async(q,action,pd) => digest(q)===digest(known) ? ({issuer:'isolated-independent-owner',actor:known.operator_ref,environment:'isolated-conformance',operation_id:known.operation_id,
-          approval_ref:known.approval_ref,approval_digest:known.approval_digest,approval_nonce:known.approval_nonce,plan_digest:pd,action,expires_at:known.expires_at,attempts_max:1}) : undefined,
+          approval_ref:known.approval_ref,approval_digest:known.approval_digest,approval_nonce:known.approval_nonce,plan_digest:pd,action,expires_at:known.expires_at,attempts_max:1,...(action==='recover-delivery'?{recovery_nonce:input.recovery_nonce}:{})}) : undefined,
         fault: async stage => { if(stage==='SECRET_GENERATED') process.stdout.write(JSON.stringify({event:'secret-generated'})+'\n');
-          if(stage===input.kill_stage) { process.stdout.write(JSON.stringify({event:'kill-window',stage})+'\n'); await new Promise(()=>{}); } }
+          if(stage===input.kill_stage) { process.stdout.write(JSON.stringify({event:'kill-window',stage})+'\n'); if(input.continueable) await iterator.next(); else await new Promise(()=>{}); } }
       });
-      const plan=await v.run(input.request); const result=await v.run(input.request,'apply',plan);
-      process.stdout.write(JSON.stringify({event:'result',result})+'\n'); await v.close();
+      const plan=await v.run(input.request); const result=await v.run(input.request,input.action ?? 'apply',plan);
+      process.stdout.write(JSON.stringify({event:'result',result})+'\n'); await v.close(); control.close();
     `;
-    function child(f: Awaited<ReturnType<typeof fixture>>, q: Request, killStage?: string) {
+    function child(f: Awaited<ReturnType<typeof fixture>>, q: Request, killStage?: string, action: 'apply' | 'recover-delivery' = 'apply', continueable = false) {
       const proc = spawn(process.execPath, ['--import', 'tsx', '--input-type=module', '-e', childProgram], {
         cwd: process.cwd(), env: { PATH: process.env.PATH }, stdio: ['pipe', 'pipe', 'pipe'] });
       let stdout = '', stderr = '', reached = false;
@@ -363,7 +505,8 @@ test('ACC-MCS-002..010 isolated PostgreSQL and actual root/UID502 filesystem mat
       const closed = new Promise<{ code: number | null; signal: NodeJS.Signals | null; stdout: string; stderr: string }>(resolve => {
         proc.on('close', (code, signal) => { clearTimeout(timer); if (killStage && !reached) readyReject(new Error('child exited before requested stage'));
           resolve({ code, signal, stdout, stderr }); }); });
-      proc.stdin.end(JSON.stringify({ root: f.root, database_url: databaseUrl, request: q, authority_request: q, kill_stage: killStage }));
+      const input = JSON.stringify({ root: f.root, database_url: databaseUrl, request: q, authority_request: q, kill_stage: killStage, action, continueable, recovery_nonce: randomUUID() }) + '\n';
+      if (continueable) proc.stdin.write(input); else proc.stdin.end(input);
       return { proc, ready, closed };
     }
     function assertChildStreamsSafe(f: Awaited<ReturnType<typeof fixture>>, q: Request, streams: string) {
@@ -393,6 +536,25 @@ test('ACC-MCS-002..010 isolated PostgreSQL and actual root/UID502 filesystem mat
       const recovered = await f.vehicle.run(q, 'recover-delivery', p); assert.equal(recovered.result, 'EXACT_RERUN_NOOP', recovered.error_class);
       assert(readFileSync(f.vehicle.coordinates.destination).equals(original)); assert.equal(f.generations(), 0);
       assert.equal(await db.machineClient.count(), 1); assert.equal(await db.grantChangeAudit.count(), 1); assertChildStreamsSafe(f, q, JSON.stringify([reconciled, recovered]));
+    });
+    await t.test('two real fresh recovery processes interleave under one permanent kernel flock without inode theft', async () => {
+      const f = await fixture(), q = await registryReady(f), p = await f.vehicle.run(q); assert.equal((await f.vehicle.run(q,'apply',p)).result,'COMMITTED');
+      const original = readFileSync(f.vehicle.coordinates.destination); unlinkSync(f.vehicle.coordinates.destination);
+      const lock = join(f.root,'escrow','operation.lock'), beforeInode = lstatSync(lock).ino;
+      const fence = join(f.root,'escrow','attempt-'+q.operation_id+'.jsonl'), originalFirst = readFileSync(fence,'utf8').split('\n')[0];
+      const a = child(f,q,'RECOVERY_LOCK_ACQUIRED','recover-delivery',true); await a.ready;
+      // A real independent OS contender proves the mutex is kernel-held, not a PID check.
+      const probe = spawnSync('/usr/bin/python3',['-c',"import os,fcntl,sys;f=os.open(sys.argv[1],os.O_RDWR|os.O_NOFOLLOW)\ntry:\n fcntl.flock(f,fcntl.LOCK_EX|fcntl.LOCK_NB);print('acquired')\nexcept BlockingIOError:print('blocked')",lock]);
+      assert.equal(probe.status,0); assert.equal(probe.stdout.toString().trim(),'blocked');
+      const b = child(f,q,undefined,'recover-delivery'); const second = await b.closed;
+      assert.equal(second.code,0); const secondResult = second.stdout.trim().split('\n').map(line=>JSON.parse(line)).find(row=>row.event==='result').result;
+      assert(!['COMMITTED','EXACT_RERUN_NOOP'].includes(secondResult.result)); assert(!existsSync(f.vehicle.coordinates.destination));
+      assert.equal(lstatSync(lock).ino,beforeInode); a.proc.stdin.end('continue\n'); const first = await a.closed;
+      assert.equal(first.code,0); const firstResult = first.stdout.trim().split('\n').map(line=>JSON.parse(line)).find(row=>row.event==='result').result;
+      assert.equal(firstResult.result,'EXACT_RERUN_NOOP',firstResult.error_class); assert(readFileSync(f.vehicle.coordinates.destination).equals(original));
+      assert.equal(lstatSync(lock).ino,beforeInode); assert.equal(readFileSync(fence,'utf8').split('\n')[0],originalFirst);
+      assert.equal(f.generations(),1); assert.equal(await db.machineClient.count(),1); assert.equal(await db.grantChangeAudit.count(),1);
+      assertChildStreamsSafe(f,q,first.stdout+first.stderr+second.stdout+second.stderr);
     });
     await t.test('two actual competing processes produce at most one credential and one four-row effect', async () => {
       const f = await fixture(), q = await registryReady(f), a = child(f, q), b = child(f, q);
