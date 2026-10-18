@@ -143,7 +143,7 @@ export function mintForumDirectAgentToken(
     principalId: params.machinePrincipalId,
     clientId: params.machineClientId,
     agentId: params.agentId,
-    scope: params.scope,
+    scopes: params.scope,
     kid,
     success: true,
   });

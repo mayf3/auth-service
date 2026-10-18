@@ -1,6 +1,6 @@
 import { test } from 'node:test';
 import assert from 'node:assert/strict';
-import { randomUUID } from 'node:crypto';
+import { randomUUID, randomBytes } from 'node:crypto';
 
 // Contract-first: the CLI must never turn caller JSON into approval or read a DB URL.
 test('ACC-MCS-003 closed requests reject duplicate keys, secret material and caller coordinates', async () => {
@@ -22,7 +22,7 @@ test('ACC-MCS-001 production CLI has no trusted approval or database adapter', a
 
 export function request(phase: 'registry' | 'registry-disable' | 'supply') {
   const common = {
-    schema_version: 1, phase, operation_id: randomUUID(), environment: 'isolated-conformance',
+    schema_version: 2, parent_delegation_id: randomUUID(), parent_delegation_digest: '8'.repeat(64), phase, operation_id: randomUUID(), environment: 'isolated-conformance',
     source_commit: process.env.MCS_TEST_SOURCE_COMMIT ?? '6cf266386d815f5c822ce3d59905209210efb29b',
     spec_ref: 'AUTH_SERVICE_MCP_CONVERSATION_PILOT_SUPPLY_V1@6cf266386d815f5c822ce3d59905209210efb29b',
     spec_digest: 'df5ff4c536da553f16d0a5dce8658cd660082d4f0b8c37a303f71c29a33e2f2e',
@@ -31,7 +31,7 @@ export function request(phase: 'registry' | 'registry-disable' | 'supply') {
     bundle_digest: 'a'.repeat(64), runtime_digest: 'b'.repeat(64),
     runtime_preimage_receipt_ref: 'isolated:original-source-receipt', runtime_preimage_receipt_digest: 'c'.repeat(64),
     operator_ref: 'isolated:original-auth-owner', approval_ref: 'isolated:owner-mandate',
-    approval_digest: 'd'.repeat(64), approval_nonce: randomUUID(),
+    approval_digest: 'd'.repeat(64), approval_nonce: randomBytes(32).toString('base64url'),
     created_at: new Date(Date.now() - 1000).toISOString(), expires_at: new Date(Date.now() + 600000).toISOString(),
   };
   return phase === 'supply' ? { ...common, connector_config_receipt_ref: 'isolated:original-mcp-transport',
@@ -568,4 +568,151 @@ test('ACC-MCS-002..010 isolated PostgreSQL and actual root/UID502 filesystem mat
     });
 
   } finally { await Promise.all(vehicles.map(v => v.close())); await db.$disconnect(); }
+});
+
+test('V2 canonical admission excludes only approval digest and rejects noncanonical values', async () => {
+  const v = await import('../../scripts/supply-mcp-conversation-pilot-v1.js');
+  const q: any = { ...request('registry'), schema_version: 2, parent_delegation_id: randomUUID(), parent_delegation_digest: 'a'.repeat(64), phase: 'registry-migrate-agent-v1' };
+  delete q.approval_digest;
+  assert.equal(v.parseRequest(JSON.stringify(q)).phase, 'registry-migrate-agent-v1');
+  assert.throws(() => v.canonical({ n: NaN }));
+  assert.throws(() => v.canonical({ n: 1.5 }));
+  assert.throws(() => v.canonical({ n: undefined }));
+  assert.equal(v.digest({ b: 2, a: 1 }), hash('{"a":1,"b":2}'));
+});
+
+test('V2 native frames refuse duplicate/trailing/noncanonical proof and disk-only origin', async () => {
+  const v = await import('../../scripts/supply-mcp-conversation-pilot-v1.js');
+  const frame = (s: string) => { const n = Buffer.alloc(4); n.writeUInt32BE(Buffer.byteLength(s)); return Buffer.concat([n, Buffer.from(s)]); };
+  assert.throws(() => v.decodeNativeFrame(frame('{"kind":"authentication-result","kind":"authentication-result"}')));
+  assert.throws(() => v.decodeNativeFrame(Buffer.concat([frame('{}'), Buffer.from('x')])));
+  assert.throws(() => v.decodeNativeFrame(frame('{ "result": "authenticated" }')));
+  if (process.getuid?.() !== 0) await assert.rejects(v.openPilotCustody(randomUUID()), /OS_ACTOR_REQUIRED/);
+  assert.equal(FIXED.destination, '/Users/yanfenma/.config/read-mcp/native-conversation.service-v1.client.json');
+});
+
+test('V2 exact legacy migration, audit rollback, row history and forward disable', { skip: !integration }, async () => {
+  const { LEGACY_AUDIENCE } = await import('../../scripts/supply-mcp-conversation-pilot-v1.js');
+  const db = new PrismaClient({ datasources: { db: { url: databaseUrl! } }, log: [] });
+  const root = join(fixtureRoot!, 'case-v2'); mkdirSync(root, { mode: 0o700 }); chownSync(root, 502, 20);
+  mkdirSync(join(root, 'escrow'), { mode: 0o700 }); chownSync(join(root, 'escrow'), 0, 0);
+  mkdirSync(join(root, 'mcp'), { mode: 0o700 }); chownSync(join(root, 'mcp'), 502, 20);
+  let faultAt: string | undefined;
+  const dependencies = async (q: Request): Promise<Dependencies> => ({ ...q, executor_uid: 502, executor_gid: 20,
+    consumer_disposition_digest: '9'.repeat(64), candidate_validated: true, original_transport_verified: true,
+    native_product_disabled: true, stopped_original_service: true, loaded_candidate_db_aligned: true });
+  const vehicle = createIsolatedVehicle({ root, databaseUrl: databaseUrl!, uid: 502, gid: 20, dependencies,
+    mandate: async (q, action, plan_digest) => ({ issuer: 'isolated-independent-owner', actor: q.operator_ref, environment: q.environment,
+      operation_id: q.operation_id, approval_ref: q.approval_ref, approval_digest: q.approval_digest!, approval_nonce: q.approval_nonce,
+      plan_digest, action, expires_at: q.expires_at, attempts_max: 1 }), fault: stage => { if (stage === faultAt) throw Error('fixture'); } });
+  try {
+    await db.$executeRawUnsafe('TRUNCATE auth_audiences, auth_security_audits, grant_change_audits, machine_access_grants, machine_clients, machine_principals CASCADE');
+    await db.authAudience.create({ data: { ...LEGACY_AUDIENCE, acceptedPrincipalTypes: ['agent'], registeredScopes: [FIXED.scope] } });
+    const oldAudit = await db.authSecurityAudit.create({ data: { eventType: 'legacy.retained', result: 'success', details: { historical: true } } });
+    const oldPrincipal=await db.machinePrincipal.create({data:{principalType:'agent',agentId:'agt_isolated-legacy-reader',externalRef:'isolated-legacy-reader',status:'active'}});
+    const oldClient=await db.machineClient.create({data:{clientId:'mc_isolated_legacy_fixture',machinePrincipalId:oldPrincipal.id,secretHash:'isolated-not-a-production-verifier',externalRef:'isolated-legacy-reader',status:'active',allowedResources:[],allowedScopes:[]}});
+    const oldGrant=await db.machineAccessGrant.create({data:{machineClientId:oldClient.id,audienceId:FIXED.resource,scopes:[FIXED.scope],version:1}});
+
+    const make = (phase: string) => parseRequest(JSON.stringify({ ...request('registry'), schema_version: 2, phase,
+      parent_delegation_id: parent, parent_delegation_digest: '8'.repeat(64), approval_nonce: randomBytes(32).toString('base64url') }));
+    const parent = randomUUID(); const q = make('registry-migrate-agent-v1');
+    const plan = await vehicle.run(q, 'plan'); assert.equal(plan.classification, 'EXACT_AGENT1_MIGRATE');
+    assert(!('approval_digest' in plan.request));
+    await db.authAudience.update({ where: { audienceId: FIXED.resource }, data: { updatedAt: new Date('2026-10-16T05:40:12.781Z') } });
+    assert.equal((await vehicle.run(q, 'apply', plan)).result, 'REFUSED');
+    await db.authAudience.update({ where: { audienceId: FIXED.resource }, data: { updatedAt: new Date(LEGACY_AUDIENCE.updatedAt) } });
+    const committed = await vehicle.run(q, 'apply', plan); assert.equal(committed.result, 'COMMITTED', JSON.stringify(committed));
+    assert.equal(committed.audience_after.version, 2);
+    assert.deepEqual(await db.authSecurityAudit.findUnique({ where: { id: oldAudit.id } }), oldAudit);
+    assert.equal((await vehicle.run(q, 'verify')).result, 'EXACT_RERUN_NOOP');
+    const other = make('registry-migrate-agent-v1'); assert.equal((await vehicle.run(other, 'plan')).classification, 'REFUSED');
+    const oldFile=join(root,'mcp','native-conversation.client.json');const oldBytes=Buffer.from('isolated legacy credential fixture retained');writeFileSync(oldFile,oldBytes,{mode:0o600});chownSync(oldFile,502,20);
+    const supply=parseRequest(JSON.stringify({...request('supply'),parent_delegation_id:parent,parent_delegation_digest:q.parent_delegation_digest}));
+    const sp=await vehicle.run(supply,'plan');assert.equal(sp.classification,'ABSENT_APPLY');
+    const created=await vehicle.run(supply,'apply',sp);assert.equal(created.result,'COMMITTED',JSON.stringify(created));assert.equal(created.grant_version,1);assert.deepEqual(readFileSync(oldFile),oldBytes);
+    assert.deepEqual(await db.machinePrincipal.findUnique({where:{id:oldPrincipal.id}}),oldPrincipal);
+    assert.deepEqual(await db.machineClient.findUnique({where:{id:oldClient.id}}),oldClient);
+    assert.deepEqual(await db.machineAccessGrant.findUnique({where:{machineClientId_audienceId:{machineClientId:oldClient.id,audienceId:FIXED.resource}}}),oldGrant);
+
+    const disable = make('registry-disable-migrated'); const dp = await vehicle.run(disable, 'plan'); assert.equal(dp.classification, 'DISABLE_APPLY');
+    const disabled = await vehicle.run(disable, 'apply', dp); assert.equal(disabled.result, 'COMMITTED', JSON.stringify(disabled));
+    assert.equal(disabled.audience_after.version, 3); assert.deepEqual(disabled.audience_after.acceptedPrincipalTypes, ['service']);
+    assert.equal(disabled.audience_after.status, 'disabled'); assert.equal(await db.authSecurityAudit.count(), 3);
+    // Audit fault rolls row and audit back together; its spent attempt remains fenced.
+    await db.authSecurityAudit.deleteMany({ where: { id: { not: oldAudit.id } } });
+    await db.authAudience.update({ where: { audienceId: FIXED.resource }, data: { ...LEGACY_AUDIENCE, acceptedPrincipalTypes: ['agent'], registeredScopes: [FIXED.scope] } });
+    const failed = make('registry-migrate-agent-v1'); const fp = await vehicle.run(failed, 'plan'); faultAt = 'audit';
+    assert.equal((await vehicle.run(failed, 'apply', fp)).result, 'OUTCOME_UNKNOWN'); faultAt = undefined;
+    const retained = await db.authAudience.findUniqueOrThrow({ where: { audienceId: FIXED.resource } });
+    assert.equal(retained.version, 1); assert.deepEqual(retained.acceptedPrincipalTypes, ['agent']);
+    assert.equal(await db.authSecurityAudit.count(), 1);
+    assert.equal((await vehicle.run(failed, 'apply', fp)).result, 'REFUSED');
+
+    assert.deepEqual(await db.authSecurityAudit.findUnique({ where: { id: oldAudit.id } }), oldAudit);
+  } finally { await vehicle.close(); await db.$disconnect(); }
+});
+
+test('V2 distinct recovery child preserves original request fence and original secret', { skip: !integration }, async () => {
+  const db = new PrismaClient({ datasources:{ db:{ url:databaseUrl! } },log:[] });
+  const root = join(fixtureRoot!,'case-recovery-v2'); mkdirSync(root,{mode:0o700}); chownSync(root,502,20);
+  mkdirSync(join(root,'escrow'),{mode:0o700}); chownSync(join(root,'escrow'),0,0);
+  mkdirSync(join(root,'mcp'),{mode:0o700}); chownSync(join(root,'mcp'),502,20);
+  let q = parseRequest(JSON.stringify(request('supply'))); let reconciliation: any; let minted=0;
+  const vehicle = createIsolatedVehicle({root,databaseUrl:databaseUrl!,uid:502,gid:20,
+    dependencies:async request => ({...request,executor_uid:502,executor_gid:20,original_transport_verified:true,native_product_disabled:true,
+      candidate_validated:true,stopped_original_service:true,loaded_candidate_db_aligned:true}),
+    mandate:async (request,action,plan_digest)=>({issuer:'isolated-independent-owner',actor:request.operator_ref,environment:request.environment,
+      operation_id:request.operation_id,approval_ref:request.approval_ref,approval_digest:request.approval_digest!,approval_nonce:request.approval_nonce,
+      action,plan_digest,expires_at:request.expires_at,attempts_max:1}), originalSupply:async()=>({request:q,receipt:reconciliation}),
+    fault:stage=>{if(stage==='SECRET_GENERATED')minted++;} });
+  try {
+    await db.$executeRawUnsafe('TRUNCATE auth_audiences, auth_security_audits, grant_change_audits, machine_access_grants, machine_clients, machine_principals CASCADE');
+    await db.authAudience.create({data:{...AUDIENCE,acceptedPrincipalTypes:['service'],registeredScopes:[FIXED.scope]}});
+    const plan=await vehicle.run(q,'plan'); const supplied=await vehicle.run(q,'apply',plan); assert.equal(supplied.result,'COMMITTED',JSON.stringify(supplied));
+    const oldFence=readFileSync(join(root,'escrow','attempt-'+q.operation_id+'.jsonl'));
+    const verifier=(await db.machineClient.findUniqueOrThrow({where:{id:supplied.client_row_id}})).secretHash;
+    unlinkSync(vehicle.coordinates.destination); reconciliation=await vehicle.run(q,'reconcile'); assert.equal(reconciliation.error_class,'COMMITTED_DELIVERY_INCOMPLETE');
+    const recovery:any={schema_version:2,phase:'recover-delivery',parent_delegation_id:q.parent_delegation_id,parent_delegation_digest:q.parent_delegation_digest,
+      operation_id:randomUUID(),original_supply_operation_id:q.operation_id,original_supply_request_digest:digest(q),original_supply_receipt_digest:digest(reconciliation),
+      source_commit:q.source_commit,spec_ref:q.spec_ref,spec_digest:q.spec_digest,operator_ref:q.operator_ref,approval_ref:'isolated:recovery-mandate',
+      approval_nonce:randomBytes(32).toString('base64url'),created_at:new Date().toISOString(),expires_at:new Date(Date.now()+300000).toISOString()};
+    const rp=await vehicle.run(JSON.stringify(recovery),'plan'); assert.equal(rp.classification,'COMMITTED_DELIVERY_INCOMPLETE',JSON.stringify(rp));
+    const recovered=await vehicle.run(JSON.stringify({...recovery,approval_digest:'7'.repeat(64)}),'recover-delivery',rp);
+    assert.equal(recovered.result,'RECOVERED',JSON.stringify(recovered)); assert.equal(minted,1);
+    assert.equal((await db.machineClient.findUniqueOrThrow({where:{id:supplied.client_row_id}})).secretHash,verifier);
+    assert.deepEqual(readFileSync(join(root,'escrow','attempt-'+q.operation_id+'.jsonl')),oldFence);
+    assert.equal((await vehicle.run(q,'verify')).result,'EXACT_RERUN_NOOP');
+    assert.equal((await vehicle.run(JSON.stringify({...recovery,approval_digest:'7'.repeat(64)}),'recover-delivery',rp)).result,'REFUSED');
+  } finally {await vehicle.close();await db.$disconnect();}
+});
+
+test('V2 custody storage has one fixed capability claim, immutable revoke and no native proof', { skip: !integration }, async () => {
+  const { isolatedCustodyStorage } = await import('../../scripts/supply-mcp-conversation-pilot-v1.js');
+  const root=join(fixtureRoot!,'case-custody');mkdirSync(root,{mode:0o700});chownSync(root,502,20);
+  const storage=isolatedCustodyStorage(root);
+  storage.call('initialize',{records:{'intent.json':'{}','authentication.json':'{"result":"storage-fixture-not-authentication"}',
+    'delegation.json':'{}','producer.json':'{}','artifact-manifest.json':'{}'}});
+  const operation=randomUUID();
+  const args={capability:'supply',operation,claim:JSON.stringify({operation_id:operation}),records:{'mandate.json':'{}','plan.json':'{}','stages.jsonl':'{"stage":"ISSUED"}\n'}};
+  storage.call('allocate',args);
+  assert.throws(()=>storage.call('allocate',{...args,operation:randomUUID()}),/CUSTODY_INTEGRITY_FAILURE/);
+  assert.equal(storage.call('read-child',{capability:'supply'}).claim.operation_id,operation);
+  storage.call('revoke',{record:'{"reason":"EXECUTOR_STOP"}'});
+  assert.equal(storage.call('read-parent').revoked,true);
+  assert.throws(()=>storage.call('revoke',{record:'{"reason":"INTEGRITY_FAILURE"}'}));
+  const claim=join(root,'mcp-pilot-v2',storage.id,'claims','supply.json');
+  const saved=readFileSync(claim);unlinkSync(claim);symlinkSync('/dev/null',claim);
+  assert.throws(()=>storage.call('read-child',{capability:'supply'}));
+  unlinkSync(claim);writeFileSync(claim,saved,{mode:0o600});
+  assert.equal(storage.call('read-parent')['authentication.json'],'{"result":"storage-fixture-not-authentication"}');
+  const concurrent=(operation:string)=>({...args,capability:'candidate-load',operation,claim:JSON.stringify({operation_id:operation})});
+  const contenders=await Promise.allSettled([storage.concurrentAllocate(concurrent(randomUUID())),storage.concurrentAllocate(concurrent(randomUUID()))]);
+  assert.equal(contenders.filter(v=>v.status==='fulfilled').length,1);
+  assert.equal(contenders.filter(v=>v.status==='rejected').length,1);
+  const partialOperation=randomUUID();
+  const partial={...args,capability:'recover-delivery',operation:partialOperation,claim:JSON.stringify({operation_id:partialOperation}),records:{'missing/record':'{}'}};
+  assert.throws(()=>storage.call('allocate',partial));
+  assert.throws(()=>storage.call('allocate',{...args,capability:'recover-delivery',operation:randomUUID()}));
+  assert.throws(()=>storage.call('read-child',{capability:'recover-delivery'}));
+
 });

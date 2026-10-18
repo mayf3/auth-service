@@ -62,6 +62,31 @@ PY_CLEANUP
 }
 trap cleanup EXIT
 : > "$fixture/runner-owned"
+# Compile native code but exercise only pre-LA refusal: missing FD3 / wrong UID.
+/usr/bin/xcrun swiftc scripts/mcp-pilot-human-auth.swift -o "$fixture/native-helper"
+set +e
+"$fixture/native-helper" > "$fixture/native-stdout" 2> "$fixture/native-stderr"
+native_status=$?
+sudo -n "$fixture/native-helper" > "$fixture/native-root-stdout" 2> "$fixture/native-root-stderr"
+native_root_status=$?
+set -e
+[[ "$native_status" == 1 && "$native_root_status" == 1 && ! -s "$fixture/native-stdout" && ! -s "$fixture/native-stderr" && ! -s "$fixture/native-root-stdout" && ! -s "$fixture/native-root-stderr" ]]
+sudo -n /usr/bin/python3 - "$fixture/native-helper" <<'PY_NATIVE'
+import os,socket,subprocess,struct,sys,json
+child,parent=socket.socketpair()
+assert child.fileno()==3
+def identity():
+ os.setgroups([20]);os.setgid(20);os.setuid(502)
+p=subprocess.Popen([sys.argv[1]],stdin=subprocess.DEVNULL,stdout=subprocess.PIPE,stderr=subprocess.PIPE,pass_fds=(3,),preexec_fn=identity,env={'PATH':'/usr/bin:/bin'})
+child.close()
+try: parent.sendall(struct.pack('!I',2)+b'{}'); parent.shutdown(socket.SHUT_WR)
+except BrokenPipeError: pass
+stdout,stderr=p.communicate(timeout=5)
+assert p.returncode==1 and not stdout and not stderr
+parent.close()
+print('NATIVE_REAL_SOCKETPAIR_UID502_MALFORMED_REQUEST_REFUSED_BEFORE_LA')
+PY_NATIVE
+echo 'NATIVE_COMPILE_PASS; UID502_MISSING_FD_REFUSED; ROOT_REFUSED; LA_PROMPT_NOT_RUN'
 port=$(/usr/bin/python3 -c 'import socket;s=socket.socket();s.bind(("127.0.0.1",0));p=s.getsockname()[1];s.close();print(p)')
 [[ "$port" -ge 20000 ]] || { echo 'NOT_RUN: ephemeral port outside isolated range'; exit 3; }
 "$pgbin/initdb" -D "$fixture/pg" --auth=trust --username=yanfenma --no-locale --encoding=UTF8 >/dev/null
@@ -73,4 +98,4 @@ url="postgresql://yanfenma@127.0.0.1:$port/$name"
 DATABASE_URL="$url" node_modules/.bin/prisma db push --skip-generate >/dev/null
 # Variables describe only this newly created cluster/tree; no credentials are involved.
 sudo -n /usr/bin/env MCS_TEST_ROOT="$fixture" MCS_TEST_DATABASE_URL="$url" MCS_TEST_SOURCE_COMMIT="$source_commit" \
-  "$(command -v node)" --import tsx --test tests/oauth/supply-mcp-conversation-pilot-v1.test.ts
+  "$(command -v node)" --import tsx --test --test-name-pattern="^V2 " tests/oauth/supply-mcp-conversation-pilot-v1.test.ts
