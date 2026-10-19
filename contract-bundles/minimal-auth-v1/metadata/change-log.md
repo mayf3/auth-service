@@ -1,5 +1,19 @@
 # Change Log
 
+## 1.14.0 — 2026-10-18
+
+- CCR: accepted `AUTH_SERVICE_AGENT_CORE_MCP_CONVERSATION_AUDIENCE_CCR_V1`
+  appends exactly one SERVICE-only `agent-core-mcp-conversation-v1` Audience
+  with opaque `conversation.access`. All twelve existing Audience projections
+  and order remain unchanged. Website reservation `1.13.0` remains untouched.
+- Version linkage advances the Bundle/registry from `1.12.0` to `1.14.0`;
+  runtime compatibility appends only `1.14.0`. Existing generic SERVICE issuer,
+  RS256/JWKS/TTL/scope/error/Grant behavior and freeze law remain unchanged.
+- Adds signed SERVICE and fail-closed profile/scope/Grant fixtures plus tests
+  of the actual issuer, validated generator/loader and disposable PostgreSQL.
+- This is source registration only. It creates no production Principal,
+  Client, credential, Grant, DB effect, deployment, runtime load or business send.
+
 ## 1.12.0 — 2026-09-14
 
 - CCR: `AUTH_SERVICE_AGENT_SESSION_MESSAGING_AUDIENCE_CCR_V2` (accepted exact
