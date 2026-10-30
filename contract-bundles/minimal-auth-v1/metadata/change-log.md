@@ -1,5 +1,22 @@
 # Change Log
 
+## 1.14.0 source reconciliation — 2026-10-31
+
+- Owner ruling for PR #89 adopts the current base's frozen 1.14.0 contract
+  identity and retires the website delivery's 1.13.0 pin. This composite
+  source is reviewed at its new exact commit; earlier MCP review provenance
+  remains historical and does not cover these newly transplanted additions.
+- Preserve all thirteen base Audience entries and all MCP fixtures/schema
+  instances, then append exactly the two website Audience entries, eight
+  positive and twenty-four negative cases from the original website delivery.
+  Final totals: fifteen Audiences, twenty-three positive fixtures,
+  one hundred thirty-four negative cases plus four signature cases, and
+  twenty-two schema instances. All active linkage remains 1.14.0.
+- Keep the runtime compatibility list from base unchanged, including rejection
+  of 1.13.0. Update the dependent website/MCP verification counts and exact
+  prefix-preservation assertions. No Client, Principal, credential, Grant,
+  database, production registry or activation is created by this source change.
+
 ## 1.14.0 — 2026-10-18
 
 - CCR: accepted `AUTH_SERVICE_AGENT_CORE_MCP_CONVERSATION_AUDIENCE_CCR_V1`
@@ -13,6 +30,20 @@
   of the actual issuer, validated generator/loader and disposable PostgreSQL.
 - This is source registration only. It creates no production Principal,
   Client, credential, Grant, DB effect, deployment, runtime load or business send.
+
+## Historical unmerged 1.13.0 source candidate — 2026-10-15 (pin retired 2026-10-31)
+
+- Implements accepted `AUTH_SERVICE_WEBSITE_INQUIRY_AUDIENCE_CCR_V1` at
+  merged authority `57f459804df1b6526a164016ea3aefa12836286d`. Appends exactly
+  the scopeless Human-only website audience and the SERVICE-only transport
+  audience with its three independent conversation scopes; prior entries and
+  fixture assertions remain unchanged.
+- Advances coherent Bundle/registry/schema/fixture metadata linkage from
+  `1.12.0` to `1.13.0` and appends runtime compatibility for this source version.
+  Adds signed Human and all seven nonempty SERVICE scope-subset fixtures,
+  focused negative fixtures and real isolated issuer regression coverage.
+- No Client, Principal, credential, Grant, database, deployed registry, consumer
+  activation or production effect is supplied or claimed by this source change.
 
 ## 1.12.0 — 2026-09-14
 
