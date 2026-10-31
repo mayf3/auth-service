@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.14.0",
+  "contract_version": "1.15.0",
   "now": 1784300000,
   "fixtures": [
     {
@@ -745,6 +745,106 @@
         }
       },
       "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImZpeHR1cmUta2V5LXYxLXN2Yy1va3ItY2FuYXJ5LTIwMjYwNzE5In0.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiJhMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJhZ2VudC1jb3JlLXdlYnNpdGUtdHJhbnNwb3J0LXYxIiwicHJpbmNpcGFsX3R5cGUiOiJzZXJ2aWNlIiwiY2xpZW50X2lkIjoic3ludGhldGljLXdlYnNpdGUtdHJhbnNwb3J0IiwidG9rZW5fdXNlIjoiYWNjZXNzIiwidHlwZSI6ImFjY2VzcyIsInZlcnNpb24iOiJ2MSIsInNjb3BlIjoiY29udmVyc2F0aW9uLmludGVudC5yZWRlZW0gY29udmVyc2F0aW9uLm93bl9ldmVudHMucmVhZCBjb252ZXJzYXRpb24ub3duX3Jlc3VsdC5yZWFkIiwianRpIjoic2VydmljZS13ZWJzaXRlLWlucXVpcnktNy0wMDAwMSIsImlhdCI6MTc4NDMwMDAwMCwibmJmIjoxNzg0MzAwMDAwLCJleHAiOjE3ODQzMDA2MDB9.IS9JhI4W6c3vmgK0TJ3npfVkZhEv2kpyK_RwX2eQzdxlG1nvRABq-bEiXDyoaXAH1k1vmv5N-OBClsP1uu750PhRDB3bDKLYPRsxrCQDGjrhOW1ZyO_MyjGuw3A6OCl6QBQPZ8ecufaYXV7mFy-Te8EZDDc6rVKZNGWx5FN1hHj68D1Ab2PFetKKEO2hTKiad_B0LBC4GJ2xXLL23tUSnqUw6fXZZX5U2DjshbNBgat_pGOrhgwqOxwdExcF7AOVWPD_ixZrRaarweiO6XK-iA79v4kES4EcHt62qZN1PQAYH9lQYw7x_-54btxVN5vl2JX3PHC_SKePY7xKFl73eg"
+    },
+    {
+      "name": "execution-history-1",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "auth94-synthetic-public-fixture"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "20000000-0000-4000-8000-000000000001",
+        "aud": "execution-history",
+        "principal_type": "agent",
+        "client_id": "mc_auth94_synthetic",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "execution.history.read",
+        "agent_id": "agt_auth94_fixture",
+        "jti": "auth94-synthetic-jti-0",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "execution.history.read",
+        "machine_access_grants": {
+          "execution-history": [
+            "execution.history.read"
+          ]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImF1dGg5NC1zeW50aGV0aWMtcHVibGljLWZpeHR1cmUifQ.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIyMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJleGVjdXRpb24taGlzdG9yeSIsInByaW5jaXBhbF90eXBlIjoiYWdlbnQiLCJjbGllbnRfaWQiOiJtY19hdXRoOTRfc3ludGhldGljIiwidG9rZW5fdXNlIjoiYWNjZXNzIiwidHlwZSI6ImFjY2VzcyIsInZlcnNpb24iOiJ2MSIsInNjb3BlIjoiZXhlY3V0aW9uLmhpc3RvcnkucmVhZCIsImFnZW50X2lkIjoiYWd0X2F1dGg5NF9maXh0dXJlIiwianRpIjoiYXV0aDk0LXN5bnRoZXRpYy1qdGktMCIsImlhdCI6MTc4NDMwMDAwMCwibmJmIjoxNzg0MzAwMDAwLCJleHAiOjE3ODQzMDA2MDB9.L1ya4aK7sdXdNMeRXnnFc-A-VJ8xGNC7e6GYT3Vjc1ORv_OyzHtNnuRkVEItOvNHKsP-31TaI94HX4EHX6qRgrMqYHZ1b_OcFsNTVGiBJQzfkdI8IQXVVoTglyxNrcfEjlYF6_5yPrUQws7tili3f7O5LtgaTNx1fDUZWzHxlrZwNLKYdOdRQOCI-mMSIOLRSxasUyFc0qvMpwz0BW_apb74ZjV-HLDkRgfkhnPGRjPpAeUFf_7fjRSbQldFdHoJNOlgWhWaVIEv7uIr0ODetAqqeclwMfGF9BoySJc-diO7IZK2Yr20GajA4FF_L7clrHKo-qCqxOIb2miUAOfXug"
+    },
+    {
+      "name": "execution-history-2",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "auth94-synthetic-public-fixture"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "20000000-0000-4000-8000-000000000001",
+        "aud": "execution-history",
+        "principal_type": "agent",
+        "client_id": "mc_auth94_synthetic",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "execution.history.audit",
+        "agent_id": "agt_auth94_fixture",
+        "jti": "auth94-synthetic-jti-1",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "execution.history.audit",
+        "machine_access_grants": {
+          "execution-history": [
+            "execution.history.audit"
+          ]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImF1dGg5NC1zeW50aGV0aWMtcHVibGljLWZpeHR1cmUifQ.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIyMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJleGVjdXRpb24taGlzdG9yeSIsInByaW5jaXBhbF90eXBlIjoiYWdlbnQiLCJjbGllbnRfaWQiOiJtY19hdXRoOTRfc3ludGhldGljIiwidG9rZW5fdXNlIjoiYWNjZXNzIiwidHlwZSI6ImFjY2VzcyIsInZlcnNpb24iOiJ2MSIsInNjb3BlIjoiZXhlY3V0aW9uLmhpc3RvcnkuYXVkaXQiLCJhZ2VudF9pZCI6ImFndF9hdXRoOTRfZml4dHVyZSIsImp0aSI6ImF1dGg5NC1zeW50aGV0aWMtanRpLTEiLCJpYXQiOjE3ODQzMDAwMDAsIm5iZiI6MTc4NDMwMDAwMCwiZXhwIjoxNzg0MzAwNjAwfQ.K36eObjIRTWLWkG4_eb0ZfGOYJU7AFfX3cMSMFcqzXbkLMFIC9X6K1DK91zSmqtOluczYSNvbASD5r5rT4OvsgzszARuA4uEWwBbsfD-OxNQda5dr8dsj-qNwqrBgQvkgz5wkEVW4LByA-2vLIxEuneOSh4IRI3moTGfLDss05bavW7fS62bfmENG_UmQkuFy2zMIOFzr08KmkaBBhmlVxadFz9F9Si0KLXT8h_KluoN7QnBccz1lBPPfasOLr8LFIY2YhzoZapuUU8DA3KkbQHzwwoxhqzY7omgIRn3Yjq95xrjsn9Ik5NonEnpcu2XVsuYAcmSAc-ZWDXQzc98nA"
+    },
+    {
+      "name": "execution-history-3",
+      "profile": "direct_machine_access",
+      "header": {
+        "alg": "RS256",
+        "kid": "auth94-synthetic-public-fixture"
+      },
+      "claims": {
+        "iss": "auth-service",
+        "sub": "20000000-0000-4000-8000-000000000001",
+        "aud": "execution-history",
+        "principal_type": "agent",
+        "client_id": "mc_auth94_synthetic",
+        "token_use": "access",
+        "type": "access",
+        "version": "v1",
+        "scope": "execution.history.audit execution.history.read",
+        "agent_id": "agt_auth94_fixture",
+        "jti": "auth94-synthetic-jti-2",
+        "iat": 1784300000,
+        "nbf": 1784300000,
+        "exp": 1784300600
+      },
+      "authorization_context": {
+        "requested_scope": "execution.history.audit execution.history.read",
+        "machine_access_grants": {
+          "execution-history": [
+            "execution.history.audit",
+            "execution.history.read"
+          ]
+        }
+      },
+      "compact_jwt": "eyJhbGciOiJSUzI1NiIsImtpZCI6ImF1dGg5NC1zeW50aGV0aWMtcHVibGljLWZpeHR1cmUifQ.eyJpc3MiOiJhdXRoLXNlcnZpY2UiLCJzdWIiOiIyMDAwMDAwMC0wMDAwLTQwMDAtODAwMC0wMDAwMDAwMDAwMDEiLCJhdWQiOiJleGVjdXRpb24taGlzdG9yeSIsInByaW5jaXBhbF90eXBlIjoiYWdlbnQiLCJjbGllbnRfaWQiOiJtY19hdXRoOTRfc3ludGhldGljIiwidG9rZW5fdXNlIjoiYWNjZXNzIiwidHlwZSI6ImFjY2VzcyIsInZlcnNpb24iOiJ2MSIsInNjb3BlIjoiZXhlY3V0aW9uLmhpc3RvcnkuYXVkaXQgZXhlY3V0aW9uLmhpc3RvcnkucmVhZCIsImFnZW50X2lkIjoiYWd0X2F1dGg5NF9maXh0dXJlIiwianRpIjoiYXV0aDk0LXN5bnRoZXRpYy1qdGktMiIsImlhdCI6MTc4NDMwMDAwMCwibmJmIjoxNzg0MzAwMDAwLCJleHAiOjE3ODQzMDA2MDB9.GOx8XwYZ_sslxPeZZhfwmn5mmYmZSPgdRDsy6qdt0NDr-X2IVbK8FS4Qo3SxddwnqH7Vd9eDlX1gz-ZUDTOEw8tRdFRNaLPOp6NquZnEb9TzQsZGeJuYj30B2qa_M2zuM5d0FN6670lwQqSGuAiJKJt2I-MSw_Wix0voV297zY0RheT6cysqkSvIqFkJPAuTJ4SFIJ_J6lnQprNt3C3sXCHLVekhjUSTOG8J4MOtWoEM6KHvqDoDSRjEVu6qtgPMU7cV8cCHc5FIh7pe4x7aVSZOWOm2eypqCoqsDXJsNTrr9LEWF_c9K410u88ZnVETYbmUbx8a_O7CevQ4iwoxJg"
     }
   ]
 }

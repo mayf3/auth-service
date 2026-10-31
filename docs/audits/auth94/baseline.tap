@@ -1,0 +1,505 @@
+TAP version 13
+# Subtest: Bundle 1.14.0 registers the exact independent session messaging scopes
+ok 1 - Bundle 1.14.0 registers the exact independent session messaging scopes
+  ---
+  duration_ms: 0.760292
+  type: 'test'
+  ...
+# Subtest: runtime accepts the frozen Bundle 1.14.0 snapshot
+ok 2 - runtime accepts the frozen Bundle 1.14.0 snapshot
+  ---
+  duration_ms: 0.323542
+  type: 'test'
+  ...
+# Subtest: positive fixtures prove send-only, inspect-only, and combined grants independently
+ok 3 - positive fixtures prove send-only, inspect-only, and combined grants independently
+  ---
+  duration_ms: 0.141083
+  type: 'test'
+  ...
+# Subtest: negative fixtures fail closed when either independent scope is absent or malformed
+ok 4 - negative fixtures fail closed when either independent scope is absent or malformed
+  ---
+  duration_ms: 0.097542
+  type: 'test'
+  ...
+# Subtest: v0 mode does not claim a V1 runtime contract
+ok 5 - v0 mode does not claim a V1 runtime contract
+  ---
+  duration_ms: 0.786166
+  type: 'test'
+  ...
+# Subtest: v1 mode loads the frozen implementation-authorized snapshot
+ok 6 - v1 mode loads the frozen implementation-authorized snapshot
+  ---
+  duration_ms: 0.499125
+  type: 'test'
+  ...
+# Subtest: runtime snapshot rejects content changed without a new digest
+ok 7 - runtime snapshot rejects content changed without a new digest
+  ---
+  duration_ms: 0.293083
+  type: 'test'
+  ...
+# Subtest: runtime snapshot rejects an internally consistent unsupported version
+ok 8 - runtime snapshot rejects an internally consistent unsupported version
+  ---
+  duration_ms: 0.177083
+  type: 'test'
+  ...
+# [AUDIT] {"timestamp":"2026-10-31T23:16:48.865Z","type":"client.fleet_grant_ensured","principalId":"11111111-1111-1111-1111-111111111111","clientId":"mc_testc...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:48.867Z","type":"client.fleet_grant_ensured","principalId":"11111111-1111-1111-1111-111111111111","clientId":"mc_testc...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:48.867Z","type":"client.fleet_grant_ensured","principalId":"11111111-1111-1111-1111-111111111111","clientId":"mc_testc...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:48.868Z","type":"client.fleet_grant_ensured","principalId":"11111111-1111-1111-1111-111111111111","clientId":"mc_testc...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:48.868Z","type":"client.fleet_grant_ensured","principalId":"11111111-1111-1111-1111-111111111111","clientId":"mc_testc...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:48.868Z","type":"client.fleet_grant_skipped","principalId":"11111111-1111-1111-1111-111111111111","clientId":"mc_testc...","success":true,"error":"not_agent_principal"}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:48.868Z","type":"client.fleet_grant_skipped","principalId":"11111111-1111-1111-1111-111111111111","clientId":"mc_testc...","resource":"agent-session-messaging","success":true,"error":"audience_absent_or_inactive"}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:48.868Z","type":"client.fleet_grant_skipped","principalId":"11111111-1111-1111-1111-111111111111","clientId":"mc_testc...","resource":"agent-session-messaging","success":true,"error":"audience_absent_or_inactive"}
+# Subtest: FLEET_STAMP_AGENT_CREATES_EXACT_ROW
+ok 9 - FLEET_STAMP_AGENT_CREATES_EXACT_ROW
+  ---
+  duration_ms: 2.780458
+  type: 'test'
+  ...
+# Subtest: FLEET_STAMP_IDEMPOTENT_REENTRY_IS_KEEP_WITH_NO_WRITE
+ok 10 - FLEET_STAMP_IDEMPOTENT_REENTRY_IS_KEEP_WITH_NO_WRITE
+  ---
+  duration_ms: 0.212625
+  type: 'test'
+  ...
+# Subtest: FLEET_STAMP_PRESERVES_ENUMERATED_INSPECTION_SCOPE
+ok 11 - FLEET_STAMP_PRESERVES_ENUMERATED_INSPECTION_SCOPE
+  ---
+  duration_ms: 0.107125
+  type: 'test'
+  ...
+# Subtest: FLEET_STAMP_NORMALIZES_STRIPS_ONLY_NON_ENUMERATED_EXTRAS
+ok 12 - FLEET_STAMP_NORMALIZES_STRIPS_ONLY_NON_ENUMERATED_EXTRAS
+  ---
+  duration_ms: 0.154666
+  type: 'test'
+  ...
+# Subtest: FLEET_STAMP_NORMALIZE_ADDS_SEND_PRESERVING_INSPECTION
+ok 13 - FLEET_STAMP_NORMALIZE_ADDS_SEND_PRESERVING_INSPECTION
+  ---
+  duration_ms: 0.347666
+  type: 'test'
+  ...
+# Subtest: FLEET_STAMP_SERVICE_PRINCIPAL_NEVER_STAMPED
+ok 14 - FLEET_STAMP_SERVICE_PRINCIPAL_NEVER_STAMPED
+  ---
+  duration_ms: 0.142041
+  type: 'test'
+  ...
+# Subtest: FLEET_STAMP_AUDIENCE_ABSENT_SKIPS_WITHOUT_WRITE_OR_THROW
+ok 15 - FLEET_STAMP_AUDIENCE_ABSENT_SKIPS_WITHOUT_WRITE_OR_THROW
+  ---
+  duration_ms: 0.097208
+  type: 'test'
+  ...
+# Subtest: FLEET_STAMP_AUDIENCE_INACTIVE_SKIPS
+ok 16 - FLEET_STAMP_AUDIENCE_INACTIVE_SKIPS
+  ---
+  duration_ms: 0.072292
+  type: 'test'
+  ...
+# Subtest: FLEET_STAMP_MISSING_PRINCIPAL_FAILS_CLOSED
+ok 17 - FLEET_STAMP_MISSING_PRINCIPAL_FAILS_CLOSED
+  ---
+  duration_ms: 0.379666
+  type: 'test'
+  ...
+# Subtest: FLEET_PLAN_CLIENT_KEYED_PAIRS_AND_CENSUS
+ok 18 - FLEET_PLAN_CLIENT_KEYED_PAIRS_AND_CENSUS
+  ---
+  duration_ms: 0.271583
+  type: 'test'
+  ...
+# [AUDIT] {"timestamp":"2026-10-31T23:16:48.918Z","type":"client.fleet_grant_ensured","principalId":"22222222-2222-4222-8222-222222222222","clientId":"33333333...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:49.006Z","type":"client.fleet_grant_ensured","principalId":"22222222-2222-4222-8222-222222222222","clientId":"33333333...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:49.006Z","type":"client.created","principalId":"22222222-2222-4222-8222-222222222222","clientId":"mc_RRB6n...","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:49.007Z","type":"client.fleet_grant_ensured","principalId":"22222222-2222-4222-8222-222222222222","clientId":"33333333...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:49.007Z","type":"client.fleet_grant_ensured","principalId":"22222222-2222-4222-8222-222222222222","clientId":"33333333...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# Subtest: RG1_HR_dual_scope_row_reentry_unchanged_version_stable
+ok 19 - RG1_HR_dual_scope_row_reentry_unchanged_version_stable
+  ---
+  duration_ms: 24.854958
+  type: 'test'
+  ...
+# Subtest: RG2_stamp_failure_no_orphan_client_retry_returns_one_time_secret
+ok 20 - RG2_stamp_failure_no_orphan_client_retry_returns_one_time_secret
+  ---
+  duration_ms: 63.437417
+  type: 'test'
+  ...
+# Subtest: RG3_concurrent_first_stamp_converges_single_row_no_P2002_leak
+ok 21 - RG3_concurrent_first_stamp_converges_single_row_no_P2002_leak
+  ---
+  duration_ms: 0.248291
+  type: 'test'
+  ...
+# Subtest: plans one audience-scoped grant and keeps Legacy-only clients out of scope
+ok 22 - plans one audience-scoped grant and keeps Legacy-only clients out of scope
+  ---
+  duration_ms: 0.88325
+  type: 'test'
+  ...
+# Subtest: refuses ambiguous resources before planning any grant writes
+ok 23 - refuses ambiguous resources before planning any grant writes
+  ---
+  duration_ms: 0.137208
+  type: 'test'
+  ...
+# Subtest: refuses cross-audience or duplicate Legacy scopes
+ok 24 - refuses cross-audience or duplicate Legacy scopes
+  ---
+  duration_ms: 0.088666
+  type: 'test'
+  ...
+# Subtest: is idempotent for an existing exact grant and rejects conflicting state
+ok 25 - is idempotent for an existing exact grant and rejects conflicting state
+  ---
+  duration_ms: 0.112459
+  type: 'test'
+  ...
+# Subtest: refuses a stored active audience that is not frozen in the registry
+ok 26 - refuses a stored active audience that is not frozen in the registry
+  ---
+  duration_ms: 0.0575
+  type: 'test'
+  ...
+# Subtest: refuses duplicate values hidden inside a stored Audience array
+ok 27 - refuses duplicate values hidden inside a stored Audience array
+  ---
+  duration_ms: 0.064458
+  type: 'test'
+  ...
+# Subtest: MCP SERVICE audience and all thirteen base projections survive website composition
+ok 28 - MCP SERVICE audience and all thirteen base projections survive website composition
+  ---
+  duration_ms: 1.114333
+  type: 'test'
+  ...
+# Subtest: MCP signed fixture proves the SERVICE profile and opaque exact scope with fail-closed negatives
+ok 29 - MCP signed fixture proves the SERVICE profile and opaque exact scope with fail-closed negatives
+  ---
+  duration_ms: 3.351959
+  type: 'test'
+  ...
+# Subtest: actual generated loader accepts only the frozen source version, digest and authorization
+ok 30 - actual generated loader accepts only the frozen source version, digest and authorization
+  ---
+  duration_ms: 1.096708
+  type: 'test'
+  ...
+# Subtest: real disposable PostgreSQL, generic SERVICE issuer and loopback HTTP preserve all authorization guards
+not ok 31 - real disposable PostgreSQL, generic SERVICE issuer and loopback HTTP preserve all authorization guards
+  ---
+  duration_ms: 975.240792
+  type: 'test'
+  location: '/private/tmp/auth-94-impl/tests/oauth/mcp-conversation-audience-v1.test.ts:1:5308'
+  failureType: 'testCodeFailure'
+  error: |-
+    Command failed: pg_ctl -D /tmp/auth-mcc-isolated-QS9rYz/data -l /tmp/auth-mcc-isolated-QS9rYz/postgres.log -o -p 53974 -h 127.0.0.1 -k /tmp/auth-mcc-isolated-QS9rYz -w start
+    pg_ctl: 无法启动服务器进程
+    检查日志输出.
+    
+  code: 'ERR_TEST_FAILURE'
+  stack: |-
+    genericNodeError (node:internal/errors:999:15)
+    wrappedFn (node:internal/errors:544:14)
+    checkExecSyncError (node:child_process:942:11)
+    execFileSync (node:child_process:978:15)
+    TestContext.<anonymous> (/private/tmp/auth-94-impl/tests/oauth/mcp-conversation-audience-v1.test.ts:135:5)
+    process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    async Test.run (node:internal/test_runner/test:1404:7)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# MCC_ISOLATED_CLEANUP=PostgreSQL stopped; owned database, socket, generated test keys and files removed
+# Subtest: V1 Prisma and migration files stay within the repository line limit
+not ok 32 - V1 Prisma and migration files stay within the repository line limit
+  ---
+  duration_ms: 1.998709
+  type: 'test'
+  location: '/private/tmp/auth-94-impl/tests/oauth/migration-v1-static.test.ts:1:1135'
+  failureType: 'testCodeFailure'
+  error: 'prisma/schema.prisma exceeds 500 lines'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  actual: false
+  operator: '=='
+  stack: |-
+    TestContext.<anonymous> (/private/tmp/auth-94-impl/tests/oauth/migration-v1-static.test.ts:45:10)
+    Test.runInAsyncScope (node:async_hooks:226:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    Test.start (node:internal/test_runner/test:1257:17)
+    startSubtestAfterBootstrap (node:internal/test_runner/harness:387:17)
+  ...
+# Subtest: ownerless principal migration only replaces the profile shape check in one transaction
+ok 33 - ownerless principal migration only replaces the profile shape check in one transaction
+  ---
+  duration_ms: 0.339042
+  type: 'test'
+  ...
+# Subtest: V1 migration is additive and preserves Legacy authority carriers
+ok 34 - V1 migration is additive and preserves Legacy authority carriers
+  ---
+  duration_ms: 0.171625
+  type: 'test'
+  ...
+# Subtest: V1 authority and Human lifecycle tables are all explicit
+ok 35 - V1 authority and Human lifecycle tables are all explicit
+  ---
+  duration_ms: 0.101375
+  type: 'test'
+  ...
+# Subtest: database constraints preserve profile, replay, and immutable-audit invariants
+ok 36 - database constraints preserve profile, replay, and immutable-audit invariants
+  ---
+  duration_ms: 0.104583
+  type: 'test'
+  ...
+# [AUDIT] {"timestamp":"2026-10-31T23:16:49.467Z","type":"v1.direct.issued","principalId":"20000000-0000-4000-8000-000000000001","agentId":"v1-direct-agent","clientId":"v1-direc...","resource":"svc-workflow","scopes":"workflow.execute workflow.read","jti":"79f863f9-65bb-4522-9837-5eea4726cc55","success":true,"algorithm":"RS256","kid":"v1-direct-ownerless-test-key"}
+# Subtest: V1 Direct authorization binds Principal, Client, Audience, and exact requested scopes
+ok 37 - V1 Direct authorization binds Principal, Client, Audience, and exact requested scopes
+  ---
+  duration_ms: 64.233708
+  type: 'test'
+  ...
+# Subtest: V1 Direct rejects missing grants and partial authorization without downscope
+ok 38 - V1 Direct rejects missing grants and partial authorization without downscope
+  ---
+  duration_ms: 118.830584
+  type: 'test'
+  ...
+# Subtest: V1 Direct returns the same external error for missing Client and bad secret
+ok 39 - V1 Direct returns the same external error for missing Client and bad secret
+  ---
+  duration_ms: 60.169458
+  type: 'test'
+  ...
+# Subtest: V1 Direct rejects Service profile on the first-wave Agent-only audience
+ok 40 - V1 Direct rejects Service profile on the first-wave Agent-only audience
+  ---
+  duration_ms: 58.860125
+  type: 'test'
+  ...
+# Subtest: V1 Direct fails unavailable when database Audience differs from frozen registry
+ok 41 - V1 Direct fails unavailable when database Audience differs from frozen registry
+  ---
+  duration_ms: 59.841541
+  type: 'test'
+  ...
+# Subtest: V1 Direct authorizes an ownerless agent with valid secret and grant (AC1)
+ok 42 - V1 Direct authorizes an ownerless agent with valid secret and grant (AC1)
+  ---
+  duration_ms: 60.876375
+  type: 'test'
+  ...
+# Subtest: V1 Direct issues an RS256 token for an ownerless agent with no owner claim (AC1/AC7)
+ok 43 - V1 Direct issues an RS256 token for an ownerless agent with no owner claim (AC1/AC7)
+  ---
+  duration_ms: 79.66875
+  type: 'test'
+  ...
+# Subtest: V1 Direct still rejects agents missing agent_id regardless of owner (AC3)
+ok 44 - V1 Direct still rejects agents missing agent_id regardless of owner (AC3)
+  ---
+  duration_ms: 120.157833
+  type: 'test'
+  ...
+# Subtest: V1 Direct still rejects Service principals carrying agent_id (AC4)
+ok 45 - V1 Direct still rejects Service principals carrying agent_id (AC4)
+  ---
+  duration_ms: 30.649333
+  type: 'test'
+  ...
+# Subtest: ownerless agent with invalid secret fails on credential_invalid, not the profile gate (AC5)
+ok 46 - ownerless agent with invalid secret fails on credential_invalid, not the profile gate (AC5)
+  ---
+  duration_ms: 64.248583
+  type: 'test'
+  ...
+# Subtest: ownerless agent with valid secret but no grant fails on machine_grant_missing (AC6)
+ok 47 - ownerless agent with valid secret but no grant fails on machine_grant_missing (AC6)
+  ---
+  duration_ms: 66.906084
+  type: 'test'
+  ...
+# [AUDIT] {"timestamp":"2026-10-31T23:16:49.693Z","type":"v1.obo.issued","principalId":"20000000-0000-4000-8000-000000000001","clientId":"adc-v2-p...","resource":"svc-workflow","scopes":"workflow.execute workflow.read","jti":"420c68fb-2bbe-4512-8ac9-8cc7f5eae2d3","success":true,"algorithm":"RS256","kid":"v1-exchange-test-key","requestId":"v1-exchange-test-request","subjectSub":"20000000-0000-4000-8000-000000000001","subjectJti":"83bb597a-16b2-405f-b010-53e39a49de98","azp":"adc-v2-p...","actSub":"40000000-0000-4000-8000-000000000001"}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:49.797Z","type":"v1.obo.failed","clientId":"adc-v2-p...","resource":"svc-workflow","success":false,"error":"exchange_requested_scope_not_granted","requestId":"v1-exchange-test-request","subjectJti":"272ab9e3-d506-48ea-845a-cecbfe095ccf"}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:49.960Z","type":"v1.obo.failed","clientId":"adc-v2-p...","resource":"svc-workflow","success":false,"error":"exchange_audit_persistence_failed","requestId":"v1-exchange-test-request"}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:50.098Z","type":"v1.obo.failed","resource":"svc-workflow","success":false,"error":"exchange_audit_persistence_failed","requestId":"route-audit-failure"}
+# Subtest: V1 Exchange binds source, Proxy, grants, and exact canonical scope
+ok 48 - V1 Exchange binds source, Proxy, grants, and exact canonical scope
+  ---
+  duration_ms: 118.438792
+  type: 'test'
+  ...
+# Subtest: V1 Exchange rejects unaccepted source and either partial grant without downscope
+ok 49 - V1 Exchange rejects unaccepted source and either partial grant without downscope
+  ---
+  duration_ms: 288.702
+  type: 'test'
+  ...
+# Subtest: V1 Exchange rejects an OBO source token and a non-Proxy Client
+ok 50 - V1 Exchange rejects an OBO source token and a non-Proxy Client
+  ---
+  duration_ms: 158.669792
+  type: 'test'
+  ...
+# Subtest: V1 Exchange persists complete success and safe rejected audit records
+ok 51 - V1 Exchange persists complete success and safe rejected audit records
+  ---
+  duration_ms: 264.364208
+  type: 'test'
+  ...
+# Subtest: V1 Exchange returns no token when persistent audit cannot be written
+ok 52 - V1 Exchange returns no token when persistent audit cannot be written
+  ---
+  duration_ms: 162.83525
+  type: 'test'
+  ...
+# Subtest: V1 Exchange persists safe route-level rejection facts and fails closed
+ok 53 - V1 Exchange persists safe route-level rejection facts and fails closed
+  ---
+  duration_ms: 138.447458
+  type: 'test'
+  ...
+# Subtest: opaque Human credentials use frozen wire formats and verifier-only storage values
+ok 54 - opaque Human credentials use frozen wire formats and verifier-only storage values
+  ---
+  duration_ms: 178.316
+  type: 'test'
+  ...
+# Subtest: opaque parsers fail closed and PKCE S256 is base64url SHA-256
+ok 55 - opaque parsers fail closed and PKCE S256 is base64url SHA-256
+  ---
+  duration_ms: 49.958042
+  type: 'test'
+  ...
+# Subtest: Human signer emits RS256/kid and the exact no-role, no-scope profile
+ok 56 - Human signer emits RS256/kid and the exact no-role, no-scope profile
+  ---
+  duration_ms: 25.619042
+  type: 'test'
+  ...
+# Subtest: Human token expiry is Session-bounded and wrong audiences fail closed
+ok 57 - Human token expiry is Session-bounded and wrong audiences fail closed
+  ---
+  duration_ms: 59.671375
+  type: 'test'
+  ...
+# Subtest: V1 scope request accepts arbitrary order and emits unsigned-ASCII order
+ok 58 - V1 scope request accepts arbitrary order and emits unsigned-ASCII order
+  ---
+  duration_ms: 1.116833
+  type: 'test'
+  ...
+# Subtest: V1 scope request rejects empty, duplicate, spacing, case, and namespace errors
+ok 59 - V1 scope request rejects empty, duplicate, spacing, case, and namespace errors
+  ---
+  duration_ms: 0.270542
+  type: 'test'
+  ...
+# Subtest: V1 token scope validator requires already-canonical order
+ok 60 - V1 token scope validator requires already-canonical order
+  ---
+  duration_ms: 0.111
+  type: 'test'
+  ...
+# Subtest: V1 Direct signer uses frozen issuer, TTL, RS256, kid, and V0 wire names
+ok 61 - V1 Direct signer uses frozen issuer, TTL, RS256, kid, and V0 wire names
+  ---
+  duration_ms: 31.295458
+  type: 'test'
+  ...
+# Subtest: V1 Direct signer generates unique jti and rejects first-wave Service issuance
+ok 62 - V1 Direct signer generates unique jti and rejects first-wave Service issuance
+  ---
+  duration_ms: 43.257917
+  type: 'test'
+  ...
+# Subtest: V1 Direct verifier rejects forbidden claims and audience arrays
+ok 63 - V1 Direct verifier rejects forbidden claims and audience arrays
+  ---
+  duration_ms: 16.072416
+  type: 'test'
+  ...
+# Subtest: V1 Direct verifier rejects HS256 and unknown kid without fallback
+ok 64 - V1 Direct verifier rejects HS256 and unknown kid without fallback
+  ---
+  duration_ms: 16.921709
+  type: 'test'
+  ...
+# Subtest: V1 Delegated signer preserves OBO wire claims and source-bounded TTL
+ok 65 - V1 Delegated signer preserves OBO wire claims and source-bounded TTL
+  ---
+  duration_ms: 15.583709
+  type: 'test'
+  ...
+# Subtest: V1 Delegated verifier rejects claim expansion, Client mismatch, and chaining confusion
+ok 66 - V1 Delegated verifier rejects claim expansion, Client mismatch, and chaining confusion
+  ---
+  duration_ms: 37.894291
+  type: 'test'
+  ...
+# [AUDIT] {"timestamp":"2026-10-31T23:16:49.164Z","type":"v1.direct.issued","principalId":"20000000-0000-4000-8000-000000000001","clientId":"syntheti...","resource":"agent-core-website-transport-v1","scopes":"conversation.intent.redeem","jti":"0d7f12c3-053e-409b-b202-44d8fda9f5af","success":true,"algorithm":"RS256","kid":"website-inquiry-synthetic-key"}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:49.196Z","type":"v1.direct.issued","principalId":"20000000-0000-4000-8000-000000000001","clientId":"syntheti...","resource":"agent-core-website-transport-v1","scopes":"conversation.own_events.read","jti":"0e16bb14-6642-4910-9eb4-a3dc7af53ada","success":true,"algorithm":"RS256","kid":"website-inquiry-synthetic-key"}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:49.227Z","type":"v1.direct.issued","principalId":"20000000-0000-4000-8000-000000000001","clientId":"syntheti...","resource":"agent-core-website-transport-v1","scopes":"conversation.intent.redeem conversation.own_events.read","jti":"fdc510c4-fab6-4c74-9102-d66d11911003","success":true,"algorithm":"RS256","kid":"website-inquiry-synthetic-key"}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:49.257Z","type":"v1.direct.issued","principalId":"20000000-0000-4000-8000-000000000001","clientId":"syntheti...","resource":"agent-core-website-transport-v1","scopes":"conversation.own_result.read","jti":"3c45f8ab-cb63-4cda-a0c8-2be80f96e92f","success":true,"algorithm":"RS256","kid":"website-inquiry-synthetic-key"}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:49.288Z","type":"v1.direct.issued","principalId":"20000000-0000-4000-8000-000000000001","clientId":"syntheti...","resource":"agent-core-website-transport-v1","scopes":"conversation.intent.redeem conversation.own_result.read","jti":"1ef25eac-88c6-4d6d-abde-0202f8fa4e81","success":true,"algorithm":"RS256","kid":"website-inquiry-synthetic-key"}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:49.319Z","type":"v1.direct.issued","principalId":"20000000-0000-4000-8000-000000000001","clientId":"syntheti...","resource":"agent-core-website-transport-v1","scopes":"conversation.own_events.read conversation.own_result.read","jti":"71d64f9b-e040-44a4-91e9-7bfdad81721c","success":true,"algorithm":"RS256","kid":"website-inquiry-synthetic-key"}
+# [AUDIT] {"timestamp":"2026-10-31T23:16:49.352Z","type":"v1.direct.issued","principalId":"20000000-0000-4000-8000-000000000001","clientId":"syntheti...","resource":"agent-core-website-transport-v1","scopes":"conversation.intent.redeem conversation.own_events.read conversation.own_result.read","jti":"db40c80c-e721-42bb-8326-91874770c684","success":true,"algorithm":"RS256","kid":"website-inquiry-synthetic-key"}
+# Subtest: frozen 1.14 source loads exactly a scopeless Human and three-scope Service audience
+ok 67 - frozen 1.14 source loads exactly a scopeless Human and three-scope Service audience
+  ---
+  duration_ms: 7.791041
+  type: 'test'
+  ...
+# Subtest: real Service issuer signs every nonempty scope subset with exact canonical claims
+ok 68 - real Service issuer signs every nonempty scope subset with exact canonical claims
+  ---
+  duration_ms: 223.099666
+  type: 'test'
+  ...
+# Subtest: real Service authorization denies absent or inactive identities, credentials and grants
+ok 69 - real Service authorization denies absent or inactive identities, credentials and grants
+  ---
+  duration_ms: 177.202583
+  type: 'test'
+  ...
+# Subtest: real Service authorization rejects aliases and every malformed or partially granted request
+ok 70 - real Service authorization rejects aliases and every malformed or partially granted request
+  ---
+  duration_ms: 378.304542
+  type: 'test'
+  ...
+# Subtest: real public-browser PKCE login issues a scopeless Human token bound to its exact grant
+ok 71 - real public-browser PKCE login issues a scopeless Human token bound to its exact grant
+  ---
+  duration_ms: 163.122375
+  type: 'test'
+  ...
+# Subtest: Human issuer rejects missing/cross-audience grants, wrong redirect, PKCE and inactive users
+ok 72 - Human issuer rejects missing/cross-audience grants, wrong redirect, PKCE and inactive users
+  ---
+  duration_ms: 2.894
+  type: 'test'
+  ...
+# Subtest: bundle declares independently granted signed Human and all Service subsets for executable validation
+ok 73 - bundle declares independently granted signed Human and all Service subsets for executable validation
+  ---
+  duration_ms: 0.65025
+  type: 'test'
+  ...
+1..73
+# tests 73
+# suites 0
+# pass 71
+# fail 2
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 1410.082791

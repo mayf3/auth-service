@@ -148,7 +148,7 @@ export function loadCandidateSnapshot(candidatePath?: string): CandidateSnapshot
 
 	// Validate version (accept 1.0.0, 1.1.0, 1.2.0, 1.3.0, 1.4.0, 1.5.0, 1.6.0, 1.7.0, 1.8.0, and the reconciled 1.14.0)
 	  if (parsed.payload.formatVersion !== 1
-	    || !['1.0.0', '1.1.0', '1.2.0', '1.3.0', '1.4.0', '1.5.0', '1.6.0', '1.7.0', '1.8.0', '1.14.0'].includes(parsed.payload.contractVersion)) {
+	    || !['1.0.0', '1.1.0', '1.2.0', '1.3.0', '1.4.0', '1.5.0', '1.6.0', '1.7.0', '1.8.0', '1.14.0', '1.15.0'].includes(parsed.payload.contractVersion)) {
     throw new Error('Candidate runtime snapshot version is unsupported.');
   }
 

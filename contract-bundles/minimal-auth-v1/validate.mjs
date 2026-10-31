@@ -392,7 +392,25 @@ const audienceIds = registry.audiences.map((audience) => audience.audience_id);
 const audienceById = new Map(registry.audiences.map((audience) => [audience.audience_id, audience]));
 check(new Set(audienceIds).size === audienceIds.length, 'registry: duplicate Audience ID');
 check([...audienceIds].sort(asciiCompare).join('\0')
-  === ['adc-v2', 'agent-core-mcp-conversation-v1', 'agent-core-notification-ingress-v1', 'agent-core-website-human-v1', 'agent-core-website-transport-v1', 'agent-directory', 'agent-principal-resolution', 'agent-session-messaging', 'identity-directory', 'life-workbench', 'scheduler', 'svc-auth', 'svc-forum', 'svc-okr', 'svc-workflow'].sort(asciiCompare).join('\0'), 'registry: first-wave Audience set changed');
+  === ['adc-v2', 'agent-core-mcp-conversation-v1', 'agent-core-notification-ingress-v1', 'agent-core-website-human-v1', 'agent-core-website-transport-v1', 'agent-directory', 'agent-principal-resolution', 'agent-session-messaging', 'execution-history', 'identity-directory', 'life-workbench', 'scheduler', 'svc-auth', 'svc-forum', 'svc-okr', 'svc-workflow'].sort(asciiCompare).join('\0'), 'registry: first-wave Audience set changed');
+check(JSON.stringify(audienceById.get('execution-history')) === JSON.stringify({
+  "audience_id": "execution-history",
+  "resource_service": "execution-history",
+  "scope_namespace": "execution",
+  "accepted_principal_types": [
+    "agent"
+  ],
+  "human_access_enabled": false,
+  "machine_access_enabled": true,
+  "delegated_access_enabled": false,
+  "registered_scopes": [
+    "execution.history.audit",
+    "execution.history.read"
+  ],
+  "status": "active",
+  "freeze_ready": true,
+  "notes": "Registered by EXECUTION_HISTORY_AUTH_CONTRACT_V1; self-only read via eligible fleet provisioning; audit default deny and explicit named-client Owner instruction; neither grants raw-content, secrets or decryption access."
+}), 'registry: execution-history exact entry changed');
 check(!audienceIds.includes('agent-forum'), 'registry: repository name agent-forum cannot be a Wire Audience');
 check(!audienceIds.includes('workflow-todo'), 'registry: workflow-todo is a Client, not a resource Audience');
 for (const audience of registry.audiences) {
@@ -598,6 +616,24 @@ for (const [name, expectedError] of [
 ]) {
   check(negative.cases.some((entry) => entry.name === name && entry.expected_error === expectedError),
     'website inquiry: missing fail-closed fixture ' + name);
+}
+
+for (const [index, exactScope] of ['execution.history.read', 'execution.history.audit', 'execution.history.audit execution.history.read'].entries()) {
+  const fixture = positiveByName.get(`execution-history-${index + 1}`);
+  check(fixture?.profile === 'direct_machine_access'
+    && fixture?.claims?.aud === 'execution-history' && fixture?.claims?.principal_type === 'agent'
+    && fixture?.claims?.scope === exactScope
+    && fixture?.authorization_context?.requested_scope === exactScope
+    && fixture?.authorization_context?.machine_access_grants?.['execution-history']?.join(' ') === exactScope,
+  `execution history: missing independently granted scope subset ${index + 1}`);
+}
+for (const [name, expectedError] of [
+  ['missing-grant', 'INVALID_SCOPE_GRANT'], ['audit-escalation', 'INVALID_SCOPE_GRANT'],
+  ['unknown-scope', 'INVALID_SCOPE_NAMESPACE'], ['resource-mismatch', 'INVALID_SCOPE_NAMESPACE'],
+  ['unknown-audience', 'UNKNOWN_AUDIENCE'], ['silent-downscope', 'SCOPE_OUTPUT_MISMATCH'],
+]) {
+  check(negative.cases.some((entry) => entry.name === `execution-history-${name}` && entry.expected_error === expectedError),
+    `execution history: missing fail-closed fixture ${name}`);
 }
 
 for (const testCase of negative.cases) {

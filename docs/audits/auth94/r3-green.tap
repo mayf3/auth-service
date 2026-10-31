@@ -1,0 +1,85 @@
+TAP version 13
+# [AUDIT] {"timestamp":"2026-10-31T23:30:10.847Z","type":"client.fleet_grant_skipped","principalId":"94000000-0000-4000-8000-000000000001","clientId":"94000000...","resource":"agent-session-messaging","success":true,"error":"audience_absent_or_inactive"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:10.848Z","type":"client.fleet_grant_ensured","principalId":"94000000-0000-4000-8000-000000000001","clientId":"mc_ohkz3...","resource":"execution-history","scopes":"execution.history.read","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:10.848Z","type":"client.created","principalId":"94000000-0000-4000-8000-000000000001","clientId":"mc_ohkz3...","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:10.874Z","type":"v1.direct.issued","principalId":"94000000-0000-4000-8000-000000000001","agentId":"agt_auth94_fixture","clientId":"mc_ohkz3...","resource":"execution-history","scopes":"execution.history.read","jti":"f4508dec-c477-49a1-97d4-e53097f7bc0a","success":true,"algorithm":"RS256","kid":"auth94-synthetic-key"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:10.925Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"machine_grant_missing"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:10.952Z","type":"v1.direct.issued","principalId":"94000000-0000-4000-8000-000000000001","agentId":"agt_auth94_fixture","clientId":"mc_auth9...","resource":"execution-history","scopes":"execution.history.audit","jti":"c34ece39-de04-49bc-8a22-3cdf346b0bba","success":true,"algorithm":"RS256","kid":"auth94-synthetic-key"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.001Z","type":"v1.direct.failed","clientId":"mc_other...","resource":"execution-history","success":false,"error":"machine_grant_missing"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.026Z","type":"client.fleet_grant_ensured","principalId":"94000000-0000-4000-8000-000000000001","clientId":"mc_auth9...","resource":"execution-history","scopes":"execution.history.read","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.051Z","type":"v1.direct.issued","principalId":"94000000-0000-4000-8000-000000000001","agentId":"agt_auth94_fixture","clientId":"mc_auth9...","resource":"execution-history","scopes":"execution.history.read","jti":"1e83342c-5d0f-4c5a-a6e6-0b39a02e4fc0","success":true,"algorithm":"RS256","kid":"auth94-synthetic-key"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.052Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"Execution-History","success":false,"error":"audience_not_machine_enabled"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.052Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history/","success":false,"error":"audience_not_machine_enabled"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.052Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"unknown","success":false,"error":"audience_not_machine_enabled"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.076Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"svc-workflow","success":false,"error":"machine_grant_missing"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.100Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"requested_scope_not_granted"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.125Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"requested_scope_not_granted"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.149Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"requested_scope_not_granted"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.174Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"scope_shape_invalid"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.198Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"scope_spacing_invalid"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.222Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"scope_duplicate"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.247Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"scope_namespace_invalid"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.271Z","type":"client.fleet_grant_ensured","principalId":"94000000-0000-4000-8000-000000000001","clientId":"mc_auth9...","resource":"execution-history","scopes":"execution.history.read","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.296Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"requested_scope_not_granted"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.346Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"machine_grant_missing"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.370Z","type":"client.fleet_grant_ensured","principalId":"94000000-0000-4000-8000-000000000001","clientId":"mc_auth9...","resource":"execution-history","scopes":"execution.history.read","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:11.394Z","type":"client.fleet_grant_skipped","principalId":"94000000-0000-4000-8000-000000000001","clientId":"94000000...","resource":"agent-session-messaging","success":true,"error":"audience_absent_or_inactive"}
+# Subtest: ACC94-1 registered fleet self-read mints exact scope; synthetic resource rejects another agent
+ok 1 - ACC94-1 registered fleet self-read mints exact scope; synthetic resource rejects another agent
+  ---
+  duration_ms: 77.104708
+  type: 'test'
+  ...
+# Subtest: ACC94-2 explicit named audit supply mints; ungranted client gets machine_grant_missing
+ok 2 - ACC94-2 explicit named audit supply mints; ungranted client gets machine_grant_missing
+  ---
+  duration_ms: 124.644792
+  type: 'test'
+  ...
+# Subtest: ACC94-3 resource mismatch, unknown audience/scope and mixed scope escalation fail closed
+ok 3 - ACC94-3 resource mismatch, unknown audience/scope and mixed scope escalation fail closed
+  ---
+  duration_ms: 245.685417
+  type: 'test'
+  ...
+# Subtest: ACC94-4 provision/revoke are idempotent and every call retains transactional grant_change_audits evidence
+ok 4 - ACC94-4 provision/revoke are idempotent and every call retains transactional grant_change_audits evidence
+  ---
+  duration_ms: 147.840541
+  type: 'test'
+  ...
+# Subtest: ACC94-5 real success/denial and supply/revoke logs contain no token, secret or raw session content
+ok 5 - ACC94-5 real success/denial and supply/revoke logs contain no token, secret or raw session content
+  ---
+  duration_ms: 73.787334
+  type: 'test'
+  ...
+# [AUDIT] {"timestamp":"2026-10-31T23:30:10.682Z","type":"client.fleet_grant_ensured","principalId":"94000000-0000-4000-8000-000000000001","clientId":"mc_auth9...","resource":"execution-history","scopes":"execution.history.read","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:10.710Z","type":"client.fleet_grant_ensured","principalId":"94000000-0000-4000-8000-000000000001","clientId":"mc_auth9...","resource":"execution-history","scopes":"execution.history.read","success":true}
+# Subtest: R3-1 revoked client audit revoke preserves read and writes audit; active checks still deny provision
+ok 6 - R3-1 revoked client audit revoke preserves read and writes audit; active checks still deny provision
+  ---
+  duration_ms: 57.457667
+  type: 'test'
+  ...
+# Subtest: R3-2 repeated revoked-client last-scope revoke is an audited NOOP; exact instruction replay reuses evidence
+ok 7 - R3-2 repeated revoked-client last-scope revoke is an audited NOOP; exact instruction replay reuses evidence
+  ---
+  duration_ms: 26.211875
+  type: 'test'
+  ...
+# Subtest: R3-3 never-existing grant revoke remains an audited NOOP for registered active or revoked clients
+ok 8 - R3-3 never-existing grant revoke remains an audited NOOP for registered active or revoked clients
+  ---
+  duration_ms: 51.0595
+  type: 'test'
+  ...
+1..8
+# tests 8
+# suites 0
+# pass 8
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 950.895875

@@ -15,6 +15,14 @@
       "use": "sig",
       "alg": "RS256",
       "kid": "fixture-key-v1-svc-okr-canary-20260719"
+    },
+    {
+      "kty": "RSA",
+      "n": "sKPiUhD0MJlDaVSuYigvNJ9WbG9dKTHfP9MdNfZU0_DzYhqUlv4RIOSNCg7nc95T8YEdQwqIc18SWJc8AawDhBxPKr30k-72gAIwBoz9GYZtq3kzBS86ko0j0GqrTaorijkdL0L6hNJs-91nFKTLyUOu0HrLbxryGQE1a5T6ulnuZTgwZmQOXU6ocFtOtWPD1lPV4VMwWgMg_EdrgI6k5o-A5-4v6-sRTW9vjgBotQNkEd69DIUh7aung2z_CPLkMH9ZdV1xVGy_7kcjCW5ZV96wGKoXL7-9qWeLVEyGxD2vOaGnBpRT3kUo2xSRsflZ4NpeHw9xjrRToltSvmp05w",
+      "e": "AQAB",
+      "kid": "auth94-synthetic-public-fixture",
+      "alg": "RS256",
+      "use": "sig"
     }
   ]
 }
