@@ -1,0 +1,73 @@
+FAIL	V1 Prisma and migration files stay within the repository line limit
+FAIL	real disposable PostgreSQL, generic SERVICE issuer and loopback HTTP preserve all authorization guards
+PASS	Bundle 1.14.0 registers the exact independent session messaging scopes
+PASS	FLEET_PLAN_CLIENT_KEYED_PAIRS_AND_CENSUS
+PASS	FLEET_STAMP_AGENT_CREATES_EXACT_ROW
+PASS	FLEET_STAMP_AUDIENCE_ABSENT_SKIPS_WITHOUT_WRITE_OR_THROW
+PASS	FLEET_STAMP_AUDIENCE_INACTIVE_SKIPS
+PASS	FLEET_STAMP_IDEMPOTENT_REENTRY_IS_KEEP_WITH_NO_WRITE
+PASS	FLEET_STAMP_MISSING_PRINCIPAL_FAILS_CLOSED
+PASS	FLEET_STAMP_NORMALIZES_STRIPS_ONLY_NON_ENUMERATED_EXTRAS
+PASS	FLEET_STAMP_NORMALIZE_ADDS_SEND_PRESERVING_INSPECTION
+PASS	FLEET_STAMP_PRESERVES_ENUMERATED_INSPECTION_SCOPE
+PASS	FLEET_STAMP_SERVICE_PRINCIPAL_NEVER_STAMPED
+PASS	Human issuer rejects missing/cross-audience grants, wrong redirect, PKCE and inactive users
+PASS	Human signer emits RS256/kid and the exact no-role, no-scope profile
+PASS	Human token expiry is Session-bounded and wrong audiences fail closed
+PASS	MCP SERVICE audience and all thirteen base projections survive website composition
+PASS	MCP signed fixture proves the SERVICE profile and opaque exact scope with fail-closed negatives
+PASS	RG1_HR_dual_scope_row_reentry_unchanged_version_stable
+PASS	RG2_stamp_failure_no_orphan_client_retry_returns_one_time_secret
+PASS	RG3_concurrent_first_stamp_converges_single_row_no_P2002_leak
+PASS	V1 Delegated signer preserves OBO wire claims and source-bounded TTL
+PASS	V1 Delegated verifier rejects claim expansion, Client mismatch, and chaining confusion
+PASS	V1 Direct authorization binds Principal, Client, Audience, and exact requested scopes
+PASS	V1 Direct authorizes an ownerless agent with valid secret and grant (AC1)
+PASS	V1 Direct fails unavailable when database Audience differs from frozen registry
+PASS	V1 Direct issues an RS256 token for an ownerless agent with no owner claim (AC1/AC7)
+PASS	V1 Direct rejects Service profile on the first-wave Agent-only audience
+PASS	V1 Direct rejects missing grants and partial authorization without downscope
+PASS	V1 Direct returns the same external error for missing Client and bad secret
+PASS	V1 Direct signer generates unique jti and rejects first-wave Service issuance
+PASS	V1 Direct signer uses frozen issuer, TTL, RS256, kid, and V0 wire names
+PASS	V1 Direct still rejects Service principals carrying agent_id (AC4)
+PASS	V1 Direct still rejects agents missing agent_id regardless of owner (AC3)
+PASS	V1 Direct verifier rejects HS256 and unknown kid without fallback
+PASS	V1 Direct verifier rejects forbidden claims and audience arrays
+PASS	V1 Exchange binds source, Proxy, grants, and exact canonical scope
+PASS	V1 Exchange persists complete success and safe rejected audit records
+PASS	V1 Exchange persists safe route-level rejection facts and fails closed
+PASS	V1 Exchange rejects an OBO source token and a non-Proxy Client
+PASS	V1 Exchange rejects unaccepted source and either partial grant without downscope
+PASS	V1 Exchange returns no token when persistent audit cannot be written
+PASS	V1 authority and Human lifecycle tables are all explicit
+PASS	V1 migration is additive and preserves Legacy authority carriers
+PASS	V1 scope request accepts arbitrary order and emits unsigned-ASCII order
+PASS	V1 scope request rejects empty, duplicate, spacing, case, and namespace errors
+PASS	V1 token scope validator requires already-canonical order
+PASS	actual generated loader accepts only the frozen source version, digest and authorization
+PASS	bundle declares independently granted signed Human and all Service subsets for executable validation
+PASS	database constraints preserve profile, replay, and immutable-audit invariants
+PASS	frozen 1.14 source loads exactly a scopeless Human and three-scope Service audience
+PASS	is idempotent for an existing exact grant and rejects conflicting state
+PASS	negative fixtures fail closed when either independent scope is absent or malformed
+PASS	opaque Human credentials use frozen wire formats and verifier-only storage values
+PASS	opaque parsers fail closed and PKCE S256 is base64url SHA-256
+PASS	ownerless agent with invalid secret fails on credential_invalid, not the profile gate (AC5)
+PASS	ownerless agent with valid secret but no grant fails on machine_grant_missing (AC6)
+PASS	ownerless principal migration only replaces the profile shape check in one transaction
+PASS	plans one audience-scoped grant and keeps Legacy-only clients out of scope
+PASS	positive fixtures prove send-only, inspect-only, and combined grants independently
+PASS	real Service authorization denies absent or inactive identities, credentials and grants
+PASS	real Service authorization rejects aliases and every malformed or partially granted request
+PASS	real Service issuer signs every nonempty scope subset with exact canonical claims
+PASS	real public-browser PKCE login issues a scopeless Human token bound to its exact grant
+PASS	refuses a stored active audience that is not frozen in the registry
+PASS	refuses ambiguous resources before planning any grant writes
+PASS	refuses cross-audience or duplicate Legacy scopes
+PASS	refuses duplicate values hidden inside a stored Audience array
+PASS	runtime accepts the frozen Bundle 1.14.0 snapshot
+PASS	runtime snapshot rejects an internally consistent unsupported version
+PASS	runtime snapshot rejects content changed without a new digest
+PASS	v0 mode does not claim a V1 runtime contract
+PASS	v1 mode loads the frozen implementation-authorized snapshot

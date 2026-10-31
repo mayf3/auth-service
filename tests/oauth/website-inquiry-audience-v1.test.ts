@@ -60,8 +60,8 @@ const denied = (code: string) => (error: any) => error.message === code;
 // Missing/widened entries must break the runtime registry consumer, not just a text check.
 test('frozen 1.14 source loads exactly a scopeless Human and three-scope Service audience', () => {
   resetAuthContractForTests();
-  assert.equal(initializeAuthContract('v1').contractVersion, '1.14.0');
-  assert.equal(getV1AudienceDefinitions().length, 15);
+  assert.equal(initializeAuthContract('v1').contractVersion, '1.15.0');
+  assert.equal(getV1AudienceDefinitions().length, 16);
   assert.deepEqual(storedAudience(HUMAN), {
     audienceId: HUMAN, resourceService: HUMAN, scopeNamespace: 'agent-core-website-human',
     acceptedPrincipalTypes: ['user'], registeredScopes: [], humanAccessEnabled: true,

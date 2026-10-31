@@ -1,0 +1,107 @@
+TAP version 13
+# Subtest: ACC94-1 registered fleet self-read mints exact scope; synthetic resource rejects another agent
+not ok 1 - ACC94-1 registered fleet self-read mints exact scope; synthetic resource rejects another agent
+  ---
+  duration_ms: 21.657
+  type: 'test'
+  location: '/private/tmp/auth-94-impl/tests/oauth/execution-history-auth-v1.test.ts:1:1563'
+  failureType: 'testCodeFailure'
+  error: 'accepted execution-history audience must be registered'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  operator: '=='
+  stack: |-
+    storedAudience (/private/tmp/auth-94-impl/tests/helpers/execution-history-fixture.ts:100:10)
+    TestContext.<anonymous> (/private/tmp/auth-94-impl/tests/oauth/execution-history-auth-v1.test.ts:25:20)
+    Test.runInAsyncScope (node:async_hooks:226:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3)
+  ...
+# Subtest: ACC94-2 explicit named audit supply mints; ungranted client gets machine_grant_missing
+not ok 2 - ACC94-2 explicit named audit supply mints; ungranted client gets machine_grant_missing
+  ---
+  duration_ms: 0.236791
+  type: 'test'
+  location: '/private/tmp/auth-94-impl/tests/oauth/execution-history-auth-v1.test.ts:1:2611'
+  failureType: 'testCodeFailure'
+  error: 'accepted execution-history audience must be registered'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  operator: '=='
+  stack: |-
+    storedAudience (/private/tmp/auth-94-impl/tests/helpers/execution-history-fixture.ts:100:10)
+    TestContext.<anonymous> (/private/tmp/auth-94-impl/tests/oauth/execution-history-auth-v1.test.ts:40:3)
+    Test.runInAsyncScope (node:async_hooks:226:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: ACC94-3 resource mismatch, unknown audience/scope and mixed scope escalation fail closed
+not ok 3 - ACC94-3 resource mismatch, unknown audience/scope and mixed scope escalation fail closed
+  ---
+  duration_ms: 1.0025
+  type: 'test'
+  location: '/private/tmp/auth-94-impl/tests/oauth/execution-history-auth-v1.test.ts:1:3555'
+  failureType: 'testCodeFailure'
+  error: 'accepted execution-history audience must be registered'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  operator: '=='
+  stack: |-
+    storedAudience (/private/tmp/auth-94-impl/tests/helpers/execution-history-fixture.ts:100:10)
+    TestContext.<anonymous> (/private/tmp/auth-94-impl/tests/oauth/execution-history-auth-v1.test.ts:54:3)
+    Test.runInAsyncScope (node:async_hooks:226:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+# Subtest: ACC94-4 provision/revoke are idempotent and every call retains transactional grant_change_audits evidence
+not ok 4 - ACC94-4 provision/revoke are idempotent and every call retains transactional grant_change_audits evidence
+  ---
+  duration_ms: 1.799875
+  type: 'test'
+  location: '/private/tmp/auth-94-impl/tests/oauth/execution-history-auth-v1.test.ts:1:4451'
+  failureType: 'testCodeFailure'
+  error: "Cannot find module '/private/tmp/auth-94-impl/src/lib/oauth/v1/execution-history-grant.js' imported from /private/tmp/auth-94-impl/tests/oauth/execution-history-auth-v1.test.ts"
+  code: 'ERR_MODULE_NOT_FOUND'
+  stack: |-
+    finalizeResolution (node:internal/modules/esm/resolve:272:11)
+    moduleResolve (node:internal/modules/esm/resolve:879:10)
+    defaultResolve (node:internal/modules/esm/resolve:1006:11)
+    #cachedDefaultResolve (node:internal/modules/esm/loader:708:20)
+    #resolveAndMaybeBlockOnLoaderThread (node:internal/modules/esm/loader:728:38)
+    nextStep (node:internal/modules/customization_hooks:189:26)
+    resolveBaseSync (file:///private/tmp/auth-89-rebase/node_modules/tsx/dist/register-D_B8UL5H.mjs:2:8642)
+    resolveDirectorySync (file:///private/tmp/auth-89-rebase/node_modules/tsx/dist/register-D_B8UL5H.mjs:2:9781)
+    resolveTsPathsSync (file:///private/tmp/auth-89-rebase/node_modules/tsx/dist/register-D_B8UL5H.mjs:2:11014)
+    resolve2 (file:///private/tmp/auth-89-rebase/node_modules/tsx/dist/register-D_B8UL5H.mjs:2:12901)
+  ...
+# Subtest: ACC94-5 real success/denial and supply/revoke logs contain no token, secret or raw session content
+not ok 5 - ACC94-5 real success/denial and supply/revoke logs contain no token, secret or raw session content
+  ---
+  duration_ms: 0.177708
+  type: 'test'
+  location: '/private/tmp/auth-94-impl/tests/oauth/execution-history-auth-v1.test.ts:1:7794'
+  failureType: 'testCodeFailure'
+  error: 'accepted execution-history audience must be registered'
+  code: 'ERR_ASSERTION'
+  name: 'AssertionError'
+  expected: true
+  operator: '=='
+  stack: |-
+    storedAudience (/private/tmp/auth-94-impl/tests/helpers/execution-history-fixture.ts:100:10)
+    TestContext.<anonymous> (/private/tmp/auth-94-impl/tests/oauth/execution-history-auth-v1.test.ts:118:5)
+    Test.runInAsyncScope (node:async_hooks:226:14)
+    Test.run (node:internal/test_runner/test:1397:25)
+    async Test.processPendingSubtests (node:internal/test_runner/test:969:7)
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 0
+# fail 5
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 254.55075

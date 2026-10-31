@@ -1,0 +1,15 @@
+[
+  "tests/oauth/contract-runtime-v1.test.ts",
+  "tests/oauth/migration-v1-static.test.ts",
+  "tests/oauth/grant-migration-v1.test.ts",
+  "tests/oauth/v1-scope.test.ts",
+  "tests/oauth/v1-direct.test.ts",
+  "tests/oauth/v1-signer.test.ts",
+  "tests/oauth/v1-exchange.test.ts",
+  "tests/oauth/v1-human.test.ts",
+  "tests/oauth/fleet-send-grant.test.ts",
+  "tests/oauth/fleet-send-regression.test.ts",
+  "tests/oauth/agent-session-inspection-audience-v2.test.ts",
+  "tests/oauth/mcp-conversation-audience-v1.test.ts",
+  "tests/oauth/website-inquiry-audience-v1.test.ts"
+]

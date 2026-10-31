@@ -28,6 +28,7 @@ import {
   toIdentityResolutionError,
 } from '../lib/oauth/v1/resolution.js';
 import { ensureFleetSessionSendGrant } from '../lib/oauth/v1/fleet-send-grant.js';
+import { ensureExecutionHistoryReadGrant } from '../lib/oauth/v1/execution-history-grant.js';
 import { prisma } from '../lib/prisma.js';
 
 export const idempotentRouter = Router();
@@ -163,6 +164,10 @@ idempotentRouter.post(
         id: result.id,
         machinePrincipalId: result.machinePrincipalId,
       });
+      await prisma.$transaction((tx) => ensureExecutionHistoryReadGrant(tx, {
+        id: result.id,
+        machinePrincipalId: result.machinePrincipalId,
+      }), { isolationLevel: 'Serializable' });
     }
 
     const responseBody: Record<string, unknown> = {

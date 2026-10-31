@@ -1,5 +1,5 @@
 {
-  "contract_version": "1.14.0",
+  "contract_version": "1.15.0",
   "cases": [
     {
       "name": "human-forbidden-scope",
@@ -1402,6 +1402,82 @@
         }
       ],
       "expected_error": "UNKNOWN_AUDIENCE"
+    },
+    {
+      "name": "execution-history-missing-grant",
+      "base_fixture": "execution-history-1",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/authorization_context/machine_access_grants",
+          "value": {}
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "execution-history-audit-escalation",
+      "base_fixture": "execution-history-3",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/authorization_context/machine_access_grants",
+          "value": {
+            "execution-history": [
+              "execution.history.read"
+            ]
+          }
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_GRANT"
+    },
+    {
+      "name": "execution-history-unknown-scope",
+      "base_fixture": "execution-history-1",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "execution.history.unknown"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "execution-history-resource-mismatch",
+      "base_fixture": "execution-history-1",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/aud",
+          "value": "svc-workflow"
+        }
+      ],
+      "expected_error": "INVALID_SCOPE_NAMESPACE"
+    },
+    {
+      "name": "execution-history-unknown-audience",
+      "base_fixture": "execution-history-1",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/aud",
+          "value": "execution_history"
+        }
+      ],
+      "expected_error": "UNKNOWN_AUDIENCE"
+    },
+    {
+      "name": "execution-history-silent-downscope",
+      "base_fixture": "execution-history-3",
+      "mutations": [
+        {
+          "op": "set",
+          "path": "/claims/scope",
+          "value": "execution.history.read"
+        }
+      ],
+      "expected_error": "SCOPE_OUTPUT_MISMATCH"
     }
   ],
   "signature_cases": [
