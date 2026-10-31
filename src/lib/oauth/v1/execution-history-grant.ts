@@ -111,7 +111,10 @@ export async function applyExecutionHistoryAuditInstruction(
       return { auditId: old.id, resultingGrantVersion: old.resultingGrantVersion, replayed: true };
     }
     const client = await tx.machineClient.findUnique({ where: { clientId: input.clientId }, select: clientSelect });
-    if (!client || client.status !== 'active' || client.principal.status !== 'active'
+    // Inactive clients/principals cannot receive audit scope, but revocation
+    // must remain available for their existing grants and audited NOOPs.
+    if (!client || (input.operation === 'provision'
+      && (client.status !== 'active' || client.principal.status !== 'active'))
       || client.principal.principalType !== 'agent' || !client.principal.agentId) refused('registered_agent_client_required');
     if (!await registeredAudience(tx)) refused('execution_history_audience_unavailable');
     const key = grantKey(client.id);

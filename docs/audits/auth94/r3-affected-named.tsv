@@ -1,0 +1,24 @@
+PASS	FLEET_PLAN_CLIENT_KEYED_PAIRS_AND_CENSUS
+PASS	FLEET_STAMP_AGENT_CREATES_EXACT_ROW
+PASS	FLEET_STAMP_AUDIENCE_ABSENT_SKIPS_WITHOUT_WRITE_OR_THROW
+PASS	FLEET_STAMP_AUDIENCE_INACTIVE_SKIPS
+PASS	FLEET_STAMP_IDEMPOTENT_REENTRY_IS_KEEP_WITH_NO_WRITE
+PASS	FLEET_STAMP_MISSING_PRINCIPAL_FAILS_CLOSED
+PASS	FLEET_STAMP_NORMALIZES_STRIPS_ONLY_NON_ENUMERATED_EXTRAS
+PASS	FLEET_STAMP_NORMALIZE_ADDS_SEND_PRESERVING_INSPECTION
+PASS	FLEET_STAMP_PRESERVES_ENUMERATED_INSPECTION_SCOPE
+PASS	FLEET_STAMP_SERVICE_PRINCIPAL_NEVER_STAMPED
+PASS	RG1_HR_dual_scope_row_reentry_unchanged_version_stable
+PASS	RG2_stamp_failure_no_orphan_client_retry_returns_one_time_secret
+PASS	RG3_concurrent_first_stamp_converges_single_row_no_P2002_leak
+PASS	V1 Direct authorization binds Principal, Client, Audience, and exact requested scopes
+PASS	V1 Direct authorizes an ownerless agent with valid secret and grant (AC1)
+PASS	V1 Direct fails unavailable when database Audience differs from frozen registry
+PASS	V1 Direct issues an RS256 token for an ownerless agent with no owner claim (AC1/AC7)
+PASS	V1 Direct rejects Service profile on the first-wave Agent-only audience
+PASS	V1 Direct rejects missing grants and partial authorization without downscope
+PASS	V1 Direct returns the same external error for missing Client and bad secret
+PASS	V1 Direct still rejects Service principals carrying agent_id (AC4)
+PASS	V1 Direct still rejects agents missing agent_id regardless of owner (AC3)
+PASS	ownerless agent with invalid secret fails on credential_invalid, not the profile gate (AC5)
+PASS	ownerless agent with valid secret but no grant fails on machine_grant_missing (AC6)
