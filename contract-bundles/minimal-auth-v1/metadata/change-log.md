@@ -534,3 +534,16 @@
   `workflow-todo` as a Client, not an Audience.
 - Recorded unresolved deployment, consumer SHA and scope decisions as freeze
   gates rather than guessing frozen values.
+# Execution-history source registration (auth-service #94)
+
+Accepted authority: `EXECUTION_HISTORY_AUTH_CONTRACT_V1` on main `8fb8643`
+(PR #95, Owner acceptance 2026-11-01). Append `execution-history` with the
+independent `execution.history.audit` / `execution.history.read` scopes;
+Agent machine access only, no Human/delegation profile. Source version advances
+`1.14.0 -> 1.15.0` coherently; all fifteen prior registry entries and prior
+fixture meanings remain intact. New signed fixtures use a generated synthetic
+key whose public JWK alone is retained. No real credential or grant is supplied.
+
+The prior freeze review coordinates remain historical provenance. The #94
+implementation record and independent review bind this additive source delta;
+they do not declare deployed version or downstream runtime conformance.

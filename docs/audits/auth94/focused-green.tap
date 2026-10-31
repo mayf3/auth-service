@@ -1,0 +1,65 @@
+TAP version 13
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.269Z","type":"client.fleet_grant_skipped","principalId":"94000000-0000-4000-8000-000000000001","clientId":"94000000...","resource":"agent-session-messaging","success":true,"error":"audience_absent_or_inactive"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.270Z","type":"client.fleet_grant_ensured","principalId":"94000000-0000-4000-8000-000000000001","clientId":"mc_-lqjd...","resource":"execution-history","scopes":"execution.history.read","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.270Z","type":"client.created","principalId":"94000000-0000-4000-8000-000000000001","clientId":"mc_-lqjd...","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.298Z","type":"v1.direct.issued","principalId":"94000000-0000-4000-8000-000000000001","agentId":"agt_auth94_fixture","clientId":"mc_-lqjd...","resource":"execution-history","scopes":"execution.history.read","jti":"f0bdea06-74a1-41a6-bf85-0d678487a9ae","success":true,"algorithm":"RS256","kid":"auth94-synthetic-key"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.352Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"machine_grant_missing"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.379Z","type":"v1.direct.issued","principalId":"94000000-0000-4000-8000-000000000001","agentId":"agt_auth94_fixture","clientId":"mc_auth9...","resource":"execution-history","scopes":"execution.history.audit","jti":"dab0fdf8-f701-4a86-a014-626877f46f38","success":true,"algorithm":"RS256","kid":"auth94-synthetic-key"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.429Z","type":"v1.direct.failed","clientId":"mc_other...","resource":"execution-history","success":false,"error":"machine_grant_missing"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.458Z","type":"client.fleet_grant_ensured","principalId":"94000000-0000-4000-8000-000000000001","clientId":"mc_auth9...","resource":"execution-history","scopes":"execution.history.read","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.485Z","type":"v1.direct.issued","principalId":"94000000-0000-4000-8000-000000000001","agentId":"agt_auth94_fixture","clientId":"mc_auth9...","resource":"execution-history","scopes":"execution.history.read","jti":"13c2e05a-27d6-48dc-af95-2a58a7d81248","success":true,"algorithm":"RS256","kid":"auth94-synthetic-key"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.485Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"Execution-History","success":false,"error":"audience_not_machine_enabled"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.485Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history/","success":false,"error":"audience_not_machine_enabled"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.485Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"unknown","success":false,"error":"audience_not_machine_enabled"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.511Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"svc-workflow","success":false,"error":"machine_grant_missing"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.537Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"requested_scope_not_granted"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.564Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"requested_scope_not_granted"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.592Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"requested_scope_not_granted"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.621Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"scope_shape_invalid"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.647Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"scope_spacing_invalid"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.674Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"scope_duplicate"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.700Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"scope_namespace_invalid"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.727Z","type":"client.fleet_grant_ensured","principalId":"94000000-0000-4000-8000-000000000001","clientId":"mc_auth9...","resource":"execution-history","scopes":"execution.history.read","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.755Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"requested_scope_not_granted"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.812Z","type":"v1.direct.failed","clientId":"mc_auth9...","resource":"execution-history","success":false,"error":"machine_grant_missing"}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.839Z","type":"client.fleet_grant_ensured","principalId":"94000000-0000-4000-8000-000000000001","clientId":"mc_auth9...","resource":"execution-history","scopes":"execution.history.read","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:20:46.865Z","type":"client.fleet_grant_skipped","principalId":"94000000-0000-4000-8000-000000000001","clientId":"94000000...","resource":"agent-session-messaging","success":true,"error":"audience_absent_or_inactive"}
+# Subtest: ACC94-1 registered fleet self-read mints exact scope; synthetic resource rejects another agent
+ok 1 - ACC94-1 registered fleet self-read mints exact scope; synthetic resource rejects another agent
+  ---
+  duration_ms: 76.124916
+  type: 'test'
+  ...
+# Subtest: ACC94-2 explicit named audit supply mints; ungranted client gets machine_grant_missing
+ok 2 - ACC94-2 explicit named audit supply mints; ungranted client gets machine_grant_missing
+  ---
+  duration_ms: 129.676875
+  type: 'test'
+  ...
+# Subtest: ACC94-3 resource mismatch, unknown audience/scope and mixed scope escalation fail closed
+ok 3 - ACC94-3 resource mismatch, unknown audience/scope and mixed scope escalation fail closed
+  ---
+  duration_ms: 270.791708
+  type: 'test'
+  ...
+# Subtest: ACC94-4 provision/revoke are idempotent and every call retains transactional grant_change_audits evidence
+ok 4 - ACC94-4 provision/revoke are idempotent and every call retains transactional grant_change_audits evidence
+  ---
+  duration_ms: 164.965458
+  type: 'test'
+  ...
+# Subtest: ACC94-5 real success/denial and supply/revoke logs contain no token, secret or raw session content
+ok 5 - ACC94-5 real success/denial and supply/revoke logs contain no token, secret or raw session content
+  ---
+  duration_ms: 78.186125
+  type: 'test'
+  ...
+1..5
+# tests 5
+# suites 0
+# pass 5
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 942.3045

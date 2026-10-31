@@ -1,0 +1,168 @@
+TAP version 13
+# [AUDIT] {"timestamp":"2026-10-31T23:30:35.963Z","type":"client.fleet_grant_ensured","principalId":"11111111-1111-1111-1111-111111111111","clientId":"mc_testc...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:35.965Z","type":"client.fleet_grant_ensured","principalId":"11111111-1111-1111-1111-111111111111","clientId":"mc_testc...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:35.965Z","type":"client.fleet_grant_ensured","principalId":"11111111-1111-1111-1111-111111111111","clientId":"mc_testc...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:35.965Z","type":"client.fleet_grant_ensured","principalId":"11111111-1111-1111-1111-111111111111","clientId":"mc_testc...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:35.965Z","type":"client.fleet_grant_ensured","principalId":"11111111-1111-1111-1111-111111111111","clientId":"mc_testc...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:35.965Z","type":"client.fleet_grant_skipped","principalId":"11111111-1111-1111-1111-111111111111","clientId":"mc_testc...","success":true,"error":"not_agent_principal"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:35.965Z","type":"client.fleet_grant_skipped","principalId":"11111111-1111-1111-1111-111111111111","clientId":"mc_testc...","resource":"agent-session-messaging","success":true,"error":"audience_absent_or_inactive"}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:35.965Z","type":"client.fleet_grant_skipped","principalId":"11111111-1111-1111-1111-111111111111","clientId":"mc_testc...","resource":"agent-session-messaging","success":true,"error":"audience_absent_or_inactive"}
+# Subtest: FLEET_STAMP_AGENT_CREATES_EXACT_ROW
+ok 1 - FLEET_STAMP_AGENT_CREATES_EXACT_ROW
+  ---
+  duration_ms: 1.912125
+  type: 'test'
+  ...
+# Subtest: FLEET_STAMP_IDEMPOTENT_REENTRY_IS_KEEP_WITH_NO_WRITE
+ok 2 - FLEET_STAMP_IDEMPOTENT_REENTRY_IS_KEEP_WITH_NO_WRITE
+  ---
+  duration_ms: 0.163292
+  type: 'test'
+  ...
+# Subtest: FLEET_STAMP_PRESERVES_ENUMERATED_INSPECTION_SCOPE
+ok 3 - FLEET_STAMP_PRESERVES_ENUMERATED_INSPECTION_SCOPE
+  ---
+  duration_ms: 0.08125
+  type: 'test'
+  ...
+# Subtest: FLEET_STAMP_NORMALIZES_STRIPS_ONLY_NON_ENUMERATED_EXTRAS
+ok 4 - FLEET_STAMP_NORMALIZES_STRIPS_ONLY_NON_ENUMERATED_EXTRAS
+  ---
+  duration_ms: 0.108334
+  type: 'test'
+  ...
+# Subtest: FLEET_STAMP_NORMALIZE_ADDS_SEND_PRESERVING_INSPECTION
+ok 5 - FLEET_STAMP_NORMALIZE_ADDS_SEND_PRESERVING_INSPECTION
+  ---
+  duration_ms: 0.078625
+  type: 'test'
+  ...
+# Subtest: FLEET_STAMP_SERVICE_PRINCIPAL_NEVER_STAMPED
+ok 6 - FLEET_STAMP_SERVICE_PRINCIPAL_NEVER_STAMPED
+  ---
+  duration_ms: 0.07275
+  type: 'test'
+  ...
+# Subtest: FLEET_STAMP_AUDIENCE_ABSENT_SKIPS_WITHOUT_WRITE_OR_THROW
+ok 7 - FLEET_STAMP_AUDIENCE_ABSENT_SKIPS_WITHOUT_WRITE_OR_THROW
+  ---
+  duration_ms: 0.0725
+  type: 'test'
+  ...
+# Subtest: FLEET_STAMP_AUDIENCE_INACTIVE_SKIPS
+ok 8 - FLEET_STAMP_AUDIENCE_INACTIVE_SKIPS
+  ---
+  duration_ms: 0.051917
+  type: 'test'
+  ...
+# Subtest: FLEET_STAMP_MISSING_PRINCIPAL_FAILS_CLOSED
+ok 9 - FLEET_STAMP_MISSING_PRINCIPAL_FAILS_CLOSED
+  ---
+  duration_ms: 0.205041
+  type: 'test'
+  ...
+# Subtest: FLEET_PLAN_CLIENT_KEYED_PAIRS_AND_CENSUS
+ok 10 - FLEET_PLAN_CLIENT_KEYED_PAIRS_AND_CENSUS
+  ---
+  duration_ms: 0.171
+  type: 'test'
+  ...
+# [AUDIT] {"timestamp":"2026-10-31T23:30:36.011Z","type":"client.fleet_grant_ensured","principalId":"22222222-2222-4222-8222-222222222222","clientId":"33333333...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:36.088Z","type":"client.fleet_grant_ensured","principalId":"22222222-2222-4222-8222-222222222222","clientId":"33333333...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:36.089Z","type":"client.created","principalId":"22222222-2222-4222-8222-222222222222","clientId":"mc_5PViA...","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:36.089Z","type":"client.fleet_grant_ensured","principalId":"22222222-2222-4222-8222-222222222222","clientId":"33333333...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# [AUDIT] {"timestamp":"2026-10-31T23:30:36.089Z","type":"client.fleet_grant_ensured","principalId":"22222222-2222-4222-8222-222222222222","clientId":"33333333...","resource":"agent-session-messaging","scopes":"agent.session.send","success":true}
+# Subtest: RG1_HR_dual_scope_row_reentry_unchanged_version_stable
+ok 11 - RG1_HR_dual_scope_row_reentry_unchanged_version_stable
+  ---
+  duration_ms: 22.934583
+  type: 'test'
+  ...
+# Subtest: RG2_stamp_failure_no_orphan_client_retry_returns_one_time_secret
+ok 12 - RG2_stamp_failure_no_orphan_client_retry_returns_one_time_secret
+  ---
+  duration_ms: 54.7785
+  type: 'test'
+  ...
+# Subtest: RG3_concurrent_first_stamp_converges_single_row_no_P2002_leak
+ok 13 - RG3_concurrent_first_stamp_converges_single_row_no_P2002_leak
+  ---
+  duration_ms: 0.215625
+  type: 'test'
+  ...
+# [AUDIT] {"timestamp":"2026-10-31T23:30:36.487Z","type":"v1.direct.issued","principalId":"20000000-0000-4000-8000-000000000001","agentId":"v1-direct-agent","clientId":"v1-direc...","resource":"svc-workflow","scopes":"workflow.execute workflow.read","jti":"00724e2f-e9fa-4576-be1f-7380cb549e66","success":true,"algorithm":"RS256","kid":"v1-direct-ownerless-test-key"}
+# Subtest: V1 Direct authorization binds Principal, Client, Audience, and exact requested scopes
+ok 14 - V1 Direct authorization binds Principal, Client, Audience, and exact requested scopes
+  ---
+  duration_ms: 57.33825
+  type: 'test'
+  ...
+# Subtest: V1 Direct rejects missing grants and partial authorization without downscope
+ok 15 - V1 Direct rejects missing grants and partial authorization without downscope
+  ---
+  duration_ms: 110.668167
+  type: 'test'
+  ...
+# Subtest: V1 Direct returns the same external error for missing Client and bad secret
+ok 16 - V1 Direct returns the same external error for missing Client and bad secret
+  ---
+  duration_ms: 53.183084
+  type: 'test'
+  ...
+# Subtest: V1 Direct rejects Service profile on the first-wave Agent-only audience
+ok 17 - V1 Direct rejects Service profile on the first-wave Agent-only audience
+  ---
+  duration_ms: 52.565125
+  type: 'test'
+  ...
+# Subtest: V1 Direct fails unavailable when database Audience differs from frozen registry
+ok 18 - V1 Direct fails unavailable when database Audience differs from frozen registry
+  ---
+  duration_ms: 52.2305
+  type: 'test'
+  ...
+# Subtest: V1 Direct authorizes an ownerless agent with valid secret and grant (AC1)
+ok 19 - V1 Direct authorizes an ownerless agent with valid secret and grant (AC1)
+  ---
+  duration_ms: 53.09375
+  type: 'test'
+  ...
+# Subtest: V1 Direct issues an RS256 token for an ownerless agent with no owner claim (AC1/AC7)
+ok 20 - V1 Direct issues an RS256 token for an ownerless agent with no owner claim (AC1/AC7)
+  ---
+  duration_ms: 78.804834
+  type: 'test'
+  ...
+# Subtest: V1 Direct still rejects agents missing agent_id regardless of owner (AC3)
+ok 21 - V1 Direct still rejects agents missing agent_id regardless of owner (AC3)
+  ---
+  duration_ms: 105.205917
+  type: 'test'
+  ...
+# Subtest: V1 Direct still rejects Service principals carrying agent_id (AC4)
+ok 22 - V1 Direct still rejects Service principals carrying agent_id (AC4)
+  ---
+  duration_ms: 25.952708
+  type: 'test'
+  ...
+# Subtest: ownerless agent with invalid secret fails on credential_invalid, not the profile gate (AC5)
+ok 23 - ownerless agent with invalid secret fails on credential_invalid, not the profile gate (AC5)
+  ---
+  duration_ms: 52.022
+  type: 'test'
+  ...
+# Subtest: ownerless agent with valid secret but no grant fails on machine_grant_missing (AC6)
+ok 24 - ownerless agent with valid secret but no grant fails on machine_grant_missing (AC6)
+  ---
+  duration_ms: 54.611708
+  type: 'test'
+  ...
+1..24
+# tests 24
+# suites 0
+# pass 24
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 897.051

@@ -1,0 +1,92 @@
+{
+  "evaluatedAtUtc": "2026-10-31T23:31:27.732142+00:00",
+  "repository": "mayf3/auth-service",
+  "branch": "ac-94-execution-history-auth-impl",
+  "predecessorHead": "1e596e9772d181fda9090a5bfd2f2f2aadb34ae1",
+  "authorityBase": "8fb8643519fa6f160bba79e78c5170a312018880",
+  "redSourceSha256": "13e8fa98161848509a2979c3788b9da986bb758d859df3446098801f191acea7",
+  "node": "v26.7.0",
+  "testEnvironment": "fresh whitelist; synthetic JWT_SECRET; AUTH_CONTRACT_MODE=v1; unused synthetic DATABASE_URL at 127.0.0.1:1",
+  "runs": [
+    {
+      "phase": "RED",
+      "command": [
+        "node_modules/.bin/tsx",
+        "--test",
+        "--test-reporter=tap",
+        "tests/oauth/execution-history-revoke-v1.test.ts"
+      ],
+      "exitCode": 1,
+      "passed": 0,
+      "failed": 3,
+      "output": "r3-red.tap"
+    },
+    {
+      "phase": "GREEN",
+      "command": [
+        "node_modules/.bin/tsx",
+        "--test",
+        "--test-reporter=tap",
+        "tests/oauth/execution-history-revoke-v1.test.ts",
+        "tests/oauth/execution-history-auth-v1.test.ts"
+      ],
+      "exitCode": 0,
+      "passed": 8,
+      "failed": 0,
+      "output": "r3-green.tap"
+    },
+    {
+      "phase": "affected-existing",
+      "command": [
+        "node_modules/.bin/tsx",
+        "--test",
+        "--test-reporter=tap",
+        "tests/oauth/fleet-send-grant.test.ts",
+        "tests/oauth/fleet-send-regression.test.ts",
+        "tests/oauth/v1-direct.test.ts"
+      ],
+      "exitCode": 0,
+      "passed": 24,
+      "failed": 0,
+      "output": "r3-affected.tap"
+    },
+    {
+      "phase": "TypeScript",
+      "command": [
+        "node_modules/.bin/tsc",
+        "-p",
+        "tsconfig.json",
+        "--noEmit"
+      ],
+      "exitCode": 0,
+      "output": "r3-typecheck.log"
+    }
+  ],
+  "existingNamedComparison": {
+    "approvedTotal": 73,
+    "fresh": 24,
+    "reusedFromApprovedR2": 49,
+    "existingManifestFilesUnchanged": 13,
+    "namedOutcomeDiffBytes": 0,
+    "approvedPassed": 71,
+    "approvedPreexistingFailures": 2
+  },
+  "sha256": {
+    "src/lib/oauth/v1/execution-history-grant.ts": "d066d31a8f2ccd0ee6b5c37677870f4f9dec0a0895db13e6fd0f3fc880e3de9f",
+    "tests/oauth/execution-history-revoke-v1.test.ts": "545aeff446590c1642521a446bc5552b0fc7c48ed0f18a7e82fd24915912bdc9",
+    "docs/audits/auth94/r3-affected-exit.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "docs/audits/auth94/r3-affected-named.tsv": "2f2cbb130e62ddb0c7eeeae35932a71096f666303afc24e3b6058badbc4217e0",
+    "docs/audits/auth94/r3-affected.tap": "6102bc18c3e568952bf1af2d6f8bd08ee1aec3f1381ec1dfd0e41f6c26c14882",
+    "docs/audits/auth94/r3-green-exit.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "docs/audits/auth94/r3-green.tap": "e2d7a63ed9342f8cc90044b6d5f51c112d8c3974d85e370d4647b064c8049ad3",
+    "docs/audits/auth94/r3-named-set.diff": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "docs/audits/auth94/r3-named.tsv": "c08f308ad02d010d993dd4862e03f2ffee9c17f48a446a75664b9d4f28887467",
+    "docs/audits/auth94/r3-red-exit.txt": "4355a46b19d348dc2f57c046f8ef63d4538ebb936000f3c9ee954a27460dd865",
+    "docs/audits/auth94/r3-red.tap": "b3507f6e060b87f43b4ac673a0b0537f8edc5e47bfb8ee184a7490c87c47a37f",
+    "docs/audits/auth94/r3-typecheck-exit.txt": "9a271f2a916b0b6ee6cecb2426f0b3206ef074578be55d9bc94f6f3fe3ab86aa",
+    "docs/audits/auth94/r3-typecheck.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "productionWrites": false,
+  "realGrantsMaterialized": false,
+  "runtimeAcceptance": "NOT_EXECUTED"
+}
