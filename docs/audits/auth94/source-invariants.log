@@ -1,0 +1,10 @@
+PASS unchanged prior audience-registry.json:audiences count=15
+PASS unchanged prior fixtures/positive-token-fixtures.json:fixtures count=23
+PASS unchanged prior fixtures/negative-token-fixtures.json:cases count=134
+PASS unchanged prior fixtures/negative-token-fixtures.json:signature_cases count=4
+PASS schema and migrations unchanged
+PASS no token/secret/raw sentinel in focused-green.tap
+PASS no token/secret/raw sentinel in focused-red.tap
+PASS no token/secret/raw sentinel in baseline.tap
+PASS no token/secret/raw sentinel in candidate.tap
+PASS named test outcomes diff empty

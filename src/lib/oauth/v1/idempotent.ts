@@ -25,6 +25,7 @@ import crypto from 'node:crypto';
 import { Prisma, type PrismaClient } from '@prisma/client';
 import { prisma } from '../../../lib/prisma.js';
 import { ensureFleetSessionSendGrant } from './fleet-send-grant.js';
+import { ensureExecutionHistoryReadGrant } from './execution-history-grant.js';
 import {
   generateClientSecret,
   hashClientSecret,
@@ -543,6 +544,10 @@ export async function createOrGetClient(
       // SAME transaction — grant failure rolls the client back, so the first
       // one-time secret is never orphaned in a dead call frame.
       await ensureFleetSessionSendGrant(tx, {
+        id: row.id,
+        machinePrincipalId: row.machinePrincipalId,
+      });
+      await ensureExecutionHistoryReadGrant(tx, {
         id: row.id,
         machinePrincipalId: row.machinePrincipalId,
       });

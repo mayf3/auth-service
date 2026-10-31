@@ -40,17 +40,17 @@ function readBundle(relative: string): any {
 test('MCP SERVICE audience and all thirteen base projections survive website composition', () => {
   const registry = readBundle('audience-registry.json');
   assert.deepEqual(registry.audiences[12], exactAudience);
-  assert.equal(registry.audiences.length, 15);
+  assert.equal(registry.audiences.length, 16);
   // SHA256 of JSON.stringify(Base 6cf2663 registry.audiences): complete entries and order.
   assert.equal(crypto.createHash('sha256').update(JSON.stringify(registry.audiences.slice(0, 12))).digest('hex'),
     '2c016106e6d5b01475132efc9baa9a4af57ce2f484440f8ef3190827d5d1510a');
   // Preserve the complete 1.14.0 base, including the exact MCP entry.
   assert.equal(crypto.createHash('sha256').update(JSON.stringify(registry.audiences.slice(0, 13))).digest('hex'),
     '67a79cd4a65b5148d4305708c1f3820a841b974ccf65219cea63d779cbb90e6a');
-  assert.equal(registry.registry_version, '1.14.0');
-  assert.equal(readBundle('contract-manifest.json').contract_version, '1.14.0');
-  assert.equal(readBundle('contract-manifest.json').audience_registry_version, '1.14.0');
-  assert.equal(readBundle('schemas/contract-manifest.schema.json').properties.contract_version.const, '1.14.0');
+  assert.equal(registry.registry_version, '1.15.0');
+  assert.equal(readBundle('contract-manifest.json').contract_version, '1.15.0');
+  assert.equal(readBundle('contract-manifest.json').audience_registry_version, '1.15.0');
+  assert.equal(readBundle('schemas/contract-manifest.schema.json').properties.contract_version.const, '1.15.0');
 });
 
 test('MCP signed fixture proves the SERVICE profile and opaque exact scope with fail-closed negatives', () => {
@@ -81,7 +81,7 @@ test('MCP signed fixture proves the SERVICE profile and opaque exact scope with 
 test('actual generated loader accepts only the frozen source version, digest and authorization', () => {
   resetAuthContractForTests();
   const identity = initializeAuthContract('v1');
-  assert.equal(identity.contractVersion, '1.14.0');
+  assert.equal(identity.contractVersion, '1.15.0');
   const snapshot = JSON.parse(readFileSync(resolve('generated/minimal-auth-v1/runtime-contract.json'), 'utf8'));
   assert.equal(verifyRuntimeSnapshot(snapshot).reviewedSourceGitCommit,
     readBundle('contract-manifest.json').lifecycle.contract_bundle_freeze.reviewed_source_git_commit);

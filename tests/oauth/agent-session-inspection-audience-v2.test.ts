@@ -20,10 +20,10 @@ const positiveFixtures = readBundleJson('fixtures/positive-token-fixtures.json')
 const negativeFixtures = readBundleJson('fixtures/negative-token-fixtures.json');
 
 test('Bundle 1.14.0 registers the exact independent session messaging scopes', () => {
-  assert.equal(registry.registry_version, '1.14.0');
-  assert.equal(manifest.contract_version, '1.14.0');
-  assert.equal(manifest.audience_registry_version, '1.14.0');
-  assert.equal(manifestSchema.properties.contract_version.const, '1.14.0');
+  assert.equal(registry.registry_version, '1.15.0');
+  assert.equal(manifest.contract_version, '1.15.0');
+  assert.equal(manifest.audience_registry_version, '1.15.0');
+  assert.equal(manifestSchema.properties.contract_version.const, '1.15.0');
 
   const audience = registry.audiences.find(
     (entry: any) => entry.audience_id === 'agent-session-messaging',
@@ -48,7 +48,7 @@ test('Bundle 1.14.0 registers the exact independent session messaging scopes', (
 
 test('runtime accepts the frozen Bundle 1.14.0 snapshot', () => {
   resetAuthContractForTests();
-  assert.equal(initializeAuthContract('v1').contractVersion, '1.14.0');
+  assert.equal(initializeAuthContract('v1').contractVersion, '1.15.0');
 });
 
 test('positive fixtures prove send-only, inspect-only, and combined grants independently', () => {
