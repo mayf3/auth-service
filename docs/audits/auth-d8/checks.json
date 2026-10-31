@@ -1,0 +1,94 @@
+{
+  "candidate-prepare": {
+    "command": [
+      "node",
+      "scripts/prepare-candidate-snapshot.mjs"
+    ],
+    "exitCode": 0,
+    "sha256": "c97526ef3880e5d7865c27c9db983a0c2bd44a025d12038a02079b284feb5ac4"
+  },
+  "existing": {
+    "command": [
+      "node_modules/.bin/tsx",
+      "--test",
+      "--test-reporter=tap",
+      "tests/oauth/contract-runtime-v1.test.ts",
+      "tests/oauth/migration-v1-static.test.ts",
+      "tests/oauth/grant-migration-v1.test.ts",
+      "tests/oauth/v1-scope.test.ts",
+      "tests/oauth/v1-direct.test.ts",
+      "tests/oauth/v1-signer.test.ts",
+      "tests/oauth/v1-exchange.test.ts",
+      "tests/oauth/v1-human.test.ts",
+      "tests/oauth/fleet-send-grant.test.ts",
+      "tests/oauth/fleet-send-regression.test.ts",
+      "tests/oauth/agent-session-inspection-audience-v2.test.ts",
+      "tests/oauth/mcp-conversation-audience-v1.test.ts",
+      "tests/oauth/website-inquiry-audience-v1.test.ts"
+    ],
+    "exitCode": 1,
+    "sha256": "5740e5b79247a65a19a2e85455867d5d1511984f17a82b9e7b6cb79333fecf87",
+    "namedCount": 73,
+    "passed": 71,
+    "failed": [
+      "V1 Prisma and migration files stay within the repository line limit",
+      "real disposable PostgreSQL, generic SERVICE issuer and loopback HTTP preserve all authorization guards"
+    ],
+    "comparisonBaseline": "docs/audits/auth94/r3-named.tsv",
+    "namedOutcomeDiffEmpty": true,
+    "logFile": "existing.tap.gz",
+    "artifactSha256": "94d11a5b11aa48e6bd14f5588aec38ebde255a882828442d6390327563c76e8b",
+    "sha256Meaning": "uncompressed TAP bytes"
+  },
+  "build": {
+    "command": [
+      "npm",
+      "run",
+      "build"
+    ],
+    "exitCode": 0,
+    "sha256": "dd0d17418a7ac39f946e85a7ac7fef3f4519424c7c68aee102a999516fde0e56"
+  },
+  "default-test": {
+    "command": [
+      "npm",
+      "test"
+    ],
+    "exitCode": 0,
+    "sha256": "5831cf9e7d6229bc34ab2c3c5a9ad6f02af941a02692b5ae13ae71da70b2194a"
+  },
+  "probe": {
+    "command": [
+      "python3",
+      "docs/audits/auth-d8/run-probe.py"
+    ],
+    "exitCode": 0,
+    "cases": 11,
+    "expectedPreFixRed": false,
+    "diagnosticOnUnchangedIssuer": true,
+    "sha256": "005dafb8039d6353abb806f6d305ca3572f3d5af0187e724f391cbdf4e1df9bc"
+  },
+  "coordinates": {
+    "repository": "mayf3/auth-service",
+    "branch": "ac-d8-notification-deliver",
+    "testedSourceHead": "0227f9d6b16dbc306c5fd0a7c1edc95cf5a77c15",
+    "node": "v26.7.0",
+    "sourceBundleDigest": "583af6d79e3de4c604ee266b565eeb232ba438dcca1e35263454f451818004d7",
+    "runtimeDigest": "78e51dc942356da289840dbae1c79c753925f0acc7ea566e55c06614545cb291"
+  },
+  "limits": {
+    "sourceRepairPerformed": false,
+    "productionDataRead": false,
+    "productionWrites": false,
+    "deployedMode": "UNKNOWN",
+    "actualDurableGrantState": "UNKNOWN",
+    "productionRootCause": "UNKNOWN",
+    "deliveredCanary": "NOT_EXECUTED"
+  },
+  "authorizedProductionSourceInspection": {
+    "path": "/usr/local/libexec/agent-core/app/packages/notification-ingress/src/auth.js",
+    "sha256": "f42d3ff45f622850631acefb9cc53f27f7839d18d05bbabb9c435dd521e76f14",
+    "sourceOnly": true,
+    "importedOrExecuted": false
+  }
+}

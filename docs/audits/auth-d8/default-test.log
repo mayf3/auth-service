@@ -1,0 +1,84 @@
+
+> @unified-auth/service@1.0.0 test
+> tsx --test tests/identity/*.test.ts tests/token-login-stale-name.test.ts
+
+▶ readEnvFile
+  ✔ reports missing .env (0.507833ms)
+  ✔ extracts PLATFORM_AGENT_ID when present (0.499208ms)
+  ✔ reports absence when PLATFORM_AGENT_ID is missing (0.281375ms)
+  ✔ does not expose other variable values (0.305875ms)
+✔ readEnvFile (3.244958ms)
+▶ atomicSetPlatformAgentId
+  ✔ creates .env when it does not exist (0.434666ms)
+  ✔ sets 0600 permissions on new .env file (0.243916ms)
+  ✔ adds PLATFORM_AGENT_ID to existing .env preserving other content (0.49075ms)
+  ✔ updates existing PLATFORM_AGENT_ID when value matches (no-op) (0.216042ms)
+  ✔ throws on conflict (existing value differs) (0.358292ms)
+  ✔ is idempotent — second call returns false (0.326375ms)
+✔ atomicSetPlatformAgentId (3.402334ms)
+▶ backup and restore
+  ✔ creates .env.bak backup (0.842208ms)
+  ✔ restores from backup after direct modification (1.173875ms)
+  ✔ returns null for backup when .env does not exist (0.419542ms)
+✔ backup and restore (2.557667ms)
+▶ envHasCorrectValue
+  ✔ returns true when value matches (0.392292ms)
+  ✔ returns false when value differs (0.197042ms)
+  ✔ returns false when .env does not exist (0.087583ms)
+✔ envHasCorrectValue (1.336791ms)
+▶ resolveCurrent
+  ✔ resolves identity when .env contains correct PLATFORM_AGENT_ID (1.146125ms)
+  ✔ fails when .env does not exist (workspace IS in config) (0.746958ms)
+  ✔ fails when PLATFORM_AGENT_ID is missing from .env (0.454667ms)
+  ✔ fails when agent ID does not exist in config (0.338917ms)
+  ✔ fails when PLATFORM_AGENT_ID does not match config (0.373666ms)
+  ✔ fails on workspace conflict (multiple enabled agents sharing same workspace) (0.415542ms)
+  ✔ fails on invalid agent ID format (starts with hyphen) (0.322875ms)
+  ✔ does not output secret values in error messages (0.264584ms)
+✔ resolveCurrent (7.693917ms)
+▶ auditAll
+  ✔ produces audit summary with correct counts (1.465875ms)
+  ✔ identifies missing PLATFORM_AGENT_ID (0.345292ms)
+  ✔ detects valid agent ID format (0.18875ms)
+  ✔ detects invalid agent ID format with issues config (0.2325ms)
+  ✔ reports workspace conflicts (0.132833ms)
+✔ auditAll (4.040166ms)
+▶ planBootstrap
+  ✔ categorizes actions correctly (0.663584ms)
+  ✔ can_apply is true when no blockers (0.199209ms)
+  ✔ can_apply is false when conflicts exist (0.20225ms)
+  ✔ dry-run does not modify any files (0.15175ms)
+✔ planBootstrap (2.376917ms)
+▶ executeBootstrap
+  ✔ skips already-correct agents (1.954083ms)
+  ✔ adds PLATFORM_AGENT_ID to existing .env preserving other content (1.695791ms)
+  ✔ creates .env for agents without one (2.060709ms)
+  ✔ creates .env.bak backup before modification (1.979625ms)
+  ✔ is idempotent — second run skips all (1.687208ms)
+  ✔ is blocked when conflicts exist (1.30025ms)
+✔ executeBootstrap (10.852166ms)
+▶ HIGH-05 plan/apply inconsistency
+  ✔ HIGH-05 FIXED: conflict value shows as conflict/blocked, plan+apply consistent (1.045708ms)
+✔ HIGH-05 plan/apply inconsistency (1.080167ms)
+▶ generateManifest
+  ✔ produces consistent manifest from config (0.112292ms)
+  ✔ is stable (same config produces same result) (0.079666ms)
+✔ generateManifest (0.223042ms)
+▶ config module
+  ✔ resolves tilde workspace paths (0.182125ms)
+  ✔ handles paths with spaces and special characters (0.024ms)
+✔ config module (0.22875ms)
+▶ token-login stale name regression
+  ✔ returns updated user.name after name change (16.587917ms)
+  ✔ returns complete response schema (2.467625ms)
+  ✔ JWT accessToken has no agentId claim (1.906875ms)
+  ✔ proves the bug scenario: old code would return stale name (0.994292ms)
+✔ token-login stale name regression (25.120791ms)
+ℹ tests 48
+ℹ suites 12
+ℹ pass 48
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 366.847583
