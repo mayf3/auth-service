@@ -1,0 +1,81 @@
+{
+  "testedHead": "0227f9d6b16dbc306c5fd0a7c1edc95cf5a77c15",
+  "persistence": "synthetic fixture only",
+  "sourceSha256": {
+    "src/routes/oauth.ts": "2a98713695ce9ac5603d6386067a4adf43b6ef9069728bf07ae4b9d1726f7b0a",
+    "src/lib/oauth/v1/direct.ts": "6ce86bbee2ca13aac5909c7e2f70ab0f8c490960a47644b3860e905b0b91a40d",
+    "src/lib/oauth/v1/signer.ts": "97edd098f2ea3ad4c22f86055142dd497987a54bb049d338cad1bee3e4939603",
+    "src/lib/oauth/token-issuance.ts": "5695784a6b46d88047f0e30f881eee9ba608c4fcc47484979867996222678b57",
+    "contract-bundles/minimal-auth-v1/audience-registry.json": "4dfdbdbff8a7977eeed6c6037b4cb8ada367174960273f8079b9326318a270a8"
+  },
+  "results": [
+    {
+      "name": "service + correct audience + durable scope grant mints on unchanged base",
+      "result": "PASS"
+    },
+    {
+      "name": "legacy allowedResources/allowedScopes alone do not supply a durable grant",
+      "result": "PASS",
+      "error": "invalid_scope",
+      "category": "machine_grant_missing",
+      "attempts": 2
+    },
+    {
+      "name": "unregistered scope rejects whole issuance",
+      "result": "PASS",
+      "error": "invalid_scope",
+      "category": "requested_scope_not_granted",
+      "attempts": 2
+    },
+    {
+      "name": "mixed scope never downscopes",
+      "result": "PASS",
+      "error": "invalid_scope",
+      "category": "requested_scope_not_granted",
+      "attempts": 2
+    },
+    {
+      "name": "wrong registered audience cannot reuse notification grant",
+      "result": "PASS",
+      "error": "invalid_scope",
+      "category": "machine_grant_missing",
+      "attempts": 2
+    },
+    {
+      "name": "unknown audience fails closed",
+      "result": "PASS",
+      "error": "invalid_target",
+      "category": "audience_not_machine_enabled",
+      "attempts": 2
+    },
+    {
+      "name": "unregistered client fails closed",
+      "result": "PASS",
+      "error": "invalid_client",
+      "category": "client_or_principal_inactive",
+      "attempts": 2
+    },
+    {
+      "name": "invalid synthetic credential fails closed",
+      "result": "PASS",
+      "error": "invalid_client",
+      "category": "credential_invalid",
+      "attempts": 2
+    },
+    {
+      "name": "agent remains excluded from notification service audience",
+      "result": "PASS",
+      "error": "invalid_target",
+      "category": "audience_profile_not_accepted",
+      "attempts": 2
+    },
+    {
+      "name": "agent workflow issuance remains unchanged",
+      "result": "PASS"
+    },
+    {
+      "name": "no synthetic credential/hash/token logged",
+      "result": "PASS"
+    }
+  ]
+}
