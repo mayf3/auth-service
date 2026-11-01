@@ -26,7 +26,7 @@ const publicRef = z.string().regex(/^https:\/\/github\.com\/mayf3\/(auth-service
 export const bindingSchema = z.object({
   service: z.literal('svc-workflow-backend-v1'),
   machinePrincipalId: z.string().uuid(), machineClientId: z.string().uuid(),
-  clientId: z.string().regex(/^mc_[A-Za-z0-9_-]{1,128}$/),
+  clientId: z.string().min(1).max(128),
   approvedBy: z.literal('mayf3'), instructionRef: publicRef,
 }).strict();
 export type Binding = z.infer<typeof bindingSchema>;
