@@ -1,6 +1,8 @@
 ---
 spec_id: MACHINE_GRANT_SUPPLY_NOTIFICATION_DELIVER_V1
-status: proposed
+status: accepted
+accepted_at: 2026-11-02
+accepted_by: Owner (mayf3) via supervisor resolution of AMENDMENT 1
 spec_kind: implementation
 authority_level: governing_spec
 implementation_authority: contracts
@@ -106,6 +108,28 @@ or reinterpret the accepted two-caller meaning. If Owner's resolution requires
 changing that accepted meaning, stop this `NEW` child route and re-PREFLIGHT a
 docs-first whole-authority successor with atomic backlinks; do not silently
 amend the old stable IDs. Existing accepted files are byte-preserved here.
+
+## AMENDMENT 1 (2026-11-02)
+## AMENDMENT 1 (2026-11-02) — Owner-delegated caller-relationship resolution
+
+RESOLVED (supervisor ruling under retained identity/semantic authority, Owner
+directive FIX-REQUIREMENTS-FOR-OTHER-AGENT.md fix-requirement 3 + in-session
+blanket approval):
+
+- `svc-workflow-backend-v1` is a NEW independent service Client under the
+  EXISTING accepted caller `svc-workflow` (the caller family is unchanged:
+  svc-forum + svc-workflow; CTR-NI-004's "independent service Clients/Grants"
+  is satisfied by an independent Client + Grant pair for the backend identity).
+- The two-caller boundary of CTR-NI-004 is NOT changed; no whole-authority
+  successor is required on this account.
+- Binding gate stands: the backend Client's exact public ID/principal binding
+  is proven fresh at provision time (existing NORMATIVE gate), never guessed.
+- status: accepted (was: proposed); implementation may proceed per this Spec.
+
+Prior text below is preserved verbatim; where it conflicts with this
+amendment (OPEN_OWNER_DECISIONS / READY_TO_MARK_ACCEPTED = NO), this
+amendment supersedes.
+
 
 ## 3. Current state, observations and evidence
 
