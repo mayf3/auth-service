@@ -19,7 +19,6 @@ import { agentPrincipalRouter } from './routes/agent-principals.js';
 import { workflowAdmissionRouter } from './routes/workflow-admission.js';
 import { HttpError, OAuthHttpError } from './utils/http-error.js';
 import { prisma } from './lib/prisma.js';
-import { startCleanup } from './middleware/token-rotation.js';
 import { initializeAuthContract } from './lib/oauth/v1/contract.js';
 import { initializeV1TokenIssuer } from './lib/oauth/v1/signer.js';
 
@@ -200,7 +199,6 @@ const onHttpListening = () => {
   console.log(`  ⏱️  Rate limit: ${env.RATE_LIMIT_MAX_REQUESTS}/${env.RATE_LIMIT_WINDOW_MS / 1000}s global, ${env.RATE_LIMIT_LOGIN_MAX_FAILS}/${env.RATE_LIMIT_WINDOW_MS / 1000}s auth\n`);
 
   // Start token rotation cleanup
-  startCleanup();
 };
 
 if (env.AUTH_HTTP_BIND_HOST !== undefined) {
